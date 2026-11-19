@@ -17,17 +17,17 @@
  "levels": [
   {
    "id": "bakery",
-   "title": "The bakery"
+   "title": "bakery"
   },
   {
    "id": "order-life",
-   "title": "Life of a request"
+   "title": "life-of-a-request"
   }
  ],
  "areas": [
   {
    "id": "counter",
-   "label": "The counter",
+   "label": "Counter",
    "tag": "module",
    "level": "bakery",
    "info": {
@@ -36,7 +36,7 @@
   },
   {
    "id": "back-room",
-   "label": "The back room",
+   "label": "Back room",
    "tag": "deployment",
    "level": "bakery",
    "info": {
@@ -51,7 +51,7 @@
   },
   {
    "id": "night-shift",
-   "label": "The night shift",
+   "label": "Night shift",
    "tag": "lane",
    "level": "bakery",
    "info": {
@@ -60,7 +60,7 @@
   },
   {
    "id": "cooling",
-   "label": "The cooling",
+   "label": "Cooling",
    "tag": "phase",
    "level": "bakery",
    "info": {
@@ -89,7 +89,7 @@
  "nodes": [
   {
    "id": "buyer",
-   "label": "a buyer",
+   "label": "Buyer",
    "tag": "actor",
    "level": "bakery",
    "purpose": "Ask for loaves to collect in the morning.",
@@ -99,7 +99,7 @@
   },
   {
    "id": "order-form",
-   "label": "the order form",
+   "label": "Order form",
    "tag": "endpoint",
    "level": "bakery",
    "area": "counter",
@@ -110,7 +110,7 @@
   },
   {
    "id": "front-door",
-   "label": "the front door",
+   "label": "Front door",
    "tag": "router",
    "level": "bakery",
    "area": "counter",
@@ -118,7 +118,7 @@
   },
   {
    "id": "order-desk",
-   "label": "the order desk",
+   "label": "Order desk",
    "tag": "service",
    "level": "bakery",
    "area": "counter",
@@ -130,7 +130,7 @@
   },
   {
    "id": "order-book",
-   "label": "the order book",
+   "label": "Order book",
    "tag": "dataStore",
    "level": "bakery",
    "area": "back-room",
@@ -159,7 +159,7 @@
   },
   {
    "id": "bake-list",
-   "label": "the bake list",
+   "label": "Bake list",
    "tag": "queue",
    "level": "bakery",
    "area": "back-room",
@@ -167,7 +167,7 @@
   },
   {
    "id": "night-bake",
-   "label": "the night bake",
+   "label": "Night bake",
    "tag": "job",
    "level": "bakery",
    "area": "night-shift",
@@ -196,7 +196,7 @@
   },
   {
    "id": "oven-timer",
-   "label": "the oven timer",
+   "label": "Oven timer",
    "tag": "trigger",
    "level": "bakery",
    "area": "night-shift",
@@ -205,7 +205,7 @@
   },
   {
    "id": "bread-batch",
-   "label": "the bread batch",
+   "label": "Bread batch",
    "tag": "artifact",
    "level": "bakery",
    "area": "cooling",
@@ -213,7 +213,7 @@
   },
   {
    "id": "allergy-rule",
-   "label": "the allergy rule",
+   "label": "Allergy rule",
    "tag": "policy",
    "level": "bakery",
    "area": "staff-only",
@@ -221,7 +221,7 @@
   },
   {
    "id": "shop-oven",
-   "label": "the shop oven",
+   "label": "Shop oven",
    "tag": "host",
    "level": "bakery",
    "area": "back-room",
@@ -229,7 +229,7 @@
   },
   {
    "id": "staff-badge",
-   "label": "the staff badge",
+   "label": "Staff badge",
    "tag": "credential",
    "level": "bakery",
    "area": "staff-only",
@@ -237,21 +237,21 @@
   },
   {
    "id": "taken",
-   "label": "request taken",
+   "label": "Request taken",
    "tag": "state",
    "level": "order-life",
    "area": "request-states"
   },
   {
    "id": "baked",
-   "label": "request baked",
+   "label": "Request baked",
    "tag": "state",
    "level": "order-life",
    "area": "request-states"
   },
   {
    "id": "kept-hot",
-   "label": "kept hot",
+   "label": "Kept hot",
    "tag": "state",
    "level": "order-life",
    "area": "heat-states"
@@ -352,7 +352,7 @@
  "scenarios": [
   {
    "id": "evening-request",
-   "title": "An evening's request",
+   "title": "evenings-request",
    "purpose": "A request made in the evening is baked by morning.",
    "principle": true,
    "steps": [
@@ -383,7 +383,7 @@
   },
   {
    "id": "nut-loaf",
-   "title": "A nut loaf",
+   "title": "nut-loaf",
    "purpose": "A nut loaf never shares a tray.",
    "steps": [
     {
@@ -402,6 +402,7 @@
  "properties": [
   {
    "id": "every-loaf-asked",
+   "title": "every-loaf-asked",
    "kind": "invariant",
    "statement": "Every loaf in {bread-batch} answers one line of {order-book}.",
    "on": [

@@ -58,19 +58,19 @@
  "levels": [
   {
    "id": "skill",
-   "title": "The system skill",
+   "title": "system-skill",
    "about": "Between {subject} and {reader}, three jobs in turn carry what the sources say into two kept files, and {contract} is fit for {reader} only in the last of its three states."
   },
   {
    "id": "parts",
-   "title": "Parts of a contract",
+   "title": "parts-of-a-contract",
    "about": "{contract} draws {subject} with four parts on each level and holds all levels together with three more."
   }
  ],
  "areas": [
   {
    "id": "outside",
-   "label": "outside the skill",
+   "label": "Outside the skill",
    "tag": "lane",
    "level": "skill",
    "info": {
@@ -80,7 +80,7 @@
   },
   {
    "id": "work",
-   "label": "the three jobs",
+   "label": "Three jobs",
    "tag": "phase",
    "level": "skill",
    "info": {
@@ -92,7 +92,7 @@
   },
   {
    "id": "kept",
-   "label": "the kept files",
+   "label": "Kept files",
    "tag": "module",
    "level": "skill",
    "info": {
@@ -101,7 +101,7 @@
   },
   {
    "id": "life",
-   "label": "the states of a contract",
+   "label": "Contract states",
    "tag": "region",
    "level": "skill",
    "info": {
@@ -112,7 +112,7 @@
   },
   {
    "id": "drawn",
-   "label": "the parts of one level",
+   "label": "Parts of one level",
    "tag": "module",
    "level": "parts",
    "info": {
@@ -121,7 +121,7 @@
   },
   {
    "id": "told",
-   "label": "the parts across levels",
+   "label": "Parts across levels",
    "tag": "module",
    "level": "parts",
    "info": {
@@ -132,7 +132,7 @@
  "nodes": [
   {
    "id": "subject",
-   "label": "the subject",
+   "label": "Subject",
    "tag": "actor",
    "level": "skill",
    "area": "outside",
@@ -151,7 +151,7 @@
   },
   {
    "id": "session",
-   "label": "a Claude Code session",
+   "label": "Claude Code session",
    "tag": "host",
    "level": "skill",
    "area": "outside",
@@ -171,7 +171,7 @@
   },
   {
    "id": "reader",
-   "label": "a reader",
+   "label": "Reader",
    "tag": "actor",
    "level": "skill",
    "area": "outside",
@@ -185,7 +185,7 @@
   },
   {
    "id": "extract",
-   "label": "the extraction run",
+   "label": "Extraction run",
    "tag": "job",
    "level": "skill",
    "area": "work",
@@ -222,7 +222,7 @@
   },
   {
    "id": "write",
-   "label": "contract writing",
+   "label": "Contract writing",
    "tag": "job",
    "level": "skill",
    "area": "work",
@@ -258,7 +258,7 @@
   },
   {
    "id": "checker",
-   "label": "the checker",
+   "label": "Checker",
    "tag": "job",
    "level": "skill",
    "area": "work",
@@ -298,7 +298,7 @@
   },
   {
    "id": "catalogue",
-   "label": "the tag catalogue",
+   "label": "Tag catalogue",
    "tag": "artifact",
    "level": "skill",
    "area": "kept",
@@ -321,7 +321,7 @@
   },
   {
    "id": "contract",
-   "label": "the contract",
+   "label": "Contract",
    "tag": "dataStore",
    "level": "skill",
    "area": "kept",
@@ -396,7 +396,7 @@
   },
   {
    "id": "drafted",
-   "label": "a drafted contract",
+   "label": "Drafted contract",
    "tag": "state",
    "level": "skill",
    "area": "life",
@@ -413,7 +413,7 @@
   },
   {
    "id": "checked",
-   "label": "a checked contract",
+   "label": "Checked contract",
    "tag": "state",
    "level": "skill",
    "area": "life",
@@ -429,7 +429,7 @@
   },
   {
    "id": "answered",
-   "label": "an answered contract",
+   "label": "Answered contract",
    "tag": "state",
    "level": "skill",
    "area": "life",
@@ -447,7 +447,7 @@
   },
   {
    "id": "level",
-   "label": "a level",
+   "label": "Level",
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
@@ -461,7 +461,7 @@
   },
   {
    "id": "area",
-   "label": "an area",
+   "label": "Area",
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
@@ -475,7 +475,7 @@
   },
   {
    "id": "node",
-   "label": "a node",
+   "label": "Node",
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
@@ -489,7 +489,7 @@
   },
   {
    "id": "edge",
-   "label": "an edge",
+   "label": "Edge",
    "tag": "artifact",
    "level": "parts",
    "area": "drawn",
@@ -503,7 +503,7 @@
   },
   {
    "id": "tag",
-   "label": "a tag",
+   "label": "Tag",
    "tag": "policy",
    "level": "parts",
    "area": "told",
@@ -518,7 +518,7 @@
   },
   {
    "id": "scenario",
-   "label": "a scenario",
+   "label": "Scenario",
    "tag": "artifact",
    "level": "parts",
    "area": "told",
@@ -532,7 +532,7 @@
   },
   {
    "id": "property",
-   "label": "a property",
+   "label": "Property",
    "tag": "artifact",
    "level": "parts",
    "area": "told",
@@ -805,7 +805,7 @@
  "scenarios": [
   {
    "id": "describe",
-   "title": "Describe a subject",
+   "title": "describe-a-subject",
    "purpose": "{reader} rebuilds {subject} from {contract} alone.",
    "principle": true,
    "steps": [
@@ -834,7 +834,7 @@
   },
   {
    "id": "walk-parts",
-   "title": "Read one level",
+   "title": "read-one-level",
    "purpose": "{reader} tells the static sentences from the moves between states.",
    "steps": [
     {
@@ -851,6 +851,7 @@
  "properties": [
   {
    "id": "one-file",
+   "title": "one-file",
    "kind": "invariant",
    "strength": "must",
    "statement": "Every page of {subject} is made from {contract} and nothing else.",
@@ -863,8 +864,9 @@
   },
   {
    "id": "same-level",
+   "title": "same-level",
    "kind": "fact",
-   "statement": "{node} sits in {area} of its own level: the level {node} is drawn on is the level its area is drawn on.",
+   "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.",
    "on": [
     "node",
     "area",
@@ -885,9 +887,10 @@
   },
   {
    "id": "ids-once",
+   "title": "ids-once",
    "kind": "convention",
    "strength": "must",
-   "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what the edge does and holds neither end's id, so moving an end leaves it true.",
+   "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.",
    "on": [
     "node",
     "edge"
@@ -898,6 +901,7 @@
   },
   {
    "id": "sources-reachable",
+   "title": "sources-reachable",
    "kind": "assumption",
    "statement": "{subject}'s sources can be read by the session that extracts; what only a person knows must be asked.",
    "on": [
@@ -906,6 +910,7 @@
   },
   {
    "id": "standard-library",
+   "title": "standard-library",
    "kind": "constraint",
    "strength": "must",
    "statement": "{checker} uses the Python standard library only.",
@@ -915,6 +920,7 @@
   },
   {
    "id": "sentence-truth",
+   "title": "sentence-truth",
    "kind": "gap",
    "fault": "unknown",
    "status": "unknown",

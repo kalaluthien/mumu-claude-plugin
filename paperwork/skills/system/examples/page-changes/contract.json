@@ -148,49 +148,49 @@
  "levels": [
   {
    "id": "whole",
-   "title": "page-changes",
+   "title": "whole",
    "about": "The two actors {outside} never meet: {skill-folder} supplies what carries each change between them through {page-folder}, all on {local-machine}."
   },
   {
    "id": "session-steps",
-   "title": "{session}'s steps and rules",
+   "title": "session-steps-and-rules",
    "about": "SKILL.md gives {session} {duty}, always run in one order, and {rules}, which bound what {session} may do."
   },
   {
    "id": "page-parts",
-   "title": "Inside {page-file}",
+   "title": "inside-page-file",
    "about": "{page-file} keeps what {session} writes in {blocks} apart from the code in {page-body}, its own and {runtime}'s, and ids that never change join the two."
   },
   {
    "id": "runtime-parts",
-   "title": "Inside {runtime}",
+   "title": "inside-runtime",
    "about": "{runtime} touches a page in three places only, its globals, its own screen and its sync with {server}, and one connection state tells {person} whether the sync is heard."
   },
   {
    "id": "server-parts",
-   "title": "Inside {server}",
+   "title": "inside-server",
    "about": "{server} starts from one command, answers no request without its token and keeps everything that outlasts a run in {beside-page}."
   },
   {
    "id": "change-life",
-   "title": "Life of a change",
+   "title": "life-of-a-change",
    "about": "A change ends in exactly one of three states: applied by {session}, refused by {server}, or kept in a page that no server serves."
   },
   {
    "id": "starter-parts",
-   "title": "Inside {starter}",
+   "title": "inside-starter",
    "about": "{starter} holds the least a page needs for the loop of {runtime}, {server} and {session}: one diagram kept as data, drawn from it and renamed by a data change."
   },
   {
    "id": "replay-parts",
-   "title": "Inside the replays",
+   "title": "inside-replays",
    "about": "Three runners prove the folder after a change to it: two replay the Python scripts on fixed inputs and one drives the whole loop of {runtime}, {server} and {session} in a browser."
   }
  ],
  "areas": [
   {
    "id": "outside",
-   "label": "outside the folder",
+   "label": "Outside the folder",
    "tag": "lane",
    "level": "whole",
    "info": {
@@ -204,7 +204,7 @@
   },
   {
    "id": "skill-folder",
-   "label": "the skill's folder",
+   "label": "Skill's folder",
    "tag": "module",
    "level": "whole",
    "info": {
@@ -225,7 +225,7 @@
   },
   {
    "id": "page-folder",
-   "label": "the page's folder",
+   "label": "Page's folder",
    "tag": "module",
    "level": "whole",
    "info": {
@@ -238,7 +238,7 @@
   },
   {
    "id": "local-machine",
-   "label": "the local machine",
+   "label": "Local machine",
    "tag": "deployment",
    "level": "whole",
    "info": {
@@ -249,7 +249,7 @@
   },
   {
    "id": "duty",
-   "label": "the six steps",
+   "label": "Six steps",
    "tag": "phase",
    "level": "session-steps",
    "info": {
@@ -261,7 +261,7 @@
   },
   {
    "id": "rules",
-   "label": "the rules",
+   "label": "Rules",
    "tag": "module",
    "level": "session-steps",
    "info": {
@@ -270,7 +270,7 @@
   },
   {
    "id": "blocks",
-   "label": "the two JSON blocks",
+   "label": "Two JSON blocks",
    "tag": "module",
    "level": "page-parts",
    "info": {
@@ -283,7 +283,7 @@
   },
   {
    "id": "page-body",
-   "label": "the page's body",
+   "label": "Page's body",
    "tag": "module",
    "level": "page-parts",
    "info": {
@@ -292,7 +292,7 @@
   },
   {
    "id": "page-interface",
-   "label": "what the page's code meets",
+   "label": "What the page's code meets",
    "tag": "module",
    "level": "runtime-parts",
    "info": {
@@ -307,7 +307,7 @@
   },
   {
    "id": "runtime-screen",
-   "label": "the screen parts",
+   "label": "Screen parts",
    "tag": "module",
    "level": "runtime-parts",
    "info": {
@@ -316,7 +316,7 @@
   },
   {
    "id": "runtime-sync",
-   "label": "sending and receiving",
+   "label": "Sending and receiving",
    "tag": "module",
    "level": "runtime-parts",
    "info": {
@@ -325,7 +325,7 @@
   },
   {
    "id": "connection",
-   "label": "connection of a served page",
+   "label": "Connection of a served page",
    "tag": "region",
    "level": "runtime-parts",
    "info": {
@@ -352,7 +352,7 @@
   },
   {
    "id": "server-loops",
-   "label": "start and background loops",
+   "label": "Start and background loops",
    "tag": "module",
    "level": "server-parts",
    "info": {
@@ -361,7 +361,7 @@
   },
   {
    "id": "behind-token",
-   "label": "behind the token",
+   "label": "Behind the token",
    "tag": "trustZone",
    "level": "server-parts",
    "info": {
@@ -382,7 +382,7 @@
   },
   {
    "id": "beside-page",
-   "label": "files beside the page",
+   "label": "Files beside the page",
    "tag": "module",
    "level": "server-parts",
    "info": {
@@ -395,7 +395,7 @@
   },
   {
    "id": "change-state",
-   "label": "state of a change",
+   "label": "State of a change",
    "tag": "region",
    "level": "change-life",
    "info": {
@@ -430,7 +430,7 @@
   },
   {
    "id": "starter-file",
-   "label": "the starter's own parts",
+   "label": "Starter's own parts",
    "tag": "module",
    "level": "starter-parts",
    "info": {
@@ -439,7 +439,7 @@
   },
   {
    "id": "python-replays",
-   "label": "the script replays",
+   "label": "Script replays",
    "tag": "module",
    "level": "replay-parts",
    "info": {
@@ -448,7 +448,7 @@
   },
   {
    "id": "browser-run",
-   "label": "the loop replay",
+   "label": "Loop replay",
    "tag": "module",
    "level": "replay-parts",
    "info": {
@@ -459,7 +459,7 @@
  "nodes": [
   {
    "id": "person",
-   "label": "the person",
+   "label": "Person",
    "tag": "actor",
    "level": "whole",
    "area": "outside",
@@ -485,7 +485,7 @@
   },
   {
    "id": "session",
-   "label": "the session",
+   "label": "Session",
    "tag": "actor",
    "level": "whole",
    "area": "outside",
@@ -513,7 +513,7 @@
   },
   {
    "id": "playbook",
-   "label": "the playbook",
+   "label": "Playbook",
    "tag": "policy",
    "level": "whole",
    "area": "skill-folder",
@@ -537,7 +537,7 @@
   },
   {
    "id": "connector",
-   "label": "the connector",
+   "label": "Connector",
    "tag": "job",
    "level": "whole",
    "area": "skill-folder",
@@ -630,7 +630,7 @@
   },
   {
    "id": "server",
-   "label": "the server",
+   "label": "Server",
    "tag": "service",
    "level": "whole",
    "area": "skill-folder",
@@ -730,7 +730,7 @@
   },
   {
    "id": "runtime",
-   "label": "the runtime",
+   "label": "Runtime",
    "tag": "service",
    "level": "whole",
    "area": "skill-folder",
@@ -795,7 +795,7 @@
   },
   {
    "id": "checker",
-   "label": "the page checker",
+   "label": "Page checker",
    "tag": "job",
    "level": "whole",
    "area": "skill-folder",
@@ -946,7 +946,7 @@
   },
   {
    "id": "starter",
-   "label": "the starter page",
+   "label": "Starter page",
    "tag": "artifact",
    "level": "whole",
    "area": "skill-folder",
@@ -974,7 +974,7 @@
   },
   {
    "id": "replays",
-   "label": "the folder's replays",
+   "label": "Folder's replays",
    "tag": "job",
    "level": "whole",
    "area": "skill-folder",
@@ -1019,7 +1019,7 @@
   },
   {
    "id": "page-file",
-   "label": "the page file",
+   "label": "Page file",
    "tag": "dataStore",
    "level": "whole",
    "area": "page-folder",
@@ -1100,7 +1100,7 @@
   },
   {
    "id": "change-queue",
-   "label": "the change queue",
+   "label": "Change queue",
    "tag": "queue",
    "level": "whole",
    "area": "page-folder",
@@ -1155,7 +1155,7 @@
   },
   {
    "id": "browser",
-   "label": "the browser",
+   "label": "Browser",
    "tag": "host",
    "level": "whole",
    "area": "local-machine",
@@ -1177,7 +1177,7 @@
   },
   {
    "id": "step-connect",
-   "label": "the Connect step",
+   "label": "Connect step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1195,7 +1195,7 @@
   },
   {
    "id": "step-serve",
-   "label": "the Serve step",
+   "label": "Serve step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1216,7 +1216,7 @@
   },
   {
    "id": "step-pull",
-   "label": "the Pull step",
+   "label": "Pull step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1233,7 +1233,7 @@
   },
   {
    "id": "step-apply",
-   "label": "the Apply step",
+   "label": "Apply step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1275,7 +1275,7 @@
   },
   {
    "id": "step-ack",
-   "label": "the Acknowledge step",
+   "label": "Acknowledge step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1293,7 +1293,7 @@
   },
   {
    "id": "step-check",
-   "label": "the Check step",
+   "label": "Check step",
    "tag": "job",
    "level": "session-steps",
    "area": "duty",
@@ -1311,7 +1311,7 @@
   },
   {
    "id": "skill-header",
-   "label": "the skill's header",
+   "label": "Skill's header",
    "tag": "artifact",
    "level": "session-steps",
    "area": "rules",
@@ -1471,7 +1471,7 @@
   },
   {
    "id": "data-block",
-   "label": "the page-data block",
+   "label": "Page-data block",
    "tag": "dataStore",
    "level": "page-parts",
    "area": "blocks",
@@ -1541,7 +1541,7 @@
   },
   {
    "id": "threads-block",
-   "label": "the page-threads block",
+   "label": "Page-threads block",
    "tag": "dataStore",
    "level": "page-parts",
    "area": "blocks",
@@ -1622,7 +1622,7 @@
   },
   {
    "id": "page-markup",
-   "label": "the page's own markup and code",
+   "label": "Page's own markup and code",
    "tag": "artifact",
    "level": "page-parts",
    "area": "page-body",
@@ -1643,7 +1643,7 @@
   },
   {
    "id": "anchor-rule",
-   "label": "the anchor rule",
+   "label": "Anchor rule",
    "tag": "policy",
    "level": "page-parts",
    "area": "page-body",
@@ -1664,7 +1664,7 @@
   },
   {
    "id": "runtime-copy",
-   "label": "the pasted runtime copy",
+   "label": "Pasted runtime copy",
    "tag": "artifact",
    "level": "page-parts",
    "area": "page-body",
@@ -1687,7 +1687,7 @@
   },
   {
    "id": "runtime-start",
-   "label": "the first run on a page",
+   "label": "First run on a page",
    "tag": "job",
    "level": "runtime-parts",
    "area": "page-interface",
@@ -1807,7 +1807,7 @@
   },
   {
    "id": "page-globals",
-   "label": "the page globals",
+   "label": "Page globals",
    "tag": "endpoint",
    "level": "runtime-parts",
    "area": "page-interface",
@@ -1848,7 +1848,7 @@
   },
   {
    "id": "screen-frame",
-   "label": "the drawn screen",
+   "label": "Drawn screen",
    "tag": "artifact",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -1946,7 +1946,7 @@
   },
   {
    "id": "screen-style",
-   "label": "the added style sheet",
+   "label": "Added style sheet",
    "tag": "artifact",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2016,7 +2016,7 @@
   },
   {
    "id": "badges",
-   "label": "the badge placer",
+   "label": "Badge placer",
    "tag": "job",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2040,7 +2040,7 @@
   },
   {
    "id": "panel",
-   "label": "the thread panel",
+   "label": "Thread panel",
    "tag": "endpoint",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2119,7 +2119,7 @@
   },
   {
    "id": "status-bar",
-   "label": "the status bar",
+   "label": "Status bar",
    "tag": "endpoint",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2160,7 +2160,7 @@
   },
   {
    "id": "exporter",
-   "label": "the export",
+   "label": "Exporter",
    "tag": "job",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2194,7 +2194,7 @@
   },
   {
    "id": "redraw-trigger",
-   "label": "the redraw trigger",
+   "label": "Redraw trigger",
    "tag": "trigger",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2211,7 +2211,7 @@
   },
   {
    "id": "session-store",
-   "label": "the tab's session storage",
+   "label": "Tab's session storage",
    "tag": "dataStore",
    "level": "runtime-parts",
    "area": "runtime-sync",
@@ -2253,7 +2253,7 @@
   },
   {
    "id": "sender",
-   "label": "the flush loop",
+   "label": "Flush loop",
    "tag": "job",
    "level": "runtime-parts",
    "area": "runtime-sync",
@@ -2291,7 +2291,7 @@
   },
   {
    "id": "puller",
-   "label": "the pending reader",
+   "label": "Pending reader",
    "tag": "job",
    "level": "runtime-parts",
    "area": "runtime-sync",
@@ -2311,7 +2311,7 @@
   },
   {
    "id": "stream-listener",
-   "label": "the event stream listener",
+   "label": "Event stream listener",
    "tag": "trigger",
    "level": "runtime-parts",
    "area": "runtime-sync",
@@ -2328,7 +2328,7 @@
   },
   {
    "id": "conn-connecting",
-   "label": "trying to connect",
+   "label": "Trying to connect",
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
@@ -2347,7 +2347,7 @@
   },
   {
    "id": "conn-connected",
-   "label": "server connected",
+   "label": "Server connected",
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
@@ -2370,7 +2370,7 @@
   },
   {
    "id": "conn-lost",
-   "label": "server not reachable",
+   "label": "Server not reachable",
    "tag": "state",
    "level": "runtime-parts",
    "area": "connection",
@@ -2393,7 +2393,7 @@
   },
   {
    "id": "server-command",
-   "label": "the start command",
+   "label": "Start command",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "server-loops",
@@ -2478,7 +2478,7 @@
   },
   {
    "id": "startup",
-   "label": "the startup sequence",
+   "label": "Startup sequence",
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",
@@ -2524,7 +2524,7 @@
   },
   {
    "id": "server-memory",
-   "label": "the memory of a run",
+   "label": "Memory of a run",
    "tag": "dataStore",
    "level": "server-parts",
    "area": "server-loops",
@@ -2570,7 +2570,7 @@
   },
   {
    "id": "watcher",
-   "label": "the file watcher",
+   "label": "File watcher",
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",
@@ -2592,7 +2592,7 @@
   },
   {
    "id": "keeper",
-   "label": "the version keeper",
+   "label": "Version keeper",
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",
@@ -2649,7 +2649,7 @@
   },
   {
    "id": "announcer",
-   "label": "the announcer",
+   "label": "Announcer",
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",
@@ -2683,7 +2683,7 @@
   },
   {
    "id": "token-url",
-   "label": "the url token",
+   "label": "Url token",
    "tag": "credential",
    "level": "server-parts",
    "area": "behind-token",
@@ -2704,7 +2704,7 @@
   },
   {
    "id": "route-table",
-   "label": "the route table",
+   "label": "Route table",
    "tag": "router",
    "level": "server-parts",
    "area": "behind-token",
@@ -2762,7 +2762,7 @@
   },
   {
    "id": "origin-rule",
-   "label": "the origin rule",
+   "label": "Origin rule",
    "tag": "policy",
    "level": "server-parts",
    "area": "behind-token",
@@ -2818,7 +2818,7 @@
   },
   {
    "id": "route-page",
-   "label": "the page route",
+   "label": "Page route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -2859,7 +2859,7 @@
   },
   {
    "id": "route-post",
-   "label": "the post route",
+   "label": "Post route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -2953,7 +2953,7 @@
   },
   {
    "id": "route-pending",
-   "label": "the pending route",
+   "label": "Pending route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -2993,7 +2993,7 @@
   },
   {
    "id": "route-ack",
-   "label": "the ack route",
+   "label": "Ack route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -3062,7 +3062,7 @@
   },
   {
    "id": "route-events",
-   "label": "the events route",
+   "label": "Events route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -3112,7 +3112,7 @@
   },
   {
    "id": "route-files",
-   "label": "the sibling file route",
+   "label": "Sibling file route",
    "tag": "endpoint",
    "level": "server-parts",
    "area": "behind-token",
@@ -3173,7 +3173,7 @@
   },
   {
    "id": "watched-page",
-   "label": "the held copy of the page",
+   "label": "Held copy of the page",
    "tag": "dataStore",
    "level": "server-parts",
    "area": "beside-page",
@@ -3368,7 +3368,7 @@
   },
   {
    "id": "change-new",
-   "label": "a new change",
+   "label": "New change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3387,7 +3387,7 @@
   },
   {
    "id": "change-kept",
-   "label": "a kept change",
+   "label": "Kept change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3407,7 +3407,7 @@
   },
   {
    "id": "change-unsent",
-   "label": "an unsent change",
+   "label": "Unsent change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3433,7 +3433,7 @@
   },
   {
    "id": "change-pending",
-   "label": "a pending change",
+   "label": "Pending change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3464,7 +3464,7 @@
   },
   {
    "id": "change-applied",
-   "label": "an applied change",
+   "label": "Applied change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3482,7 +3482,7 @@
   },
   {
    "id": "change-refused",
-   "label": "a refused change",
+   "label": "Refused change",
    "tag": "state",
    "level": "change-life",
    "area": "change-state",
@@ -3498,7 +3498,7 @@
   },
   {
    "id": "starter-markup",
-   "label": "the starter's markup",
+   "label": "Starter's markup",
    "tag": "artifact",
    "level": "starter-parts",
    "area": "starter-file",
@@ -3595,7 +3595,7 @@
   },
   {
    "id": "diagram-data",
-   "label": "the diagram data",
+   "label": "Diagram data",
    "tag": "dataStore",
    "level": "starter-parts",
    "area": "starter-file",
@@ -3633,7 +3633,7 @@
   },
   {
    "id": "render",
-   "label": "the diagram drawing",
+   "label": "Diagram drawing",
    "tag": "job",
    "level": "starter-parts",
    "area": "starter-file",
@@ -3671,7 +3671,7 @@
   },
   {
    "id": "rename",
-   "label": "the rename",
+   "label": "Rename",
    "tag": "trigger",
    "level": "starter-parts",
    "area": "starter-file",
@@ -3688,7 +3688,7 @@
   },
   {
    "id": "fixture-pages",
-   "label": "the fixture pages",
+   "label": "Fixture pages",
    "tag": "dataStore",
    "level": "replay-parts",
    "area": "python-replays",
@@ -3759,7 +3759,7 @@
   },
   {
    "id": "replay-check",
-   "label": "the checker replay",
+   "label": "Checker replay",
    "tag": "job",
    "level": "replay-parts",
    "area": "python-replays",
@@ -3804,7 +3804,7 @@
   },
   {
    "id": "replay-options",
-   "label": "the option replay",
+   "label": "Option replay",
    "tag": "job",
    "level": "replay-parts",
    "area": "python-replays",
@@ -3862,7 +3862,7 @@
   },
   {
    "id": "e2e-command",
-   "label": "the end-to-end command",
+   "label": "End-to-end command",
    "tag": "endpoint",
    "level": "replay-parts",
    "area": "browser-run",
@@ -3925,7 +3925,7 @@
   },
   {
    "id": "headless-browser",
-   "label": "the headless browser",
+   "label": "Headless browser",
    "tag": "host",
    "level": "replay-parts",
    "area": "browser-run",
@@ -3946,7 +3946,7 @@
   },
   {
    "id": "e2e-run",
-   "label": "the whole run",
+   "label": "Whole run",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -3970,7 +3970,7 @@
   },
   {
    "id": "e2e-file",
-   "label": "step a file",
+   "label": "Step a file",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -3993,7 +3993,7 @@
   },
   {
    "id": "e2e-served",
-   "label": "step b served",
+   "label": "Step b served",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -4016,7 +4016,7 @@
   },
   {
    "id": "e2e-session",
-   "label": "step c session",
+   "label": "Step c session",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -4041,7 +4041,7 @@
   },
   {
    "id": "e2e-refusals",
-   "label": "step d refusals",
+   "label": "Step d refusals",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -4073,7 +4073,7 @@
   },
   {
    "id": "e2e-outage",
-   "label": "step e outage",
+   "label": "Step e outage",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -4099,7 +4099,7 @@
   },
   {
    "id": "e2e-queue",
-   "label": "the queue mode",
+   "label": "Queue mode",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -4121,7 +4121,7 @@
   },
   {
    "id": "e2e-verify",
-   "label": "the verify mode",
+   "label": "Verify mode",
    "tag": "job",
    "level": "replay-parts",
    "area": "browser-run",
@@ -5104,7 +5104,7 @@
    "label": "starts, when served,",
    "tag": "triggers",
    "info": {
-    "dedupe": "a running flush picks the new change up itself"
+    "dedupe": "a running flush picks a new change up itself"
    },
    "evidence": [
     "src-runtime:33"
@@ -5986,7 +5986,7 @@
  "scenarios": [
   {
    "id": "comment-applied",
-   "title": "A comment is applied and the page reloads",
+   "title": "comment-applied-page-reloads",
    "principle": true,
    "purpose": "{person} asks for an edit on the page and sees it done, with a reply, without touching the file.",
    "steps": [
@@ -6051,7 +6051,7 @@
   },
   {
    "id": "data-change-applied",
-   "title": "A renamed diagram node reaches the file",
+   "title": "renamed-node-reaches-file",
    "purpose": "A change of the page's own controls is written into page data by {session}.",
    "steps": [
     {
@@ -6083,7 +6083,7 @@
   },
   {
    "id": "offline-export",
-   "title": "A page opened as a file keeps its changes",
+   "title": "file-page-keeps-changes",
    "purpose": "With no server, {person} still edits and can carry the changes away.",
    "steps": [
     {
@@ -6109,7 +6109,7 @@
   },
   {
    "id": "server-down",
-   "title": "A comment made while {server} is down arrives later",
+   "title": "comment-arrives-after-server-down",
    "purpose": "No change is lost when {server} stops for a while.",
    "steps": [
     {
@@ -6148,7 +6148,7 @@
   },
   {
    "id": "cut-file",
-   "title": "A file cut off mid-write reloads nothing",
+   "title": "cut-file-reloads-nothing",
    "purpose": "An open page never reloads into a page that lost its runtime.",
    "steps": [
     {
@@ -6175,7 +6175,7 @@
   },
   {
    "id": "refused-request",
-   "title": "A stranger's post is refused",
+   "title": "stranger-post-refused",
    "purpose": "Only a page served by {server} itself can queue a change.",
    "steps": [
     {
@@ -6198,7 +6198,7 @@
   },
   {
    "id": "ambiguous-comment",
-   "title": "A comment that can mean two edits stays pending",
+   "title": "ambiguous-comment-stays-pending",
    "purpose": "{session} never guesses between two different edits.",
    "steps": [
     {
@@ -6220,7 +6220,7 @@
   },
   {
    "id": "connect-bare-page",
-   "title": "A plain page gets {runtime}",
+   "title": "plain-page-gets-runtime",
    "purpose": "Any HTML file becomes a page the loop works on.",
    "steps": [
     {
@@ -6244,6 +6244,7 @@
  "properties": [
   {
    "id": "server-never-writes-page",
+   "title": "server-never-writes-page",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6262,6 +6263,7 @@
   },
   {
    "id": "ids-never-reused",
+   "title": "ids-never-reused",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6278,6 +6280,7 @@
   },
   {
    "id": "url-survives-restart",
+   "title": "url-survives-restart",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6293,6 +6296,7 @@
   },
   {
    "id": "one-line-per-burst",
+   "title": "one-line-per-burst",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6308,6 +6312,7 @@
   },
   {
    "id": "reload-only-whole-page",
+   "title": "reload-only-whole-page",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6325,6 +6330,7 @@
   },
   {
    "id": "ack-does-not-reload",
+   "title": "ack-does-not-reload",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6339,6 +6345,7 @@
   },
   {
    "id": "loopback-only",
+   "title": "loopback-only",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6354,6 +6361,7 @@
   },
   {
    "id": "records-never-served",
+   "title": "records-never-served",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6372,6 +6380,7 @@
   },
   {
    "id": "history-read-only",
+   "title": "history-read-only",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6386,6 +6395,7 @@
   },
   {
    "id": "no-change-lost",
+   "title": "no-change-lost",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6402,6 +6412,7 @@
   },
   {
    "id": "draft-survives-reload",
+   "title": "draft-survives-reload",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6416,6 +6427,7 @@
   },
   {
    "id": "click-survives-redraw",
+   "title": "click-survives-redraw",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6430,6 +6442,7 @@
   },
   {
    "id": "runtime-never-breaks-page",
+   "title": "runtime-never-breaks-page",
    "kind": "property",
    "strength": "must",
    "status": "holds",
@@ -6444,6 +6457,7 @@
   },
   {
    "id": "starter-runtime-current",
+   "title": "starter-runtime-current",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6458,6 +6472,7 @@
   },
   {
    "id": "entry-ids-unique",
+   "title": "entry-ids-unique",
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
@@ -6473,6 +6488,7 @@
   },
   {
    "id": "session-writes-threads-alone",
+   "title": "session-writes-threads-alone",
    "kind": "constraint",
    "strength": "must",
    "status": "holds",
@@ -6488,6 +6504,7 @@
   },
   {
    "id": "page-outside-repositories",
+   "title": "page-outside-repositories",
    "kind": "constraint",
    "strength": "must",
    "status": "unknown",
@@ -6502,6 +6519,7 @@
   },
   {
    "id": "post-size-limit",
+   "title": "post-size-limit",
    "kind": "constraint",
    "strength": "must",
    "status": "holds",
@@ -6518,6 +6536,7 @@
   },
   {
    "id": "standard-library-only",
+   "title": "standard-library-only",
    "kind": "constraint",
    "strength": "must",
    "status": "holds",
@@ -6533,6 +6552,7 @@
   },
   {
    "id": "token-is-only-guard",
+   "title": "token-is-only-guard",
    "kind": "assumption",
    "strength": "must",
    "status": "holds",
@@ -6547,6 +6567,7 @@
   },
   {
    "id": "tools-assumed",
+   "title": "tools-assumed",
    "kind": "assumption",
    "strength": "must",
    "status": "unknown",
@@ -6562,6 +6583,7 @@
   },
   {
    "id": "browser-sends-origin",
+   "title": "browser-sends-origin",
    "kind": "assumption",
    "strength": "must",
    "status": "holds",
@@ -6576,6 +6598,7 @@
   },
   {
    "id": "anchor-id-form",
+   "title": "anchor-id-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6591,6 +6614,7 @@
   },
   {
    "id": "reply-id-form",
+   "title": "reply-id-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6606,6 +6630,7 @@
   },
   {
    "id": "fixture-name-form",
+   "title": "fixture-name-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6620,6 +6645,7 @@
   },
   {
    "id": "history-name-form",
+   "title": "history-name-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6634,6 +6660,7 @@
   },
   {
    "id": "storage-key-form",
+   "title": "storage-key-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6647,6 +6674,7 @@
   },
   {
    "id": "stdout-line-form",
+   "title": "stdout-line-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6662,6 +6690,7 @@
   },
   {
    "id": "script-call-form",
+   "title": "script-call-form",
    "kind": "convention",
    "strength": "must",
    "status": "holds",
@@ -6678,6 +6707,7 @@
   },
   {
    "id": "keeper-one-procedure",
+   "title": "keeper-one-procedure",
    "kind": "fact",
    "strength": "must",
    "status": "holds",
@@ -6701,6 +6731,7 @@
   },
   {
    "id": "gap-escape-wording",
+   "title": "gap-escape-wording",
    "kind": "gap",
    "fault": "contradictory",
    "strength": "must",
@@ -6716,6 +6747,7 @@
   },
   {
    "id": "gap-connector-updated",
+   "title": "gap-connector-updated",
    "kind": "gap",
    "fault": "contradictory",
    "strength": "should",
@@ -6732,6 +6764,7 @@
   },
   {
    "id": "gap-thread-key-by-data-id",
+   "title": "gap-thread-key-by-data-id",
    "kind": "gap",
    "fault": "missing",
    "strength": "should",
@@ -6748,6 +6781,7 @@
   },
   {
    "id": "gap-monitor-timeout",
+   "title": "gap-monitor-timeout",
    "kind": "gap",
    "fault": "unknown",
    "strength": "should",
@@ -6762,6 +6796,7 @@
   },
   {
    "id": "gap-reply-number",
+   "title": "gap-reply-number",
    "kind": "gap",
    "fault": "unknown",
    "strength": "should",
@@ -6777,6 +6812,7 @@
   },
   {
    "id": "gap-exported-changes",
+   "title": "gap-exported-changes",
    "kind": "gap",
    "fault": "missing",
    "strength": "should",
@@ -6792,6 +6828,7 @@
   },
   {
    "id": "gap-refused-not-shown",
+   "title": "gap-refused-not-shown",
    "kind": "gap",
    "fault": "missing",
    "strength": "should",
@@ -6807,6 +6844,7 @@
   },
   {
    "id": "gap-data-payload-unchecked",
+   "title": "gap-data-payload-unchecked",
    "kind": "gap",
    "fault": "illegal",
    "strength": "should",
@@ -6822,6 +6860,7 @@
   },
   {
    "id": "gap-latest-data-order",
+   "title": "gap-latest-data-order",
    "kind": "gap",
    "fault": "unknown",
    "strength": "should",
@@ -6836,6 +6875,7 @@
   },
   {
    "id": "gap-other-methods",
+   "title": "gap-other-methods",
    "kind": "gap",
    "fault": "unknown",
    "strength": "may",

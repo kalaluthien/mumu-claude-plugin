@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
-// With no word it runs the fifteen steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
+// With no word it runs the sixteen steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -15,9 +15,9 @@
 //            backtick, printed as `<n> edge labels and <m> card addresses read, none with a brace or a backtick`; every
 //            card row of a record whose contract text holds a backtick shows none, printed as `<k> card rows with a code
 //            span read, none with a backtick`, the card's heading counted as a row; on a copy of the second example
-//            whose every level title, scenario title and node label holds a code span, no crumb, scenario title, next-level
+//            whose every node label holds a code span, no crumb, scenario title, next-level
 //            hint, step or open button tooltip or card heading shows a backtick, printed as `<j> titles, tooltips and
-//            card headings read on a copy whose every title and label holds a code span, none with a backtick`.
+//            card headings read on a copy whose every label holds a code span, none with a backtick`.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
 //            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
 //            area's is its header), that scrolls nothing and counts the rows its later pages hold; it stays under
@@ -49,6 +49,9 @@
 //   search   each query of fixtures/search-queries.json typed into its example's page: the wanted record is the
 //            first hit for 17 in 20 and among the first three for 19 in 20, and first for 3 in 4 of the misspelt
 //            queries and of those typed with the Korean layout left on.
+//   titles   on each example's page the Properties list shows each property by its title, and a click on the first
+//            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
+//            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
 //   tasks    each rebuild question an example answers is two tasks: from the first view, `/`, the question typed
 //            whole or as the words of its id, an arrow per hit above the question or the first of its answers, Enter, and the view shows
 //            that answer, the question's first when the hit is the question; a
@@ -71,8 +74,8 @@
 //            an edge's sentence, an opener's opens row and an area's initial row name their records as chips.
 //   glosses  on each example page the first match of each term in a kept card is marked once, and the pointer on it shows the
 //            term's meaning; a click on a card's sources mark shows each cited source's path and what it says; on a copy of the
-//            first example a term is marked capitalised and plural, its meaning draws its formula and code, and a crumb, a
-//            scenario's title and a step's note mark no term, chip or guess.
+//            first example a term is marked capitalised and plural, its meaning draws its formula and code, and a step's
+//            note marks no term, chip or guess, as no crumb or scenario title, a slug, can.
 //   badges   on a copy of the first example, a text holding `(guess)` and a property whose status is unknown or broken each show
 //            a badge naming that state, and a property that holds shows none.
 //   formulas the example that holds formulas draws an inline one as MathML on its sentence's line and a display one centered on
@@ -94,7 +97,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
+const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
@@ -284,11 +287,10 @@ async function diagram(browser) {
   read.titles = await spans(browser);
   console.log(`${read.labels} edge labels and ${read.addresses} card addresses read, none with a brace or a backtick`);
   console.log(`${read.rows} card rows with a code span read, none with a backtick`);
-  console.log(`${read.titles} titles, tooltips and card headings read on a copy whose every title and label holds a code span, none with a backtick`);
+  console.log(`${read.titles} titles, tooltips and card headings read on a copy whose every label holds a code span, none with a backtick`);
 }
-async function spans(browser) { // a copy of the second example whose every level title, scenario title and node label holds a code span, walked step by step
+async function spans(browser) { // a copy of the second example whose every node label holds a code span, walked step by step
   const example = examples[1], flat = JSON.parse(fs.readFileSync(example.source, "utf8"));
-  for (const record of [...flat.levels, ...(flat.scenarios || [])]) record.title += " `mark`";
   for (const node of flat.nodes) node.label += " `mark`";
   const copy = { name: example.name + "-marked", source: path.join(scratch, example.name + "-marked.json"), built: path.join(scratch, example.name + "-marked.html") };
   fs.writeFileSync(copy.source, JSON.stringify(flat));
@@ -836,11 +838,11 @@ async function moves(browser) {
 
 // ---- changes ----
 const PLANTED = "part-set-apart";
-const RENAMED = "the part named anew, at a length no box holds on one line"; // longer than the widest node holds on one line, so the page must go on to a second
+const RENAMED = "Part named anew, at a length no box holds on one line"; // longer than the widest node holds on one line, so the page must go on to a second
 function changed(example) { // a copy of one example's contract that holds the planted node and the three changes, the checker asked after each
   const planted = JSON.parse(fs.readFileSync(example.source, "utf8"));
   check(planted.levels.length > 1 && (planted.scenarios || []).length, `${example.name} has one level or no scenario, so nothing can change under a scenario`);
-  planted.nodes.push({ id: PLANTED, label: "the part set apart", tag: planted.nodes.find((node) => node.level === planted.levels[0].id).tag, level: planted.levels[0].id, purpose: "Stand on the level that asks about it." });
+  planted.nodes.push({ id: PLANTED, label: "Part set apart", tag: planted.nodes.find((node) => node.level === planted.levels[0].id).tag, level: planted.levels[0].id, purpose: "Stand where its question is asked." });
   planted.scenarios[0].steps.push({ at: PLANTED });
   const walked = new Set(planted.scenarios.flatMap((scenario) => scenario.steps.map((step) => step.at)));
   const levelOf = Object.fromEntries(planted.nodes.map((node) => [node.id, node.level]));
@@ -895,6 +897,35 @@ async function search(browser) {
   console.log(line);
   for (const miss of missed) console.log("  " + miss);
   check(share("first") >= 17 / 20 && share("three") >= 19 / 20 && share("misspelt") >= 3 / 4 && share("korean-layout") >= 3 / 4, line);
+}
+
+// ---- titles ----
+async function titles(browser) {
+  for (const example of examples) {
+    const page = await open(browser, example, SIZES[1], { still: true });
+    await page.click("#properties");
+    await page.clock.fastForward(30);
+    const listed = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#hits [data-hit]")].map((row) => [row.dataset.hit, row.querySelector("b").textContent])));
+    for (const property of example.contract.properties || []) check(listed[property.id] === property.title, `${example.name}: the Properties list shows ${property.id} as ${JSON.stringify(listed[property.id])}, not by its title ${property.title}`);
+    const first = example.contract.properties[0];
+    await page.click(`#hits [data-hit="${first.id}"]`);
+    await rest(page);
+    const heading = await page.evaluate(() => (document.querySelector("#card h2") || {}).textContent);
+    check(heading === first.title, `${example.name}: the card of ${first.id} is headed ${JSON.stringify(heading)}, not ${first.title}`);
+    quiet(page, example.name);
+    await page.context().close();
+  }
+  const example = examples.find((one) => one.name === "self"), flat = JSON.parse(fs.readFileSync(example.source, "utf8"));
+  const named = flat.nodes.find((node) => node.id === "checker"), holder = flat.nodes.find((node) => node.id === "reader");
+  holder.purpose = `Rebuild from what {${named.id}} passes.`;
+  const copy = { name: example.name + "-named", source: path.join(scratch, example.name + "-named.json"), built: path.join(scratch, example.name + "-named.html") };
+  fs.writeFileSync(copy.source, JSON.stringify(flat));
+  make(copy);
+  const page = await open(browser, copy, SIZES[1], { still: true, at: `#level=${holder.level}&at=${holder.id}` });
+  const text = await page.evaluate(() => document.getElementById("card").textContent);
+  check(text.includes(`Rebuild from what ${named.label} passes.`), `${copy.name}: the card of ${holder.id} does not show ${named.label} as written mid-sentence`);
+  quiet(page, copy.name);
+  await page.context().close();
 }
 
 // ---- tasks ----
@@ -1216,7 +1247,7 @@ async function glosses(browser) {
   }
   const story = copy.example.contract.scenarios.find((one) => one.id === copy.story), shown = await open(browser, copy.example, SIZES[0], { at: `#scenario=${story.id}&step=0&level=${copy.example.levelOf[story.steps[0].at]}` });
   const loose = await shown.evaluate(() => [...document.querySelectorAll(".term, .ref, .badge.guess")].filter((one) => !one.closest("#card dl")).map((one) => one.textContent));
-  check(!loose.length, `marked ${story.id}: a crumb, the scenario's title or its step's note marks ${loose.join(", ")} as a term, a chip or a guess, which belong to a card's rows`);
+  check(!loose.length, `marked ${story.id}: the page outside a card, such as a step's note, marks ${loose.join(", ")} as a term, a chip or a guess, which belong to a card's rows`);
   quiet(shown, `marked ${story.id}`);
   await shown.context().close();
 }
@@ -1232,8 +1263,6 @@ function planted() { // a copy of the first example whose cards hold a guess, a 
   const broken = { ...open[0], id: "planted-broken", status: "broken" };
   flat.properties.push(broken);
   const term = flat.terms[0], story = flat.scenarios[0];
-  flat.levels[0].title += ` of each ${term.term}`;
-  story.title += ` for each ${term.term} of {${nodes[0].id}}`;
   story.steps[0].note = `a ${term.term} of {${nodes[0].id}} (guess)`;
   term.meaning += String.raw` It weighs $x^2$ and runs \`make-page.py\`.`;
   nodes[0].purpose = `${term.term[0].toUpperCase()}${term.term.slice(1)} work: run \`make-page.py\` once a writer marks a step (guess).`;
@@ -1365,7 +1394,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, overlay, fit, clear, moves, changes, search, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
+    const steps = { diagram, overlay, fit, clear, moves, changes, search, titles, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
