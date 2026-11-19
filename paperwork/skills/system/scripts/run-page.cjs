@@ -67,7 +67,8 @@
 //            each query on paperwork-v0.14.9.
 //   recent   nine queries each picked from on page-changes: the empty search lists the last eight, newest first,
 //            above the questions, each with a clock; typing keeps those that start with it, the typed part plain
-//            and the rest bold on one line; one removed by Enter on its remove button stays gone after a reload; a copy of the page at another path in the
+//            and the rest bold on one line, while the top record stays the chosen one, a recent query a move
+//            away; one removed by Enter on its remove button stays gone after a reload; a copy of the page at another path in the
 //            same browser lists none; a page whose storage throws keeps them for the tab.
 //   tasks    each rebuild question an example answers is two tasks: from the first view, `/`, the question typed
 //            whole or as the words of its id, an arrow per hit above the question or the first of its answers, Enter, and the view shows
@@ -1111,6 +1112,11 @@ async function recent(browser) {
   const flat = await page.evaluate(() => [...document.querySelectorAll("#hits .recent")].map((part) => part.querySelector("b").getClientRects().length === 1 && part.getBoundingClientRect().height < 1.5 * part.querySelector("b").getBoundingClientRect().height));
   check(flat.length && flat.every(Boolean), "a recent query's typed part and bold rest sit on two lines");
   lines.push(`typing: "the" keeps ${typing.length}, the typed part plain and the rest bold on one line`);
+  const top = (await typed(page, "the")).find((hit) => hit.selected);
+  await page.keyboard.press("ArrowUp");
+  const up = await page.evaluate(() => document.querySelector('#hits [aria-selected="true"]').dataset.recent || null);
+  check(top && top.id && !top.recent && up, `typing "the" chooses ${JSON.stringify(top)}, and Up chooses ${up}, not the top record first and a recent query a move away`);
+  lines.push(`choice: typing "the" chooses the record ${top.id}; Up reaches the recent ${up}`);
   await page.fill("#query", ""); await page.keyboard.insertText("");
   await page.focus(`#hits [data-recent="the status"] .forget`); await page.keyboard.press("Enter");
   check(await page.evaluate(() => document.getElementById("palette").classList.contains("show") && !document.querySelector('#hits [data-recent="the status"]')), "Enter on a focused remove button does not remove its query, or closes the search");

@@ -1018,6 +1018,7 @@
     const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
       : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
     listed = groups.flatMap(group => group[1]);
+    if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
     chosen = Math.min(chosen, Math.max(0, listed.length - 1));
     input.setAttribute("aria-invalid", String(!!asked.error));
     input.removeAttribute("aria-activedescendant");
@@ -1052,10 +1053,10 @@
     const current = box.querySelector('[aria-selected="true"]');
     if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
   }
-  function recall(text) { $("query").value = text; chosen = 0; $("query").focus(); list(); }
+  function recall(text) { $("query").value = text; chosen = -1; $("query").focus(); list(); }
   function forget(text) { remember(recalled().filter(one => one !== text)); $("query").focus(); list(); }
   function regex(on) {
-    regular = on; chosen = 0;
+    regular = on; chosen = -1;
     $("regex").setAttribute("aria-pressed", String(on));
     $("query").focus();
     list();
@@ -1121,7 +1122,7 @@
     $("scenarios").addEventListener("click", () => ask("Scenarios"));
     $("properties").addEventListener("click", () => ask("Properties"));
     $("veil").addEventListener("click", shut);
-    $("query").addEventListener("input", () => { chosen = 0; list(); });
+    $("query").addEventListener("input", () => { chosen = -1; list(); });
     $("regex").addEventListener("click", () => regex(!regular));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
