@@ -3,7 +3,13 @@
 `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `one-needed`: a sole check that needs only the first hunk makes `--hunks` name the second hunk's file and line and exit 1;
 - `both-needed`: a check that needs both hunks makes it name none and exit 0;
-- `table-same`: the call without `--hunks` prints the criteria table alone, its five columns and no hunk line.
+- `table-same`: the call without `--hunks` prints the criteria table alone, its five columns and no hunk line;
+- `line-in-needed-hunk`: a later commit deletes a Python file the check needs gone, adds a Python template that does not
+  parse, and adds to a Python file with a condition of its own one hunk holding a print the sole check needs, a one-line refusal it does not and an `if` line inside a
+  string, and a text file whose
+  `if` line, valid Python, the check needs only to exist, and `--hunks` against the commit before names the refusal's line as an unneeded
+  condition, not the hunk, the old condition, the string's line, the text file's line or the template, and exits 1;
+- `condition-needed`: a check that runs through that refusal makes it name none and exit 0.
 
 usage: replay-hunk-revert.py"""
 import os
@@ -59,6 +65,21 @@ def main(args):
     lines = out.splitlines()
     step("table-same", code == 0 and lines[0].startswith("REPORTED: criteria at ") and lines[2] == "| # | criterion | result | output | sha-256 |"
          and lines[4].startswith("| 1 | The probe prints ok when it runs | pass | ok | ") and len(lines) == 5, (code, out, error))
+    git("checkout", "-q", "-b", "lines")
+    (work / "e.py").write_text("print('gone')\n")
+    (work / "c.py").write_text("import sys\nif True: pass\nprint('old')\n")
+    git("add", "e.py", "c.py")
+    git("commit", "-qm", "kept")
+    (work / "e.py").unlink()
+    (work / "c.py").write_text("import sys\nif True: pass\nUSAGE = '''Run it.\nif the caller asks:\n'''\nif len(sys.argv) > 1: sys.exit('refused')\nprint('new')\n")
+    (work / "d.txt").write_text("if ready: pass\n")
+    (work / "g.py").write_text("def (:\nif ready: pass\n")
+    git("add", "-A")
+    git("commit", "-qm", "lines")
+    code, out, error = call("python3 c.py | grep -q new && test -s d.txt && test -s g.py && test ! -e e.py && echo ok", "--hunks", "--ref", "lines~1")
+    step("line-in-needed-hunk", code == 1 and "c.py:6: unneeded condition" in out and "c.py:4" not in out and "c.py:2" not in out and "g.py" not in out and "unneeded hunk" not in out and "d.txt" not in out, (code, out, error))
+    code, out, error = call("python3 c.py | grep -q new && test -s d.txt && test -s g.py && test ! -e e.py && python3 c.py x 2>&1 | grep -q refused && echo ok", "--hunks", "--ref", "lines~1")
+    step("condition-needed", code == 0 and "0 unneeded" in out and "1 conditions made False" in out, (code, out, error))
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 

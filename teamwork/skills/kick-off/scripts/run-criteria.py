@@ -36,8 +36,10 @@ without running and a `BLOCKED due: live runs` line follows.
 runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
 hunk; a git check, which the export cannot run, never counts. A hunk no check can
-see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. It runs the checks once per hunk, so give a long
-check time with `--timeout`; it never fetches.
+see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
+that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
+for each whose branch no criterion reaches, exit 1 too, since a refusal no check reaches hides inside a hunk a check needs. It runs
+the checks once per hunk and per such line, so give a long check time with `--timeout`; it never fetches.
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
@@ -46,6 +48,7 @@ stage it cannot split surely: before its first pipe, outside quotes, only words,
 may stand, and the first word is no `if`, `while`, `for` or other compound keyword; inside double quotes no `$(`, `${`, backtick
 or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
+import ast
 import hashlib
 import json
 import os
@@ -297,6 +300,20 @@ def split_hunks(diff):
     return found
 
 
+def added_conditions(file, line, patch, text):
+    """Byte spans of the tests of the `if` and `elif` statements a Python hunk adds in TEXT, its first added line being LINE."""
+    added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return []
+    starts = [0]
+    for each in text.encode().splitlines(keepends=True):
+        starts.append(starts[-1] + len(each))
+    return sorted((node.lineno, starts[node.test.lineno - 1] + node.test.col_offset, starts[node.test.end_lineno - 1] + node.test.end_col_offset)
+                  for node in ast.walk(tree) if isinstance(node, ast.If) and node.lineno in added)
+
+
 def run_per_hunk(options, task, root, live):
     """Names each hunk of the change whose revert alone turns no passing row into another result; exit 1 on one."""
     ref = base_ref(options.ref)
@@ -313,7 +330,7 @@ def run_per_hunk(options, task, root, live):
         if exported.wait():
             sys.exit("run-criteria: could not export HEAD")
         held = passing(copy)
-        unneeded = []
+        unneeded, conditions = [], 0
         for file, line, patch in hunks:
             apply = ["git", "apply", "--unidiff-zero", "--whitespace=nowarn", "-"]
             reverted = subprocess.run([*apply[:2], "-R", *apply[2:]], cwd=copy, input=patch, text=True, capture_output=True)
@@ -323,7 +340,18 @@ def run_per_hunk(options, task, root, live):
             subprocess.run(apply, cwd=copy, input=patch, text=True, capture_output=True, check=True)
             if held <= still:
                 unneeded.append(f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous")
-    print(f"hunks: {len(hunks)} reverted one at a time against {ref}, {len(unneeded)} unneeded")
+                continue
+            path = pathlib.Path(copy, file)
+            text = path.read_text() if file.endswith(".py") and path.is_file() else ""
+            for number, start, end in added_conditions(file, line, patch, text):
+                data = text.encode()
+                path.write_bytes(data[:start] + b"False" + data[end:])
+                still = passing(copy)
+                path.write_text(text)
+                conditions += 1
+                if held <= still:
+                    unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
+    print(f"hunks: {len(hunks)} reverted one at a time against {ref}, {conditions} conditions made False, {len(unneeded)} unneeded")
     print(*unneeded, sep="\n")
     print(live.report(), end="")
     return 1 if unneeded else 0
