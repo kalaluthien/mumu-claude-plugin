@@ -34,13 +34,14 @@
     entries = index();
   }
   const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
-  const words = text => String(text).replace(/\{([a-z0-9-]+)\}/g, (whole, id, at, all) => { // a named record, with a capital where a sentence opens
+  const words = (text, code = false) => String(text).replace(/\{([a-z0-9-]+)\}/g, (whole, id, at, all) => { // a named record, with a capital where a sentence opens, never in code
     if (!records[id]) return whole;
     const name = label(id);
     if (/[ㄱ-ㆎ가-힣]/.test(all)) return name.replace(/^(?:an?|the)\s+/i, ""); // Korean has no article and no capital
     const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
-    return plain && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
+    return plain && !code && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
   });
+  const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
     ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
@@ -341,7 +342,7 @@
       const region = (level.areas || []).find(area => area.id === node.area && area.tag === "region");
       if (region && region.info && region.info.initial === node.id) card.classList.add("first");
       if (node.opens) {
-        const name = `Open ${words(label(node.opens))}`, open = make("button", { class: "open", type: "button", "aria-label": name, title: name });
+        const name = `Open ${bare(label(node.opens))}`, open = make("button", { class: "open", type: "button", "aria-label": name, title: name });
         open.innerHTML = OPEN;
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
@@ -364,7 +365,7 @@
       group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
         draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
       svg.append(group);
-      const text = make("div", { class: "label", "data-edge": edge.id }, words(edge.label));
+      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label));
       stage.append(text);
       if (!plans[key].seats[edge.id]) {
         const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
@@ -423,6 +424,14 @@
   }
   const LEAVE = "cubic-bezier(.4, 0, .6, 1)", ARRIVE = "cubic-bezier(.3, .6, .2, 1)", MOVE = { leave: 280, wait: 220, arrive: 680 }; // the level left is gone before the level entered shows
   let late = 0, leftLevel = null; // how long a scenario's mark waits for its level to arrive, and the level a move is leaving
+  const whole = spot => ({ left: spot.x, top: spot.y, width: spot.w * spot.scale, height: spot.h * spot.scale });
+  function outline(source, ends, named, timing, quiet) { // the node the level entered grows from, or shrinks back into, framed while the move is under way, its label shown where the frame ends on it
+    const frame = rect => ({ left: rect.left + "px", top: rect.top + "px", width: rect.width + "px", height: rect.height + "px" });
+    const mark = make("div", { id: "origin", "data-for": source }, ...(named ? [make("span", {}, label(source))] : []));
+    document.body.append(mark);
+    mark.animate(quiet ? [frame(ends[1]), frame(ends[1])] : ends.map(frame), quiet ? { duration: 1, fill: "both" } : { ...timing, fill: "both" });
+    mark.animate([{ opacity: 1 }, { opacity: 1, offset: .8 }, { opacity: 0 }], { duration: quiet ? 600 : MOVE.wait + MOVE.arrive + 200, fill: "both" }).finished.then(() => mark.remove(), () => mark.remove());
+  }
   function show(next) {
     Object.assign(view, next);
     const stage = $("stage"), from = shownLevel, idle = () => { document.body.dataset.busy = ""; };
@@ -442,9 +451,9 @@
       };
       const drawn = one => { const style = getComputedStyle(one); return { transform: style.transform, opacity: +style.opacity }; };
       const fading = document.querySelector(".stage.old"), seen = fading && drawn(fading).opacity > drawn(stage).opacity ? fading : stage, held = drawn(seen); // a move turned back mid-way goes on from the level still seen
-      const back = seen === fading && leftLevel === view.level, old = from === null || back ? null : seen.cloneNode(true), before = old && placed(seen), entered = down && lies(down);
+      const back = seen === fading && leftLevel === view.level, old = from === null || back ? null : seen.cloneNode(true), before = old && placed(seen), entered = down && lies(down), was = back && placed(stage);
       if (seen === stage) leftLevel = from;
-      for (const left of document.querySelectorAll(".stage.old")) left.remove();
+      for (const left of document.querySelectorAll(".stage.old, #origin")) left.remove();
       for (const one of stage.getAnimations()) one.cancel();
       shownLevel = view.level;
       paint(records[view.level].record);
@@ -459,7 +468,11 @@
         stage.animate(quiet ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: entered ? within(after, entered) : left ? about(after, left, 2.4) : about(after, middle, .96), opacity: 0 }, { transform: at(after), opacity: 1 }],
           { duration: quiet ? 240 : MOVE.arrive, delay: quiet ? 0 : MOVE.wait, easing: quiet ? "ease-out" : ARRIVE, fill: "backwards" }).finished.then(idle, () => {});
         late = quiet ? 0 : MOVE.wait + 40;
+        const source = down || up;
+        if (source) outline(source, entered ? [entered, whole(after)] : [whole(before), left], !!entered, entered ? { duration: MOVE.arrive, delay: MOVE.wait, easing: ARRIVE } : { duration: MOVE.leave, easing: LEAVE }, quiet);
       } else if (back) {
+        const source = down || up;
+        if (source && lies(source)) outline(source, [whole(was), lies(source)], false, { duration: MOVE.arrive, easing: ARRIVE }, still());
         stage.animate(still() ? [{ opacity: held.opacity }, { opacity: 1 }] : [held, { transform: at(placed()), opacity: 1 }], { duration: still() ? 240 : MOVE.arrive, easing: still() ? "ease-out" : ARRIVE })
           .finished.then(idle, () => {});
       }
@@ -480,7 +493,7 @@
     bar.replaceChildren();
     path.forEach((id, i) => {
       if (i) bar.append(make("span", { class: "sep" }, "/"));
-      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, words(records[id].record.title));
+      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, ...prose(records[id].record.title));
       item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
       bar.append(item);
     });
@@ -528,6 +541,7 @@
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
     if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
   }
+  const quoted = text => words(text, true).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a quoted term
   const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, ...part.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece])) : part);
   const value = (form, data) => {
     if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
@@ -537,10 +551,10 @@
       return [table];
     }
     if (form === "tree" && Array.isArray(data)) {
-      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, words(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
+      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, ...quoted(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
       return [branch(data)];
     }
-    if (form === "code") return [make("pre", {}, make("code", {}, String(data)))];
+    if (form === "code") return [make("pre", {}, make("code", {}, ...quoted(data)))];
     return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
   };
   function rows(id) {
@@ -561,7 +575,7 @@
     }));
     return list;
   }
-  function beside(id, w, h, apart = .6) { // the spot nearest a record that covers neither it nor what the reader follows from it; `apart` is what covering another node costs
+  function beside(id, w, h, apart = .6, open = false) { // the spot nearest a record that covers neither it nor what the reader follows from it; `apart` is what covering another node costs, and an OPEN spot also leaves every lane header and shown edge label readable
     const spot = lies(id), tied = near(id), dear = [];
     if (!spot) return { left: innerWidth / 2 - w / 2, top: 68 };
     const keep = (rect, by, weight) => dear.push({ left: rect.left - by, top: rect.top - by, right: rect.right + by, bottom: rect.bottom + by, weight });
@@ -570,7 +584,8 @@
     points(id, 400);
     for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 4, records[one].kind === "node" ? 400 : 40); points(one, 12); }
     for (const node of records[view.level].record.nodes) if (!tied.has(node.id)) keep(lies(node.id), 0, apart);
-    for (const [one, face] of Object.entries(faces)) if (one !== id && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
+    for (const [one, face] of Object.entries(faces)) if ((open || one !== id) && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, open ? 400 : tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
+    if (open) for (const area of records[view.level].record.areas || []) if (lies(area.id)) keep(lies(area.id), 2, 400);
     for (const bar of [$("tools"), $("crumbs"), $("play")]) if (bar.id !== "play" || bar.classList.contains("show")) keep(bar.getBoundingClientRect(), 8, 400);
     const covers = (x, y, least) => dear.reduce((sum, held) => held.weight < least ? sum : sum + held.weight * Math.max(0, Math.min(x + w, held.right) - Math.max(x, held.left)) * Math.max(0, Math.min(y + h, held.bottom) - Math.max(y, held.top)), 0);
     const price = (x, y) => { // a spot twice as far costs four times as much, so a far clear spot loses to a near one that covers a little
@@ -602,7 +617,7 @@
     const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
     for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
     const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
-    box.replaceChildren(make("h2", {}, words(record.label || record.title || record.id)), tags, list, foot);
+    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id)), tags, list, foot);
     box.dataset.for = id;
     box.classList.toggle("kept", kept);
     const limit = Math.floor(Math.min(innerHeight * .46, 400));
@@ -677,10 +692,10 @@
   function transport() {
     const bar = $("play"), scenario = records[view.scenario].record, steps = scenario.steps, ended = view.step === steps.length;
     bar.querySelector(".count").textContent = ended ? "Done" : `${view.step + 1}/${steps.length}`;
-    bar.querySelector(".title").textContent = words(scenario.title);
+    bar.querySelector(".title").replaceChildren(...prose(scenario.title));
     const dots = bar.querySelector(".dots");
     if (dots.dataset.for !== view.scenario) dots.replaceChildren(...steps.map((one, i) => { // kept while the scenario plays, so a pressed one keeps the focus
-      const dot = make("button", { type: "button", "aria-label": `Step ${i + 1}`, title: words(label(one.at)) });
+      const dot = make("button", { type: "button", "aria-label": `Step ${i + 1}`, title: bare(label(one.at)) });
       dot.addEventListener("click", () => go({ step: i, level: home(one.at), at: null }));
       return dot;
     }));
@@ -693,6 +708,9 @@
     $("next").disabled = ended;
     $("again").hidden = !ended;
     $("onward").hidden = !ended || contract.scenarios.length < 2;
+    const next = steps[view.step + 1], away = next && home(next.at) !== view.level ? home(next.at) : null;
+    $("onto").hidden = !away;
+    $("onto").textContent = away ? `Next: ${bare(records[away].record.title)}` : "";
     bar.classList.add("show");
   }
   function play() {
@@ -706,7 +724,8 @@
     if (!step) return;
     if (step.note) {
       chip.replaceChildren(...prose(step.note));
-      const at = beside(step.at, chip.offsetWidth, chip.offsetHeight, 12); // a note is small enough to keep off every node
+      chip.style.left = chip.style.top = "0px"; // measured where the window's edge cuts no line short
+      const at = beside(step.at, chip.offsetWidth, chip.offsetHeight, 12, true); // a note is small enough to keep off every node
       chip.style.left = at.left + "px";
       chip.style.top = at.top + "px";
       chip.classList.add("show");

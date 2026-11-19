@@ -10,7 +10,14 @@
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
 //            contract the checker refuses builds none; the relay page checker prints `follows`; each level fills the
 //            window, draws each node as a rectangle with its label and tag, none over another, nothing outside the
-//            window, each state inside its region, one anchor per node, edge and area; no console error, no request.
+//            window, each state inside its region, one anchor per node, edge and area; no console error, no request;
+//            no edge label shows a brace or a backtick and no card's address an unresolved `{record-id}` or a
+//            backtick, printed as `<n> edge labels and <m> card addresses read, none with a brace or a backtick`; every
+//            card row of a record whose contract text holds a backtick shows none, printed as `<k> card rows with a code
+//            span read, none with a backtick`, the card's heading counted as a row; on a copy of the second example
+//            whose every level title, scenario title and node label holds a code span, no crumb, scenario title, next-level
+//            hint, step or open button tooltip or card heading shows a backtick, printed as `<j> titles, tooltips and
+//            card headings read on a copy whose every title and label holds a code span, none with a backtick`.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
 //            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
 //            area's is its header), that scrolls nothing and counts the rows its later pages hold; it stays under
@@ -29,6 +36,11 @@
 //            adds one view`; three
 //            orders of a move down, a move up, a search hit and a scenario step that changes level are walked back
 //            and forward by the browser's history and by the page's own keys, and each view's address opens it.
+//            At each size every step's note covers no lane header and no shown edge label, a step whose next record
+//            is on another level names that level beside its controls, and a move down, back up, and down turned back
+//            mid-way frames, part-way, the node the level entered grows from; these print as `<n> step notes at three sizes cover no lane header
+//            and no shown edge label` and `<n> steps whose next record is on another level name that level, <m> level
+//            moves frame the node they grow from`.
 //   changes  on a scratch copy of each example's contract one node no edge touches is planted, with a last step of
 //            the first scenario that names it; then a node a scenario walks gets a new label, an edge a scenario
 //            walks moves to another node of its level, and the planted node moves to another level. The checker
@@ -98,7 +110,8 @@ function make(example) { // the page of one contract file, and what its page dat
   }
   const names = {};
   for (const level of example.contract.levels) for (const node of level.nodes) names[node.id] = node.label;
-  for (const level of example.contract.levels) for (const edge of level.edges || []) edge.shown = edge.label.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || whole);
+  const shown = (text) => text.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || whole).replace(/`/g, ""); // a text as the page draws it: each named record by its label, code with no backticks
+  for (const level of example.contract.levels) { level.shown = shown(level.title); for (const edge of level.edges || []) edge.shown = shown(edge.label); }
   return example;
 }
 const build = (wanted) => wanted.forEach(make);
@@ -195,6 +208,7 @@ const quiet = (page, where) => check(!page.faults.length, `${where} wrote to the
 const grouped = (level) => [["node", level.nodes], ["edge", level.edges || []], ["area", level.areas || []]];
 
 async function diagram(browser) {
+  const read = { labels: 0, addresses: 0, rows: 0 }; // what was read for a code mark
   for (const example of examples) {
     check(fs.existsSync(example.kept), `${example.name} keeps no built page`);
     check(fs.readFileSync(example.kept, "utf8") === fs.readFileSync(example.built, "utf8"), `${example.name}'s kept page differs from the one make-page.py builds`);
@@ -211,13 +225,71 @@ async function diagram(browser) {
     for (const level of example.contract.levels) {
       await page.goto("file://" + example.built + "#level=" + level.id);
       await rest(page);
+      const labels = await page.evaluate(() => [...document.querySelectorAll("#stage .label")].map((label) => label.textContent)), marked = labels.find((text) => /[{}`]/.test(text));
+      read.labels += labels.length;
+      check(!marked, `${example.name} ${level.id} at ${size.join("x")}: an edge label reads ${marked}`);
       const fault = await drawn(page, level);
       check(!fault, `${example.name} ${level.id} at ${size.join("x")}: ${fault}`);
+      for (const [kind, group] of grouped(level)) for (const record of group) {
+        const spans = size === SIZES[0] && JSON.stringify([record.label, record.title, record.info || {}]).includes("`"); // a row's text is the same at every size
+        if (!(record.info || {}).address && !spans) continue;
+        await page.goto("file://" + example.built + "#level=" + level.id + "&at=" + record.id);
+        await rest(page);
+        const rows = new Map();
+        for (let leaf = 0; leaf < 12; leaf++) { // the card's pages turned until the last row shows
+          const shown = await page.evaluate(() => ({ rows: [["heading", document.querySelector("#card h2").textContent], ...[...document.querySelectorAll("#card dl > div")].map((one) => [one.querySelector("dt").textContent, one.querySelector("dd").textContent])], turn: (document.querySelector("#card .turn") || {}).textContent || "" }));
+          for (const [name, text] of shown.rows) rows.set(name, text);
+          const [, to, all] = shown.turn.match(/–(\d+) of (\d+)/) || [];
+          if (!to || to === all) break;
+          await page.evaluate(() => document.querySelector("#card .turn").click()); // a pointer brought onto a card lays it out again, which may drop the button a pointer click waits on
+        }
+        if ((record.info || {}).address) {
+          const address = rows.has("address") ? rows.get("address") : null;
+          check(address !== null && !/\{[a-z0-9-]+\}|`/.test(address), `${example.name} ${kind} ${record.id} at ${size.join("x")}: its card's address reads ${address}`);
+          read.addresses += 1;
+        }
+        if (spans) for (const [name, text] of rows) {
+          check(!text.includes("`"), `${example.name} ${kind} ${record.id}: its card's ${name} row reads ${text}`);
+          read.rows += 1;
+        }
+      }
     }
     quiet(page, `${example.name} at ${size.join("x")}`);
     check(!page.asked.length, `${example.name} at ${size.join("x")} asked for ${page.asked[0]}`);
     await page.context().close();
   })));
+  read.titles = await spans(browser);
+  console.log(`${read.labels} edge labels and ${read.addresses} card addresses read, none with a brace or a backtick`);
+  console.log(`${read.rows} card rows with a code span read, none with a backtick`);
+  console.log(`${read.titles} titles, tooltips and card headings read on a copy whose every title and label holds a code span, none with a backtick`);
+}
+async function spans(browser) { // a copy of the second example whose every level title, scenario title and node label holds a code span, walked step by step
+  const example = examples[1], flat = JSON.parse(fs.readFileSync(example.source, "utf8"));
+  for (const record of [...flat.levels, ...(flat.scenarios || [])]) record.title += " `mark`";
+  for (const node of flat.nodes) node.label += " `mark`";
+  const copy = { name: example.name + "-marked", source: path.join(scratch, example.name + "-marked.json"), built: path.join(scratch, example.name + "-marked.html") };
+  fs.writeFileSync(copy.source, JSON.stringify(flat));
+  make(copy);
+  const page = await open(browser, copy, SIZES[0], { still: true }), texts = () => page.evaluate(() => [...document.querySelectorAll("#crumbs, #play .title, #onto:not([hidden]), #card.show h2")].map((one) => one.textContent)
+    .concat([...document.querySelectorAll("#play .dots [title], #stage .open")].flatMap((one) => [one.title, one.getAttribute("aria-label") || ""])));
+  let read = 0;
+  const clean = async (where) => { const seen = await texts(); read += seen.length; const marked = seen.find((text) => text.includes("`")); check(!marked, `${copy.name} ${where}: a reader sees ${marked}`); };
+  for (const scenario of copy.contract.scenarios || []) {
+    await page.goto("file://" + copy.built + "#scenario=" + scenario.id + "&step=0&level=" + copy.levelOf[scenario.steps[0].at]);
+    await rest(page);
+    for (let i = 0; i < scenario.steps.length; i++) {
+      if (i) { await page.keyboard.press("ArrowRight"); await rest(page); }
+      await clean(`scenario ${scenario.id} step ${i}`);
+    }
+  }
+  for (const level of copy.contract.levels) for (const node of level.nodes) {
+    await page.goto("file://" + copy.built + "#level=" + level.id + "&at=" + node.id);
+    await rest(page);
+    await clean(`node ${node.id}`);
+  }
+  quiet(page, copy.name);
+  await page.context().close();
+  return read;
 }
 
 // ---- overlay ----
@@ -518,6 +590,63 @@ async function scenarios(browser, example, size, walked, named = null, lent = nu
   quiet(page, example.name);
   await page.context().close();
 }
+async function notes(browser, example, size, tally) { // each step of each scenario: its note clear of every lane header and shown edge label, and a step whose next record is on another level naming that level
+  const page = await open(browser, example, size, { still: true });
+  for (const scenario of example.contract.scenarios || []) {
+    await page.keyboard.press("Escape");
+    await page.goto("file://" + example.built + "#scenario=" + scenario.id + "&step=0&level=" + example.levelOf[scenario.steps[0].at]);
+    await rest(page);
+    for (let i = 0; i < scenario.steps.length; i++) {
+      const where = `${example.name} scenario ${scenario.id} step ${i} at ${size.join("x")}`;
+      if (i) { await page.keyboard.press("ArrowRight"); await rest(page); }
+      const seen = await page.evaluate(() => {
+        const box = (element) => element.getBoundingClientRect(), chip = document.getElementById("chip"), hint = document.getElementById("onto");
+        const laps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+        const shown = (element) => +getComputedStyle(element).opacity > 0.05;
+        const covered = !chip.classList.contains("show") ? [] : [...document.querySelectorAll("#stage .area > header")].map((header) => ["lane header", header.parentElement.dataset.id, header])
+          .concat([...document.querySelectorAll("#stage .label")].filter(shown).map((label) => ["edge label", label.dataset.edge, label])).filter(([, , element]) => laps(box(chip), box(element))).map(([what, id]) => `${what} ${id}`);
+        return { noted: +chip.classList.contains("show"), covered, hint: hint && !hint.hidden && box(hint).width > 0 ? hint.textContent : "" };
+      });
+      check(!seen.covered.length, `${where}: its note covers ${seen.covered.join(", ")}`);
+      tally.notes += seen.noted;
+      const next = scenario.steps[i + 1], away = next && example.levelOf[next.at] !== example.levelOf[scenario.steps[i].at] ? example.contract.levels.find((level) => level.id === example.levelOf[next.at]) : null;
+      tally.onto += !!away;
+      check(away ? seen.hint.toLowerCase().includes(away.shown.toLowerCase()) : !seen.hint, away ? `${where}: the next step is on ${away.shown}, and the hint reads ${seen.hint || "nothing"}` : `${where}: the next step stays on this level, and a hint reads ${seen.hint}`);
+    }
+  }
+  quiet(page, `${example.name} notes at ${size.join("x")}`);
+  await page.context().close();
+}
+async function origins(browser, example, tally) { // a move down and back up, held at three moments: a mark names the node the level entered grows from
+  const page = await open(browser, example, SIZES[1]);
+  const opener = example.contract.levels[0].nodes.find((node) => node.opens);
+  const held = () => page.evaluate((id) => {
+    const moving = document.getAnimations(); // held past its end, a move with no fill leaves this list, so it is finished from here
+    const missed = [150, 450, 750].map((moment) => {
+      moving.forEach((one) => { one.pause(); one.currentTime = moment; });
+      const mark = document.getElementById("origin");
+      return mark && mark.dataset.for === id && +getComputedStyle(mark).opacity > 0.2 && mark.getBoundingClientRect().width > 0 ? "" : `at ${moment} ms`;
+    }).filter(Boolean);
+    moving.forEach((one) => one.finish());
+    return missed;
+  }, opener.id);
+  for (const way of ["down", "up", "down turned back"]) {
+    await page.evaluate(([way, id]) => {
+      if (way === "up") return history.back();
+      document.querySelector(`#stage .node[data-id="${id}"] .open`).click();
+      if (way !== "down") document.getAnimations().forEach((one) => { one.pause(); one.currentTime = 150; }); // the move held 150 ms in, then turned back
+    }, [way, opener.id]);
+    if (way === "down turned back") await page.evaluate(() => history.back());
+    if (way !== "down") await page.waitForFunction((level) => document.body.dataset.level === level, example.contract.levels[0].id);
+    const missed = await held();
+    check(!missed.length, `${example.name}: a move ${way} through ${opener.id} marks no node it grows from ${missed.join(", ")}`);
+    tally.framed += 1;
+    await rest(page);
+    check(await page.evaluate(() => { const mark = document.getElementById("origin"); return !mark || +getComputedStyle(mark).opacity < 0.05; }), `${example.name}: the mark of the node a level grows from stays after the move ${way}`);
+  }
+  quiet(page, `${example.name} origins`);
+  await page.context().close();
+}
 async function plays(browser, example) { // a scenario that plays by itself, a step's own button and the step after the last
   const page = await open(browser, example, SIZES[1], { still: true });
   const scenario = example.contract.scenarios.reduce((short, one) => (one.steps.length < short.steps.length ? one : short)), last = scenario.steps.length - 1, where = `${example.name} scenario ${scenario.id}`;
@@ -611,6 +740,7 @@ async function mixed(browser, example, size, order) {
   }
 }
 async function moves(browser) {
+  const tally = { notes: 0, onto: 0, framed: 0 }; // what the notes and the level moves were read for
   const drawn = async (page) => { // the level move a click on a node's open button starts, and the mark of a scenario step
     await page.mouse.move(2, 2);
     await page.click("#stage .node .open");
@@ -674,7 +804,10 @@ async function moves(browser) {
   check(stopped.level.length === 2 && stopped.level.every((one) => !one.moves && one.long > 0 && one.long <= 500) && stopped.step.name === "appear", `under reduced motion a level move is ${JSON.stringify(stopped.level)} and a step's mark ${stopped.step.name}`);
   await still.context().close();
   await Promise.all(examples.map((example) => plays(browser, example)).concat(SIZES.flatMap((size) => examples.flatMap((example) => (size === SIZES[1] ? (example.contract.scenarios || []).map((scenario) => [scenario]) : [(example.contract.scenarios || []).slice(0, 1)]).map((walked) => scenarios(browser, example, size, walked))))
-    .concat(examples.flatMap((example) => [["down", "search", "up", "step"], ["search", "step", "down", "up"], ["step", "up", "search", "down"]].map((order) => mixed(browser, example, SIZES[1], order))))));
+    .concat(examples.flatMap((example) => [["down", "search", "up", "step"], ["search", "step", "down", "up"], ["step", "up", "search", "down"]].map((order) => mixed(browser, example, SIZES[1], order))))
+    .concat(SIZES.flatMap((size) => examples.map((example) => notes(browser, example, size, tally))), examples.map((example) => origins(browser, example, tally)))));
+  console.log(`${tally.notes} step notes at three sizes cover no lane header and no shown edge label`);
+  console.log(`${tally.onto} steps whose next record is on another level name that level, ${tally.framed} level moves frame the node they grow from`);
 }
 
 // ---- changes ----

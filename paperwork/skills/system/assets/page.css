@@ -107,6 +107,9 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #play .count { padding: 0 4px 0 8px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
 #play .title { padding: 0 6px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #play .dots { display: flex; padding: 0 4px; }
+#origin { position: fixed; z-index: 5; outline: 2px solid var(--mark); outline-offset: 3px; border-radius: var(--radius); pointer-events: none; }
+#origin span { position: absolute; left: 4px; bottom: calc(100% + 6px); padding: 0 6px; border-radius: 6px; background: var(--canvas); color: var(--mark); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+#onto { flex-shrink: 0; padding: 0 8px; color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
 #play .dots button { width: 14px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
 #play .dots button::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: var(--border); transition: background-color .2s var(--ease), width .3s var(--spring); }
 #play .dots button:hover::before { background: var(--ring); }
