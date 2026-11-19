@@ -53,13 +53,15 @@
 //            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
 //   results  on each example's page a word only one node's purpose holds lists that node with an excerpt of its
-//            purpose, the word marked, and its id's words show the name or the id marked; a word start, initials
+//            purpose on its own line, the word marked and tinted, and its id's words show the name or the id marked; a word start, initials
 //            and a misspelt word mark exactly the letters matched; Down, Down, Up names the second hit the input's
 //            active option and Enter picks it, Escape closes; a query nothing matches restates itself with a hint;
-//            and each query of the search step lists its hits within 50 ms on page-changes, the largest example.
+//            and each query of the search step lists its hits within 50 ms of the page's main thread time on
+//            page-changes, the largest example, in its fastest of up to five runs.
 //   regex    the button and Alt+R turn the regular expression mode on and off, shown pressed; the whole input is
 //            one pattern, case ignored, with no slips or initials; `watcher|flush` marks either word; a bad pattern
-//            says `Not a regular expression` with its reason.
+//            says `Not a regular expression` with its reason, in red in the light and dark schemes; the key line
+//            names Alt+R and the pressed button looks pressed.
 //   ranking  each query of fixtures/ranking-queries.json typed into its example's page; the mean reciprocal rank of
 //            the wanted record among the eight hits shown is above the base's, from the place the file holds for
 //            each query on paperwork-v0.14.9.
@@ -968,7 +970,10 @@ async function results(browser) {
     const [word, wants] = WORDS[example.name];
     const hit = (await typed(page, word)).find((one) => one.id === wants);
     check(hit && hit.field === "purpose" && hit.marks.map((mark) => mark.toLowerCase()).includes(word) && hit.where.split(/\s+/).length <= 16, `${where}: ${word} shows ${JSON.stringify(hit)}, not an excerpt of ${wants}'s purpose with the word marked`);
-    lines.push(`excerpt: ${where} ${word} shows "${hit.where}"`);
+    const look = await page.evaluate((id) => { const row = document.querySelector(`#hits [data-hit="${id}"]`), mark = row.querySelector(".where mark");
+      return { below: row.querySelector(".where").getBoundingClientRect().top >= row.querySelector(".text > b").getBoundingClientRect().bottom - 1, tint: getComputedStyle(mark).backgroundColor }; }, wants);
+    check(look.below && !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(look.tint), `${where}: ${wants}'s excerpt ${look.below ? "" : "shares the name's line"} ${look.tint}, not on its own line with the word tinted`);
+    lines.push(`excerpt: ${where} ${word} shows "${hit.where}", on its own line, the word tinted`);
     const id = (await typed(page, wants.split("-").slice(0, 2).join("-"))).find((one) => one.id === wants);
     check(id && (id.name.length || id.field === "id"), `${where}: the id ${wants} shows ${JSON.stringify(id)}, naming no field`);
     lines.push(`field: ${where} the id's words show ${id.field ? `"${id.where}"` : "the name marked"}`);
@@ -1003,15 +1008,20 @@ async function results(browser) {
   await timed.goto("file://" + examples.find((example) => example.name === "page-changes").built);
   await timed.keyboard.press("/");
   const QUERIES = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", "search-queries.json"), "utf8")).map((query) => query.query).concat(["the", "a page that the person opens", "zzqxv"]);
-  const slowest = await timed.evaluate((queries) => Math.max(...queries.map((text) => {
-    const box = document.getElementById("query"); // the least of five runs, since a busy machine only ever adds to a run's time
-    let least = Infinity;
-    for (let i = 0; i < 5; i++) { box.value = text; const start = performance.now(); box.dispatchEvent(new Event("input")); least = Math.min(least, performance.now() - start); }
-    return least;
-  })), QUERIES);
+  const cdp = await context.newCDPSession(timed); // the main thread's own time, since a busy machine stretches wall time many fold
+  await cdp.send("Performance.enable", { timeDomain: "threadTicks" });
+  const spent = async () => (await cdp.send("Performance.getMetrics")).metrics.find((metric) => metric.name === "TaskDuration").value * 1000;
+  const least = QUERIES.map(() => Infinity);
+  for (let round = 0; round < 5 && least.some((took) => took > 50); round++) for (const [i, text] of QUERIES.entries()) {
+    if (least[i] <= 50) continue;
+    const before = await spent();
+    await timed.evaluate((text) => { const box = document.getElementById("query"); box.value = text; box.dispatchEvent(new Event("input")); }, text);
+    least[i] = Math.min(least[i], (await spent()) - before);
+  }
+  const slowest = Math.max(...least);
   await context.close();
   check(slowest <= 50, `the slowest query lists its hits in ${slowest.toFixed(1)} ms`);
-  lines.push(`speed: the slowest of ${QUERIES.length} queries lists in ${slowest.toFixed(1)} ms on page-changes`);
+  lines.push(`speed: the slowest of ${QUERIES.length} queries lists in ${slowest.toFixed(1)} ms of main thread time on page-changes`);
   for (const line of lines) console.log(line);
 }
 
@@ -1019,10 +1029,12 @@ async function results(browser) {
 async function regex(browser) {
   const lines = [], page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
   const pressed = () => page.evaluate(() => document.getElementById("regex").getAttribute("aria-pressed"));
+  const shade = () => page.evaluate(() => getComputedStyle(document.getElementById("regex")).backgroundColor);
   await page.keyboard.press("/");
-  const loose = await typed(page, "the checker");
+  check(await page.evaluate(() => /alt\s*R\s*regex/i.test(document.getElementById("keys").textContent)), "the key line does not name Alt+R");
+  const loose = await typed(page, "the checker"), off = await shade();
   await page.click("#regex");
-  check(await pressed() === "true", "the button does not turn the mode on");
+  check(await pressed() === "true" && (await shade()) !== off, "the button does not turn the mode on, or looks the same pressed");
   await page.keyboard.press("Alt+KeyR");
   check(await pressed() === "false", "Alt+R does not turn the mode off");
   await page.keyboard.press("Alt+KeyR");
@@ -1045,7 +1057,16 @@ async function regex(browser) {
   check(!(await typed(page, "retr(y")).length, "a bad pattern lists hits");
   const bad = await said(page);
   check(bad && bad.error && bad.title === "Not a regular expression" && bad.hint.length > 3, `a bad pattern says ${JSON.stringify(bad)}`);
-  lines.push(`error: retr(y says ${bad.title}: ${bad.hint}`);
+  const red = () => page.evaluate(() => { // the title's colour drawn on a canvas, so any colour form reads as red, green and blue
+    const pen = document.createElement("canvas").getContext("2d");
+    pen.fillStyle = getComputedStyle(document.querySelector("#hits .none b")).color; pen.fillRect(0, 0, 1, 1);
+    const [r, g, b] = pen.getImageData(0, 0, 1, 1).data;
+    return r - Math.max(g, b) > 60;
+  });
+  const light = await red();
+  await page.emulateMedia({ colorScheme: "dark" });
+  check(light && (await red()), `a bad pattern's title is ${light ? "" : "not "}red in the light scheme and ${light ? "not " : ""}in the dark one`);
+  lines.push(`error: retr(y says ${bad.title}: ${bad.hint}, in red in both schemes`);
   quiet(page, "page-changes");
   await page.context().close();
   for (const line of lines) console.log(line);
