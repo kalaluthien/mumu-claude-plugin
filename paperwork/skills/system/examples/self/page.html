@@ -7,7 +7,7 @@
 <style>
 :root {
   --radius: .625rem; --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0);
-  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.556 0 0);
+  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.556 0 0); --destructive: oklch(.577 .245 27.325);
   --accent: oklch(.97 0 0); --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --canvas: oklch(.985 0 0); --mark: oklch(.55 .2 259);
   --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
   --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);
@@ -18,7 +18,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0);
-    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0);
+    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0); --destructive: oklch(.704 .191 22.216);
     --accent: oklch(.269 0 0); --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0); --canvas: oklch(.17 0 0); --mark: oklch(.7 .16 259);
   }
 }
@@ -172,18 +172,29 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #veil.show { opacity: 1; pointer-events: auto; }
 #palette { position: fixed; z-index: 41; left: 50%; top: 18vh; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
 #palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-#palette input { width: 100%; height: 48px; padding: 0 16px; border: 0; border-bottom: 1px solid var(--border); background: transparent; color: inherit; font: inherit; outline: none; }
+#field { display: flex; align-items: center; gap: 8px; padding-right: 8px; border-bottom: 1px solid var(--border); }
+#palette input { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
+#regex { font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -.02em; }
+#regex[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
 #palette input::placeholder { color: var(--muted-foreground); }
 #hits { max-height: 320px; overflow-y: auto; padding: 4px; }
 #hits h3 { margin: 0; padding: 6px 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
 #hits .hit { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
 #hits .hit[aria-selected="true"] { background: var(--accent); }
-#hits .hit b { flex: 0 1 auto; min-width: 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } #hits .hit code { color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
-#hits mark { background: none; color: inherit; font-weight: 600; text-decoration: underline; text-decoration-color: var(--ring); text-underline-offset: 3px; }
+#hits .hit .text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+#hits .hit b { font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+#hits .hit .where { font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+#hits .hit .where i { font-style: normal; font-weight: 500; color: var(--foreground); }
+#hits mark { background: color-mix(in oklab, var(--mark) 18%, transparent); color: var(--foreground); font-weight: 600; border-radius: 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--mark) 70%, transparent); }
 #keys { display: flex; justify-content: flex-end; gap: 16px; height: 40px; align-items: center; padding: 0 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
 #keys span { display: inline-flex; align-items: center; gap: 4px; }
 #hits .hit small { margin-left: auto; font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
-#hits .none { padding: 24px; text-align: center; color: var(--muted-foreground); }
+#hits .hit .clock { display: inline-flex; color: var(--muted-foreground); }
+#hits .hit .recent { color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #hits .hit .recent b { font-weight: 600; color: var(--foreground); }
+#hits .hit .forget { width: 24px; height: 24px; color: var(--muted-foreground); }
+#hits .none { display: flex; flex-direction: column; gap: 4px; padding: 24px; text-align: center; color: var(--muted-foreground); }
+#hits .none b { font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; }
+#hits .none.error b { color: var(--destructive); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow, stroke, fill !important; transition-duration: .2s !important; transition-delay: 0s !important; }
   #token.run, #token.run.carry { animation: appear .24s var(--ease) both; offset-distance: 100%; }
@@ -214,9 +225,10 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 </div>
 <div id="veil"></div>
 <div id="palette" role="dialog" aria-label="Search">
-<input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false">
+<div id="field"><input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="hits" aria-autocomplete="list" aria-label="Search">
+<button id="regex" class="tool icon quiet" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression (Alt+R)">.*</button></div>
 <div id="hits" role="listbox"></div>
-<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span></footer>
+<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span><span><kbd>alt</kbd><kbd>R</kbd> regex</span></footer>
 </div>
 <script type="application/json" id="page-data">{"title": "The system skill", "purpose": "The skill turns {subject}'s sources into {contract}, one checked file from which {reader} rebuilds {subject} without the sources.", "sources": [{"id": "skill-file", "path": "paperwork/skills/system/SKILL.md", "says": "the three cases and their order"}, {"id": "extract-playbook", "path": "paperwork/skills/system/references/extract.md", "says": "the topics and where each finding goes"}, {"id": "contract-playbook", "path": "paperwork/skills/system/references/contract.md", "says": "the record layout and how to write each part"}, {"id": "tag-survey", "path": "paperwork/skills/system/references/tags.md", "says": "the survey behind each tag's items"}, {"id": "checker-code", "path": "paperwork/skills/system/scripts/check-contract.py", "says": "every rule, and what `gaps` asks"}, {"id": "tag-file", "path": "paperwork/skills/system/assets/tags.json", "says": "every tag and its items"}], "terms": [{"term": "contract", "meaning": "the one JSON file that holds all that is known of {subject}; every page is drawn from it", "coined": true}, {"term": "region", "meaning": "{area} that holds the states of one thing, exactly one of them current", "coined": false}, {"term": "sentence", "meaning": "a static edge read as `\u003cfrom> \u003clabel> \u003cto>`, which must be true of {subject}", "coined": true}, {"term": "gap", "meaning": "what {contract} lacks, forbids wrongly, says twice or says with two meanings", "coined": false}], "levels": [{"id": "skill", "title": "system-skill", "about": "Between {subject} and {reader}, three jobs in turn carry what the sources say into two kept files, and {contract} is fit for {reader} only in the last of its three states.", "areas": [{"id": "outside", "label": "Outside the skill", "tag": "lane", "info": {"owner": "whoever asks for {contract}", "why": "Set apart what the skill meets and does not make."}}, {"id": "work", "label": "Three jobs", "tag": "phase", "info": {"order": 1, "entry": "{subject} and its sources are named", "exit": "each open question on {contract} is answered or recorded", "why": "Order the jobs of one run as they act: find, place, check."}}, {"id": "kept", "label": "Kept files", "tag": "module", "info": {"purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."}}, {"id": "life", "label": "Contract states", "tag": "region", "info": {"of": "{contract}", "initial": "drafted", "why": "Tell how far {contract} is from fit for {reader}, one state at a time."}}], "nodes": [{"id": "subject", "label": "Subject", "tag": "actor", "area": "outside", "purpose": "Stand as the system, process or requirements that {reader} must rebuild.", "info": {"channels": ["code", "documents", "people who run it", "a run of it"]}, "evidence": ["extract-playbook"]}, {"id": "session", "label": "Claude Code session", "tag": "host", "area": "outside", "purpose": "Host the skill where {subject}'s sources can be read.", "info": {"system": "python3, standard library only", "runs": ["{extract}", "{write}", "{checker}"]}, "evidence": ["skill-file"], "basis": "documented"}, {"id": "reader", "label": "Reader", "tag": "actor", "area": "outside", "purpose": "Rebuild or change {subject} from {contract} alone.", "info": {"goal": "Rebuild {subject} with a recall of $\\frac{a}{q}$ near one, where $a$ of the $q$ rebuild questions name the records that answer them."}, "evidence": ["contract-playbook"]}, {"id": "extract", "label": "Extraction run", "tag": "job", "area": "work", "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.", "info": {"steps": ["list the sources and what each can settle", "walk the topics", "note each finding with where it was seen", "ask each open question"], "outputs": {"columns": ["name", "type", "to"], "rows": [["findings", "text by topic", "{write}"]]}, "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"}, "evidence": ["extract-playbook"], "files": ["extract-playbook"]}, {"id": "write", "label": "Contract writing", "tag": "job", "area": "work", "purpose": "Place each finding in the one slot of {contract} that {checker} and a page can read.", "info": {"steps": ["choose levels", "name nodes as things and edges as sentences", "draw each lifecycle as a region of states", "fill each tag's items", "write scenarios and properties", "run {checker}, read aloud, answer each open question"], "failure": {"columns": ["case", "what happens"], "rows": [["a slot breaks a rule", "the place and the rule are named, and no page is built until the slot is mended"]]}}, "evidence": ["contract-playbook"], "files": ["contract-playbook"]}, {"id": "checker", "label": "Checker", "tag": "job", "area": "work", "purpose": "Refuse {contract} while a page or {reader} could misread it, and list each open question.", "info": {"steps": ["check the form", "check each rule", "print ok or each break"], "signals": ["`where: rule: message` per break", "`ok`", "one line per open question"], "inputs": {"columns": ["name", "type", "from"], "rows": [["contract.json", "JSON file", "{write}"]]}}, "evidence": ["checker-code"], "files": ["checker-code"]}, {"id": "catalogue", "label": "Tag catalogue", "tag": "artifact", "area": "kept", "purpose": "Fix, per tag, the items worth recording and the form of each.", "info": {"format": "one JSON file: kind, tag, meaning, items with a form and an example", "made-by": "a survey of 35 documented systems", "used-by": ["{checker}", "the page maker"]}, "evidence": ["tag-file", "tag-survey"], "files": ["tag-file"]}, {"id": "contract", "label": "Contract", "tag": "dataStore", "area": "kept", "opens": "parts", "purpose": "Hold all that is known of {subject} in one file that every later job reads.", "info": {"layout": [{"name": "contract.json", "children": [{"name": "title, purpose"}, {"name": "sources", "note": "what was read"}, {"name": "terms"}, {"name": "levels", "children": [{"name": "areas"}, {"name": "nodes"}, {"name": "edges"}]}, {"name": "scenarios"}, {"name": "properties"}]}], "access": {"columns": ["who", "mode", "how"], "rows": [["{write}", "write", "by hand or by a generator"], ["{checker}", "read", "check, read, gaps"], ["{reader}", "read", "alone, without the sources"]]}}, "evidence": ["contract-playbook"]}, {"id": "drafted", "label": "Drafted contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as written and not yet accepted by {checker}.", "info": {"ignores": ["edit", "gaps"]}, "evidence": ["contract-playbook"]}, {"id": "checked", "label": "Checked contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as one that {checker} printed `ok` for.", "info": {"ignores": ["check"]}, "evidence": ["contract-playbook"]}, {"id": "answered", "label": "Answered contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as fit for {reader}: each open question is answered or recorded as a gap.", "info": {"meaning": "Every rebuild question is settled, by records that answer it or by a gap: $$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}$$", "ignores": ["check", "gaps"]}, "evidence": ["contract-playbook"]}], "edges": [{"id": "reads", "from": "extract", "to": "subject", "label": "reads", "tag": "access", "info": {"mode": "read"}, "evidence": ["extract-playbook"]}, {"id": "takes-its", "from": "write", "to": "extract", "label": "takes its findings from", "tag": "sequence", "info": {"order": 2}, "evidence": ["skill-file"]}, {"id": "writes", "from": "write", "to": "contract", "label": "writes", "tag": "produces", "info": {"output": "contract.json", "format": "JSON"}, "evidence": ["contract-playbook"]}, {"id": "takes-its-items", "from": "write", "to": "catalogue", "label": "takes its items from", "tag": "dependsOn", "info": {"kind": "while writing"}, "evidence": ["contract-playbook"]}, {"id": "judges", "from": "checker", "to": "contract", "label": "judges", "tag": "access", "info": {"mode": "read"}, "evidence": ["checker-code"]}, {"id": "holds-each", "from": "checker", "to": "catalogue", "label": "holds each element to", "tag": "dependsOn", "info": {"kind": "at run time", "on-failure": "does not start"}, "evidence": ["checker-code"]}, {"id": "sends-its", "from": "checker", "to": "extract", "label": "sends its open questions back to", "tag": "triggers", "info": {"filter": "only when a question is open"}, "evidence": ["contract-playbook"]}, {"id": "check", "from": "drafted", "to": "checked", "label": "check", "tag": "transition", "info": {"guard": "no rule breaks"}, "evidence": ["contract-playbook"]}, {"id": "edit", "from": "checked", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]}, {"id": "gaps", "from": "checked", "to": "answered", "label": "gaps", "tag": "transition", "info": {"guard": "no open question"}, "evidence": ["contract-playbook"]}, {"id": "edit-2", "from": "answered", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]}, {"id": "rebuilds-from", "from": "reader", "to": "contract", "label": "rebuilds {subject} from", "tag": "access", "info": {"mode": "read"}, "evidence": ["skill-file"]}, {"id": "runs-in", "from": "checker", "to": "session", "label": "runs in", "tag": "dependsOn", "info": {"kind": "at run time"}, "evidence": ["checker-code"]}]}, {"id": "parts", "title": "parts-of-a-contract", "about": "{contract} draws {subject} with four parts on each level and holds all levels together with three more.", "areas": [{"id": "drawn", "label": "Parts of one level", "tag": "module", "info": {"purpose": "Draw one level as a graph with four parts."}}, {"id": "told", "label": "Parts across levels", "tag": "module", "info": {"purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."}}], "nodes": [{"id": "level", "label": "Level", "tag": "artifact", "area": "drawn", "purpose": "Show one depth of {subject}, small enough to read at once.", "info": {"format": "id, title, about, areas, nodes, edges"}, "evidence": ["contract-playbook"]}, {"id": "area", "label": "Area", "tag": "artifact", "area": "drawn", "purpose": "Gather nodes for one reason, or hold the states of one thing.", "info": {"format": "id, label, tag, info"}, "evidence": ["contract-playbook"]}, {"id": "node", "label": "Node", "tag": "artifact", "area": "drawn", "purpose": "Name one thing of {subject}, or one state a thing can be in.", "info": {"format": "id, label, tag, area, opens, purpose, info, evidence"}, "evidence": ["contract-playbook"]}, {"id": "edge", "label": "Edge", "tag": "artifact", "area": "drawn", "purpose": "Join two nodes by one relation, or by one move between states.", "info": {"format": "from, to, label, tag, many, info, evidence"}, "evidence": ["contract-playbook"]}, {"id": "tag", "label": "Tag", "tag": "policy", "area": "told", "purpose": "Fix which items {node}, {edge} or {area} holds.", "info": {"statement": "{node}, {edge} or {area} holds only the items of its tag, each item in its form", "enforced-by": "{checker}"}, "evidence": ["tag-file"]}, {"id": "scenario", "label": "Scenario", "tag": "artifact", "area": "told", "purpose": "Show a purpose met, step by step, on the nodes and edges.", "info": {"format": "id, title, purpose, principle, steps of at, note"}, "evidence": ["contract-playbook"]}, {"id": "property", "label": "Property", "tag": "artifact", "area": "told", "purpose": "State what must hold of the nodes and edges, what is assumed and what is not known.", "info": {"format": "id, kind, strength, status, fault, statement, on, paths"}, "evidence": ["contract-playbook"]}], "edges": [{"id": "is-drawn", "from": "node", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "sits-in", "from": "node", "to": "area", "label": "sits in", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "is-drawn-on", "from": "area", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "leaves", "from": "edge", "to": "node", "label": "leaves", "tag": "dependsOn", "evidence": ["contract-playbook"]}, {"id": "carries", "from": "node", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]}, {"id": "carries-2", "from": "edge", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]}, {"id": "steps-on", "from": "scenario", "to": "node", "label": "steps on", "many": true, "tag": "sequence", "evidence": ["contract-playbook"]}, {"id": "constrains", "from": "property", "to": "node", "label": "constrains", "many": true, "tag": "governs", "evidence": ["contract-playbook"]}]}], "scenarios": [{"id": "describe", "title": "describe-a-subject", "purpose": "{reader} rebuilds {subject} from {contract} alone.", "principle": true, "steps": [{"at": "reads"}, {"at": "writes"}, {"at": "check", "note": "prints ok, or names each break"}, {"at": "sends-its", "note": "one line per open question"}, {"at": "gaps"}, {"at": "rebuilds-from", "note": "never opens the sources"}]}, {"id": "walk-parts", "title": "read-one-level", "purpose": "{reader} tells the static sentences from the moves between states.", "steps": [{"at": "contract", "note": "its parts show"}, {"at": "sits-in", "note": "true of every contract"}]}], "properties": [{"id": "one-file", "title": "one-file", "kind": "invariant", "strength": "must", "statement": "Every page of {subject} is made from {contract} and nothing else.", "on": ["contract"], "evidence": ["skill-file"]}, {"id": "same-level", "title": "same-level", "kind": "fact", "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.", "on": ["node", "area", "level"], "paths": [["is-drawn"], ["sits-in", "is-drawn-on"]], "evidence": ["checker-code"]}, {"id": "ids-once", "title": "ids-once", "kind": "convention", "strength": "must", "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.", "on": ["node", "edge"], "evidence": ["contract-playbook"]}, {"id": "sources-reachable", "title": "sources-reachable", "kind": "assumption", "statement": "{subject}'s sources can be read by the session that extracts; what only a person knows must be asked.", "on": ["subject"]}, {"id": "standard-library", "title": "standard-library", "kind": "constraint", "strength": "must", "statement": "{checker} uses the Python standard library only.", "on": ["checker"]}, {"id": "sentence-truth", "title": "sentence-truth", "kind": "gap", "fault": "unknown", "status": "unknown", "statement": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.", "on": ["edge", "subject", "reader", "catalogue"]}], "questions": [{"id": "who-rebuilds", "asks": "Who must be able to rebuild {subject}, and from what alone?", "answers": ["reader", "rebuilds-from", "one-file"]}, {"id": "what-is-read", "asks": "What is read to find the facts, and in what order of work?", "answers": ["extract", "reads", "takes-its"]}, {"id": "where-facts-go", "asks": "Where does every fact end up, and which parts does that file hold?", "answers": ["contract", "writes", "parts"]}, {"id": "which-items", "asks": "What fixes the items a record of one tag must hold?", "answers": ["catalogue", "takes-its-items", "carries"]}, {"id": "what-is-judged", "asks": "What does {checker} judge, and what does it send back?", "answers": ["checker", "judges", "sends-its"]}, {"id": "when-done", "asks": "Which states does a description pass through before it is done?", "answers": ["drafted", "checked", "answered", "check", "gaps"]}, {"id": "how-ids", "asks": "How is a record named so that another can point at it?", "answers": ["ids-once"]}, {"id": "what-it-needs", "asks": "What does {checker} need installed to run?", "answers": ["standard-library", "runs-in"]}, {"id": "is-it-true", "asks": "How is a sentence of the description known to be true?", "gap": "sentence-truth"}]}</script>
 <script type="application/json" id="page-threads">{"threads": {}}</script>
@@ -1065,18 +1077,24 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     return [...parts].map(part => KEYS[part] || part).join("");
   }).join("");
   const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
-  function index() {
-    const list = [], add = (id, kind, name, note, fields) => list.push({ id, kind, name, note, fields: fields.filter(([text]) => text).map(([text, weight]) => ({ text: plain(text), tokens: plain(text).split(" "), weight })) });
+  const flat = value => typeof value === "string" ? words(value).replace(/`/g, "") : Array.isArray(value) ? value.map(flat).join("; ")
+    : value && typeof value === "object" ? Object.entries(value).map(([key, item]) => `${key}: ${flat(item)}`).join("; ") : String(value);
+  function index() { // each record's fields as the search weighs them, and its texts as a hit shows them, by name
+    const list = [], add = (id, kind, name, note, fields, shown) => list.push({ id, kind, name: name.replace(/`/g, ""), note, fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })),
+      shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text: flat(text) })) });
     const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
+    const details = info => Object.entries(info || {});
     for (const level of contract.levels) {
-      add(level.id, "level", words(level.title), "level", [[words(level.title), 10], [level.id, 8], [level.about && words(level.about), 2]]);
-      for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 10], [node.id, 8], [node.tag, 4], [node.purpose && words(node.purpose), 2], [texts(node.info), 1]]);
-      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 10], [area.id, 8], [area.tag, 4], [texts(area.info), 1]]);
-      for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 9], [sentence(edge), 6], [edge.id, 5], [edge.tag, 3], [texts(edge.info), 1]]);
+      add(level.id, "level", words(level.title), "level", [[words(level.title), 0], [level.id, 1], [level.about && words(level.about), 3]], [["id", level.id], ["about", level.about]]);
+      for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 0], [node.id, 1], [node.tag, 2], [node.purpose && words(node.purpose), 3], [texts(node.info), 4]], [["id", node.id], ["tag", tagName(node.tag)], ["purpose", node.purpose], ...details(node.info)]);
+      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 0], [area.id, 1], [area.tag, 2], [texts(area.info), 4]], [["id", area.id], ["tag", tagName(area.tag)], ...details(area.info)]);
+      for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 0], [edge.id, 1], [edge.tag, 2], [sentence(edge), 3], [texts(edge.info), 4]], [["id", edge.id], ["tag", tagName(edge.tag)], ...details(edge.info)]);
     }
-    for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
-    for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 10], [property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
-    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 3], [question.id, 2]]);
+    for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
+    for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["id", property.id], ["kind", property.kind], ["statement", property.statement]]);
+    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[question.id, 1], [words(question.asks), 3]], [["id", question.id]]);
+    for (const entry of list) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
+    lengths = list.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, list.length);
     return list;
   }
   const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
@@ -1094,91 +1112,190 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
   };
   const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
   const ORDER = Object.keys(KINDS);
-  function match(token, field) {
-    if (field.text === token) return 120;
-    if (field.tokens.includes(token)) return 100;
-    if (field.text.startsWith(token)) return 80;
-    if (field.tokens.some(word => word.startsWith(token))) return 70;
-    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 40;
-    if (token.length > 2 && field.text.includes(token)) return 30;
+  function match(token, field) { // how well TOKEN matches FIELD, best first: the whole field, a word, a word's start, the words' initials, inside a word, one slip, two slips; -1 for none
+    if (field.text === token) return 0;
+    if (field.tokens.includes(token)) return 1;
+    if (field.text.startsWith(token) || field.tokens.some(word => word.startsWith(token))) return 2;
+    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 3;
+    if (token.length > 2 && field.text.includes(token)) return 4;
     const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
-    if (most && field.tokens.some(word => slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most) <= most)) return 25;
-    return 0;
+    let least = most + 1;
+    for (const word of most ? field.tokens : []) {
+      const key = token + " " + word;
+      if (!slipping.has(key)) slipping.set(key, slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most));
+      least = Math.min(least, slipping.get(key));
+      if (least === 1) break;
+    }
+    return least <= most ? 4 + least : -1;
   }
+  const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
   const forms = query => [plain(query), plain(typed(query))];
-  function rank(query) {
+  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
+  const RANKERS = { field: 4, quality: 2, bm25: .5, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
+  function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
+    let field = 0, quality = 0, covered = 0;
+    for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
+      let place = 5, grade = 7, size = 0;
+      for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
+      if (grade === 7 && !partial) return null;
+      covered += grade < 7 ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
+    }
+    field /= tokens.length; quality /= tokens.length;
+    if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
+    let bm25 = 0;
+    for (const [term, weight] of rare) { // BM25, k1 1.2 and b 0.75, over every text of the record
+      const count = entry.terms.filter(word => word === term).length;
+      bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
+    }
+    return { entry, covered, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
+  }
+  let lengths = 1;
+  function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
     const scored = new Map();
+    slipping.clear();
     for (const form of new Set(forms(query))) {
       const tokens = form.split(" ").filter(Boolean);
       if (!tokens.length) continue;
-      for (const entry of entries) {
-        let total = 0, whole = 0;
-        for (const field of entry.fields) whole = Math.max(whole, match(tokens.join(" "), field) * field.weight * 1.2);
-        for (const token of tokens) {
-          let best = 0;
-          for (const field of entry.fields) best = Math.max(best, match(token, field) * field.weight);
-          if (!best) { total = 0; break; }
-          total += best;
-        }
-        const score = Math.max(tokens.length > 1 ? whole : 0, total / tokens.length);
-        if (score > (scored.get(entry) || 0)) scored.set(entry, score);
+      const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
+      const whole = entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean);
+      const pool = whole.length || tokens.length < 3 ? whole : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => row.covered || row.bm25 < 0); // a sentence no record holds whole: the records that share its words
+      const score = new Map(pool.map(row => [row.entry, 0]));
+      for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
+        const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
+        for (const row of pool) { let ahead = 0, past = sorted.length; while (ahead < past) { const middle = (ahead + past) >> 1; if (sorted[middle] < row[ranker]) ahead = middle + 1; else past = middle; } score.set(row.entry, score.get(row.entry) + weight / (60 + 1 + ahead)); }
+      }
+      for (const [entry, value] of score) if (value > (scored.get(entry) || 0)) scored.set(entry, value);
+    }
+    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  const folds = new Map();
+  const fold = text => { // TEXT as `plain` reads it, with the place in TEXT of each letter kept
+    if (folds.has(text)) return folds.get(text);
+    let folded = "", at = [], gap = false;
+    for (let i = 0; i < text.length; i++) {
+      const letter = text[i].toLowerCase();
+      if (letter.length !== 1 || !/[a-z0-9ㄱ-ㆎ가-힣]/.test(letter)) { gap = true; continue; }
+      if (gap && folded) { folded += " "; at.push(i); }
+      folded += letter; at.push(i); gap = false;
+    }
+    folds.set(text, { folded, at });
+    return folds.get(text);
+  };
+  function spans(text, tokens) { // the letters of TEXT each query word matched, by the first way `match` would take
+    const { folded, at } = fold(text), found = [], starts = [];
+    for (const word of folded.matchAll(/\S+/g)) starts.push([word.index, word.index + word[0].length]);
+    const mark = (start, end) => found.push([at[start], at[end - 1] + 1]);
+    for (const token of tokens) {
+      const heads = starts.filter(([start]) => folded.startsWith(token, start));
+      if (heads.length) { heads.forEach(([start]) => mark(start, start + token.length)); continue; }
+      if (token.length > 1 && starts.length >= token.length && starts.slice(0, token.length).every(([start], i) => folded[start] === token[i])) { starts.slice(0, token.length).forEach(([start]) => mark(start, start + 1)); continue; }
+      const kin = starts.filter(([start, end]) => stem(folded.slice(start, end)) === stem(token));
+      if (kin.length) { kin.forEach(([start, end]) => mark(start, end)); continue; }
+      if (token.length > 2 && folded.includes(token)) { for (let i = folded.indexOf(token); i >= 0; i = folded.indexOf(token, i + token.length)) mark(i, i + token.length); continue; }
+      const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+      for (const [start, end] of most ? starts : []) {
+        const word = folded.slice(start, end), cut = word.length > token.length + most ? token.length : word.length;
+        if (slips(token, word.slice(0, cut), most) <= most) mark(start, start + cut);
       }
     }
-    const order = found => [...found].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
-    const asked = plain(query).split(" ").filter(Boolean);
-    return scored.size || asked.length < 3 ? order(scored) : order(answering(asked));
+    return found;
   }
-  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s)$/, "") : word;
-  function answering(tokens) { // a sentence no record holds whole: each record by the words it shares, a word the fewer records hold counting the more
-    const found = new Map();
-    for (const token of new Set(tokens.map(stem))) {
-      const weights = new Map();
-      for (const entry of entries) {
-        const weight = Math.max(0, ...entry.fields.filter(field => field.tokens.some(word => stem(word) === token)).map(field => field.weight));
-        if (weight) weights.set(entry, weight);
-      }
-      const rare = Math.log(entries.length / (weights.size || 1));
-      for (const [entry, weight] of weights) found.set(entry, (found.get(entry) || 0) + rare * Math.sqrt(weight));
+  const matches = (text, pattern) => [...text.matchAll(pattern)].filter(one => one[0]).slice(0, 50).map(one => [one.index, one.index + one[0].length]);
+  const marked = (text, found) => { // TEXT with each found span in a mark
+    const parts = [];
+    let done = 0;
+    for (const [start, end] of [...found].sort((a, b) => a[0] - b[0])) {
+      if (end <= done) continue;
+      const from = Math.max(start, done);
+      parts.push(text.slice(done, from), make("mark", {}, text.slice(from, end)));
+      done = end;
     }
-    return [...found].filter(([, score]) => score > 0);
+    return parts.concat(text.slice(done));
+  };
+  function excerpt(text, found) { // about twelve words of TEXT around its first match, cut ends shown by an ellipsis
+    const all = [...text.matchAll(/\S+/g)], first = Math.min(...found.map(span => span[0]));
+    let from = Math.max(0, all.findIndex(word => word.index + word[0].length > first) - 4);
+    const to = Math.min(all.length, from + 12);
+    from = Math.max(0, to - 12);
+    const start = all[from].index, end = all[to - 1].index + all[to - 1][0].length;
+    const shifted = found.filter(([a, b]) => b > start && a < end).map(([a, b]) => [Math.max(a, start) - start, Math.min(b, end) - start]);
+    return [...(from ? ["… "] : []), ...marked(text.slice(start, end), shifted), ...(to < all.length ? [" …"] : [])];
   }
-  let chosen = 0, listed = [], scope = null;
+  function sought() { // the pattern the box holds in the regular expression mode, or the reason it is none
+    try { return { pattern: new RegExp($("query").value, "gi") }; } catch (error) { return { error: error.message.replace(/^.*: /, "") }; }
+  }
+  function grep(pattern) { // the records whose name or other texts the pattern matches, the name counting most
+    const found = [];
+    for (const entry of entries) {
+      const named = matches(entry.name, pattern).length > 0;
+      if (named || entry.shown.some(part => matches(part.text, pattern).length)) found.push([entry, named ? 2 : 1]);
+    }
+    return found.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  let chosen = 0, listed = [], scope = null, regular = false, memory = null;
+  const shelf = () => `paperwork-system-recent ${contract.title} ${location.pathname}`; // every file:// page shares one storage
+  const recalled = () => { // the last queries a pick was made from, the tab's own once the storage throws
+    if (!memory) try { return JSON.parse(localStorage.getItem(shelf()) || "[]"); } catch { memory = []; }
+    return memory;
+  };
+  const remember = queries => {
+    if (!memory) try { return localStorage.setItem(shelf(), JSON.stringify(queries)); } catch { memory = queries; }
+    memory = queries;
+  };
+  const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  const CROSS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
   function list() {
-    const query = $("query").value.trim(), box = $("hits");
+    const query = $("query").value.trim(), box = $("hits"), input = $("query");
     box.replaceChildren();
-    const tokens = forms(query).flatMap(form => form.split(" ")).filter(Boolean);
-    const lit = text => { // the letters of TEXT a query word matched, marked
-      const low = text.toLowerCase(), spans = [];
-      for (const token of tokens) for (let at = low.indexOf(token); at >= 0; at = low.indexOf(token, at + token.length)) spans.push([at, at + token.length]);
-      spans.sort((a, b) => a[0] - b[0]);
-      const parts = [];
-      let done = 0;
-      for (const [start, end] of spans) {
-        if (start < done) continue;
-        parts.push(text.slice(done, start), make("mark", {}, text.slice(start, end)));
-        done = end;
-      }
-      return parts.concat(text.slice(done));
-    };
-    const found = query ? rank(query).slice(0, 8) : [];
-    const groups = query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]);
+    const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
+    const asked = regular && query ? sought() : {};
+    const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
+    const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
+    const before = scope ? [] : recalled().filter(text => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(text => ({ recent: text }));
+    const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
+      : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
     listed = groups.flatMap(group => group[1]);
     chosen = Math.min(chosen, Math.max(0, listed.length - 1));
-    if (!listed.length) return box.append(make("div", { class: "none" }, "No results found."));
+    input.setAttribute("aria-invalid", String(!!asked.error));
+    input.removeAttribute("aria-activedescendant");
+    const option = (item, ...children) => make("div", { class: "hit", role: "option", id: `hit-${listed.indexOf(item)}`, "aria-selected": String(listed[chosen] === item) }, ...children);
     for (const [title, hits] of groups) {
       if (!hits.length) continue;
       box.append(make("h3", {}, title));
-      for (const entry of hits) {
-        const name = entry.name.replace(/`/g, "");
-        const row = make("div", { class: "hit", role: "option", "data-hit": entry.id, "aria-selected": String(listed[chosen] === entry) }, make("b", {}, ...lit(name)),
-          ...(tokens.some(token => entry.id.includes(token) && !name.toLowerCase().includes(token)) ? [make("code", {}, ...lit(entry.id))] : []), make("small", {}, entry.note));
+      for (const item of hits) {
+        if (item.recent) { // the typed part plain, the rest of the kept query bold
+          const row = option(item, make("span", { class: "clock" }), make("div", { class: "text" }, make("span", { class: "recent" }, item.recent.slice(0, query.length), make("b", {}, item.recent.slice(query.length)))),
+            make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
+          row.dataset.recent = item.recent;
+          row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
+          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item.recent) : recall(item.recent));
+          box.append(row);
+          continue;
+        }
+        const entry = item, named = query ? find(entry.name) : [], text = [make("b", {}, ...marked(entry.name, named))];
+        const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
+        const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
+        const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
+        if (part) text.push(make("span", { class: "where" }, make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])));
+        const row = option(entry, make("div", { class: "text" }, ...text), make("small", {}, entry.note));
+        row.dataset.hit = entry.id;
         row.addEventListener("click", () => pick(entry));
         box.append(row);
       }
     }
+    if (asked.error) box.append(make("div", { class: "none error", role: "alert" }, make("b", {}, "Not a regular expression"), make("span", {}, asked.error)));
+    else if (query && !found.length) box.append(make("div", { class: "none", role: "status" }, make("b", {}, `No results for “${query}”`),
+      make("span", {}, regular ? "Check the pattern, or turn regular expressions off with Alt+R." : "Try fewer or other words, or turn on regular expressions with Alt+R.")));
     const current = box.querySelector('[aria-selected="true"]');
-    if (current) current.scrollIntoView({ block: "nearest" });
+    if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
+  }
+  function recall(text) { $("query").value = text; chosen = 0; $("query").focus(); list(); }
+  function forget(text) { remember(recalled().filter(one => one !== text)); $("query").focus(); list(); }
+  function regex(on) {
+    regular = on; chosen = 0;
+    $("regex").setAttribute("aria-pressed", String(on));
+    $("query").focus();
+    list();
   }
   function ask(only) {
     scope = only || null; chosen = 0;
@@ -1194,6 +1311,9 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     $("query").blur();
   }
   function pick(entry) {
+    const query = $("query").value.trim();
+    if (entry.recent) return recall(entry.recent);
+    if (query && document.body.dataset.palette) remember([query, ...recalled().filter(one => one.toLowerCase() !== query.toLowerCase())].slice(0, 8));
     shut();
     if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
       const question = contract.questions.find(one => one.id === entry.id);
@@ -1239,6 +1359,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     $("properties").addEventListener("click", () => ask("Properties"));
     $("veil").addEventListener("click", shut);
     $("query").addEventListener("input", () => { chosen = 0; list(); });
+    $("regex").addEventListener("click", () => regex(!regular));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -1248,6 +1369,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     addEventListener("keydown", event => {
       if (document.body.dataset.palette) {
         if (event.key === "Escape") shut();
+        else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
         else if (event.key === "Enter" && listed[chosen]) pick(listed[chosen]);
         else return;

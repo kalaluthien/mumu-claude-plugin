@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
-// With no word it runs the sixteen steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
+// With no word it runs the twenty steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -52,6 +52,21 @@
 //   titles   on each example's page the Properties list shows each property by its title, and a click on the first
 //            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
+//   results  on each example's page a word only one node's purpose holds lists that node with an excerpt of its
+//            purpose, the word marked, and its id's words show the name or the id marked; a word start, initials
+//            and a misspelt word mark exactly the letters matched; Down, Down, Up names the second hit the input's
+//            active option and Enter picks it, Escape closes; a query nothing matches restates itself with a hint;
+//            and each query of the search step lists its hits within 50 ms on page-changes, the largest example.
+//   regex    the button and Alt+R turn the regular expression mode on and off, shown pressed; the whole input is
+//            one pattern, case ignored, with no slips or initials; `watcher|flush` marks either word; a bad pattern
+//            says `Not a regular expression` with its reason.
+//   ranking  each query of fixtures/ranking-queries.json typed into its example's page; the mean reciprocal rank of
+//            the wanted record among the eight hits shown is above the base's, from the place the file holds for
+//            each query on paperwork-v0.14.9.
+//   recent   nine queries each picked from on page-changes: the empty search lists the last eight, newest first,
+//            above the questions, each with a clock; typing keeps those that start with it, the typed part plain
+//            and the rest bold; one removed stays gone after a reload; a copy of the page at another path in the
+//            same browser lists none; a page whose storage throws keeps them for the tab.
 //   tasks    each rebuild question an example answers is two tasks: from the first view, `/`, the question typed
 //            whole or as the words of its id, an arrow per hit above the question or the first of its answers, Enter, and the view shows
 //            that answer, the question's first when the hit is the question; a
@@ -97,7 +112,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
+const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
@@ -928,6 +943,174 @@ async function titles(browser) {
   await page.context().close();
 }
 
+// ---- results ----
+const typed = async (page, text) => { // TEXT typed into the open search, and each hit as the person reads it
+  await page.fill("#query", "");
+  await page.keyboard.insertText(text);
+  await page.clock.fastForward(30);
+  return page.evaluate(() => [...document.querySelectorAll("#hits .hit")].map((row) => ({
+    id: row.dataset.hit || null, recent: row.dataset.recent || null, option: row.id, selected: row.getAttribute("aria-selected") === "true",
+    name: [...row.querySelectorAll(".text > b mark")].map((mark) => mark.textContent),
+    field: row.querySelector(".where i") ? row.querySelector(".where i").textContent : null,
+    where: row.querySelector(".where") ? row.querySelector(".where").textContent : null,
+    marks: [...row.querySelectorAll(".where mark")].map((mark) => mark.textContent),
+    clock: !!row.querySelector(".clock svg"), plain: row.querySelector(".recent") ? row.querySelector(".recent").firstChild.textContent : null,
+    bold: row.querySelector(".recent b") ? row.querySelector(".recent b").textContent : null,
+  })));
+};
+const said = (page) => page.evaluate(() => { const none = document.querySelector("#hits .none"); return none ? { error: none.classList.contains("error"), title: none.querySelector("b").textContent, hint: none.querySelector("span").textContent } : null; });
+const WORDS = { self: ["misread", "checker"], "page-changes": ["steering", "rule-text-is-data"] }; // a word only one node's purpose holds, and that node
+async function results(browser) {
+  const lines = [];
+  for (const example of examples) {
+    const page = await open(browser, example, SIZES[1], { still: true }), where = example.name;
+    await page.keyboard.press("/");
+    const [word, wants] = WORDS[example.name];
+    const hit = (await typed(page, word)).find((one) => one.id === wants);
+    check(hit && hit.field === "purpose" && hit.marks.map((mark) => mark.toLowerCase()).includes(word) && hit.where.split(/\s+/).length <= 16, `${where}: ${word} shows ${JSON.stringify(hit)}, not an excerpt of ${wants}'s purpose with the word marked`);
+    lines.push(`excerpt: ${where} ${word} shows "${hit.where}"`);
+    const id = (await typed(page, wants.split("-").slice(0, 2).join("-"))).find((one) => one.id === wants);
+    check(id && (id.name.length || id.field === "id"), `${where}: the id ${wants} shows ${JSON.stringify(id)}, naming no field`);
+    lines.push(`field: ${where} the id's words show ${id.field ? `"${id.where}"` : "the name marked"}`);
+    quiet(page, where);
+    await page.context().close();
+  }
+  const page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
+  await page.keyboard.press("/");
+  for (const [text, wants, letters] of [["the chec", "checker", ["the", "chec"]], ["tvk", "keeper", ["t", "v", "k"]], ["the wacther", "watcher", ["the", "watcher"]]]) {
+    const hit = (await typed(page, text)).find((one) => one.id === wants);
+    check(hit && JSON.stringify(hit.name.map((mark) => mark.toLowerCase())) === JSON.stringify(letters), `${text} marks ${hit ? JSON.stringify(hit.name) : "no hit"} in ${wants}, not ${JSON.stringify(letters)}`);
+    lines.push(`marks: ${text} marks ${hit.name.join("|")}`);
+  }
+  const hits = await typed(page, "the page");
+  check(hits.length >= 3 && hits[0].selected, `the page lists ${hits.length} hits, the first not chosen`);
+  await page.keyboard.press("ArrowDown"); await page.keyboard.press("ArrowDown"); await page.keyboard.press("ArrowUp");
+  const active = await page.evaluate(() => ({ named: document.getElementById("query").getAttribute("aria-activedescendant"), chosen: document.querySelector('#hits [aria-selected="true"]').id, id: document.querySelector('#hits [aria-selected="true"]').dataset.hit }));
+  check(active.named === active.chosen && active.id === hits[1].id, `after Down, Down, Up the active option is ${active.named}, the chosen ${active.chosen} (${active.id}), not ${hits[1].id}`);
+  await page.keyboard.press("Enter"); await rest(page);
+  check((await view(page)).pinned === hits[1].id, `Enter on ${hits[1].id} does not pick it`);
+  await page.keyboard.press("/"); await page.keyboard.press("Escape"); await rest(page);
+  check(!(await page.evaluate(() => document.getElementById("palette").classList.contains("show"))), "Escape leaves the search open");
+  lines.push(`keys: Down, Down, Up names ${active.named} active; Enter picks ${hits[1].id}; Escape closes`);
+  await page.keyboard.press("/");
+  check(!(await typed(page, "zzqxv wobbly")).length, "a query nothing matches lists hits");
+  const none = await said(page);
+  check(none && none.title.includes("zzqxv wobbly") && none.hint.length > 10, `a query nothing matches says ${JSON.stringify(none)}`);
+  lines.push(`none: "${none.title}" ${none.hint}`);
+  quiet(page, "page-changes");
+  await page.context().close();
+  const context = await browser.newContext({ viewport: { width: SIZES[1][0], height: SIZES[1][1] } }), timed = await context.newPage(); // no clock installed, so the page's own time is read
+  await timed.goto("file://" + examples.find((example) => example.name === "page-changes").built);
+  await timed.keyboard.press("/");
+  const QUERIES = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", "search-queries.json"), "utf8")).map((query) => query.query).concat(["the", "a page that the person opens", "zzqxv"]);
+  const slowest = await timed.evaluate((queries) => Math.max(...queries.map((text) => {
+    const box = document.getElementById("query"); // the least of five runs, since a busy machine only ever adds to a run's time
+    let least = Infinity;
+    for (let i = 0; i < 5; i++) { box.value = text; const start = performance.now(); box.dispatchEvent(new Event("input")); least = Math.min(least, performance.now() - start); }
+    return least;
+  })), QUERIES);
+  await context.close();
+  check(slowest <= 50, `the slowest query lists its hits in ${slowest.toFixed(1)} ms`);
+  lines.push(`speed: the slowest of ${QUERIES.length} queries lists in ${slowest.toFixed(1)} ms on page-changes`);
+  for (const line of lines) console.log(line);
+}
+
+// ---- regex ----
+async function regex(browser) {
+  const lines = [], page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
+  const pressed = () => page.evaluate(() => document.getElementById("regex").getAttribute("aria-pressed"));
+  await page.keyboard.press("/");
+  const loose = await typed(page, "the checker");
+  await page.click("#regex");
+  check(await pressed() === "true", "the button does not turn the mode on");
+  await page.keyboard.press("Alt+KeyR");
+  check(await pressed() === "false", "Alt+R does not turn the mode off");
+  await page.keyboard.press("Alt+KeyR");
+  check(await pressed() === "true" && (await page.inputValue("#query")) === "the checker", "Alt+R does not turn the mode on, or it typed into the box");
+  lines.push("toggle: the button and Alt+R turn the mode on and off, shown pressed");
+  const holds = (hit, pattern) => hit.name.concat(hit.marks).some((mark) => pattern.test(mark));
+  const strict = await typed(page, "the checker");
+  check(strict.length && strict.every((hit) => holds(hit, /^the checker$/i)) && loose.some((hit) => !strict.some((one) => one.id === hit.id)), `the checker as a pattern lists ${strict.map((hit) => hit.id).join(",")}, not only records holding that text`);
+  lines.push(`one pattern: the checker lists ${strict.length} records, each holding it with its space`);
+  const loud = await typed(page, "THE CHECKER");
+  check(JSON.stringify(loud.map((hit) => hit.id)) === JSON.stringify(strict.map((hit) => hit.id)), "case changes what the pattern finds");
+  lines.push("case: THE CHECKER lists the same records");
+  for (const text of ["the chekcer", "tvk"]) {
+    check(!(await typed(page, text)).length && (await said(page)), `${text} finds records in the regular expression mode`);
+  }
+  lines.push("no slips or initials: the chekcer and tvk find nothing");
+  const either = await typed(page, "watcher|flush");
+  check(either.some((hit) => holds(hit, /^watcher$/i)) && either.some((hit) => holds(hit, /^flush$/i)) && either.every((hit) => holds(hit, /^(watcher|flush)$/i)), `watcher|flush lists ${JSON.stringify(either.map((hit) => [hit.id, hit.name, hit.marks]))}`);
+  lines.push(`either: watcher|flush lists ${either.length} records, each marking one of the two`);
+  check(!(await typed(page, "retr(y")).length, "a bad pattern lists hits");
+  const bad = await said(page);
+  check(bad && bad.error && bad.title === "Not a regular expression" && bad.hint.length > 3, `a bad pattern says ${JSON.stringify(bad)}`);
+  lines.push(`error: retr(y says ${bad.title}: ${bad.hint}`);
+  quiet(page, "page-changes");
+  await page.context().close();
+  for (const line of lines) console.log(line);
+}
+
+// ---- ranking ----
+async function ranking(browser) {
+  const queries = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", "ranking-queries.json"), "utf8")), pages = {};
+  for (const example of examples) pages[example.name] = await open(browser, example, SIZES[1], { still: true });
+  const reciprocal = (place) => place ? 1 / place : 0;
+  let sum = 0, base = 0;
+  for (const query of queries) {
+    const hits = await searched(pages[query.example], query.query);
+    await pages[query.example].keyboard.press("Escape");
+    const place = hits.indexOf(query.wants) + 1;
+    sum += reciprocal(place); base += reciprocal(query.base);
+    console.log(`${query.query}: ${query.wants} at ${place || "none"}, base ${query.base || "none"}`);
+  }
+  for (const page of Object.values(pages)) await page.context().close();
+  const mean = sum / queries.length, before = base / queries.length;
+  console.log(`mean reciprocal rank ${mean.toFixed(3)} over ${queries.length} queries, base ${before.toFixed(3)}`);
+  check(mean > before, `the mean reciprocal rank ${mean.toFixed(3)} is not above the base's ${before.toFixed(3)}`);
+}
+
+// ---- recent ----
+async function recent(browser) {
+  const lines = [], example = examples.find((one) => one.name === "page-changes");
+  const QUERIES = ["the flush", "the checker", "the status", "the version keeper", "the wacther", "the exprot", "route-ack", "the page file", "the token"];
+  const shown = async (page, text) => { await page.keyboard.press("/"); const hits = await typed(page, text); return hits.filter((hit) => hit.recent); };
+  let page = await open(browser, example, SIZES[1], { still: true });
+  for (const text of QUERIES) { await page.keyboard.press("/"); await typed(page, text); await page.keyboard.press("Enter"); await rest(page); }
+  const kept = QUERIES.slice(1).reverse(), first = await shown(page, "");
+  check(JSON.stringify(first.map((hit) => hit.recent)) === JSON.stringify(kept) && first.every((hit) => hit.clock), `the empty search lists ${JSON.stringify(first.map((hit) => hit.recent))}, not the last eight with a clock`);
+  const order = await page.evaluate(() => [...document.querySelectorAll("#hits h3")].map((title) => title.textContent));
+  check(order[0] === "Recent" && order[1] === "Questions", `the empty search lists ${order.join(", ")}, not Recent above the questions`);
+  lines.push(`kept: the last 8 of 9 picked queries above the questions, each with a clock`);
+  const typing = (await typed(page, "the")).filter((hit) => hit.recent);
+  check(typing.length === kept.filter((text) => text.startsWith("the")).length && typing.every((hit) => hit.plain === "the" && hit.recent === "the" + hit.bold), `typing "the" shows ${JSON.stringify(typing)}`);
+  lines.push(`typing: "the" keeps ${typing.length}, the typed part plain and the rest bold`);
+  await page.fill("#query", ""); await page.keyboard.insertText("");
+  await page.click(`#hits [data-recent="the status"] .forget`);
+  await page.keyboard.press("Escape");
+  await page.reload(); await rest(page);
+  const left = await shown(page, "");
+  check(left.length === 7 && !left.some((hit) => hit.recent === "the status"), `after removing the status and a reload the search lists ${JSON.stringify(left.map((hit) => hit.recent))}`);
+  lines.push("remove: the status is gone after a reload");
+  const elsewhere = path.join(scratch, "elsewhere.html"), other = await page.context().newPage(); // the same browser storage, another file
+  fs.copyFileSync(example.built, elsewhere);
+  await other.clock.install(); await other.goto("file://" + elsewhere); await rest(other);
+  check(!(await shown(other, "")).length, "a page at another path lists the first page's recent queries");
+  lines.push("apart: a page at another path in the same browser lists none");
+  await page.context().close();
+  const context = await browser.newContext({ viewport: { width: SIZES[1][0], height: SIZES[1][1] } });
+  await context.addInitScript(() => Object.defineProperty(window, "localStorage", { get() { throw new DOMException("The operation is insecure.", "SecurityError"); } }));
+  page = await context.newPage();
+  await page.clock.install();
+  await page.goto("file://" + example.built); await rest(page);
+  await page.keyboard.press("/"); await typed(page, "the flush"); await page.keyboard.press("Enter"); await rest(page);
+  const held = await shown(page, "");
+  check(held.length === 1 && held[0].recent === "the flush", `with storage that throws the search lists ${JSON.stringify(held.map((hit) => hit.recent))}`);
+  lines.push("no storage: the flush is kept for the tab");
+  await context.close();
+  for (const line of lines) console.log(line);
+}
+
 // ---- tasks ----
 async function task(page, example, question, typed) {
   const contract = example.contract, names = {};
@@ -1394,7 +1577,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, overlay, fit, clear, moves, changes, search, titles, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
+    const steps = { diagram, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
