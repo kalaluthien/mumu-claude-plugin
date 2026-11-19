@@ -32,7 +32,7 @@ task's latest `decide --live-runs <n>` or else `LIVE_RUNS` (4), kept in the work
 missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
 
-`--hunks` reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
+`--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
 runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
 hunk; a git check, which the export cannot run, never counts. A hunk no check can
@@ -320,16 +320,25 @@ def run_per_hunk(options, task, root, live):
     hunks = split_hunks(git_output("diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD", cwd=root))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
 
+    def results(copy):
+        """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
+        return {label: row(label, *criterion, copy, options.timeout, live)[2] for label, criterion in found}
+
     def passing(copy):
-        """Labels of the rows that pass in COPY; a git check, which the export cannot run, never does."""
-        return {label for label, _, result, _ in (row(label, *criterion, copy, options.timeout, live) for label, criterion in found) if result == "pass"}
+        return {label for label, result in results(copy).items() if result == "pass"}
 
     with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as copy:
         exported = subprocess.Popen(["git", "archive", "HEAD"], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
         if exported.wait():
             sys.exit("run-criteria: could not export HEAD")
-        held = passing(copy)
+        at_head = results(copy)
+        failing = [label for label, result in at_head.items() if result == "fail"]
+        if failing:
+            print(*[f"{label}: fails at the head: make it pass first, since a hunk cannot be judged by a criterion that does not" for label in failing], sep="\n")
+            print(live.report(), end="")
+            return 1
+        held = {label for label, result in at_head.items() if result == "pass"}
         unneeded, conditions = [], 0
         for file, line, patch in hunks:
             apply = ["git", "apply", "--unidiff-zero", "--whitespace=nowarn", "-"]
