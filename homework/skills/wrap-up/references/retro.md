@@ -14,7 +14,7 @@ Keep what this session learned where the next agent will meet it. A lesson hande
    - **Tool economy**: an expensive call that a cheaper command would answer.
    - **Information access**: a fact the agent could not reach: give it read access.
    - **Steering**: an `owner` or `override` candidate, where the owner corrected or redirected: the instruction or default that would have made it unneeded.
-   - **Interface**: each `refusal`, `failure` or `hook` candidate, and any other tool, script or hook whose usage line or message misled or cost a step: name each one and its owner, then route the fix by who owns the tool, a patch to it when its repository is the owner's, as the Foreign repositories rule tells, else a memory lesson with the workaround, plus a wrapper or hook in the owner's repository when one fits; or drop it with a reason.
+   - **Interface**: each `guard` candidate is handled, as `SKILL.md`'s **Dig** says: drop it, reason `guard worked`, unless that rule makes it a finding. Each `refusal`, `failure` or `hook` candidate, and any other tool, script or hook whose usage line or message misled or cost a step: name each one and its owner, then route the fix by who owns the tool, a patch to it when its repository is the owner's, as the Foreign repositories rule tells, else a memory lesson with the workaround, plus a wrapper or hook in the owner's repository when one fits; or drop it with a reason.
 
    Then dig each finding by `SKILL.md`'s **Dig**, reporting each guess in step 8.
 3. **Drafts**: draft each answer worth keeping, one per verified root cause, paraphrasing owner text, never quoting it, since memory may be pushed:

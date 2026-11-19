@@ -4,7 +4,9 @@
 usage: list-candidates.py [<transcript|session>]   the session in CLAUDE_CODE_SESSION_ID by default
 
 The candidates are the work since the stop that ended the last wrap-up the hook
-asked for: a failed tool result, a permission refusal, an AskUserQuestion
+asked for: a failed tool result, a step code refused (`guard`: a hook, a
+permission check, the classifier or a script) with no owner message between it
+and the agent's next call, else a `refusal`, as the owner's own denial is, an AskUserQuestion
 answer other than its recommended option, a step redone (a commit amended,
 reset or reverted, a force push, files restored), each message the owner typed,
 each hook block or added context, collapsed by text with its count, and each
@@ -20,8 +22,7 @@ from collections import Counter
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import transcript  # noqa: E402
 
-REFUSAL = re.compile(r"Permission for this \w+ was denied|requires approval|doesn't want to proceed|hook error"
-                     r"|<tool_use_error>Blocked|requested permissions|contains multiple operations")
+REFUSAL = re.compile(r"Permission for this \w+ was denied|doesn't want to proceed")
 REDO = re.compile(r"git\s+commit\b[^;&|\n]*--amend|git\s+(reset|revert|restore)\b|git\s+checkout\s+(?!-b\b)[^;&|\n]*\s--(\s|$)"
                   r"|git\s+push\b[^;&|\n]*(\s-f\b|--force)")
 RECOMMENDED = ("(Recommended)", "(추천)", "(권장)")
@@ -107,16 +108,22 @@ def candidates(entries):
     """One line per surprise since the last retro: time, kind, what."""
     window = entries[since_last_ask(entries):]
     uses, lines, owner, hooks, records = {}, [], [], Counter(), {}
+    # a refusal the owner speaks after, before the agent's next call, may be the owner's objection, so it stays a refusal
+    refused = []
     for entry in window:
         at = entry.get("timestamp", "")
         said = owner_text(entry)
         if said is not None:
+            for k in refused:
+                lines[k] = lines[k].replace(" guard ", " refusal ", 1)
+            refused.clear()
             owner.append(f"{at} owner {masked(' '.join(said.split()))[:WIDTH * 2]!r}")
         heard = hook_text(entry)
         if heard and not heard.lstrip().startswith(transcript.SIGNAL):
             hooks[masked(" ".join(heard.split()))[:WIDTH]] += 1
         for use in transcript.blocks_of(entry, "tool_use"):
             uses[use.get("id")] = use
+            refused.clear()
             command = str((use.get("input") or {}).get("command", ""))
             if use.get("name") == "Bash" and REDO.search(command):
                 lines.append(f"{at} redo {masked(command)[:WIDTH]!r}")
@@ -128,7 +135,9 @@ def candidates(entries):
             use = uses.get(result.get("tool_use_id")) or {}
             if result.get("is_error"):
                 text = transcript.text_of(result)
-                kind = "refusal" if REFUSAL.search(text) else "failure"
+                kind = "guard" if transcript.REFUSED_BY_CODE.search(text) else "refusal" if REFUSAL.search(text) else "failure"
+                if kind == "guard":
+                    refused.append(len(lines))
                 lines.append(f"{at} {kind} {use.get('name', '?')}: {masked(text)[:WIDTH]!r}")
             elif use.get("name") == "AskUserQuestion":
                 lines += [f"{at} override {what}" for what in overrides(use, entry)]

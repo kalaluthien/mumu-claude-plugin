@@ -2,12 +2,18 @@
 import glob
 import json
 import os
+import re
 from datetime import datetime
 
 import claude_config
 
 # one constant, so the hook's sentence and the retro's search for it cannot drift apart
 SIGNAL = "Wrap-up signal:"
+# the words code writes when it refuses a step (a hook, a permission check, the auto mode classifier, a script that
+# posts or runs nothing); one constant, so the retro and the dream count the same refusals as handled
+REFUSED_BY_CODE = re.compile(r"hook error|<tool_use_error>Blocked|denied by (?:the )?(?:Claude Code )?auto mode|denied by a built-in"
+                             r"|Blocked by classifier|classifier denied|Permission (?:to use \w+|for this \w+)\b.{0,300}? has been denied"
+                             r"|requested permissions|contains multiple operations|requires approval|nothing in this command ran|nothing posted")
 
 
 def entries_of(path):

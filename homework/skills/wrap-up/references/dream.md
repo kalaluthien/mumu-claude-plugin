@@ -22,7 +22,7 @@ What a dream reads, found afresh in every project: list what exists with `git ls
 - **Habit item**: one owner line or answer and what it shows of how the owner instructs, asks, answers or gives feedback, written in the same facet as friction.
 - **Preference**: a group of habit items in 2+ sessions that show one rule for the agent, as `list-repeats.py habits` prints it, kept in `<data>/habit`; its `name` is the text after the line's first `: `.
 - **Cadence**: repeats come from each run; preferences, which need more sessions and change slowly, come weekly; a run digs only the few seen in the most sessions, and its result's `left` counts the rest, which a later run reaches.
-- **Repeat**: a `tool` failure signature or a grouped `mistake` that recurs, as `list-repeats.py mistakes` prints it; its `key` is the text after the line's first `: `.
+- **Repeat**: a `tool` failure signature, a `guard` one, which code refused and the dig returns as `guard worked`, or a grouped `mistake` that recurs, as `list-repeats.py mistakes` prints it; its `key` is the text after the line's first `: `.
 - **Dreamer**: the separate session step 1 hands a dream to, started and named by `${CLAUDE_PLUGIN_ROOT}/skills/wrap-up/scripts/start-dreamer.py`, `<topic>-dreamer`. `<topic>` names what made the dream due, never a project, since a dream spans every project: of `memory` (`<m>` reached `<l>`, which a dream needs besides one of the next two), `repeats` (the Route's `due <data>/dejavu` printed `due`) and `habit` (its `due <data>/habit` printed `due`), those that held, in this order, joined by `-`, such as `memory-habit`.
 
 ## Steps

@@ -14,8 +14,10 @@ Reads <map>/stats/ and <map>/facets/, <map> being <data> unless given, for the s
 --groups (`[{"name", "ids"}]`), each group in enough sessions prints. A line reads
 `<label> <n> sessions, <r> repos, last <date>[, <went> <where>[, seen since]]: <key>`:
 
-- mistakes, 14 days: `tool`, a failure signature in 3+ sessions, and `mistake`, a group of friction items in 3+
-  sessions, each seen in the last 3 days; `<went>` is `filed`;
+- mistakes, 14 days: `tool`, a failure signature in 3+ sessions, `guard`, such a signature every sighting of which is a
+  step code refused (a hook, a permission check, the classifier or a script) with no owner message before the agent's
+  next call, which is handled, and `mistake`, a group of friction items
+  in 3+ sessions, each seen in the last 3 days; `<went>` is `filed`;
 - habits, 28 days: `preference`, a group of habit items in 2+ sessions, then its kinds and up to 3 quotes; `<went>` is
   `kept`.
 
@@ -71,13 +73,15 @@ def main(args):
             stats[os.path.basename(path)[:-5]] = row
 
     if args[0] == "mistakes":
-        tools = collections.defaultdict(list)
+        tools, unguarded = collections.defaultdict(list), set()
         for row in stats.values():
             for failure in row.get("failures") or []:
                 tools[failure["key"]].append((failure["time"] or row["end"], row["path"], failure["line"], row["repo"]))
+                if not failure.get("guard"):
+                    unguarded.add(failure["key"])
         for key, sightings in sorted(tools.items(), key=lambda item: -len({sighting[1] for sighting in item[1]})):
             if recurs(sightings, kind, now):
-                repeats.show("tool", key, sightings, records, kind["went"])
+                repeats.show("tool" if key in unguarded else "guard", key, sightings, records, kind["went"])
 
     items = []
     for session, row in stats.items():

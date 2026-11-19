@@ -208,10 +208,12 @@ def main(args):
          [line.split(" sessions")[0] for line in lines if line.startswith("tool ") and "ls: <path>: No such file" in line] == ["tool 3"])
     step("2-session and stale signatures not listed",
          not any("twice only" in line or "stale only" in line for line in lines if line.startswith("tool ")))
-    step("bare exit code, user denied and hook footer dropped; hashes, urls and quoted values masked; reason kept",
+    step("bare exit code, user denied and hook footer dropped; hashes, urls and quoted values masked; reason kept;"
+         " a classifier refusal is a guard repeat",
          not any(re.search(r"Exit code|doesn't want to proceed|hook comes from|abcdef1|1234567|e\.x|value\d", line)
-                 for line in lines if line.startswith("tool "))
-         and any(line.startswith("tool 3 sessions") and "[Create Unsafe Agents]" in line for line in lines))
+                 for line in lines if line.startswith(("tool ", "guard ")))
+         and any(line.startswith("guard 3 sessions") and "[Create Unsafe Agents]" in line for line in lines)
+         and not any(line.startswith("tool ") and "[Create Unsafe Agents]" in line for line in lines))
     tool_memory = memory_under(out, "tool 3 sessions", "boom at")
 
     items = [json.loads(line) for line in open(os.path.join(DATA, "friction.jsonl"))] if os.path.exists(os.path.join(DATA, "friction.jsonl")) else []

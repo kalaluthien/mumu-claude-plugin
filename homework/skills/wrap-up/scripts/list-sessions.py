@@ -12,7 +12,8 @@ Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent 
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
 owner line after its first prompt and no answer gets no digest, since a friction or habit item answers what the agent did,
 and such a session, often one another session started, shows none. A Bash `ls` of the very path an `rm` or `rmdir` of the same command removed,
-an `ls` whose exit status the command reads (`|| …`, `; echo $?`), or a call made of `ls` alone, expects the path missing, so its error line is no failure signature. An `AskUserQuestion` answer shows as
+an `ls` whose exit status the command reads (`|| …`, `; echo $?`), or a call made of `ls` alone, expects the path missing, so its error line is no failure signature.
+A failure code refused is marked `guard` unless the owner speaks after it before the agent's next call. An `AskUserQuestion` answer shows as
 `[ANSWER L<n>]: <question> | options: <label> / ... | answer: <the owner's pick or own words>`.
 """
 import glob
@@ -117,12 +118,15 @@ def read(path):
     if any(str(e.get("entrypoint", "")).startswith("sdk") for e in entries):
         return None, [], []
     uses, failures, lines, owners, end = {}, [], [], [], None
+    # a refusal the owner speaks after, before the agent's next call, may be the owner's objection, so it stays a mistake
+    refused = []
     for number, entry in enumerate(entries, 1):
         end = transcript.seconds(entry.get("timestamp")) or end
         if entry.get("isSidechain"):
             continue
         for block in transcript.blocks_of(entry, "tool_use"):
             uses[block.get("id")] = (block.get("name"), str((block.get("input") or {}).get("command", "")))
+            refused.clear()
             lines.append(f"[Tool: {block.get('name')}]")
         if isinstance(entry.get("toolUseResult"), dict) and "answers" in entry["toolUseResult"]:
             answered = answer_lines(entry["toolUseResult"], number)
@@ -132,7 +136,10 @@ def read(path):
             tool, command = uses.get(block.get("tool_use_id"), ("?", ""))
             key = block.get("is_error") and signature(tool, transcript.text_of(block), command)
             if key:
-                failures.append({"key": key, "line": number, "time": transcript.seconds(entry.get("timestamp"))})
+                failures.append({"key": key, "line": number, "time": transcript.seconds(entry.get("timestamp")),
+                                 "guard": bool(transcript.REFUSED_BY_CODE.search(transcript.text_of(block)))})
+                if failures[-1]["guard"]:
+                    refused.append(failures[-1])
         if entry.get("type") == "assistant":
             for block in transcript.blocks_of(entry, "text"):
                 if block.get("text", "").strip():
@@ -143,6 +150,9 @@ def read(path):
             for text in texts:
                 text = TAGS.sub("", text).strip()
                 if text and not text.startswith("[Request interrupted"):
+                    for failure in refused:
+                        failure["guard"] = False
+                    refused.clear()
                     owners.append({"line": number, "text": text})
                     lines.append(f"[OWNER L{number}]: {text[:OWNER_CAP]}")
     stats = {"path": path, "repo": repo_of(path), "end": end, "failures": failures}
