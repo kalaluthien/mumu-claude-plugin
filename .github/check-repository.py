@@ -4,7 +4,7 @@
 usage: check-repository.py [--skip-fixtures] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
 """
 
 import concurrent.futures
@@ -270,8 +270,10 @@ def run_fixtures(root, files, failures):
                 done = subprocess.run(argv, cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=RUNNER_SECONDS)
             except (OSError, subprocess.TimeoutExpired) as error:
                 return "fixture {}: {}".format(path, error)
-            last = ((done.stdout.strip() or done.stderr.strip()).splitlines() or [""])[-1][:200]
-            return "fixture {}: exit {}, {}".format(path, done.returncode, last) if done.returncode else None
+            lines = (done.stdout.strip() or done.stderr.strip()).splitlines() or [""]
+            # a runner's last line is only its verdict, so the lines naming each fault go with it, for a reader of the CI log
+            faults = ["    " + line[:200] for line in lines[:-1] if line.startswith("FAIL")]
+            return "\n".join(["fixture {}: exit {}, {}".format(path, done.returncode, lines[-1][:200])] + faults) if done.returncode else None
 
         with concurrent.futures.ThreadPoolExecutor(4) as pool:
             failures += [line for line in pool.map(run, calls) if line]

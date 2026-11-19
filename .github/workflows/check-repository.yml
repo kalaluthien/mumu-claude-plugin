@@ -20,4 +20,7 @@ jobs:
         with:
           python-version: "3.9"
       - uses: oven-sh/setup-bun@v2  # the `.ts` fixture runners run under bun
+      - run: npm install --prefix /private/tmp/relay-playwright playwright-core@1.65.0  # the page fixtures drive the runner's Google Chrome through it
       - run: python3 .github/check-repository.py
+        env:
+          GH_TOKEN: ${{ github.token }}  # the pull-request fixture runs `gh pr list`
