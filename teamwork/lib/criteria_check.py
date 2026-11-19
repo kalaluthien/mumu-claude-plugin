@@ -215,7 +215,7 @@ SINGLE = {"--model", "--output-format", "--input-format", "--max-turns", "--perm
 
 def swallowed_flag(command):
     """The variadic flag of the `claude -p` stage whose run of values holds the prompt, else None: a variadic flag reads every word up to the next flag or `--`,
-    so with two or more words in its run and no prompt before it, the prompt is one of its values."""
+    so with a word in its run and no prompt before it, the prompt is one of its values; a stage that ends in a bare `--` with no prompt before it has none, and gives `--`."""
     first = command if (rest := after_first_pipe(command)) is None else command[:len(command) - len(rest) - 1]
     if not starts_session(first):
         return None
@@ -225,21 +225,21 @@ def swallowed_flag(command):
         return None
     flag, prompted, found, values, i = None, False, None, 0, words.index("claude") + 1 if "claude" in words else 0
     skip = False
-    for word in words[i:]:
+    for at, word in enumerate(words[i:], i):
         if skip:
             skip = False
             continue
         if word == "--":
-            return None
+            return "--" if at == len(words) - 1 and not prompted else None
         if word.startswith("-"):
-            found = found or (flag if flag and values > 1 else None)
-            flag, values = (word.split("=")[0], 0) if word.split("=")[0] in VARIADIC else (None, 0)
+            found = found or (flag if flag and values > 0 else None)
+            flag, values = (word, 0) if word in VARIADIC else (None, 0)
             skip = word in SINGLE
         elif flag:
             values += 1
         else:
             prompted = True
-    found = found or (flag if flag and values > 1 else None)
+    found = found or (flag if flag and values > 0 else None)
     return None if prompted else found
 
 

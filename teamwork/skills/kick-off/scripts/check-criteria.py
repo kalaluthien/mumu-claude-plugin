@@ -56,6 +56,7 @@ WRAPPERS = {"env", "command", "exec", "nice", "nohup", "time", "timeout", "xargs
 
 FIX = {
     "prompt swallowed": "put the prompt first or after `--`, since a flag that takes several values reads the prompt as one more value and `claude` exits with Input must be provided",
+    "no prompt after --": "put the prompt after the `--`, since a `--` that ends the command leaves `claude` no prompt and it exits with Input must be provided",
     "no kind": "open the criterion with `[check]` or `[score]` before its name",
     "no name": "put a bold name after the kind: `[check] **<name>**: <details>`",
     "no command": "write the command that decides in a code span; a `[check]` is a command whose output decides",
@@ -140,9 +141,11 @@ def live_defects(kind, detail):
 
 
 def order_defects(kind, detail):
-    """A live `[check]` whose prompt follows a flag that takes several values, which `claude` reads as one more value and then exits with "Input must be provided"."""
+    """A live `[check]` whose prompt follows a flag that takes values, which `claude` reads as one more value, or whose command ends in a bare `--`, and `claude` then exits with "Input must be provided"."""
     command, _ = criteria_check.expectation(detail)
     flag = criteria_check.swallowed_flag(command) if kind == "check" and command else None
+    if flag == "--":
+        return ["no prompt after --"]
     return [f"prompt swallowed by {flag}"] if flag else []
 
 
