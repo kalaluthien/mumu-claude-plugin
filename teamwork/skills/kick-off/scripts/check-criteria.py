@@ -182,7 +182,7 @@ def main(args):
     source = args[0]
     if source == "-":
         body = sys.stdin.read()
-    elif pathlib.Path(source).is_file():
+    elif len(source) < 1024 and "\n" not in source and pathlib.Path(source).is_file():
         try:
             body = pathlib.Path(source).read_text()
         except (OSError, UnicodeDecodeError) as e:
