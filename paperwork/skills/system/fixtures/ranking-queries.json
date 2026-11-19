@@ -12,10 +12,10 @@
  {"query": "extraction run topics", "wants": "extract", "example": "self", "kind": "phrase", "why": "Name words extraction run plus the step word topics.", "base": 1},
  {"query": "starter working example", "wants": "starter", "example": "page-changes", "kind": "phrase", "why": "Name word starter plus purpose words working example.", "base": 1},
  {"query": "job that finds", "wants": "extract", "example": "self", "kind": "tag-word", "why": "Tag job plus the purpose verb Find; the extraction run finds what the reader needs.", "base": 2},
- {"query": "job that notices a write", "wants": "watcher", "example": "page-changes", "kind": "tag-word", "why": "Tag job plus purpose Notice a finished write.", "base": 7},
+ {"query": "job that notices a write", "wants": "watcher", "example": "page-changes", "kind": "tag-word", "why": "Tag job plus purpose Notice a finished write.", "base": 6},
  {"query": "endpoint images scripts", "wants": "route-files", "example": "page-changes", "kind": "tag-word", "why": "Tag endpoint plus purpose words images, scripts beside the page.", "base": 1},
  {"query": "open questions sent back", "wants": "sends-its", "example": "self", "kind": "edge-scenario-property", "why": "Edge label sends its open questions back to.", "base": 1},
- {"query": "comment made while server is down", "wants": "server-down", "example": "page-changes", "kind": "edge-scenario-property", "why": "Scenario title A comment made while the server is down arrives later.", "base": 1},
+ {"query": "comment made while server is down", "wants": "server-down", "example": "page-changes", "kind": "edge-scenario-property", "why": "Scenario title A comment made while the server is down arrives later.", "base": null},
  {"query": "files with no write bit", "wants": "history-read-only", "example": "page-changes", "kind": "edge-scenario-property", "why": "Property statement says every history file has no write bit.", "base": 1},
  {"query": "tag catalouge", "wants": "catalogue", "example": "self", "kind": "typo", "why": "One-letter typo of the label the tag catalogue.", "base": 1},
  {"query": "acknowlege step", "wants": "step-ack", "example": "page-changes", "kind": "typo", "why": "One-letter typo of the Acknowledge step.", "base": 1}

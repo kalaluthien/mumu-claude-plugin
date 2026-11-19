@@ -855,7 +855,7 @@
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
     for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["id", property.id], ["kind", property.kind], ["statement", property.statement]]);
-    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[question.id, 1], [words(question.asks), 3]], [["id", question.id]]);
+    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
     for (const entry of list) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
     lengths = list.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, list.length);
     return list;
@@ -894,7 +894,7 @@
   const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
   const forms = query => [plain(query), plain(typed(query))];
   const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
-  const RANKERS = { field: 4, quality: 2, bm25: .5, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
+  const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
   function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
     let field = 0, quality = 0, covered = 0;
     for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
@@ -920,8 +920,8 @@
       const tokens = form.split(" ").filter(Boolean);
       if (!tokens.length) continue;
       const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
-      const whole = entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean);
-      const pool = whole.length || tokens.length < 3 ? whole : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => row.covered || row.bm25 < 0); // a sentence no record holds whole: the records that share its words
+      const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
+        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => row.covered || row.bm25 < 0);
       const score = new Map(pool.map(row => [row.entry, 0]));
       for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
         const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);

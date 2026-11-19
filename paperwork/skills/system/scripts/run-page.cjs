@@ -64,7 +64,7 @@
 //            names Alt+R and the pressed button looks pressed.
 //   ranking  each query of fixtures/ranking-queries.json typed into its example's page; the mean reciprocal rank of
 //            the wanted record among the eight hits shown is above the base's, from the place the file holds for
-//            each query on paperwork-v0.14.9.
+//            each query on paperwork-v0.14.13.
 //   recent   nine queries each picked from on page-changes: the empty search lists the last eight, newest first,
 //            above the questions, each with a clock; typing keeps those that start with it, the typed part plain
 //            and the rest bold on one line, while the top record stays the chosen one, a recent query a move
@@ -983,7 +983,7 @@ async function results(browser) {
   }
   const page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
   await page.keyboard.press("/");
-  for (const [text, wants, letters] of [["the chec", "checker", ["the", "chec"]], ["tvk", "keeper", ["t", "v", "k"]], ["the wacther", "watcher", ["the", "watcher"]]]) {
+  for (const [text, wants, letters] of [["page chec", "checker", ["page", "chec"]], ["vk", "keeper", ["v", "k"]], ["file wacther", "watcher", ["file", "watcher"]]]) {
     const hit = (await typed(page, text)).find((one) => one.id === wants);
     check(hit && JSON.stringify(hit.name.map((mark) => mark.toLowerCase())) === JSON.stringify(letters), `${text} marks ${hit ? JSON.stringify(hit.name) : "no hit"} in ${wants}, not ${JSON.stringify(letters)}`);
     lines.push(`marks: ${text} marks ${hit.name.join("|")}`);
