@@ -4,7 +4,7 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 
 ## Domain
 
-- **page**: one `.html` file made by `make-page.py` from a contract, with its style, code and data inline; it asks the network for nothing and opens from disk. The contract is its page data, and each node, edge and area is an anchor, so it follows the page rules of the `relay` skill.
+- **page**: one `.html` file made by `make-page.py` from a contract. The contract is its page data, and each node, edge and area is an anchor, so it follows the page rules of the `relay` skill.
 - **diagram**: one level drawn to fill the window: each node a rectangle with its label and its tag's name, each area a frame, each edge a line with its label; a level too full for the window is drawn denser, never with smaller type, and a label that would cover another thing shows only while its edge is lit by the pointer, a pick or a scenario, in a place free among what is lit.
 - **overlay**: the card beside the node, edge or area under the pointer, clear of that record and of what is tied to it, while the rest of the diagram steps back; it shows one row per item in the item's form, wraps a long text inside its width, and pages the rows its height cannot hold by its `More rows` button, which stays in place as the pages turn, with fewer rows a page where no such place holds more; it scrolls only round one row taller than itself, its button still in view; none comes while a level is still arriving. A click keeps the same card open; Escape closes it.
 - **view**: a level, the record picked on it, and a scenario with its step; every move makes one, the address holds it as `#level=…&at=…&scenario=…&step=…`, and the browser's back and forward, or `[` and `]`, walk the views in order; a double click is one move, to the level its node opens or to the node picked. A move to another level is staged: the level left gives way, then the level entered grows out of the node that opens it or settles around the node that was left; a move turned back part-way goes on from the level still seen; under reduced motion both only fade, as does each part that shows.
@@ -15,12 +15,12 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 
 ## Steps
 
-1. Build: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/make-page.py <contract> [<page>]` checks the contract, then writes the page beside it as `page.html`, or at `<page>`; a contract the checker refuses builds no page and its breaks are printed.
+1. Build: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/make-page.py <contract> [<page>]`.
 2. Hand the page's path to the person, who opens it in a desktop browser.
-3. To take the person's comments on it, connect and serve the page as the `relay` skill says; apply a comment to the contract, build again, and never edit the page.
+3. To take the person's comments on it, connect and serve the page as the `relay` skill says; apply a comment to the contract, and build again.
 
 ## Rules
 
 - **Code draws**: a change of look, layout or motion goes into [../assets/page.css](../assets/page.css) or [../assets/page.js](../assets/page.js), and a change of content into the contract; no page is edited by hand.
-- **After a change to the page's code**: build each example's page again, then run `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/run-page.cjs`, which opens the examples' pages in a headless browser at three desktop sizes, then the pages of the fixtures the checker passes at one, and must print `PASS`.
-- **Before judging the look**: `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/capture-page.cjs <folder>` writes, per example page, pictures of its levels, cards, moves and scenario steps at the three sizes and `measures.json`, the text sizes, covered records and motion timings read from the page; judge from those, as **Evaluation** in `AGENTS.md` says.
+- **After a change to the page's code**: build each example's page again, then run `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/run-page.cjs`, which must print `PASS`.
+- **Before judging the look**: `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/capture-page.cjs <folder>` writes pictures and measures of each example page; judge from those, as **Evaluation** in `AGENTS.md` says.

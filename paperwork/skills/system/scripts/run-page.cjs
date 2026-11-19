@@ -71,7 +71,7 @@ const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-st
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
-  console.error("usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep]");
+  console.error("usage: run-page.cjs " + STEPS.map((word) => `[${word}]`).join(" "));
   process.exit(2);
 }
 
@@ -175,6 +175,24 @@ const drawn = (page, level) => page.evaluate((level) => {
 }, level);
 
 // ---- diagram ----
+const CARDED = (id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; };
+async function rested(page, target, size, where) { // the pointer comes from a corner to rest on TARGET until its overlay shows
+  const spot = await point(page, target);
+  check(spot, `${where}: no part of it is under the pointer`);
+  await page.mouse.move(2, size[1] - 2);
+  await page.mouse.move(spot.x, spot.y, { steps: 4 });
+  await page.waitForFunction(CARDED, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where}: no overlay came`); });
+  return spot;
+}
+async function searched(page, text) { // the hits the search lists for TEXT
+  await page.keyboard.press("/");
+  await page.keyboard.insertText(text);
+  await page.clock.fastForward(30);
+  return page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
+}
+const quiet = (page, where) => check(!page.faults.length, `${where} wrote to the console: ${page.faults[0]}`);
+const grouped = (level) => [["node", level.nodes], ["edge", level.edges || []], ["area", level.areas || []]];
+
 async function diagram(browser) {
   for (const example of examples) {
     check(fs.existsSync(example.kept), `${example.name} keeps no built page`);
@@ -195,7 +213,7 @@ async function diagram(browser) {
       const fault = await drawn(page, level);
       check(!fault, `${example.name} ${level.id} at ${size.join("x")}: ${fault}`);
     }
-    check(!page.faults.length, `${example.name} at ${size.join("x")} wrote to the console: ${page.faults[0]}`);
+    quiet(page, `${example.name} at ${size.join("x")}`);
     check(!page.asked.length, `${example.name} at ${size.join("x")} asked for ${page.asked[0]}`);
     await page.context().close();
   })));
@@ -208,7 +226,7 @@ function rowsOf(record, kind) {
 const formOf = (kind, record, name) => { const items = ((tags[kind] || {})[record.tag] || { items: [] }).items.concat((tags.common || {})[kind] || []); const item = items.find((one) => one.name === name); return item ? item.form : null; };
 function targets(example) { // a node, an edge and an area, then one record per item form
   const picked = [], forms = new Set();
-  for (const level of example.contract.levels) for (const [kind, group] of [["node", level.nodes], ["edge", level.edges || []], ["area", level.areas || []]]) for (const record of group) {
+  for (const level of example.contract.levels) for (const [kind, group] of grouped(level)) for (const record of group) {
     const held = Object.keys(record.info || {}).map((name) => formOf(kind, record, name)).filter((form) => form && !forms.has(form));
     const first = !picked.some((one) => one.kind === kind);
     if (!first && !held.length) continue;
@@ -289,11 +307,7 @@ async function overlay(browser) {
       const where = `${example.name} ${target.kind} ${target.id} at ${size.join("x")}`;
       await page.goto("file://" + example.built + "#level=" + target.level);
       await settled(page);
-      const spot = await point(page, target);
-      check(spot, `${where}: no part of it is under the pointer`);
-      await page.mouse.move(2, size[1] - 2);
-      await page.mouse.move(spot.x, spot.y, { steps: 4 });
-      await page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where}: no overlay came`); });
+      const spot = await rested(page, target, size, where);
       await page.clock.fastForward(320);
       const framed = (box, what) => {
         check(box.left >= 0 && box.top >= 0 && box.right <= size[0] && box.bottom <= size[1], `${where}: ${what} leaves the window`);
@@ -306,7 +320,7 @@ async function overlay(browser) {
       const box = seen.rect;
       framed(box, "the overlay");
       check(box.right <= spot.rect.left || spot.rect.right <= box.left || box.bottom <= spot.rect.top || spot.rect.bottom <= box.top, `${where}: the overlay covers what it describes`);
-      const shown = () => page.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id);
+      const shown = () => page.evaluate(CARDED, target.id);
       const inside = [(box.left + box.right) / 2, (box.top + box.bottom) / 2];
       await Promise.all([page.mouse.move((spot.x + inside[0]) / 2, (spot.y + inside[1]) / 2), page.mouse.move(...inside)]);
       await page.clock.fastForward(450);
@@ -327,7 +341,7 @@ async function overlay(browser) {
       check(!(await page.evaluate(() => document.getElementById("card").classList.contains("show"))), `${where}: Escape left the overlay open`);
     };
     for (const target of picked) await probe(target).catch(() => probe(target)); // a busy machine can miss the pointer's timing once
-    check(!page.faults.length, `${example.name} at ${size.join("x")} wrote to the console: ${page.faults[0]}`);
+    quiet(page, `${example.name} at ${size.join("x")}`);
     await page.context().close();
   }));
 }
@@ -500,7 +514,7 @@ async function scenarios(browser, example, size, walked, named = null, lent = nu
     }
   }
   if (lent) return;
-  check(!page.faults.length, `${example.name} wrote to the console: ${page.faults[0]}`);
+  quiet(page, example.name);
   await page.context().close();
 }
 async function plays(browser, example) { // a scenario that plays by itself, a step's own button and the step after the last
@@ -538,7 +552,7 @@ async function plays(browser, example) { // a scenario that plays by itself, a s
   await page.click("#again");
   await rest(page);
   check((await step()) === 0, `${where}: Replay led to step ${(await step()) + 1}`);
-  check(!page.faults.length, `${where} wrote to the console: ${page.faults[0]}`);
+  quiet(page, where);
   await page.context().close();
 }
 async function mixed(browser, example, size, order) {
@@ -586,7 +600,7 @@ async function mixed(browser, example, size, order) {
   };
   await walk("the browser's history", () => page.goBack(), () => page.goForward());
   await walk("the page's keys", () => page.keyboard.press("["), () => page.keyboard.press("]"));
-  check(!page.faults.length, `${where} wrote to the console: ${page.faults[0]}`);
+  quiet(page, where);
   await page.context().close();
   for (const kept of views) {
     const fresh = await open(browser, example, size, { still: true, at: kept.address });
@@ -621,7 +635,7 @@ async function moves(browser) {
     node.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
     return { id: node.dataset.id, left: +getComputedStyle(document.querySelector(".stage.old")).opacity };
   });
-  const carded = (id) => turned.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id);
+  const carded = (id) => turned.evaluate(CARDED, id);
   const first = await turned.evaluate(() => document.body.dataset.level), entered = await leave();
   await turned.clock.fastForward(400);
   check(!(await carded(entered.id)), "an overlay rises over a level still arriving");
@@ -709,11 +723,9 @@ async function search(browser) {
   const missed = [];
   for (const query of queries) {
     const page = pages[query.example];
-    check(page && examples.find((example) => example.name === query.example).levelOf[query.wants] !== undefined || (page && JSON.stringify(examples.find((example) => example.name === query.example).contract).includes(`"id": "${query.wants}"`)) || (page && JSON.stringify(examples.find((example) => example.name === query.example).contract).includes(`"id":"${query.wants}"`)), `the query ${query.query} wants ${query.wants}, which ${query.example} does not hold`);
-    await page.keyboard.press("/");
-    await page.keyboard.insertText(query.query);
-    await page.clock.fastForward(30);
-    const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
+    const holder = examples.find((example) => example.name === query.example);
+    check(page && (holder.levelOf[query.wants] !== undefined || JSON.stringify(holder.contract).includes(`"id":"${query.wants}"`)), `the query ${query.query} wants ${query.wants}, which ${query.example} does not hold`);
+    const hits = await searched(page, query.query);
     await page.keyboard.press("Escape");
     const place = hits.indexOf(query.wants);
     count("first", place === 0); count("three", place >= 0 && place < 3); count(query.kind, place === 0);
@@ -732,10 +744,7 @@ async function task(page, example, question, typed) {
   const contract = example.contract, names = {};
   for (const level of contract.levels) for (const node of level.nodes.concat(level.areas || [])) names[node.id] = node.label;
   const shows = async (id) => { const hash = (await view(page)).address; return [`level=${id}`, `at=${id}`, `scenario=${id}`].some((part) => hash.split(/[#&]/).includes(part)); };
-  await page.keyboard.press("/");
-  await page.keyboard.insertText(typed || question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
-  await page.clock.fastForward(30);
-  const hits = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].map((row) => row.dataset.hit));
+  const hits = await searched(page, typed || question.asks.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || "").replace(/`/g, ""));
   const place = hits.findIndex((hit) => hit === question.id || question.answers.includes(hit));
   if (place >= 0) {
     for (let i = 0; i < place; i++) await page.keyboard.press("ArrowDown");
@@ -778,9 +787,8 @@ async function tasks(browser) {
     const now = {}, before = Object.fromEntries(kept.filter((row) => row.example === example.name).map((row) => [row.task, row]));
     for (const question of (example.contract.questions || []).filter((one) => one.answers)) for (const short of [false, true]) now[question.id + (short ? " short" : "")] = await task(page, example, question, short && question.id.replace(/-/g, " "));
     for (const row of Object.values(before).filter((one) => one.query)) now[row.task] = await task(page, example, example.contract.questions.find((one) => one.id === row.task.split(" ")[0]), row.query);
-    check(!page.faults.length, `${example.name} wrote to the console: ${page.faults[0]}`);
+    quiet(page, example.name);
     await page.context().close();
-    example.tasks = now;
     const shared = Object.keys(now).filter((id) => before[id] && !before[id].query), reworded = Object.keys(now).filter((id) => before[id] && before[id].query);
     check(shared.length >= 10, `${example.name}: fixtures/task-scores.json holds ${shared.length} of its questions`);
     const score = mean(shared.map((id) => gain(now[id].place))), was = mean(shared.map((id) => gain(before[id].place)));
@@ -799,7 +807,19 @@ async function sweep(browser) {
   const folder = path.join(ROOT, "fixtures"), checker = path.join(ROOT, "scripts", "check-contract.py"), size = SIZES[1];
   const rules = python(checker, "rules").stdout.split("\n").filter(Boolean).map((line) => line.split(":")[0]);
   const ruleOf = (name) => rules.find((rule) => name === rule || name.startsWith(rule + "-"));
-  for (const name of REFUSED) check(ruleOf(name) && fs.existsSync(path.join(folder, name + ".json")), `fixtures/ holds no ${name}.json named for a rule`);
+  const kept = {}; // each contract of fixtures/ by name: a whole one, or a copy as its changes to one
+  for (const [base, copies] of Object.entries(JSON.parse(fs.readFileSync(path.join(folder, "contract-copies.json"), "utf8")))) {
+    kept[base] = JSON.parse(fs.readFileSync(path.join(folder, base + ".json"), "utf8"));
+    for (const [name, changes] of Object.entries(copies)) {
+      kept[name] = structuredClone(kept[base]);
+      for (const [way, ...value] of changes) {
+        const at = way.slice(0, -1).reduce((part, key) => part[key], kept[name]), last = way[way.length - 1];
+        if (!value.length) Array.isArray(at) ? at.splice(last, 1) : delete at[last];
+        else at[last] = value[0];
+      }
+    }
+  }
+  for (const name of REFUSED) check(ruleOf(name) && kept[name], `fixtures/ holds no ${name} named for a rule`);
   const replayed = python(checker, "fixtures"); // each fixture named for a rule breaks that rule alone, the refused shapes among them
   check(replayed.status === 0, `the checker's fixtures: ${replayed.stdout.split("\n").find((line) => line.startsWith("FAIL")) || "no verdict"}`);
   const brings = (contract) => { // what a contract gives the sweep to draw: its tags, the forms of its items and its empty shapes
@@ -813,9 +833,11 @@ async function sweep(browser) {
     if (groups.area.some((area) => area.tag === "region" && groups.node.filter((node) => node.level === area.level && node.area === area.id).length === 1)) found.add("a region of one state");
     return found;
   };
-  const passing = fs.readdirSync(folder).filter((file) => file.endsWith(".json") && !ruleOf(file.slice(0, -5))).sort()
-    .map((file) => ({ name: file.slice(0, -5), source: path.join(folder, file), built: path.join(scratch, "swept-" + file.slice(0, -5) + ".html"), flat: JSON.parse(fs.readFileSync(path.join(folder, file), "utf8")) }))
-    .filter((example) => !Array.isArray(example.flat)).map((example) => ({ ...example, brings: brings(example.flat) }));
+  const passing = Object.keys(kept).filter((name) => !ruleOf(name)).sort().map((name) => {
+    const source = path.join(scratch, "swept-" + name + ".json");
+    fs.writeFileSync(source, JSON.stringify(kept[name]));
+    return { name, source, built: source.replace(/json$/, "html"), brings: brings(kept[name]) };
+  });
   const left = new Set(["node", "edge", "area"].flatMap((kind) => Object.keys(tags[kind]).map((tag) => `the ${kind} tag ${tag}`)).concat(tags.forms.map((form) => `the form ${form}`), ["a node no edge touches", "a region of one state", "an `info` with no item"]));
   const swept = [], adds = (example) => [...example.brings].filter((one) => left.has(one)).length;
   while (left.size && swept.length < 4) { // the contract that brings most of what is still to draw, so a new fixture never crowds the sweep
@@ -851,14 +873,10 @@ async function sweep(browser) {
       page = await visit(example, level, page);
       const fault = await drawn(page, level);
       check(!fault, `${where}: ${fault}`);
-      for (const [kind, group] of [["node", level.nodes], ["edge", level.edges || []], ["area", level.areas || []]]) for (const record of group) held[kind].add(record.tag);
+      for (const [kind, group] of grouped(level)) for (const record of group) held[kind].add(record.tag);
       for (const target of wanted.filter((one) => one.level === level.id)) {
         if (target.forms.every((form) => forms.has(form))) continue;
-        const spot = await point(page, target);
-        check(spot, `${where} ${target.id}: no part of it is under the pointer`);
-        await page.mouse.move(2, size[1] - 2);
-        await page.mouse.move(spot.x, spot.y, { steps: 4 });
-        await page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where} ${target.id}: no overlay came`); });
+        const spot = await rested(page, target, size, `${where} ${target.id}`);
         await page.mouse.click(spot.x, spot.y); // a click keeps the overlay, which then shows every row over its pages
         await rest(page);
         const wrong = rowFault(await leaves(page), target);
@@ -875,7 +893,7 @@ async function sweep(browser) {
     }
     const shown = page; // its scenarios play on the page its levels opened, beside the next contract's levels
     plays.push(scenarios(browser, example, size, example.contract.scenarios || [], null, shown).then(() => {
-      check(!shown.faults.length, `${example.name} wrote to the console: ${shown.faults[0]}`);
+      quiet(shown, example.name);
       check(!shown.asked.length, `${example.name} asked for ${shown.asked[0]}`);
       return example === swept[swept.length - 1] ? null : shown.context().close();
     }));

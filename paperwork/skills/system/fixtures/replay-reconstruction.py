@@ -3,11 +3,9 @@
 
 usage: replay-reconstruction.py
 
-For each `../examples/*/contract.json`, scored against the repository's root, three copies are scored again: one whose first
-quoted value its sources hold gets a digit more, which must lower precision by one or more and exit 1; one whose first answered
-question is left to a gap, which must lower recall by one and leave precision as it was; and one whose first source is given a
-path that is no file, which must print a `missing path` line and exit 1. It prints one PASS or FAIL line per example with both
-scores, then PASS or FAIL."""
+Each `../examples/*/contract.json` is scored against the repository's root, then three copies of it: a quoted value with a digit more must
+lower precision and exit 1, an answered question left to a gap must lower recall by one alone, and a source path that is no file must
+print a `missing path` line and exit 1. It prints one PASS or FAIL line per example with both scores, then PASS or FAIL."""
 import copy
 import json
 import pathlib

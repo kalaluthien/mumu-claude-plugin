@@ -3,18 +3,9 @@
 
 usage: replay-contract-changes.py
 
-On a copy of each `../examples/*/contract.json` it adds a finding to one node, renames one node, moves one node that no edge or area holds to another level, moves one edge to another node, reworks one
-item of a tag from a list into a text on every node that holds it, and gives one item of the catalogue a new shown name. Each change must
-touch the fewest records: one, or for the rework the nodes that hold the item and the one catalogue record. After each the checker must
-accept the copy and its `read` call must print every scenario step from the record the step names. A node that edges or an area hold is also moved to another level, and the checker must name each edge and area the move strands. A new name is also given to every node and area at
-once, and no other label, no level, sentence, transition, rule, scenario or property line of `read`, and no text of the contract
-but a name, a source's words and an item of the code form, may still spell the old one outside a quote in backticks; each text `read` prints
-that names the node, a transition's event and guard included, must show the new name, with a capital where it opens the text or follows a full stop, unless it is a file name, and never the bare `{id}`.
-The checker must also refuse a position, in a field or in a table cell or a tree note, a colour, markup of thirteen kinds, a made-up tag, a comment and a declaration among them, in a purpose, a step
-note and a statement, markup a node's label would make, `paths` on a property that is no fact, a colour, a length, a position or a style declaration in a text's words, a step that names no record and a step note over 60 characters, must name a scenario with no step as empty, refuse one with no `steps` field without a crash, and name a faulty step note by its scenario and step; a catalogue that is no catalogue and one given beside
-`--root` in either order must be read as the call says; a catalogue that gives an item the `read` or `gaps` call reads another form, in its tag or among the common items, or another name, or that
-lacks a meaning, a label or an example, labels an item with nothing, a space at an end, markup or Korean, names an item twice, lists a form the checker does not know, gives an example that is no text, is nested too deep to read, or holds items in another shape than a list of records, must be refused; and no tag may fix an item every element of its kind holds already. It prints one
-PASS or FAIL line per change, then PASS or FAIL."""
+Each change is made on a copy of a `../examples/*/contract.json` and must touch the fewest records: one, or for the rework of an item the nodes that
+hold it and the one catalogue record. The checker must accept each changed copy, and must refuse each forbidden text, step and catalogue
+planted in another copy. It prints one PASS or FAIL line per change, then PASS or FAIL."""
 import concurrent.futures
 import copy
 import json
@@ -96,7 +87,7 @@ def steps_read(contract, tags=None):
 def add_finding(contract):
     node = next(node for level in contract["levels"] for node in level["nodes"] if node["tag"] != "state" and "why" not in node.get("info", {}))
     node.setdefault("info", {})["why"] = "found in a later look at the sources"
-    return {"contract": 1, "catalogue": 0}, None
+    return (1, 0), None
 
 
 def rename_node(contract):
@@ -117,19 +108,19 @@ def rename_node(contract):
     turn["label"] = "ask {" + name + "}"
     turn.setdefault("info", {})["guard"] = "{" + name + "} agrees"
     shown = shown and "-- ask the part with a second name [The part with a second name agrees]" in run("read", planted)[1]
-    return {"contract": 1, "catalogue": 0}, None if shown else "a line that shows the node does not follow its label"
+    return (1, 0), None if shown else "a line that shows the node does not follow its label"
 
 
 def move_node(contract):
     if len(contract["levels"]) < 2:
-        return {"contract": 0, "catalogue": 0}, None
+        return (0, 0), None
     node = {"id": "part-set-apart", "label": "the part set apart", "tag": contract["levels"][0]["nodes"][0]["tag"], "purpose": "Stand on the level that asks about it."}
     contract["levels"][0]["nodes"].append(node)
     before = copy.deepcopy(contract)
     contract["levels"][0]["nodes"].remove(node)
     contract["levels"][1]["nodes"].append(node)
     moved = differing(records(before), records(contract))
-    return {"contract": 1, "catalogue": 0}, None if moved == 1 and run("check", before)[0] == 0 else f"a node moved to another level touches {moved} records, or the checker refuses it where it stood"
+    return (1, 0), None if moved == 1 and run("check", before)[0] == 0 else f"a node moved to another level touches {moved} records, or the checker refuses it where it stood"
 
 
 def stranded(contract):
@@ -230,9 +221,9 @@ def move_edge(contract):
     for _, edge, target in sorted((choice for choice in choices if choice[1]["id"] not in in_paths), key=lambda choice: choice[0]):
         old, edge["to"] = edge["to"], target
         if run("check", contract)[0] == 0:
-            return {"contract": 1, "catalogue": 0}, None
+            return (1, 0), None
         edge["to"] = old
-    return {"contract": 1, "catalogue": 0}, "no edge can move to another node of its level"
+    return (1, 0), "no edge can move to another node of its level"
 
 
 def rework_item(contract, tags):
@@ -247,13 +238,13 @@ def rework_item(contract, tags):
     stale = run("check", contract, tags)[0]
     for node in nodes:
         node["info"][name] = "; ".join(node["info"][name])
-    return {"contract": len(nodes), "catalogue": 1}, None if stale == 1 else "the checker accepts the old form after the catalogue changed"
+    return (len(nodes), 1), None if stale == 1 else "the checker accepts the old form after the catalogue changed"
 
 
 def rename_item(contract, tags):
     item = next(item for entry in tags["node"].values() for item in entry["items"])
     item["label"] = item["label"] + ", renamed"
-    return {"contract": 0, "catalogue": 1}, None
+    return (0, 1), None
 
 
 def refused(contract):
@@ -343,6 +334,10 @@ def refused(contract):
 
 def misread_calls(path):
     """What the checker does wrong with a catalogue given beside `--root`, or with a file that is no catalogue."""
+    def with_common(items):
+        return json.dumps({**TAGS, "common": {**TAGS["common"], "node": items}})
+
+    first, rest = TAGS["common"]["node"][0], TAGS["common"]["node"][1:]
     faults = []
     with tempfile.TemporaryDirectory() as folder:
         whole, changed = pathlib.Path(folder) / "tags.json", copy.deepcopy(TAGS)
@@ -354,12 +349,12 @@ def misread_calls(path):
             done = subprocess.run([sys.executable, str(CHECK), "check", str(path)] + order, capture_output=True, text=True)
             if done.returncode != 1 or "info-form" not in done.stdout or "evidence-source" not in done.stdout:
                 faults.append(f"`{order[0]}` before `{order[2]}` does not check against both")
-        for name, text in (("no JSON", "x"), ("a list", "[]"), ("an empty object", "{}"), ("an item of an unknown form", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{"name": "why", "form": "picture"}]}})),
-                           ("an item with no form", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{"name": "why"}]}})),
-                           ("an item named twice", json.dumps({**TAGS, "common": {**TAGS["common"], "node": TAGS["common"]["node"] + TAGS["common"]["node"][:1]}})),
+        for name, text in (("no JSON", "x"), ("a list", "[]"), ("an empty object", "{}"), ("an item of an unknown form", with_common([{"name": "why", "form": "picture"}])),
+                           ("an item with no form", with_common([{"name": "why"}])),
+                           ("an item named twice", with_common([first] + rest + [first])),
                            ("a form the checker does not know", json.dumps({**TAGS, "forms": TAGS["forms"] + ["picture"]})),
-                           ("an example that is no text", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{**TAGS["common"]["node"][0], "example": 5}] + TAGS["common"]["node"][1:]}})),
-                           *((f"an item labelled {label!r}", json.dumps({**TAGS, "common": {**TAGS["common"], "node": [{**TAGS["common"]["node"][0], "label": label}] + TAGS["common"]["node"][1:]}}))
+                           ("an example that is no text", with_common([{**first, "example": 5}] + rest)),
+                           *((f"an item labelled {label!r}", with_common([{**first, "label": label}] + rest))
                              for label in ("", " ", "why ", "<b>why</b>", "까닭")),
                            ("nested too deep to read", "[" * 100000)):
             whole.write_text(text)
@@ -381,14 +376,14 @@ def main(args):
         for change in (add_finding, rename_node, move_node, move_edge, rework_item, rename_item):
             contract, tags = copy.deepcopy(original), copy.deepcopy(TAGS)
             wanted, fault = change(contract, tags) if change in (rework_item, rename_item) else change(contract)
-            touched = {"contract": differing(records(original), records(contract)), "catalogue": differing(catalogue_records(TAGS), catalogue_records(tags))}
+            touched = differing(records(original), records(contract)), differing(catalogue_records(TAGS), catalogue_records(tags))
             if not fault and touched != wanted:
-                fault = f"touched {touched['contract']} contract and {touched['catalogue']} catalogue records, expected {wanted['contract']} and {wanted['catalogue']}"
+                fault = f"touched {touched[0]} contract and {touched[1]} catalogue records, expected {wanted[0]} and {wanted[1]}"
             if not fault and not steps_read(contract, tags):
                 fault = "the checker refuses the copy, or a scenario step is not read from its record"
             failed += bool(fault)
             name = change.__name__.replace("_", " ")
-            lines.append(f"FAIL {path.parent.name}: {name}: {fault}" if fault else f"PASS {path.parent.name}: {name}: {touched['contract']} contract and {touched['catalogue']} catalogue records")
+            lines.append(f"FAIL {path.parent.name}: {name}: {fault}" if fault else f"PASS {path.parent.name}: {name}: {touched[0]} contract and {touched[1]} catalogue records")
         stale = stale_names(copy.deepcopy(original))
         failed += bool(stale)
         lines.append(f"FAIL {path.parent.name}: a spoken line still spells the old label of {', '.join(stale)}" if stale else f"PASS {path.parent.name}: no spoken line spells a node's old label")
@@ -412,6 +407,7 @@ def main(args):
     failed += bool(twice)
     print(f"FAIL the catalogue fixes twice: {', '.join(twice)}" if twice else "PASS the catalogue fixes each item in one record")
     reformed, given = [], []
+    example = json.loads(examples[0].read_text()) if examples else None
     for kind in ("node", "edge", "area"):
         for tag, entry in TAGS[kind].items():
             for k, item in enumerate(entry["items"]):
@@ -427,19 +423,19 @@ def main(args):
                     tries.append(("under another name", renamed))
                 given += [(f"{kind} {tag} {item['name']} {how}", tags) for how, tags in tries]
     with concurrent.futures.ThreadPoolExecutor(8) as pool:
-        statuses = pool.map(lambda one: run("read", json.loads(examples[0].read_text()), one[1])[0], given)
+        statuses = pool.map(lambda one: run("read", example, one[1])[0], given)
     reformed += [name for (name, _), status in zip(given, statuses) if status != 2]
     for field in ("label", "example", "meaning"):
         tags = copy.deepcopy(TAGS)
         entry = next(iter(tags["node"].values()))
         del (entry if field == "meaning" else entry["items"][0])[field]
-        reformed += [f"a tag with no {field}"] if examples and run("check", json.loads(examples[0].read_text()), tags)[0] != 2 else []
+        reformed += [f"a tag with no {field}"] if examples and run("check", example, tags)[0] != 2 else []
     for shape, change in (("a tag whose items are no list", lambda tags: next(iter(tags["node"].values())).update(items={})),
                           ("common items that are no list", lambda tags: tags["common"].update(node={})),
                           ("an item that is no record", lambda tags: next(iter(tags["node"].values()))["items"].append("statement"))):
         tags = copy.deepcopy(TAGS)
         change(tags)
-        reformed += [shape] if examples and run("check", json.loads(examples[0].read_text()), tags)[0] != 2 else []
+        reformed += [shape] if examples and run("check", example, tags)[0] != 2 else []
     failed += bool(reformed)
     print(f"FAIL the checker takes a catalogue that reforms {', '.join(reformed)}" if reformed else "PASS the checker refuses a catalogue that gives an item `read` or `gaps` reads another form or name, or lacks a field a call reads")
     if not examples:

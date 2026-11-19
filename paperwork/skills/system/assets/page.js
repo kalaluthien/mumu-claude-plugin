@@ -9,7 +9,7 @@
     element.append(...children);
     return element;
   };
-  const draw = (name, attributes = {}) => {
+  const draw = (name, attributes) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
     return element;
@@ -118,14 +118,14 @@
     return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) } : { w: widest, h: tallest }]));
   }
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
-  const fill = plan => Math.min((innerWidth - 2 * ROOM.side) / plan.w, (innerHeight - ROOM.top - ROOM.bottom) / plan.h);
+  const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
+  const fill = plan => Math.min(across() / plan.w, down() / plan.h);
   function arrange(level) {
-    const across = innerWidth - 2 * ROOM.side, down = innerHeight - ROOM.top - ROOM.bottom;
-    const used = plan => { const scale = Math.min(fill(plan), 1.3); return Math.min(plan.w * scale / across, plan.h * scale / down); };
+    const used = plan => { const scale = Math.min(fill(plan), 1.3); return Math.min(plan.w * scale / across(), plan.h * scale / down()); };
     const spread = plan => { // the side with room to spare gets wider gaps, never larger type
       for (let wider = 1, taller = 1, turns = 0; turns < 16; turns++) {
         const steps = [[wider * 1.25, taller], [wider, taller * 1.25]];
-        if (plan.w / across > plan.h / down) steps.reverse();
+        if (plan.w / across() > plan.h / down()) steps.reverse();
         const gain = steps.filter(step => Math.max(...step) <= 3).map(step => ({ step, next: { ...plan, ...attempt(level, plan.fit, plan.sizes, plan.outerDown, plan.innerDown, ...step) } }))
           .find(({ next }) => Math.min(fill(next), 1) >= Math.min(fill(plan), 1) - .001 && used(next) > used(plan) + .001);
         if (!gain) break;
@@ -336,12 +336,12 @@
     stage.append(svg);
     for (const node of level.nodes) {
       const spot = boxes[node.id];
-      const card = make("div", { class: "node", "data-id": node.id, "data-tag": node.tag, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
+      const card = make("div", { class: "node", "data-id": node.id, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
         make("b", {}, node.label), make("small", {}, tagName(node.tag)));
       const region = (level.areas || []).find(area => area.id === node.area && area.tag === "region");
       if (region && region.info && region.info.initial === node.id) card.classList.add("first");
       if (node.opens) {
-        const open = make("button", { class: "open", type: "button", "aria-label": `Open ${words(label(node.opens))}`, title: `Open ${words(label(node.opens))}` });
+        const name = `Open ${words(label(node.opens))}`, open = make("button", { class: "open", type: "button", "aria-label": name, title: name });
         open.innerHTML = OPEN;
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
@@ -379,8 +379,8 @@
   }
   function fit() {
     const stage = $("stage"), w = +stage.dataset.w, h = +stage.dataset.h;
-    const x = scale => ROOM.side + (innerWidth - 2 * ROOM.side - w * scale) / 2, y = scale => ROOM.top + (innerHeight - ROOM.top - ROOM.bottom - h * scale) / 2;
-    const scale = Math.min((innerWidth - 2 * ROOM.side) / w, (innerHeight - ROOM.top - ROOM.bottom) / h, 1.3);
+    const x = scale => ROOM.side + (across() - w * scale) / 2, y = scale => ROOM.top + (down() - h * scale) / 2;
+    const scale = Math.min(fill({ w, h }), 1.3);
     stage.style.setProperty("--grow", 1 / Math.max(scale, .85)); // type keeps its size while the boxes around it grow or give a little
     Object.assign(stage.dataset, { x: x(scale), y: y(scale), scale });
     stage.style.transform = `translate(${x(scale)}px, ${y(scale)}px) scale(${scale})`;
@@ -425,9 +425,9 @@
   let late = 0, leftLevel = null; // how long a scenario's mark waits for its level to arrive, and the level a move is leaving
   function show(next) {
     Object.assign(view, next);
-    const stage = $("stage"), from = shownLevel;
+    const stage = $("stage"), from = shownLevel, idle = () => { document.body.dataset.busy = ""; };
     hovered = null;
-    hide(true);
+    hide();
     if (from !== view.level) {
       const down = from && door(view.level, from), up = from && door(from, view.level);
       const placed = (one = stage) => ({ x: +one.dataset.x, y: +one.dataset.y, scale: +one.dataset.scale, w: +one.dataset.w, h: +one.dataset.h });
@@ -457,15 +457,15 @@
         old.animate(quiet ? [{ opacity: held.opacity }, { opacity: 0 }] : [{ transform: held.transform, opacity: held.opacity }, { transform: entered ? about(before, entered, 2.4) : left ? within(before, left) : about(before, middle, 1.04), opacity: 0 }],
           { duration: quiet ? 180 : MOVE.leave, easing: quiet ? "ease-out" : LEAVE, fill: "forwards" }).finished.then(() => old.remove(), () => old.remove());
         stage.animate(quiet ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: entered ? within(after, entered) : left ? about(after, left, 2.4) : about(after, middle, .96), opacity: 0 }, { transform: at(after), opacity: 1 }],
-          { duration: quiet ? 240 : MOVE.arrive, delay: quiet ? 0 : MOVE.wait, easing: quiet ? "ease-out" : ARRIVE, fill: "backwards" }).finished.then(() => { document.body.dataset.busy = ""; }, () => {});
+          { duration: quiet ? 240 : MOVE.arrive, delay: quiet ? 0 : MOVE.wait, easing: quiet ? "ease-out" : ARRIVE, fill: "backwards" }).finished.then(idle, () => {});
         late = quiet ? 0 : MOVE.wait + 40;
       } else if (back) {
         stage.animate(still() ? [{ opacity: held.opacity }, { opacity: 1 }] : [held, { transform: at(placed()), opacity: 1 }], { duration: still() ? 240 : MOVE.arrive, easing: still() ? "ease-out" : ARRIVE })
-          .finished.then(() => { document.body.dataset.busy = ""; }, () => {});
+          .finished.then(idle, () => {});
       }
       document.body.dataset.busy = old || back ? "1" : "";
     }
-    Object.assign(document.body.dataset, { level: view.level, at: view.at || "", scenario: view.scenario || "", step: view.scenario ? view.step : "" });
+    Object.assign(document.body.dataset, { level: view.level, step: view.scenario ? view.step : "" });
     crumbs(); mark(); play();
     late = 0;
   }
@@ -526,7 +526,7 @@
       element.classList.toggle("dim", !!(focus || scenario) && !lit.has(id) && !tone[id] && !held.has(id));
     }
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
-    if (hovered) card(hovered); else if (view.at) card(view.at); else hide(true);
+    if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
   }
   const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, ...part.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece])) : part);
   const value = (form, data) => {
@@ -649,12 +649,13 @@
     box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
     box.classList.add("show");
   }
-  function hide(now) {
-    clearTimeout(rest); clearTimeout(leave);
-    if (now) { $("card").classList.remove("show"); $("card").dataset.for = ""; }
+  const halt = () => { clearTimeout(rest); clearTimeout(leave); };
+  function hide() {
+    halt();
+    $("card").classList.remove("show"); $("card").dataset.for = "";
   }
   function hover(id) {
-    clearTimeout(leave); clearTimeout(rest);
+    halt();
     if (hovered === id) return;
     const rested = () => { // no card rises over a level still on its way
       if (document.body.dataset.busy) rest = setTimeout(rested, 80);
@@ -663,7 +664,7 @@
     rest = setTimeout(rested, hovered ? (nearing ? 420 : 60) : 140);
   }
   function unhover() {
-    clearTimeout(rest); clearTimeout(leave);
+    halt();
     leave = setTimeout(() => { hovered = null; mark(); }, nearing ? 420 : 220);
   }
   const hit = target => {
@@ -735,7 +736,7 @@
     const steps = records[view.scenario].record.steps, step = view.step + by;
     if (step >= 0 && step <= steps.length) go({ step, at: null, ...(steps[step] ? { level: home(steps[step].at) } : {}) });
   }
-  const start = id => go({ scenario: id, step: 0, level: home(records[id].record.steps[0].at), at: null });
+  const start = id => go({ scenario: id, step: 0, level: home(id), at: null });
   function run() { // the walk starts at once and stops where it stands
     if (!view.scenario) return;
     auto = !auto;
@@ -781,7 +782,8 @@
     }
     return row[b.length];
   };
-  const ORDER = ["node", "level", "area", "edge", "scenario", "property", "question"];
+  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
+  const ORDER = Object.keys(KINDS);
   function match(token, field) {
     if (field.text === token) return 120;
     if (field.tokens.includes(token)) return 100;
@@ -793,9 +795,10 @@
     if (most && field.tokens.some(word => slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most) <= most)) return 25;
     return 0;
   }
+  const forms = query => [plain(query), plain(typed(query))];
   function rank(query) {
     const scored = new Map();
-    for (const form of new Set([plain(query), plain(typed(query))])) {
+    for (const form of new Set(forms(query))) {
       const tokens = form.split(" ").filter(Boolean);
       if (!tokens.length) continue;
       for (const entry of entries) {
@@ -830,11 +833,10 @@
     return [...found].filter(([, score]) => score > 0);
   }
   let chosen = 0, listed = [], scope = null;
-  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
   function list() {
     const query = $("query").value.trim(), box = $("hits");
     box.replaceChildren();
-    const tokens = [plain(query), plain(typed(query))].flatMap(form => form.split(" ")).filter(Boolean);
+    const tokens = forms(query).flatMap(form => form.split(" ")).filter(Boolean);
     const lit = text => { // the letters of TEXT a query word matched, marked
       const low = text.toLowerCase(), spans = [];
       for (const token of tokens) for (let at = low.indexOf(token); at >= 0; at = low.indexOf(token, at + token.length)) spans.push([at, at + token.length]);
@@ -905,7 +907,7 @@
       if (id && event.key === "Enter") go(records[id].record.opens && view.at === id ? { level: records[id].record.opens, at: null } : { at: id });
     });
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
-    $("card").addEventListener("pointerenter", () => { clearTimeout(leave); clearTimeout(rest); });
+    $("card").addEventListener("pointerenter", halt);
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
     $("search").addEventListener("click", () => ask());
     $("scenarios").addEventListener("click", () => ask("Scenarios"));

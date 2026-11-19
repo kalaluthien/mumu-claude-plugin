@@ -3,10 +3,9 @@
 
 usage: replay-edge-sorting.py
 
-For each `../examples/*/contract.json` the sources its nodes' `files` name are copied from the repository's root into a folder
-of their own and sorted there. Then one file gets a line that imports a file of a node it had no relation with, which must
-report one absent relation more and leave the other counts; and one mapped file is removed, which must print its
-`missing path` line and exit 1. It prints one PASS or FAIL line per example with its counts, then PASS or FAIL."""
+The sources that the nodes of each `../examples/*/contract.json` name are copied from the repository's root and sorted there. An import of
+an unrelated node's file must then report one absent relation more, and a removed file must print its `missing path` line and exit 1.
+It prints one PASS or FAIL line per example with its counts, then PASS or FAIL."""
 import itertools
 import json
 import pathlib

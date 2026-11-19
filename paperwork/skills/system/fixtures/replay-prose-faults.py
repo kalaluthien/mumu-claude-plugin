@@ -5,19 +5,14 @@ usage: replay-prose-faults.py           run both steps
 usage: replay-prose-faults.py words     run the step on a term's other words
 usage: replay-prose-faults.py korean    run the step on English names and Korean descriptions
 
-words: each `../examples/*/contract.json` and `parcel-locker-korean.json` must pass untouched. A copy then gives its first term two more words
-to avoid, English ones and Korean ones in turn. The first is written into every text, title and label, alone, in its plural, in capitals, or with
-a Korean particle after it, and the checker must name the term once at each of those places and nowhere else; the second is written into each of
-them between backticks and inside a longer word, and the checker must name it nowhere. `check-contract.py fixtures` must print PASS, the
-fastest of three runs of the checker on the larger example must take under 1 second of processor time, and `../references/contract.md` must state no rule by a
-bold name that `../references/writing.md` states.
+words: a word a term avoids is written into every text, title and label of a copy of each `../examples/*/contract.json` and of the copy
+`parcel-locker-korean`, and the checker must name the term once at each place. `check-contract.py fixtures` must print PASS, the fastest of
+three runs of the checker on the larger example must take under 1 second of processor time, and `../references/contract.md` must state no rule by a bold name
+that `../references/writing.md` states.
 
-korean: a Korean word is written into every title, label and term of a copy of each example, and the checker must refuse each by its place; a
-Korean sentence then stands in place of every description, and the checker must refuse none. The contract with Korean descriptions must pass,
-and its `read` call and its page, built by `make-page.py`, must show a record a Korean description names by its label without the English
-article. The checker must refuse three faults written into it, each at its place: one form of a particle after a record's name, a sentence that
-closes outside `니다`, and a space before a particle. `list-page-texts.cjs` opens the page in a headless browser, and no view may show a Korean
-letter outside the contract's descriptions, nor the catalogue name a tag or label an item in Korean.
+korean: the checker must refuse a Korean word in each title, label and term, accept a Korean sentence as each description, and refuse three
+faults of particle and ending written into the contract with Korean descriptions. That contract's page, built by `make-page.py`, is opened
+by `list-page-texts.cjs` in a headless browser, so the step needs `node`.
 
 A step starts the checker 12 times at most, whatever the number of texts. It prints a FAIL line per fault found, then PASS or FAIL."""
 import collections
@@ -32,6 +27,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_copies import copies  # noqa: E402
 from contract_levels import flat, nested  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -216,7 +212,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     examples = {path.parent.name: path for path in sorted((SYSTEM / "examples").glob("*/contract.json"))}
-    korean = nested(json.loads((HERE / "parcel-locker-korean.json").read_text()))
+    korean = nested(dict(copies(HERE))["parcel-locker-korean"])
     faults = []
     with tempfile.TemporaryDirectory() as folder, concurrent.futures.ThreadPoolExecutor(8) as pool:
         if args != ["korean"]:

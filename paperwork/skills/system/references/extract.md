@@ -42,10 +42,8 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 6. Climb and descend once: for each part ask why it exists, and for each purpose ask what carries it out; a purpose with no means, or a part with no purpose, is a gap.
 7. Replay each story step by step: what a step needs must come from the start or from an earlier step; what nothing supplies is a gap.
 8. Compare what the documents say exists with what is stored or run, and name each mismatch by its fault.
-9. Hand the findings to [contract.md](contract.md); come back here for each open question its `gaps` call prints.
 
 ## Rules
 
 - **Exact over summary**: a reader rebuilds from the value, so record `0.5 s`, never "polls often".
 - **One source each**: a finding with no source is a guess; ask a person, or record a gap.
-- **Stop at the reader**: go one level deeper only where a rebuild question would still be open.

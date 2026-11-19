@@ -3,10 +3,9 @@
 
 usage: replay-read-aloud.py
 
-For each `../examples/*/contract.json` the output must hold one `sentence:` line per static edge, as from label, edge label, to label
-and a full stop, with `each of` before the to label of an edge marked `many`; one `transition:` line per transition, as
-`state -- event [guard] / action --> state`; an `opens:` line per node that opens a level and an `opened by:` line under that level;
-and each property's statement at the end of a line. It prints one PASS or FAIL line per example, then PASS or FAIL."""
+For each `../examples/*/contract.json` the output must hold a `sentence:` line per static edge, a `transition:` line per transition, an
+`opens:` and an `opened by:` line per node that opens a level, and each property's statement at the end of a line. It prints one PASS or
+FAIL line per example, then PASS or FAIL."""
 import json
 import pathlib
 import re
