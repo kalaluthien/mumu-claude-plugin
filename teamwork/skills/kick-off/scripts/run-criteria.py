@@ -3,7 +3,7 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --hunks [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
 
 A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
@@ -31,6 +31,13 @@ so a fix to the later stages, or to a file outside the watched paths, replays; e
 task's latest `decide --live-runs <n>` or else `LIVE_RUNS` (4), kept in the worktree's git dir, so a worktree's tasks share one count; a watched path
 missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
+
+`--hunks` reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
+runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
+head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
+hunk; a git check, which the export cannot run, never counts. A hunk no check can
+see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. It runs the checks once per hunk, so give a long
+check time with `--timeout`; it never fetches.
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
@@ -278,6 +285,50 @@ def earlier_fails(task):
     return found
 
 
+def split_hunks(diff):
+    """[(file, line, patch)] of each hunk of a `git diff -U0` text: the file's header lines and the one hunk, which `git apply` takes alone."""
+    found = []
+    for section in re.split(r"(?m)^(?=diff --git )", diff):
+        head, *hunks = re.split(r"(?m)^(?=@@ )", section)
+        file = re.search(r"^\+\+\+ b/(.+)$|^--- a/(.+)$", head, re.M)
+        for hunk in hunks:
+            old, new = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)", hunk).groups()
+            found.append((next(name for name in file.groups() if name), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
+    return found
+
+
+def run_per_hunk(options, task, root, live):
+    """Names each hunk of the change whose revert alone turns no passing row into another result; exit 1 on one."""
+    ref = base_ref(options.ref)
+    hunks = split_hunks(git_output("diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD", cwd=root))
+    found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
+
+    def passing(copy):
+        """Labels of the rows that pass in COPY; a git check, which the export cannot run, never does."""
+        return {label for label, _, result, _ in (row(label, *criterion, copy, options.timeout, live) for label, criterion in found) if result == "pass"}
+
+    with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as copy:
+        exported = subprocess.Popen(["git", "archive", "HEAD"], cwd=root, stdout=subprocess.PIPE)
+        subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
+        if exported.wait():
+            sys.exit("run-criteria: could not export HEAD")
+        held = passing(copy)
+        unneeded = []
+        for file, line, patch in hunks:
+            apply = ["git", "apply", "--unidiff-zero", "--whitespace=nowarn", "-"]
+            reverted = subprocess.run([*apply[:2], "-R", *apply[2:]], cwd=copy, input=patch, text=True, capture_output=True)
+            if reverted.returncode:
+                sys.exit(f"run-criteria: could not revert the hunk at {file}:{line}: {reverted.stderr.strip()}")
+            still = passing(copy)
+            subprocess.run(apply, cwd=copy, input=patch, text=True, capture_output=True, check=True)
+            if held <= still:
+                unneeded.append(f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous")
+    print(f"hunks: {len(hunks)} reverted one at a time against {ref}, {len(unneeded)} unneeded")
+    print(*unneeded, sep="\n")
+    print(live.report(), end="")
+    return 1 if unneeded else 0
+
+
 def run_with_samples(options, task, root):
     """The table of the criteria run at the head with a sample for the first stage of each; exit 1 on any `wrong pass`."""
     if options.base:
@@ -338,6 +389,7 @@ def main(args):
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--base", "--main", action="store_true")
+    parser.add_argument("--hunks", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
@@ -347,6 +399,10 @@ def main(args):
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
+    if options.hunks and options.base:
+        usage_parser.refuse(__doc__)
+    if options.hunks:
+        return run_per_hunk(options, task, root, Live(root, task))
     if options.base:
         return run_against_base(options, task, root, Live(root, task))
     return run_at_head(options, task, root, Live(root, task))
