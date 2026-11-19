@@ -48,9 +48,10 @@ PAGE = """<!doctype html>
 </div>
 <div id="veil"></div>
 <div id="palette" role="dialog" aria-label="Search">
-<input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false">
+<div id="field"><input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="hits" aria-autocomplete="list" aria-label="Search">
+<button id="regex" class="tool icon quiet" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression (Alt+R)">.*</button></div>
 <div id="hits" role="listbox"></div>
-<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span></footer>
+<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span><span><kbd>alt</kbd><kbd>R</kbd> regex</span></footer>
 </div>
 <script type="application/json" id="page-data">{data}</script>
 <script type="application/json" id="page-threads">{{"threads": {{}}}}</script>
