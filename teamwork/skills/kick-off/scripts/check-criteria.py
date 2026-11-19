@@ -5,7 +5,7 @@
 usage: check-criteria.py <task>
 usage: check-criteria.py [--task <task>] <body-file | ->
 usage: check-criteria.py --title <title>
-usage: check-criteria.py --edit-line <keyword line>
+usage: check-criteria.py --reason <what changed>
 usage: check-criteria.py --cut-off
 
 A task is its number, `#n` or url; given alone it is read from the board, body and number. A word that names no file and no task
@@ -20,7 +20,7 @@ not counted, each `[check]` a scenario that prints `PASS`, on base `FAIL`, and n
 first pipe stage and say `watches: <path>...`, so run-criteria.py can replay its transcript. A task below it keeps the rules it was filed under.
 `--cut-off` prints `CUT_OFF`.
 
-`--title` and `--edit-line` print a `write: <defect>` line for each defect `use-board.py file` or `title` would refuse in the title, or `edit` in its one keyword
+`--title` and `--reason` print a `write: <defect>` line for each defect `use-board.py file` or `title` would refuse in the title, or `edit` in its `--reason`
 line, and exit 1; a text they accept prints nothing and exits 0.
 
 Under the same rule it prints a `write: <defect>` line for each defect `use-board.py file` would refuse in the body, its summary line, headings and criterion names
@@ -166,8 +166,8 @@ def main(args):
     if args == ["--cut-off"]:
         print(CUT_OFF)
         return 0
-    if len(args) == 2 and args[0] in ("--title", "--edit-line"):
-        written = task_state.defects("title" if args[0] == "--title" else "edit-line", args[1])
+    if len(args) == 2 and args[0] in ("--title", "--reason"):
+        written = task_state.defects("title" if args[0] == "--title" else "reason", args[1])
         for found in written:
             print(f"write: {found}")
         return 1 if written else 0

@@ -47,7 +47,7 @@ def trial(monitor):
 
     def file(title):
         body = replay_probe.write_text(work, "body.md", f"{title}.\n")
-        done = subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "file", title, str(body), "scope:x"], cwd=repository, env=environment, capture_output=True, text=True)
+        done = subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "file", "--title", title, "--body", str(body), "--label", "scope:x"], cwd=repository, env=environment, capture_output=True, text=True)
         if VERBOSE:
             print(f"$ use-board.py file {title}\n{done.stdout}{done.stderr}", file=sys.stderr)
         return done.stdout.strip().rsplit("/", 1)[-1].removesuffix(".json")
@@ -80,8 +80,7 @@ def trial(monitor):
             team(manager, *others, agent("t-worker", 2))  # a worker starts
             cases[f"on-{cycle}"] = (wait_for(number, RESUME_SECONDS, (first, before)), log.read_text())  # a gap printed before the stop prints again
         # the worker reports on a root and is gone before the next poll, which the one last read still feeds
-        report = replay_probe.write_text(work, "report.md", "REPORTED: the tie root landed.\n")
-        subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "comment", first, str(report)], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, capture_output=True)
+        subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "comment", first, "--reported", "the tie root landed."], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, capture_output=True)
         team(manager)
         deadline = time.time() + RESUME_SECONDS
         while time.time() < deadline and f"feed #{first} " not in log.read_text():

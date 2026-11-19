@@ -70,36 +70,36 @@ def main(args):
         return lines["notes"][:lines["questions"]], lines["notes"][lines["questions"]:], [lines["notes"][k] for k in lines["quiet"]]
 
     for title in ("Ask the team", "Ask the owner", "Hold a parent", "Wait on a task"):
-        use("file", title, "<file>", text=BODY)
-    use("file", "Do the blocked part", "<file>", "--depends", "4", text=BODY)
-    use("hold", 1, "probe-worker")
-    use("comment", 1, "<file>", text="BLOCKED: which cache does the probe read?\n")
+        use("file", "--title", title, "--body", "<file>", text=BODY)
+    use("file", "--title", "Do the blocked part", "--body", "<file>", "--depends", "4", text=BODY)
+    use("hold", 1, "--holders", "probe-worker")
+    use("comment", 1, "--blocked", "which cache does the probe read?")
     team = row(1)
     folded, opened, dim = notes(team)
     step("team-question", team["wait"] == "" and folded == ["? which cache does the probe read?"] and folded[0] in dim and not any("waits" in line for line in team["lines"]["status"]), team)
 
-    question = use("comment", 2, "<file>", "--asks", "owner", "--option", "print it in lower case", "--option", "print it in capitals", text="BLOCKED: which case does the probe print?\n")
+    question = use("comment", 2, "--blocked", "which case does the probe print?", "--asks", "owner", "--option", "print it in lower case", "--option", "print it in capitals")
     owned = row(2)
     folded, opened, dim = notes(owned)
     step("owner-question", owned["wait"] == OWNER and folded == ["? which case does the probe print?"] and folded[0] not in dim
          and opened[:2] == ["1. print it in lower case", "2. print it in capitals"] and OWNER in " ".join(owned["lines"]["status"]), owned)
     step("sorted", rows()[0]["number"] == 2, [found["number"] for found in rows()])
 
-    early = use("comment", 5, "<file>", "--asks", "owner", "--option", "yes", "--option", "no", text="BLOCKED: may the part start early?\n")
+    early = use("comment", 5, "--blocked", "may the part start early?", "--asks", "owner", "--option", "yes", "--option", "no")
     step("owner-first", row(5)["wait"] == OWNER and row(5)["options"] == [["yes", "no"]], row(5))
 
     (work / "new.md").write_text(BODY + "2. [task] #5 Do the blocked part\n")
     sha = next(line.split(": ", 1)[1] for line in use("read", 3).splitlines() if line.startswith("body sha: "))
-    use("edit", 3, work / "new.md", "DECIDED: adds the blocked part.", "--base", sha)
-    use("decide", 5, "<file>", "--by", "owner", "--answers", early, text='DECIDED: the part starts after its blocker.\n\nOwner said: "no, after it".\n')
+    use("edit", 3, "--body", work / "new.md", "--reason", "adds the blocked part.", "--base", sha)
+    use("decide", 5, "--decision", "the part starts after its blocker.", "--text", "<file>", "--by", "owner", "--answers", early, text='Owner said: "no, after it".\n')
     parent = row(3)
     step("parts", parent["wait"] == "" and row(5)["wait"] == "" and not any("waits" in line for line in parent["lines"]["status"] + row(5)["lines"]["status"]), [parent, row(5)])
 
-    use("comment", 2, "<file>", "--asks", "owner", "--option", "today", "--option", "tomorrow", text="BLOCKED: when does the probe run?\n")
+    use("comment", 2, "--blocked", "when does the probe run?", "--asks", "owner", "--option", "today", "--option", "tomorrow")
     folded, opened, dim = notes(row(2))
     step("two-questions", folded == ["? which case does the probe print?", "? when does the probe run?"]
          and opened[:6] == [folded[0], "1. print it in lower case", "2. print it in capitals", folded[1], "1. today", "2. tomorrow"], row(2)["lines"])
-    use("decide", 2, "<file>", "--by", "owner", "--answers", question, text='DECIDED: the probe prints in lower case.\n\nOwner said: "the first one".\n')
+    use("decide", 2, "--decision", "the probe prints in lower case.", "--text", "<file>", "--by", "owner", "--answers", question, text='Owner said: "the first one".\n')
     after = row(2)
     folded, opened, dim = notes(after)
     step("answered", after["wait"] == OWNER and folded == ["? when does the probe run?"] and opened[:2] == ["1. today", "2. tomorrow"] and "1. print it in lower case" not in opened, after)

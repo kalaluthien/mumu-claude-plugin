@@ -48,14 +48,14 @@ def body_sha(repository, environment, number):
     return next(line.split("body sha: ")[1].strip() for line in shown.splitlines() if "body sha: " in line)
 
 
-def edit(work, repository, environment, number, old, new, line="DECIDED: change the body"):
+def edit(work, repository, environment, number, old, new, reason="change the body"):
     (work / "new").write_text(new)
-    return board(repository, environment, "edit", number, work / "new", line, "--base", body_sha(repository, environment, number))
+    return board(repository, environment, "edit", number, "--body", work / "new", "--reason", reason, "--base", body_sha(repository, environment, number))
 
 
 def file_body(work, repository, environment, name, text):
     (work / name).write_text(text)
-    return board(repository, environment, "file", "Probe the Goal", work / name)
+    return board(repository, environment, "file", "--title", "Probe the Goal", "--body", work / name)
 
 
 def case_task():
@@ -107,8 +107,7 @@ def case_other():
     root = file_body(work, repository, environment, "root.md", NO_GOAL)
     if root.returncode:
         return replay_probe.fail(f"a body with no Goal was refused: {root.stderr.strip()[-200:]!r}")
-    (work / "decision.md").write_text("DECIDED: the probe holds this.\n")
-    decided = board(repository, environment, "decide", held, work / "decision.md", "--by", "probe-manager", "--holders", "probe-worker")
+    decided = board(repository, environment, "decide", held, "--decision", "the probe holds this.", "--by", "probe-manager", "--holders", "probe-worker")
     if decided.returncode:
         return replay_probe.fail(f"a decision on a task with a pathless Goal was refused: {decided.stderr.strip()[-200:]!r}")
     work, repository, environment = start(0)

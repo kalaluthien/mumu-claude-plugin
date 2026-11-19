@@ -4,7 +4,7 @@ How a teamwork task is written: its text is prose a person reads, and its data i
 
 ## Keywords
 
-A comment's first line opens with one, which the verb that posts it sets or checks.
+A comment's first line opens with one, which the verb that posts it writes from its option: `comment --blocked` or `--reported`, `decide --decision`, `edit --reason`, `resolve --summary`; a `--text` file that opens with a keyword is refused, naming the option its line belongs in.
 
 | keyword | the comment | verb |
 | --- | --- | --- |
@@ -18,12 +18,12 @@ A comment is kept as its text and the fields [board-record-schema.json](../asset
 
 | field | set by | meaning |
 | --- | --- | --- |
-| holders | `hold <task> <name>...`, `decide --holders` | the sessions that hold the task; none when empty |
+| holders | `hold <task> --holders <names>`, `decide --holders` | the sessions that hold the task; none when empty |
 | asks | `comment --asks owner` | the owner answers this `BLOCKED`, not the manager |
 | options | `comment --option <answer>`, once per answer | the answers a `BLOCKED` offers, numbered from 1 in the order given; two or more on a question to the owner, who answers with a number |
 | live runs | `decide --live-runs <n>` | how many live sessions the checks run in one worktree may start in all; 4 when none says |
-| depends | `depend <task> <n>...`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
-| decision | `decide`, the text's first line | one binding sentence |
+| depends | `depend <task> --depends <numbers>`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
+| decision | `decide --decision <sentence>` | one binding sentence |
 | by | `decide --by <who>`, else the calling session | who decided: `owner`, the owner's words quoted in the text as a `>` line or in double quotes, else a session's name |
 | one-way | `decide --one-way` | the decision is hard to undo |
 | supersedes | `decide --supersedes <url>` | the decision it replaces, anywhere in the same root's tree |

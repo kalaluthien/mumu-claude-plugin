@@ -44,39 +44,38 @@ def main(args):
         return subprocess.run([sys.executable, str(USE), *map(str, argv)], cwd=cwd, capture_output=True, text=True)
 
     (work / "b.md").write_text("A body.\n")
-    (work / "c.md").write_text("REPORTED: a comment.\n")
     (repository / "probe").mkdir()
     start = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - 5))
-    use("file", "First", work / "b.md", "--scope", "probe")
-    use("file", "Second", work / "b.md", "--depends", "1")
-    use("comment", 1, work / "c.md")
+    use("file", "--title", "First", "--body", work / "b.md", "--scope", "probe")
+    use("file", "--title", "Second", "--body", work / "b.md", "--depends", "1")
+    use("comment", 1, "--reported", "a comment.")
     reads = {"changed-since": (lambda: (board_git.changed_since(start), board_git.changed_since("2999-01-01T00:00:00Z")), lambda got: bool(got[0]) and not got[1]),
              "comments-since": (lambda: [(n, note["body"]) for n, note in board_git.comments_since(start)], lambda got: got == [(1, "REPORTED: a comment.\n")]),
              "blockers": (lambda: board_git.blockers(2), lambda got: bool(got)),
              "scoped": (lambda: (board_git.scoped("probe"), board_git.scoped("none"), board_git.fresh(1)["scope"]), lambda got: got[2] == "probe" and got[0] != got[1]),
              "trusted": (lambda: board_git.trusted({}), lambda got: got is not None),
-             "command": (lambda: board_git.command("use-board.py comment 1 x.md"), lambda got: got is not None)}
+             "command": (lambda: board_git.command("use-board.py comment 1 --reported x"), lambda got: got is not None)}
     for name, (read, right) in reads.items():
         got = read()
         step(name, right(got), got)
 
-    task_url = use("file", "Third", work / "b.md").stdout.strip()
-    comment_url = use("comment", 3, work / "c.md").stdout.strip()
+    task_url = use("file", "--title", "Third", "--body", work / "b.md").stdout.strip()
+    comment_url = use("comment", 3, "--reported", "a comment.").stdout.strip()
     step("posted", task_url.startswith("git+file://") and task_url.endswith("/3") and comment_url == f"{task_url}#comment-1", f"{task_url} {comment_url}")
 
     before = team_signal.stamp()
     time.sleep(0.01)
-    wrote = use("label", 3, "probe")
+    wrote = use("label", 3, "--label", "probe")
     step("signal", not wrote.returncode and team_signal.stamp() > before, wrote.stderr)
 
-    refused = use("file", "Nowhere", work / "b.md", cwd=outside)
+    refused = use("file", "--title", "Nowhere", "--body", work / "b.md", cwd=outside)
     step("outside", refused.returncode == 1 and "git repository" in refused.stderr and not refused.stdout, refused.stdout + refused.stderr)
 
     lock = repository / ".git" / "refs" / "teamwork-blackboard.lock"
     lock.write_text("")
     os.utime(lock, (time.time() - 60,) * 2)  # as a killed writer leaves it
     began = time.time()
-    blocked = use("comment", 3, work / "c.md")
+    blocked = use("comment", 3, "--reported", "a comment.")
     took = time.time() - began
     lock.unlink()
     step("stale-lock", blocked.returncode == 1 and str(lock) in blocked.stderr and took < 5 and len(board_git.fresh(3)["comments"]) == 1, f"{took:.1f} s: {blocked.stdout}{blocked.stderr}")

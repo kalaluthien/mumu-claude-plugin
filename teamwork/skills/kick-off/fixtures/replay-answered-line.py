@@ -42,9 +42,6 @@ def main(args):
         done = subprocess.run([str(USE_BOARD), *argv], cwd=repository, env={**environment, "HERDR_PANE_ID": pane}, capture_output=True, text=True)
         return done.stdout.strip()
 
-    def post(pane, verb, number, body, *options):
-        return use(pane, verb, number, str(replay_probe.write_text(work, "post.md", body)), *options)
-
     def heartbeat():
         with (work / "monitor.log").open("w") as log:
             live = subprocess.Popen([sys.executable, str(MONITOR)], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, stdout=log, stderr=subprocess.STDOUT)
@@ -53,14 +50,14 @@ def main(args):
             live.wait()
         return (work / "monitor.log").read_text()
 
-    number = use("w1:p1", "file", "Answer a held task", str(replay_probe.write_text(work, "body.md", "Answer a held task.\n")), "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
-    post("w1:p1", "decide", number, "DECIDED: c-worker holds this.\n", "--holders", "c-worker")
-    asked = post("w1:p2", "comment", number, "BLOCKED: which way\n")
-    post("w1:p1", "decide", number, "DECIDED: take the first way.\n", "--by", "c-manager", "--answers", asked)
+    number = use("w1:p1", "file", "--title", "Answer a held task", "--body", str(replay_probe.write_text(work, "body.md", "Answer a held task.\n")), "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
+    use("w1:p1", "decide", number, "--decision", "c-worker holds this.", "--holders", "c-worker")
+    asked = use("w1:p2", "comment", number, "--blocked", "which way")
+    use("w1:p1", "decide", number, "--decision", "take the first way.", "--by", "c-manager", "--answers", asked)
     cases = {}
     saw = heartbeat()
     cases["unacted"] = (saw.count(f"answered #{number}") == 1, saw)
-    post("w1:p2", "comment", number, "REPORTED: took the first way\n")
+    use("w1:p2", "comment", number, "--reported", "took the first way")
     saw = heartbeat()
     cases["acted"] = (f"answered #{number}" not in saw, saw)
     for name, (passed, text) in cases.items():

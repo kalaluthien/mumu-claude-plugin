@@ -8,7 +8,7 @@ waits on another, asks the owner a question with options, the manager answers it
 - `answered`: after the answer the question is closed and the answer binds; a judge's read shows no question;
 - `prose-lines`: a text whose lines open `depends on:`, `holders:` or `asks:` posts as prose and changes no holder and no wait;
 - `unread`: a verb given a word that is neither a task's number nor its url prints the usage and exits 2, with no traceback;
-- `refused`: a text that carries a `teamwork` or `decision` fence posts nothing and names the option to use, an empty or keyword-only text posts nothing on `comment`, `decide`, `resolve` and `file`, nor does an empty title, an `edit` that leaves the body empty or a field the schema refuses;
+- `refused`: a `--text` that carries a `teamwork` or `decision` fence posts nothing and names the option to use, so does an empty or two-line `--blocked`, `--reported`, `--decision` or `--summary`, a `--text` that opens with a keyword, an empty body on `file`, an empty title, an `edit` that leaves the body empty or whose `--reason` opens `DECIDED:` or holds two lines, or a field the schema refuses;
 - `older`: a comment written as text with fences, as records before the fields were, still gives its holder and its decision;
 - `pane`: the task pane's listing draws the round's holder and its decisions;
 - `cost`: the round takes fewer calls and fewer written characters than MAIN_ROUND, the same round written as fences and read with `list-decisions.py`;
@@ -64,23 +64,21 @@ def main(args):
         return subprocess.run(["git", *argv], cwd=repository, capture_output=True, text=True, check=True).stdout
 
     round_calls = [
-        ("file", "Print ok from the probe", "<file>", BODY.format(summary="The probe prints ok.\n\n")),
-        ("file", "Ship the first half", "<file>", BODY.format(summary="")),
-        ("file", "Ship the second half", "<file>", "--depends", "2", BODY.format(summary="")),
-        ("decide", "1", "<file>", "--by", "owner", "--holders", "probe-worker", 'DECIDED: the probe prints ok in two halves.\n\nOwner said: "make it print ok".\n'),
-        ("comment", "3", "<file>", "--asks", "owner", "--option", "print it in lower case", "--option", "print it in capitals", "BLOCKED: which case does the probe print?\n"),
-        ("hold", "3", "second-worker"),
+        (("file", "--title", "Print ok from the probe", "--body", "<file>"), BODY.format(summary="The probe prints ok.\n\n")),
+        (("file", "--title", "Ship the first half", "--body", "<file>"), BODY.format(summary="")),
+        (("file", "--title", "Ship the second half", "--body", "<file>", "--depends", "2"), BODY.format(summary="")),
+        (("decide", "1", "--decision", "the probe prints ok in two halves.", "--text", "<file>", "--by", "owner", "--holders", "probe-worker"), 'Owner said: "make it print ok".\n'),
+        (("comment", "3", "--blocked", "which case does the probe print?", "--asks", "owner", "--option", "print it in lower case", "--option", "print it in capitals"), None),
+        (("hold", "3", "--holders", "second-worker"), None),
     ]
-    answers = []
-    for *argv, last in round_calls:
-        answers.append(use(*argv, text=last) if "<file>" in argv else use(*argv, last))
+    answers = [use(*argv, text=text) for argv, text in round_calls]
     step("calls", all(code == 0 and "teamwork-blackboard" in out for code, out, _ in answers), answers)
     root, question = answers[0][1], answers[4][1]
     # the root gains its parts by an edit, whose base is the sha `read` prints
     listed = use("read", "1")[1]
     sha = next(line.split(": ", 1)[1] for line in listed.splitlines() if line.startswith("body sha: "))
     (work / "new.md").write_text(BODY.format(summary="The probe prints ok.\n\n") + "2. [task] #2 Ship the first half\n3. [task] #3 Ship the second half\n")
-    edited = use("edit", root, work / "new.md", "DECIDED: adds the two halves as parts.", "--base", sha)
+    edited = use("edit", root, "--body", work / "new.md", "--reason", "adds the two halves as parts.", "--base", sha)
     step("calls", edited[0] == 0, edited)
 
     tree = git("ls-tree", "-r", "--name-only", "refs/teamwork-blackboard").split()
@@ -94,7 +92,8 @@ def main(args):
               "1. print it in lower case", "2. print it in capitals")
     step("read", code == 0 and all(word in shown for word in wanted), [word for word in wanted if word not in shown] + [shown])
 
-    answered = use("decide", question.split("#")[0], "<file>", "--by", "owner", "--answers", question, text='DECIDED: the probe prints ok in lower case.\n\nOwner said: "the first one, lower case".\n')
+    answered = use("decide", question.split("#")[0], "--decision", "the probe prints ok in lower case.", "--text", "<file>", "--by", "owner", "--answers", question,
+                    text='Owner said: "the first one, lower case".\n')
     after, judged = use("read", "3")[1], use("read", "3", "--as", "judge")[1]
     step("answered", answered[0] == 0 and "open questions: 0" in after and "- #3 owner: the probe prints ok in lower case." in after
          and "open questions" not in judged and "BLOCKED:" not in judged and "binding decisions: 2" in judged, [answered, after])
@@ -104,21 +103,28 @@ def main(args):
     listing = subprocess.run([sys.executable, str(ROOT / "hooks" / "list-task-board.py"), "", "--width", "80"], cwd=repository, capture_output=True, text=True).stdout
     drawn = ("second-worker", "the probe prints ok in two halves.", "the probe prints ok in lower case.")
     step("pane", all(word in listing for word in drawn), listing)
-    bare_lines = use("comment", "3", "<file>", text="REPORTED: a note on the order.\n\ndepends on: #1\nholders: x-worker\nasks: owner\n")
+    bare_lines = use("comment", "3", "--reported", "a note on the order.", "--text", "<file>", text="depends on: #1\nholders: x-worker\nasks: owner\n")
     after_lines = use("read", "3")[1]
     step("prose-lines", bare_lines[0] == 0 and "holders: second-worker" in after_lines and "depends: #2" in after_lines, [bare_lines, after_lines])
     before = git("rev-parse", "refs/teamwork-blackboard")
-    unread = [use("read", "/tmp/1")] + [use(verb, "no-task", "<file>", "word") for verb in ("read", "comment", "decide", "hold", "depend", "edit", "title", "resolve", "reopen", "label")]
+    needed = {"comment": ("--reported", "x"), "decide": ("--decision", "x"), "hold": ("--holders", "x"), "depend": ("--depends", "2"), "edit": ("--body", "<file>", "--reason", "x", "--base", "abc123"),
+              "title": ("--title", "x"), "resolve": ("--summary", "x"), "reopen": (), "label": ("--label", "x")}
+    unread = [use("read", "/tmp/1")] + [use(verb, "no-task", *options, text="Body.\n") for verb, options in needed.items()] + [use("read", "no-task")]
     step("unread", all(code == 2 and not out and "usage: use-board.py" in err and "Traceback" not in err for code, out, err in unread), unread)
-    fenced = [use("comment", "3", "<file>", text="REPORTED: a note.\n\n```teamwork\nholders: x-worker\n```\n"),
-              use("decide", "3", "<file>", "--by", "probe-worker", text="DECIDED: keep it.\n\n```decision\ndecision: keep it\ndecided by: probe-worker\ndoor: two-way\n```\n"),
-              use("file", "Ship a third half", "<file>", text=BODY.format(summary="") + "\n```teamwork\ndepends on: #2\n```\n")]
-    bare = [use(*argv, text=text) for text in ("", "\n", "DECIDED:\n", "REPORTED: \n", "BLOCKED:")
-            for argv in (("comment", "3", "<file>"), ("decide", "3", "<file>", "--by", "probe-worker"), ("resolve", "2", "<file>"), ("file", "Ship a third half", "<file>"))]
-    bare += [use("hold", "3", "Bad_Name"), use("comment", "3", "<file>", "--asks", "owner", "--option", "one", "--option", "", text="BLOCKED: which one?\n"), use("title", "2", ""), use("title", "2", "  "), use("file", "", "<file>", text=BODY.format(summary=""))]
+    fenced = [use("comment", "3", "--reported", "a note.", "--text", "<file>", text="```teamwork\nholders: x-worker\n```\n"),
+              use("decide", "3", "--decision", "keep it.", "--by", "probe-worker", "--text", "<file>", text="```decision\ndecision: keep it\ndecided by: probe-worker\ndoor: two-way\n```\n"),
+              use("file", "--title", "Ship a third half", "--body", "<file>", text=BODY.format(summary="") + "\n```teamwork\ndepends on: #2\n```\n")]
+    bare = [use(*argv) for line in ("", "  ", "a\nb") for argv in (("comment", "3", "--blocked", line), ("comment", "3", "--reported", line), ("decide", "3", "--decision", line, "--by", "probe-worker"), ("resolve", "2", "--summary", line))]
+    bare += [use(*argv, "x", "--text", "<file>", text=text) for text in ("DECIDED: x\n", "REPORTED: x\n", "BLOCKED: x\n")
+             for argv in (("comment", "3", "--reported"), ("decide", "3", "--by", "probe-worker", "--decision"), ("resolve", "2", "--summary"))]
+    bare += [use("file", "--title", "Ship a third half", "--body", "<file>", text=text) for text in ("", "\n")]
+    bare += [use("hold", "3", "--holders", "Bad_Name"), use("comment", "3", "--blocked", "which one?", "--asks", "owner", "--option", "one", "--option", ""), use("title", "2", "--title", ""), use("title", "2", "--title", "  "),
+             use("file", "--title", "", "--body", "<file>", text=BODY.format(summary=""))]
     (work / "new.md").write_text("")
-    emptied = use("edit", "2", work / "new.md", "DECIDED: drops the body.", "--base", next(line.split(": ", 1)[1] for line in use("read", "2")[1].splitlines() if line.startswith("body sha: ")))
+    base = next(line.split(": ", 1)[1] for line in use("read", "2")[1].splitlines() if line.startswith("body sha: "))
+    emptied = use("edit", "2", "--body", work / "new.md", "--reason", "drops the body.", "--base", base)
     bare.append((2 if emptied[0] else 0, *emptied[1:]))
+    bare += [use("edit", "2", "--body", work / "new.md", "--reason", reason, "--base", base) for reason in ("DECIDED: drops the body.", "a\nb")]
     step("refused", all(code == 2 and not out and "option" in err for code, out, err in fenced) and all(code == 2 and not out for code, out, _ in bare)
          and git("rev-parse", "refs/teamwork-blackboard") == before, fenced + bare)
 

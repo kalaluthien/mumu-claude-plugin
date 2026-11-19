@@ -4,7 +4,7 @@ then `PASS` or `FAIL`, and exit 1 on any failure:
 - `short`: an unknown verb prints the usage on stderr, under MOST characters, with nothing on stdout and exit 2;
 - `one-line`: every verb the script runs has exactly one `usage:` line, and no line names a verb it does not run;
 - `options`: each verb's line names every option the script takes for it and no other;
-- `unread`: per verb, a call with an option it does not take prints the same usage and exits 2;
+- `unread`: per verb, a call that gives every required option and one it does not take names that one, then prints the same usage, and exits 2;
 - `explained`: every option is named in a playbook under references/, where its meaning sits.
 
 usage: replay-usage-text.py"""
@@ -32,11 +32,17 @@ def call(*argv):
     return done.returncode, done.stdout, done.stderr
 
 
+def usage_of(said):
+    """SAID without the `use-board: ` lines that name what was wrong, which differ per call while the usage after them does not."""
+    return "".join(line for line in said.splitlines(True) if not line.startswith("use-board: "))
+
+
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    code, out, usage = call("no-such-verb")
+    code, out, said = call("no-such-verb")
+    usage = usage_of(said)
     step("short", code == 2 and not out and usage.count("usage: use-board.py ") > 1 and len(usage) < MOST, (code, len(usage), out))
 
     spec = importlib.util.spec_from_file_location("use_board", USE)
@@ -47,14 +53,16 @@ def main(args):
         lines.setdefault(line.split()[0], []).append(line)
     step("one-line", set(lines) == set(module.VERBS) and all(len(found) == 1 for found in lines.values()), sorted(set(lines) ^ set(module.VERBS)))
 
-    stray = {verb: sorted(set(re.findall(r"--[a-z-]+", " ".join(lines.get(verb, [])))) ^ set(options)) for verb, (_, options, _) in module.VERBS.items()}
+    stray = {verb: sorted(set(re.findall(r"--[a-z-]+", " ".join(lines.get(verb, [])))) ^ {flag for flag, _ in flags}) for verb, (_, _, flags) in module.VERBS.items()}
     step("options", not any(stray.values()), {verb: found for verb, found in stray.items() if found})
 
-    unread = {verb: call(verb, "1", "--no-such-option") for verb in module.VERBS}
-    step("unread", all(answer == (2, "", usage) for answer in unread.values()), [verb for verb, answer in unread.items() if answer != (2, "", usage)])
+    unread = {verb: call(verb, *(["1"] if by_place else []), *[word for flag, keywords in flags if keywords.get("required") or flag in ("--blocked",) for word in (flag, "x")],
+                         "--no-such-option") for verb, (_, by_place, flags) in module.VERBS.items()}
+    named = {verb: (code, out, usage_of(said), "--no-such-option" in said) for verb, (code, out, said) in unread.items()}
+    step("unread", all(answer == (2, "", usage, True) for answer in named.values()), [verb for verb, answer in named.items() if answer != (2, "", usage, True)])
 
     pages = "".join(path.read_text() for path in (ROOT / "skills" / "kick-off" / "references").rglob("*.md"))
-    unexplained = sorted({option for _, options, _ in module.VERBS.values() for option in options if not re.search(re.escape(option) + r"(?![a-z-])", pages)})
+    unexplained = sorted({flag for _, _, flags in module.VERBS.values() for flag, _ in flags if not re.search(re.escape(flag) + r"(?![a-z-])", pages)})
     step("explained", not unexplained, unexplained)
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0

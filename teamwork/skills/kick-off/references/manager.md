@@ -40,7 +40,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 
   An `open` worker has no tier above, so `ask` the owner.
 - **Next step**: a worker's `REPORTED: batch landed …` leaves its root's words not all covered: `reopen` the root if its last part closed it, and route it, asking the owner first when it changes the owner's intent.
-- **Order**: two workers' work touching the same files: `depend <later> <earlier>`, and `decide` it on the earlier too.
+- **Order**: two workers' work touching the same files: `depend <later> --depends <earlier>`, and `decide` it on the earlier too.
 - **Shared failure**: two tasks failing one check: `decide` on both which owns the fix; the other reverts its patch and takes it from the base.
 - **Work style**: send the owner's how-to-work words to a worker by `tell`, never a `DECIDED:` or a task edit; only a change to a goal or criterion goes on the task.
 - **Follow-up**: start an owner-approved follow-up yourself; when the start is blocked, report the blocker, never ask the owner to paste a command.

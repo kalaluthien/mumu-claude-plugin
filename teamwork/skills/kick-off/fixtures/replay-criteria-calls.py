@@ -51,8 +51,8 @@ def main(args):
     binary.write_bytes(b"\xff\xfe\x00")
     quick.write_text(BODY.format(command="echo ok"))
     slow.write_text(BODY.format(command="sh -c 'sleep 5 && echo ok'"))
-    url = call("use-board.py", "file", "Print ok from the probe", quick)[1].strip()
-    call("use-board.py", "file", "Print ok after a while", slow)
+    url = call("use-board.py", "file", "--title", "Print ok from the probe", "--body", quick)[1].strip()
+    call("use-board.py", "file", "--title", "Print ok after a while", "--body", slow)
 
     ran = [call("run-criteria.py", word) for word in ("1", "#1", url)]
     linted = [call("check-criteria.py", *argv) for argv in (["1"], ["#1"], [url], ["--task", "1", quick], ["--task", url, quick])]

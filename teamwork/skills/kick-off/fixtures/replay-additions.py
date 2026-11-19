@@ -26,9 +26,9 @@ def setup():
     stub = replay_probe.stub_gh(work)
     environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "PATH": f"{stub}:{os.environ['PATH']}"}
     (work / "body.md").write_text(BODY)
-    made = run(environment, repository, "use-board.py", "file", "Probe the pane", work / "body.md")
+    made = run(environment, repository, "use-board.py", "file", "--title", "Probe the pane", "--body", work / "body.md")
     number = made.stdout.strip().rsplit("/", 1)[-1]
-    run(environment, repository, "use-board.py", "hold", number, "probe-worker")
+    run(environment, repository, "use-board.py", "hold", number, "--holders", "probe-worker")
     return work, repository, environment, number
 
 
@@ -46,8 +46,8 @@ def body(repository, number):
 
 def owner_says(work, environment, repository, number, wish):
     path = work / "owner.md"
-    path.write_text(f"DECIDED: {wish}\n\n> {wish}\n")
-    done = run(environment, repository, "use-board.py", "decide", number, path, "--by", "owner")
+    path.write_text(f"> {wish}\n")
+    done = run(environment, repository, "use-board.py", "decide", number, "--decision", wish, "--text", path, "--by", "owner")
     return done.stdout.strip().splitlines()[-1] if done.returncode == 0 else fail_with(done)
 
 
@@ -82,11 +82,11 @@ def case_path(work, repository, environment, number):
     check(environment, repository, work, listed.returncode == 0 and url in listed.stdout and "not in the body: 1" in listed.stdout and sha_of(environment, repository, "../references/worker/scripts/list-additions.py", number) == first and body(repository, number) == BODY,
           f"a recorded addition must leave the body alone and be listed once, got {listed.stdout!r}")
     folded = BODY.replace("Probe the pane.", f"Probe the pane; the owner said: {ADDED[0]}.")
-    done = run(environment, repository, "use-board.py", "edit", number, body_file(work, folded), f"DECIDED: folds {url}", "--base", first)
+    done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, folded), "--reason", f"folds {url}", "--base", first)
     check(environment, repository, work, done.returncode == 0 and body(repository, number) == folded and "not in the body: 0" in run(environment, repository, "../references/worker/scripts/list-additions.py", number).stdout,
           f"the worker's fold must apply and leave nothing unfolded: {done.stderr.strip()[-200:]}")
     before = commits(repository)
-    stale = run(environment, repository, "use-board.py", "edit", number, body_file(work, BODY), "DECIDED: put back the old body", "--base", first)
+    stale = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, BODY), "--reason", "put back the old body", "--base", first)
     check(environment, repository, work, stale.returncode != 0 and commits(repository) == before and body(repository, number) == folded,
           f"an edit based on the old body must be refused with nothing written: exit {stale.returncode}, {commits(repository) - before} commits added")
 
@@ -95,16 +95,14 @@ def case_prefix(work, repository, environment, number):
     urls = [owner_says(work, environment, repository, number, f"wish {k}") for k in range(20)]
     sha = sha_of(environment, repository, "../references/worker/scripts/list-additions.py", number)
     folded = BODY.replace("Probe the pane.", "Probe the pane; wish 19.")
-    done = run(environment, repository, "use-board.py", "edit", number, body_file(work, folded), f"DECIDED: folds {urls[-1]}", "--base", sha)
+    done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, folded), "--reason", f"folds {urls[-1]}", "--base", sha)
     listed = run(environment, repository, "../references/worker/scripts/list-additions.py", number).stdout
     check(environment, repository, work, done.returncode == 0 and "not in the body: 19" in listed and all(url in listed for url in urls[:-1]) and urls[-1] not in listed,
           f"folding the last of twenty must leave the other nineteen listed, got {listed[:300]!r}")
 
 
 def precheck(work, environment, repository, number):
-    path = work / "precheck.md"
-    path.write_text("REPORTED: criteria at the head pass\n")
-    return run(environment, repository, "use-board.py", "comment", number, path)
+    return run(environment, repository, "use-board.py", "comment", number, "--reported", "criteria at the head pass")
 
 
 def case_writes(work, repository, environment, number):
@@ -114,7 +112,7 @@ def case_writes(work, repository, environment, number):
         url = owner_says(work, environment, repository, number, wish)
         for who in ("manager", "worker"):
             text_new = text.replace("Probe the pane", f"Probe the pane ({who} {wish})", 1)
-            done = run(environment, repository, "use-board.py", "edit", number, body_file(work, text_new), f"DECIDED: {who} folds {url}", "--base", sha_of(environment, repository, "use-board.py", number))
+            done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, text_new), "--reason", f"{who} folds {url}", "--base", sha_of(environment, repository, "use-board.py", number))
             check(environment, repository, work, done.returncode == 0, f"edit: {done.stderr.strip()[-200:]}")
             text = text_new
         precheck(work, environment, repository, number)
@@ -125,7 +123,7 @@ def case_writes(work, repository, environment, number):
     listed = run(other_env, other_repo, "../references/worker/scripts/list-additions.py", other)
     sha = sha_of(other_env, other_repo, "../references/worker/scripts/list-additions.py", other)
     folded = BODY.replace("Probe the pane.", "Probe the pane; " + "; ".join(ADDED) + ".")
-    done = run(other_env, other_repo, "use-board.py", "edit", other, body_file(other_work, folded), f"DECIDED: folds {' '.join(urls)}", "--base", sha)
+    done = run(other_env, other_repo, "use-board.py", "edit", other, "--body", body_file(other_work, folded), "--reason", f"folds {' '.join(urls)}", "--base", sha)
     precheck(other_work, other_env, other_repo, other)
     new = commits(other_repo) - start
     check(other_env, other_repo, other_work, listed.returncode == 0 and done.returncode == 0 and "not in the body: 0" in run(other_env, other_repo, "../references/worker/scripts/list-additions.py", other).stdout,

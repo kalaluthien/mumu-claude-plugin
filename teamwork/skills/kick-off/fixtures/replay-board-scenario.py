@@ -29,7 +29,7 @@ def text(name, body):
 
 
 def filed(name, title, body, labels=()):
-    names[int(use("file", title, text(name, body), *labels).rsplit("/", 1)[1])] = name
+    names[int(use("file", "--title", title, "--body", text(name, body), *[option for label in labels for option in ("--label", label)]).rsplit("/", 1)[1])] = name
 
 
 def number(name):
@@ -58,7 +58,7 @@ def show(step):
 def link(name, added, why):
     """Appends ADDED to NAME's body through `use-board.py edit`, the one way a part is linked."""
     old = board.fresh(number(name))["body"]
-    use("edit", number(name), text(f"{name}-link.md", old.rstrip("\n") + "\n" + added), f"DECIDED: {why}", "--base", board.body_sha(old))
+    use("edit", number(name), "--body", text(f"{name}-link.md", old.rstrip("\n") + "\n" + added), "--reason", why, "--base", board.body_sha(old))
 
 
 TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `echo ok` prints `ok`; on base nothing.\n"
@@ -81,31 +81,31 @@ def main(args):
     show("file")
     link("root", f"\n## Definition of done\n\n1. [task] #{number('task')} Probe the board task\n", "the task is the root's part")
     show("part")
-    use("depend", number("root"), number("task"))
+    use("depend", number("root"), "--depends", number("task"))
     show("order")
-    use("hold", number("task"), "probe-worker")
+    use("hold", number("task"), "--holders", "probe-worker")
     show("hold")
-    use("label", number("task"), "probe")
+    use("label", number("task"), "--label", "probe")
     show("label-add")
-    use("label", number("task"), "probe", "--remove")
+    use("label", number("task"), "--label", "probe", "--remove")
     show("label-remove")
-    asked = use("comment", number("task"), text("ask.md", "BLOCKED: which sample proves the probe\n"), "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
+    asked = use("comment", number("task"), "--blocked", "which sample proves the probe", "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
     show("ask")
-    use("decide", number("task"), text("answer.md", 'DECIDED: use the first sample\n\nThe owner said "use the first".\n'), "--by", "owner", "--answers", asked)
+    use("decide", number("task"), "--decision", "use the first sample", "--text", text("answer.md", 'The owner said "use the first".\n'), "--by", "owner", "--answers", asked)
     show("answer")
     old = board.fresh(number("task"))["body"]
-    use("edit", number("task"), text("edit.md", old.replace("Probe the board.", "Probe the board twice.")), "DECIDED: probe the body edit", "--base", board.body_sha(old))
+    use("edit", number("task"), "--body", text("edit.md", old.replace("Probe the board.", "Probe the board twice.")), "--reason", "probe the body edit", "--base", board.body_sha(old))
     show("edit")
-    use("resolve", number("task"), text("task-done.md", "REPORTED: probe landed\n"))
+    use("resolve", number("task"), "--summary", "probe landed")
     show("resolve-task")
-    use("title", number("root"), "Probe the board again")
+    use("title", number("root"), "--title", "Probe the board again")
     show("retitle")
     use("reopen", number("root"))
     show("reopen")
     filed("follow-up", "Probe the board follow-up", TASK)
     link("root", f"2. [task] #{number('follow-up')} Probe the board follow-up\n", "a follow-up part")
     show("part-again")
-    use("resolve", number("follow-up"), text("follow-up-done.md", "REPORTED: follow-up landed\n"))
+    use("resolve", number("follow-up"), "--summary", "follow-up landed")
     show("resolve-again")
     return 0
 

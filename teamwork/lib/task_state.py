@@ -24,8 +24,8 @@ OWNER_WAIT = "waits on the owner"
 DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # a data fence at a line's start, which a text may not hold, since every datum is an option
 FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
-FENCE_OPTIONS = {"teamwork": "`hold <task> <name>...`, `depend <task> <n>...`, `comment --asks owner` or `decide --live-runs <n>`",
-                 "decision": "`decide [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`, whose sentence is the text's first line"}
+FENCE_OPTIONS = {"teamwork": "`hold <task> --holders <names>`, `depend <task> --depends <numbers>`, `comment --asks owner` or `decide --live-runs <n>`",
+                 "decision": "`decide --decision <sentence> [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`"}
 # the keyword each posting verb opens its text with; a comment asks or informs
 VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
@@ -74,7 +74,7 @@ def invalid(value, schema=SCHEMA, name="the record"):
 
 
 def defects(kind, text, old=""):
-    """The defects of TEXT written by KIND (title, comment, decide, resolve, file, edit-body, edit-line), each a plain sentence ending in its fix; none
+    """The defects of TEXT written by KIND (title, comment, decide, resolve, file, edit-body, reason), each a plain sentence ending in its fix; none
     when it reads as meant. A defect OLD already held does not count, so an edit that fixes a body is never blocked."""
     found = _defects(kind, text or "")
     held = [signature for signature, _ in _defects(kind, old)] if old else []
@@ -85,9 +85,11 @@ def _defects(kind, text):
     """[(signature, sentence)] of TEXT, the signature free of the line number so an edit that moves a line keeps it."""
     if kind == "title":
         return plain("title", text) if text.strip() else [("empty", "the title is empty; write what the task does in a few words")]
-    if kind == "edit-line":
-        one = re.fullmatch(ANSWER + r":[^\n]*\S[^\n]*", text.rstrip("\n"))
-        return [] if one else [("edit-line", f"the keyword line is not one line that opens `{ANSWER}:` and says what changed; write `{ANSWER}: <what changed and why>` on one line")]
+    if kind == "reason":
+        # the script writes the keyword itself, so a reason that opens with one is the old keyword line handed in its place
+        one = re.fullmatch(r"[^\n]*\S[^\n]*", text.strip("\n")) and not EXACT_KEYWORD.match(text)
+        return [] if one else [("reason", f"`--reason` is not one line that says what changed, with no keyword, which the script puts first as `{ANSWER}:`; "
+                                          "write `--reason '<what changed and why>'`")]
     found = [(f"fence {name}", f"a line opens a `{name}` fence, and a text carries no data; drop the fence and pass its values as options: {FENCE_OPTIONS[name]}")
              for name in dict.fromkeys(FENCE.findall(text))]
     if kind in VERB_KEYWORDS:

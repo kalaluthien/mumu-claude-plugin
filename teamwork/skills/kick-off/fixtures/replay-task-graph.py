@@ -55,7 +55,7 @@ def write(name, text):
 
 
 def file(title, text, depends=()):
-    done = use("file", title, write("file.md", text), "--depends", " ".join(map(str, depends)))
+    done = use("file", "--title", title, "--body", write("file.md", text), "--depends", " ".join(map(str, depends)))
     if done.returncode:
         raise SystemExit(f"replay-task-graph: cannot file {title}: {done.stderr}")
     return int(done.stdout.strip().rsplit("/", 1)[1])
@@ -64,15 +64,15 @@ def file(title, text, depends=()):
 def edit(number, text):
     """Rewrites NUMBER's body to TEXT through `use-board.py edit`."""
     old = board.body(number)
-    return use("edit", number, write("edit.md", text), "DECIDED: probe a link edit", "--base", board.body_sha(old))
+    return use("edit", number, "--body", write("edit.md", text), "--reason", "probe a link edit", "--base", board.body_sha(old))
 
 
 def resolve(number, stopped=False):
-    return use("resolve", number, write("done.md", "REPORTED: probe done\n"), *(["--not-planned"] if stopped else []))
+    return use("resolve", number, "--summary", "probe done", *(["--not-planned"] if stopped else []))
 
 
 def depend(number, *targets):
-    return use("depend", number, *targets)
+    return use("depend", number, "--depends", " ".join(map(str, targets)))
 
 
 def seen(number):
@@ -108,7 +108,7 @@ def refuse_cases():
     unknown = 10 ** 7
     refused("refuse-unknown", first, lambda: depend(first, second, unknown), unknown)
     count = len(board.tasks("all", comments=False))
-    done = use("file", "Probe an unknown link", write("file.md", body()), "--depends", unknown)
+    done = use("file", "--title", "Probe an unknown link", "--body", write("file.md", body()), "--depends", unknown)
     step("refuse-on-file", done.returncode == 1 and f"#{unknown}" in done.stderr and len(board.tasks("all", comments=False)) == count, f"exit {done.returncode}: {done.stderr}")
 
 
@@ -144,12 +144,12 @@ def derive_cases():
 
     import team_gaps
     target, asker = file("Probe a target of an asking task", body()), file("Probe an asking task", body())
-    question = use("comment", asker, write("ask.md", "BLOCKED: which way?\n\n1. one\n2. another\n")).stdout.strip()
+    question = use("comment", asker, "--blocked", "which way?", "--text", write("ask.md", "1. one\n2. another\n")).stdout.strip()
     depend(asker, target)
     linked = team_gaps.asking(board.fresh(asker))
     edit(asker, body().replace("prints `ok`", "prints `ok` once"))
     edited = team_gaps.asking(board.fresh(asker))
-    use("decide", asker, write("answer.md", "DECIDED: one\n"), "--by", "probe-manager", "--answers", question)
+    use("decide", asker, "--decision", "one", "--by", "probe-manager", "--answers", question)
     answered = team_gaps.asking(board.fresh(asker))
     step("derive-link-edit-keeps-ask", linked and edited and not answered, f"asking after the link {linked}, the criterion edit {edited}, the answer {answered}")
 
@@ -202,7 +202,7 @@ def git_drift():
     store = board_git.STORE
     store.write(lambda: [board_records.save(store, number, depends=[other]) for number, other in ((first, second), (second, first))]
                 + [store.stage(f"{board_records.home(store, number)}/body.md", body(parts=[part], check=False)) for number in (one, two)])
-    use("label", first, "backlog")
+    use("label", first, "--label", "backlog")
     return board.tree(None)
 
 

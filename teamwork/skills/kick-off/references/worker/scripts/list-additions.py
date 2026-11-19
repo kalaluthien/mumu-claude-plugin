@@ -10,7 +10,6 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
 import decisions  # noqa: E402
-import task_state  # noqa: E402
 
 
 def main(args):
@@ -33,7 +32,7 @@ def main(args):
     for decision in added:
         print(f"- {decision['decision']} ({decision['url']})")
     if added:
-        print(f'fold them in one edit: use-board.py edit {number} <body-file> "{task_state.ANSWER}: folds {" ".join(d["url"] for d in added)}" --base {body_sha}')
+        print(f'fold them in one edit: use-board.py edit {number} --body <file> --reason "folds {" ".join(d["url"] for d in added)}" --base {body_sha}')
     return 0
 
 

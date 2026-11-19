@@ -39,9 +39,11 @@ CALLS = {
     "skills/kick-off/scripts/start-session.py": [["name", ".", "worker name", "--model", "m", "--effort", "low", "--allow", "Bash", "--steer", "key"]],
     "skills/kick-off/references/adapters/message-herdr/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [
-        ["read", "1", "--as", "worker", "--full"], ["comment", "1", "body", "--asks", "owner", "--option", "x", "--option", "y"], ["hold", "1", "name"], ["depend", "1", "2"], ["file", "Add thing", "body", "label", "--scope", "", "--depends", "1"],
-        ["edit", "1", "diff", "DECIDED: x", "--base", "abc"], ["title", "1", "Add thing"], ["resolve", "1", "body", "--not-planned"],
-        ["reopen", "1"], ["decide", "1", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name", "--live-runs", "1"], ["label", "1", "label", "--remove"]],
+        ["read", "1", "--as", "worker", "--full"], ["comment", "1", "--blocked", "which", "--text", "body", "--asks", "owner", "--option", "x", "--option", "y"],
+        ["hold", "1", "--holders", "name"], ["depend", "1", "--depends", "2"], ["file", "--title", "Add thing", "--body", "body", "--label", "label", "--scope", "", "--depends", "1"],
+        ["edit", "1", "--body", "diff", "--reason", "x", "--base", "abc"], ["title", "1", "--title", "Add thing"], ["resolve", "1", "--summary", "done", "--text", "body", "--not-planned"],
+        ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name",
+                          "--live-runs", "1"], ["label", "1", "--label", "label", "--remove"]],
     "skills/kick-off/references/adapters/landing-git/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"]],
 }
 
@@ -83,7 +85,7 @@ def build_sandbox(root, work):
     run(git + ["commit", "-q", "--allow-empty", "-m", "start"])
     environment = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HOME": str(home), "CLAUDE_CONFIG_DIR": str(home / "claude"),
                    "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_FAKE_HERDR_LOG": str(work / "herdr-log"), "PYTHONDONTWRITEBYTECODE": "1"}
-    seeded = run([sys.executable, str(root / PLUGIN / "skills/kick-off/scripts/use-board.py"), "file", "Seed the board", "body"], cwd=repository, env=environment)
+    seeded = run([sys.executable, str(root / PLUGIN / "skills/kick-off/scripts/use-board.py"), "file", "--title", "Seed the board", "--body", "body"], cwd=repository, env=environment)
     if seeded.returncode:
         sys.exit(f"replay-option-calls: the throwaway board did not start: {seeded.stderr.strip()}")
     return repository, environment

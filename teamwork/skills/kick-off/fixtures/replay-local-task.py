@@ -69,10 +69,10 @@ def state(environment, repository, number):
 
 
 def case_whole(work, repository, origin, environment):
-    use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the late task", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
-    use(environment, repository, "use-board.py", "hold", "1", "probe-worker")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the part", "--body", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the root", "--body", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the late task", "--body", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
+    use(environment, repository, "use-board.py", "hold", "1", "--holders", "probe-worker")
     herdr = work / "herdr.json"
     team = [{"name": name, "pane_id": "w1:p" + str(number), "tab_id": "w1:t" + str(number), "workspace_id": "w1", "agent": "claude", "agent_status": "working", "interactive_ready": True}
             for number, name in ((1, "probe-manager"), (2, "probe-worker"))]
@@ -97,7 +97,7 @@ def case_whole(work, repository, origin, environment):
     merged = use(environment, tree, "../references/adapters/landing-git/scripts/use-landing.py", "merge", "1", head).stdout.strip()
     if sh("git", "rev-parse", "refs/heads/main", cwd=origin, environment=environment).stdout.strip() != merged:
         return replay_probe.fail("the merge did not reach origin's main")
-    use(environment, repository, "use-board.py", "resolve", "1", replay_probe.write_text(work, "done.md", "Probe part done.\n"))
+    use(environment, repository, "use-board.py", "resolve", "1", "--summary", "Probe part done.")
     if state(environment, repository, "2") != ["state: CLOSED"]:
         return replay_probe.fail(f"the root did not close with its last part: {state(environment, repository, '2')}")
     pane = sh(sys.executable, HOOKS / "list-task-board.py", "probe", "--json", cwd=repository, environment=environment, check=False)
@@ -116,22 +116,22 @@ def case_old_setting(work, repository, origin, environment):
 
 
 def case_base_required(work, repository, origin, environment):
-    use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "scope:probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the part", "--body", replay_probe.write_text(work, "part.md", PART), "--label", "scope:probe")
     (work / "edit.md").write_text(PART.replace("Probe the part.", "Probe the part, edited."))
     before = commits(environment, repository)
-    run = use(environment, repository, "use-board.py", "edit", "1", work / "edit.md", "DECIDED: probe the edit", check=False)
+    run = use(environment, repository, "use-board.py", "edit", "1", "--body", work / "edit.md", "--reason", "probe the edit", check=False)
     if run.returncode != 2 or commits(environment, repository) != before:
         return replay_probe.fail(f"an edit with no --base exited {run.returncode} and added {commits(environment, repository) - before} commits")
     sha = next(line.split(": ", 1)[1] for line in use(environment, repository, "use-board.py", "read", "1").stdout.splitlines() if line.startswith("body sha: "))
-    run = use(environment, repository, "use-board.py", "edit", "1", work / "edit.md", "DECIDED: probe the edit", "--base", sha, check=False)
+    run = use(environment, repository, "use-board.py", "edit", "1", "--body", work / "edit.md", "--reason", "probe the edit", "--base", sha, check=False)
     if run.returncode or commits(environment, repository) != before + 1:
         return replay_probe.fail(f"an edit with --base exited {run.returncode} and added {commits(environment, repository) - before} commits: {run.stderr[-200:]}")
     return 0
 
 
 def case_layout(work, repository, origin, environment):
-    part = use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe").stdout.strip()
-    root = use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT)).stdout.strip()
+    part = use(environment, repository, "use-board.py", "file", "--title", "Probe the part", "--body", replay_probe.write_text(work, "part.md", PART), "--scope", "probe").stdout.strip()
+    root = use(environment, repository, "use-board.py", "file", "--title", "Probe the root", "--body", replay_probe.write_text(work, "root.md", ROOT)).stdout.strip()
     held = set(sh("git", "ls-tree", "-r", "--name-only", REF, cwd=repository, environment=environment).stdout.split())
     if not {"probe/1/task.json", "probe/1/body.md", "2/task.json", "2/body.md"} <= held:
         return replay_probe.fail(f"the ref holds {sorted(held)}")
@@ -140,7 +140,7 @@ def case_layout(work, repository, origin, environment):
     if not part.endswith(f"/{REF}/probe/1") or not root.endswith(f"/{REF}/2"):
         return replay_probe.fail(f"the urls are {part} and {root}")
     before = commits(environment, repository)
-    refused = use(environment, repository, "use-board.py", "file", "Probe the typo", replay_probe.write_text(work, "typo.md", "Typo.\n"), "--scope", "nowhere", check=False)
+    refused = use(environment, repository, "use-board.py", "file", "--title", "Probe the typo", "--body", replay_probe.write_text(work, "typo.md", "Typo.\n"), "--scope", "nowhere", check=False)
     if refused.returncode == 0 or commits(environment, repository) != before or "nowhere" not in refused.stderr:
         return replay_probe.fail(f"a scope that names no folder: exit {refused.returncode}, {commits(environment, repository) - before} commits, {refused.stderr.strip()[-200:]}")
     read = {number: use(environment, repository, "use-board.py", "read", number).stdout for number in ("1", "2")}
@@ -159,10 +159,10 @@ def case_layout(work, repository, origin, environment):
 
 def case_atomic(work, repository, origin, environment):
     environment = {**environment, "TEAMWORK_BOARD": "git"}
-    use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the stopped part", replay_probe.write_text(work, "stoppart.md", "Stopped part.\n"), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the stopped task", replay_probe.write_text(work, "stopped.md", "Stopped.\n\n## Definition of done\n\n1. [task] #3 Probe the stopped part\n"), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the part", "--body", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the root", "--body", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the stopped part", "--body", replay_probe.write_text(work, "stoppart.md", "Stopped part.\n"), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the stopped task", "--body", replay_probe.write_text(work, "stopped.md", "Stopped.\n\n## Definition of done\n\n1. [task] #3 Probe the stopped part\n"), "--scope", "probe")
 
     def added(why, run, want=1):
         before = commits(environment, repository)
@@ -178,15 +178,15 @@ def case_atomic(work, repository, origin, environment):
 
     def edit_body():
         make_body()
-        return use(environment, repository, "use-board.py", "edit", "2", work / "edit.md", "DECIDED: probe the edit", "--base", body_sha(), check=False)
+        return use(environment, repository, "use-board.py", "edit", "2", "--body", work / "edit.md", "--reason", "probe the edit", "--base", body_sha(), check=False)
 
     def refused_edit():
         (work / "bad.diff").write_text("--- a/body\n+++ b/body\n@@ -1 +1 @@\n-Other text.\n+Changed.\n")
-        return use(environment, repository, "use-board.py", "edit", "2", work / "bad.diff", "DECIDED: probe the edit", "--base", body_sha(), check=False)
+        return use(environment, repository, "use-board.py", "edit", "2", "--body", work / "bad.diff", "--reason", "probe the edit", "--base", body_sha(), check=False)
 
     def stale_edit():
         make_body()
-        return use(environment, repository, "use-board.py", "edit", "2", work / "edit.md", "DECIDED: probe the edit", "--base", "0" * 12, check=False)
+        return use(environment, repository, "use-board.py", "edit", "2", "--body", work / "edit.md", "--reason", "probe the edit", "--base", "0" * 12, check=False)
 
     def reopening_edit():
         # a closed root whose new body gains an open part reopens in the same write
@@ -196,15 +196,15 @@ def case_atomic(work, repository, origin, environment):
     for why, run, want in (("a new body made from one that changed since it was read", stale_edit, 0),
                            ("use-board.py edit", edit_body, 1),
                            ("a diff handed over as the new body", refused_edit, 0),
-                           ("resolve of a part whose parent closes", lambda: use(environment, repository, "use-board.py", "resolve", "1", replay_probe.write_text(work, "r1.md", "Part done.\n")), 1),
-                           ("resolve --not-planned of a task with an open part", lambda: use(environment, repository, "use-board.py", "resolve", "4", replay_probe.write_text(work, "r3.md", "Not now.\n"), "--not-planned"), 1)):
+                           ("resolve of a part whose parent closes", lambda: use(environment, repository, "use-board.py", "resolve", "1", "--summary", "Part done."), 1),
+                           ("resolve --not-planned of a task with an open part", lambda: use(environment, repository, "use-board.py", "resolve", "4", "--summary", "Not now.", "--not-planned"), 1)):
         problem = added(why, run, want)
         if problem:
             return replay_probe.fail(problem)
     if state(environment, repository, "2") != ["state: CLOSED"] or state(environment, repository, "4") != ["state: CLOSED"]:
         return replay_probe.fail(f"the verbs did not close what they should: {state(environment, repository, '2')} {state(environment, repository, '4')}")
     # the part is filed first, so the reopening edit is the only write counted
-    use(environment, repository, "use-board.py", "file", "Probe the new part", replay_probe.write_text(work, "newpart.md", "New part.\n"), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the new part", "--body", replay_probe.write_text(work, "newpart.md", "New part.\n"), "--scope", "probe")
     problem = added("an edit that reopens a closed root", reopening_edit, 1)
     if problem:
         return replay_probe.fail(problem)
@@ -214,10 +214,10 @@ def case_atomic(work, repository, origin, environment):
 
 
 def case_cloud_refused(work, repository, origin, environment):
-    use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "--title", "Probe the part", "--body", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
     before = commits(environment, repository)
-    held = replay_probe.write_text(work, "cloud.md", "REPORTED: probe\n\n```teamwork\ncloud: probe-worker\n```\n")
-    run = use(environment, repository, "use-board.py", "comment", "1", held, check=False)
+    held = replay_probe.write_text(work, "cloud.md", "```teamwork\ncloud: probe-worker\n```\n")
+    run = use(environment, repository, "use-board.py", "comment", "1", "--reported", "probe", "--text", held, check=False)
     if run.returncode == 0 or commits(environment, repository) != before or "opens a `teamwork` fence" not in run.stdout + run.stderr:
         return replay_probe.fail(f"a `cloud:` holder line exited {run.returncode} and added {commits(environment, repository) - before} commits: {(run.stdout + run.stderr)[-200:]}")
     run = use(environment, repository, "start-session.py", "probe-worker", repository, "worker probe-worker manager probe-manager set remote #1", "--model", "m", "--effort", "e", check=False)

@@ -95,9 +95,9 @@ def text(name, body):
 
 
 def file(title, body="Probe the heartbeat.", holder=None, depends=()):
-    number = use("file", title, text("body.md", f"{body}\n"), "scope:x", "--depends", " ".join(map(str, depends))).rsplit("/", 1)[-1].removesuffix(".json")
+    number = use("file", "--title", title, "--body", text("body.md", f"{body}\n"), "--label", "scope:x", "--depends", " ".join(map(str, depends))).rsplit("/", 1)[-1].removesuffix(".json")
     if holder:
-        use("hold", number, holder)
+        use("hold", number, "--holders", holder)
     return int(number)
 
 
@@ -154,7 +154,7 @@ def line_cases():
     listed = herdr(agent("x-manager", 1, "working"), agent("m-worker", 2, "idle"))
     out = lines(listed, [busy], pulls)
     step("merged-later", not about(out, "merged") and len(about(out, "idle m-worker")) == 1, "\n".join(out))
-    use("hold", busy)  # the worker's task is done, which the reread of the board must show
+    use("hold", busy, "--holders", "")  # the worker's task is done, which the reread of the board must show
     out = lines(listed, [], pulls)
     stuck = lines(herdr(agent("x-manager", 1, "working"), agent("m-worker", 2, "blocked", screen="\u276f \n\n  Update installed")), [], pulls)  # no prompt on a blocked pane hides nothing
     step("merged-nothing-open", len(about(out, "merged #5 by m-worker: it holds nothing open")) == 1 and not about(out, "idle m-worker") and len(about(stuck, "merged #5")) == 1,
@@ -163,14 +163,14 @@ def line_cases():
     first = file("Probe a task others wait on", holder="o-worker")
     waits = file("Probe a waiting task", "Probe a task that waits.", holder="w-worker", depends=[first])
     asks = file("Probe an asking task", holder="a-worker")
-    use("comment", asks, text("ask.md", "BLOCKED: which way?\n"))
+    use("comment", asks, "--blocked", "which way?")
     listed = herdr(agent("x-manager", 1, "working"), agent("w-worker", 2, "idle"), agent("a-worker", 3, "idle"), agent("o-worker", 4, "working"))
     out = lines(listed, [first, waits, asks])
     step("idle-waits", not about(out, "idle w-worker") and not about(out, "idle a-worker") and about(out, f"answer #{asks}"), "\n".join(out))
 
     stale = [__import__("board").fresh(asks)]
     asked = stale[0]["comments"][-1]["url"]
-    use("decide", asks, text("answer.md", "DECIDED: this way\n"), "--answers", asked)
+    use("decide", asks, "--decision", "this way", "--answers", asked)
     import board
     kept = board.fresh
     data = {"found": stale, "everything": stale, "prs": [], "outside": [], "feed": [], "links": []}
@@ -198,12 +198,12 @@ def feed_cases():
     import team_gaps
     root = file("Probe a root the worker reports on", holder="r-worker")
     herdr(agent("x-manager", 1, "working"), agent("r-worker", 9, "working"))
-    for body in ("REPORTED: criteria at 0123abc\n", "REPORTED: task filed\n", "REPORTED: landed in the probe change\n"):
-        use("comment", root, text("report.md", body), pane="w1:p9")
+    for line in ("criteria at 0123abc", "task filed", "landed in the probe change"):
+        use("comment", root, "--reported", line, pane="w1:p9")
     posted = team_gaps.feed_read("x-manager", "1970-01-01T00:00:00Z") or []
     step("feed-steps", [comment["body"].strip() for _, comment in posted] == ["REPORTED: landed in the probe change"], posted)
 
-    mine = use("comment", root, text("mine.md", "REPORTED: the manager's own note\n"))
+    mine = use("comment", root, "--reported", "the manager's own note")
     posted = team_gaps.feed_read("x-manager", "1970-01-01T00:00:00Z") or []
     listed = herdr(agent("x-manager", 1, "working"))
     out = lines(listed, [root], feed=posted, fed=set())

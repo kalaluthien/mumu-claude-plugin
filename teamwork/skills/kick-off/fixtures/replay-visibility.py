@@ -23,10 +23,13 @@ def use(*argv):
     return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
 
 
-def post(verb, number, text, work, *options):
-    path = work / f"text-{abs(hash(text))}.md"
-    path.write_text(text)
-    done = use(verb, number, path, *options)
+def post(verb, number, key, line, rest, work, *options):
+    argv = [verb, number, key, line, *options]
+    if rest:
+        path = work / f"text-{abs(hash(rest))}.md"
+        path.write_text(rest)
+        argv += ["--text", path]
+    done = use(*argv)
     if done.returncode:
         raise SystemExit(f"replay-visibility: {verb} refused: {done.stderr}")
 
@@ -41,13 +44,13 @@ def main(args):
     os.chdir(work / "repo")
     path = work / "body.md"
     path.write_text(BODY)
-    filed = use("file", "Probe visibility", path)
+    filed = use("file", "--title", "Probe visibility", "--body", path)
     if filed.returncode:
         return replay_probe.fail(f"cannot file the task: {filed.stderr}")
     number = filed.stdout.strip().rsplit("/", 1)[1]
-    post("decide", number, f"DECIDED: probe routing\n\nJudge note: {NOTE}\n", work, "--by", "probe-manager")
-    post("comment", number, f"BLOCKED: {ASK}\n", work)
-    post("comment", number, "REPORTED: probe findings\n", work)
+    post("decide", number, "--decision", "probe routing", f"Judge note: {NOTE}\n", work, "--by", "probe-manager")
+    post("comment", number, "--blocked", ASK, "", work)
+    post("comment", number, "--reported", "probe findings", "", work)
     seen = {role: use("read", number, "--as", role) for role in ("worker", "judge")}
     worker, judge = seen["worker"].stdout, seen["judge"].stdout
     wrong = [text for ok, text in (

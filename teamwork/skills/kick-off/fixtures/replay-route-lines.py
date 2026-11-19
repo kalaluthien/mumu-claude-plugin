@@ -47,9 +47,9 @@ def use(*args):
 def file(title, holder=None):
     body = work / "body.md"
     body.write_text("Probe the route line.\n")
-    number = use("file", title, body, "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
+    number = use("file", "--title", title, "--body", body, "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
     if holder:
-        use("hold", number, holder)
+        use("hold", number, "--holders", holder)
     return int(number)
 
 
@@ -105,17 +105,17 @@ def main(args):
         step(f"{kind}-moved", len(shown) == 1 and not hidden, shown + hidden)
     herdr(manager, agent("i-worker", 4, "idle"))
     shown = manager_lines([manager, agent("i-worker", 4, "idle")], kind="idle")
-    use("hold", file("Probe a task taken after the poll"), "i-worker")
+    use("hold", file("Probe a task taken after the poll"), "--holders", "i-worker")
     step("idle-held", len(shown) == 1 and not manager_lines([manager, agent("i-worker", 4, "idle")], kind="idle"), shown)
     pull = [{"number": 5, "headRefName": "m-worker", "mergedAt": "2026-11-04T00:00:00Z"}]
     listed = herdr(manager, agent("m-worker", 3, "working"))
     seen = manager_lines(listed, prs=pull, kind="merged")
-    use("hold", file("Probe a task taken late"), "m-worker")
+    use("hold", file("Probe a task taken late"), "--holders", "m-worker")
     step("merged-held", len(seen) == 1 and not manager_lines(listed, prs=pull, kind="merged"), seen)
     me = {"name": "h-worker"}
     data = {"found": [], "prs": [], "blockers": {}}
     first = team_gaps.worker_actions(me, set(), {}, data)
-    use("hold", file("Probe a task for h-worker"), "h-worker")
+    use("hold", file("Probe a task for h-worker"), "--holders", "h-worker")
     step("holds-held", len(first) == 1 and not team_gaps.worker_actions(me, set(), {}, data), first)
     pulls = {"found": [], "prs": [{"number": 6, "headRefName": "h-worker", "mergeable": "CONFLICTING"}], "blockers": {}}
     real, team_gaps.landing.conflicts = team_gaps.landing.conflicts, lambda number: True

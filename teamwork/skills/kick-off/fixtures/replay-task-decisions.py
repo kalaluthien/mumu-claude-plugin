@@ -64,7 +64,7 @@ def write(text):
 
 
 def file(title, parts=(), depends=()):
-    done = use("file", title, write(body(parts)), "--depends", " ".join(map(str, depends)))
+    done = use("file", "--title", title, "--body", write(body(parts)), "--depends", " ".join(map(str, depends)))
     if done.returncode:
         raise SystemExit(f"replay-task-decisions: cannot file {title}: {done.stderr}")
     return int(done.stdout.strip().rsplit("/", 1)[1])
@@ -73,17 +73,17 @@ def file(title, parts=(), depends=()):
 def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", quote=None):
     """Posts a decision by `use-board.py decide`; its url, or the finished call when it exited non-zero."""
     options = ["--by", by, *(["--one-way"] if door == "one-way" else []), *(["--supersedes", supersedes] if supersedes else []), *(["--answers", answers] if answers else [])]
-    done = use("decide", number, write(f"DECIDED: {decision}\n" + (f"\n> {quote}\n" if quote else "")), *options)
+    done = use("decide", number, "--decision", decision, *(["--text", write(f"> {quote}\n")] if quote else []), *options)
     return done.stdout.strip() if done.returncode == 0 else done
 
 
-def post(number, text, *options):
-    done = use("comment", number, write(text), *options)
-    return done.stdout.strip()
+def post(number, option, line, *options):
+    """Posts a comment whose keyword line is OPTION's, `--blocked` or `--reported`, with LINE."""
+    return use("comment", number, option, line, *options).stdout.strip()
 
 
 def ask(number, question, owner=False):
-    return post(number, f"BLOCKED: {question}\n", *(["--asks", "owner", "--option", "yes", "--option", "no"] if owner else []))
+    return post(number, "--blocked", question, *(["--asks", "owner", "--option", "yes", "--option", "no"] if owner else []))
 
 
 def older(number, text):
@@ -132,8 +132,8 @@ def record_cases():
     full = decide(root, "use the git board", door="one-way", supersedes=first, answers=question)
     line = next((line for line in index(root).splitlines() if f"({full})" in line), "")
     step("record-fields", all(part in line for part in (f"#{root} probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}")), index(root))
-    event = use("hold", root, "probe-worker").stdout.strip()
-    report = post(root, "REPORTED: probe findings\n")
+    event = use("hold", root, "--holders", "probe-worker").stdout.strip()
+    report = post(root, "--reported", "probe findings")
     step("record-event", event not in bound(root) and report not in bound(root) and bound(root) == [full], index(root))
     part = file("Probe a part")
     parent = file("Probe a parent", parts=[part])
@@ -154,7 +154,7 @@ def authority_cases():
     owner = decide(task, "no external service", by="owner", door="one-way", quote="no external service")
     refused("authority-refuses", task, lambda: decide(task, "an external service is fine", supersedes=owner), owner, "owner")
     refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "quotes no words")
-    refused("authority-comment", task, lambda: use("comment", task, write("DECIDED: an external service is fine\n")), "decide")
+    refused("authority-comment", task, lambda: use("comment", task, "--reported", "an external service is fine", "--text", write("DECIDED: an external service is fine\n")), "--decision")
     again = decide(task, "only the sandbox service", by="owner", door="one-way", supersedes=owner, quote="the sandbox is fine")
     step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))
     managed = file("Probe a manager's task")
@@ -170,11 +170,11 @@ def binding_cases():
     on_root, on_middle, on_left, on_right = (decide(n, f"rule on the {place}") for n, place in ((root, "root"), (middle, "middle"), (left, "left"), (right, "right")))
     seen = bound(left)
     step("binding-ancestors", {on_root, on_middle, on_left} <= set(seen) and on_right not in seen, index(left))
-    use("resolve", root, write("REPORTED: probe stopped\n"), "--not-planned")
+    use("resolve", root, "--summary", "probe stopped", "--not-planned")
     step("binding-stopped-root", bound(left) == [] and bound(root) == [], index(left))
     task = file("Probe a question")
     question = ask(task, "which width counts")
-    use("hold", task, "probe-worker")
+    use("hold", task, "--holders", "probe-worker")
     step("binding-event-keeps-question", asked(task) == [question], index(task))
     other = ask(task, "which height counts")
     decide(task, "any height counts", answers=other)
@@ -218,7 +218,7 @@ def route_cases():
     before = routed({blocker, waiter, part, parent})
     step("route-own-depends", waiter not in before and blocker in before, before)
     step("route-parts-blocked", parent not in before and part not in before, before)
-    use("resolve", blocker, write("REPORTED: probe done\n"))
+    use("resolve", blocker, "--summary", "probe done")
     after = routed({waiter, part, parent})
     step("route-after-close", {waiter, part, parent} <= after, after)
 
@@ -293,7 +293,7 @@ def board_pane():
     asker, decider, cutter, untrusted = file("Probe an asking task"), file("Probe a deciding task"), file("Probe a long rule"), file("Probe an outsider")
     ask(asker, "may the sync run", owner=True)
     later = file("Probe a question on its second line")
-    post(later, "BLOCKED:\nwhich width counts\n")
+    older(later, "BLOCKED:\nwhich width counts\n")
     for word in ("one", "two", "three", "four"):
         decide(decider, f"rule {word}", by="owner", door="one-way", quote=f"rule {word}")
     decide(cutter, LONG, by="owner", door="one-way", quote="only the sandbox")

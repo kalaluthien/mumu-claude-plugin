@@ -5,9 +5,9 @@ the message names a fix and the board is unchanged; an `unstored-` case when eve
 an `accept-` case when every write exits 0 and the board changed. Cases:
 - `fence-*`: a `teamwork` or a `decision` fence at a line's start in a filed body, a comment, a decision, a summary or an edited body;
 - `option-*`: an `--asks` that names no owner, `--asks owner` with fewer than two `--option`, an option on a `REPORTED:`, a `--live-runs` that is no count;
-- `keyword-*`: a keyword line that nearly opens a comment, opens a later line or belongs to another verb;
+- `keyword-*`: a `--blocked` or `--reported` line that is empty or holds two lines, a `--text` file that opens with a keyword of the verb or of another verb;
 - `heading-*`: a section heading misspelt or repeated;
-- `edit-*`: a new body or keyword line `use-board.py edit` is given;
+- `edit-*`: a new body or `--reason` `use-board.py edit` is given;
 - `unstored-*`: a holder's or a decider's name that board-record-schema.json refuses;
 - `accept-*`: text and options that must still post, and `accept-scenarios`, the output of replay-team-scenarios.py holding only `ok` lines;
 - `stored-decision`: a `decide` with `--one-way`, `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` whose keys the schema all names, and `read` shows each;
@@ -18,6 +18,7 @@ usage: replay-input-form.py [--only <case>,...]"""
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -34,31 +35,33 @@ BY = ("--by", "a-manager")
 TWO = ("--option", "the first", "--option", "the second")
 SCHEMA = json.loads((HERE.parent / "assets" / "board-record-schema.json").read_text())
 
-# name -> (writes, fix): each write is (verb, text, option...) with verb file, comment, decide or resolve, (verb, None, word...) with verb hold or depend,
-# or ("edit", before, after, keyword line); the message of a refusal holds FIX
+# name -> (writes, fix): each write is (verb, text, option...) with verb file, comment, decide or resolve, the text's first line, minus its keyword, going to the verb's line option;
+# (verb, None, word...) with verb hold or depend; ("call", verb, text or None, option...) with the options handed as they are, text going to `--text`;
+# or ("edit", before, after, reason); the message of a refusal holds FIX
 REFUSED = {
     "fence-teamwork": ([("file", BASE + TEAMWORK), ("comment", "REPORTED: probe findings\n" + TEAMWORK), ("comment", "BLOCKED: which one?\n\n```teamwork\nasks: owner\n```\n"),
                         ("decide", "DECIDED: ship the probe today\n" + TEAMWORK, *BY), ("resolve", "REPORTED: probe landed\n" + TEAMWORK),
-                        ("edit", BASE, BASE + TEAMWORK, "DECIDED: add a holder")], "`teamwork` fence"),
+                        ("edit", BASE, BASE + TEAMWORK, "add a holder")], "`teamwork` fence"),
     "fence-decision": ([("file", BASE + DECISION), ("comment", "REPORTED: probe findings\n" + DECISION), ("decide", "DECIDED: ship it\n" + DECISION, *BY),
-                        ("resolve", "REPORTED: probe landed\n" + DECISION), ("edit", BASE, BASE + DECISION, "DECIDED: add a decision")], "`decision` fence"),
+                        ("resolve", "REPORTED: probe landed\n" + DECISION), ("edit", BASE, BASE + DECISION, "add a decision")], "`decision` fence"),
     "option-asks-value": ([("comment", "BLOCKED: which one?\n", "--asks", "someone", *TWO)], "--asks owner"),
     "option-asks-no-option": ([("comment", "BLOCKED: which one?\n", "--asks", "owner")], "two answers"),
     "option-asks-one-option": ([("comment", "BLOCKED: which one?\n", "--asks", "owner", "--option", "the first")], "two answers"),
-    "option-on-report": ([("comment", "REPORTED: probe findings\n", "--asks", "owner", *TWO), ("comment", "REPORTED: probe findings\n", *TWO)], "BLOCKED:"),
+    "option-on-report": ([("comment", "REPORTED: probe findings\n", "--asks", "owner", *TWO), ("comment", "REPORTED: probe findings\n", *TWO)], "--blocked"),
     "option-live-runs-word": ([("decide", "DECIDED: cap the live runs\n", *BY, "--live-runs", "many")], "--live-runs 12"),
-    "keyword-lowercase": ([("comment", "blocked: which one?\n")], "BLOCKED"),
-    "keyword-bare": ([("comment", "BLOCKED which one?\n")], "BLOCKED"),
-    "keyword-bold": ([("comment", "**BLOCKED:** which one?\n")], "BLOCKED"),
-    "keyword-later-line": ([("comment", "Waiting on the owner.\nBLOCKED: which one?\n")], "first line"),
-    "keyword-other-verb": ([("comment", "DECIDED: ship the probe today\n"), ("decide", "BLOCKED: which one?\n", *BY), ("resolve", "DECIDED: closing it\n")], "first line"),
+    "keyword-lowercase": ([("call", "comment", None, "--blocked", "")], "not empty"),
+    "keyword-bare": ([("call", "comment", None, "--blocked", "which one?\nand which other?")], "one line"),
+    "keyword-bold": ([("call", "comment", None, "--reported", "  ")], "not empty"),
+    "keyword-later-line": ([("call", "comment", "BLOCKED: which one?\n", "--blocked", "which one?")], "keyword line"),
+    "keyword-other-verb": ([("call", "comment", "DECIDED: ship the probe today\n", "--reported", "probe findings"), ("call", "decide", "BLOCKED: which one?\n", "--decision", "ship it", *BY),
+                            ("call", "resolve", "DECIDED: closing it\n", "--summary", "closing it")], "keyword line"),
     "heading-misspelt": ([("file", BASE.replace("## Goal", "## goal")), ("file", BASE.replace("## Definition of done", "## Definition Of Done"))], "write exactly"),
     "heading-level": ([("file", BASE.replace("## Goal", "### Goal"))], "## Goal"),
     "heading-repeated": ([("file", BASE + "\n## Definition of done\n\n1. [check] **The probe works again when it runs twice**: `true`\n")], "keep one"),
-    "edit-keyword-lowercase": ([("edit", BASE, BASE + "\nMore.\n", "decided: lower")], "DECIDED:"),
-    "edit-keyword-empty": ([("edit", BASE, BASE + "\nMore.\n", "")], "DECIDED:"),
-    "edit-keyword-free": ([("edit", BASE, BASE + "\nMore.\n", "add more text")], "DECIDED:"),
-    "edit-keyword-two-lines": ([("edit", BASE, BASE + "\nMore.\n", "DECIDED: add more\nholders: oops")], "one line"),
+    "edit-keyword-lowercase": ([("edit", BASE, BASE + "\nMore.\n", "DECIDED: lower")], "no keyword"),
+    "edit-keyword-empty": ([("edit", BASE, BASE + "\nMore.\n", "")], "not one line"),
+    "edit-keyword-free": ([("edit", BASE, BASE + "\nMore.\n", "REPORTED: add more text")], "no keyword"),
+    "edit-keyword-two-lines": ([("edit", BASE, BASE + "\nMore.\n", "add more\nholders: oops")], "not one line"),
 }
 UNSTORED = {
     "unstored-holders-capital": [("hold", None, "A-Worker"), ("decide", "DECIDED: ship the probe today\n", *BY, "--holders", "A-Worker")],
@@ -68,13 +71,14 @@ UNSTORED = {
 ACCEPTED = {
     "accept-clean-comment": [("comment", "REPORTED: probe findings\n"), ("comment", "BLOCKED: which one?\n"), ("comment", "BLOCKED: which one?\n", *TWO)],
     "accept-other-fence": [("comment", "REPORTED: probe findings\n\n```yaml\nholders: a-worker\n```\n\nThe `teamwork` fence is gone.\n"), ("file", BASE + "\n```text\ndecision: none\n```\n")],
-    "accept-clean-edit": [("edit", BASE, BASE + "\nMore.\n", "DECIDED: add more")],
-    "accept-fixing-edit": [("edit", BASE + TEAMWORK, BASE, "DECIDED: drop the fence"), ("edit", BASE + TEAMWORK, BASE + TEAMWORK + "\nMore.\n", "DECIDED: add more beside the fence")],
-    "accept-every-option": [("file", BASE), ("file", BASE, "a-label", "--scope", "", "--depends", "1"), ("comment", "BLOCKED: which one?\n", "--asks", "owner", *TWO),
+    "accept-clean-edit": [("edit", BASE, BASE + "\nMore.\n", "add more")],
+    "accept-fixing-edit": [("edit", BASE + TEAMWORK, BASE, "drop the fence"), ("edit", BASE + TEAMWORK, BASE + TEAMWORK + "\nMore.\n", "add more beside the fence")],
+    "accept-every-option": [("file", BASE), ("file", BASE, "--label", "a-label", "--scope", "", "--depends", "1"), ("comment", "BLOCKED: which one?\n", "--asks", "owner", *TWO),
                             ("decide", "DECIDED: ship the probe today\n", *BY, "--one-way", "--holders", "a-worker b-worker", "--live-runs", "2"),
                             ("decide", 'DECIDED: ship the probe today\n\nThe owner said "ship it".\n', "--by", "owner"),
                             ("hold", None, "a-worker", "b-worker"), ("hold", None), ("depend", None, "1"), ("depend", None, "#1")],
-    "accept-keyword-spaced": [("comment", " REPORTED: probe findings\n"), ("decide", "\n DECIDED: ship the probe today\n", *BY), ("resolve", " REPORTED: done\n")],
+    "accept-keyword-spaced": [("call", "comment", "\n more probe findings\n", "--reported", "probe findings"), ("call", "decide", "\n more on it\n", "--decision", "ship the probe today", *BY),
+                              ("call", "resolve", "\n more on it\n", "--summary", "done")],
     "accept-keyword-put-first": [("decide", "ship the probe today\n", *BY), ("resolve", "the probe landed\n")],
 }
 failed = []
@@ -115,6 +119,13 @@ def main(args):
     def use(*argv):
         return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], capture_output=True, text=True)
 
+    def keyed(verb, number, text, *options):
+        """Posts TEXT as VERB: its first line, minus a keyword, to the verb's line option and the rest to `--text`."""
+        word, line, rest = re.match(r"\s*(?:(BLOCKED|REPORTED|DECIDED):)?[ \t]*([^\n]*)\n?(.*)", text, re.S).groups()
+        flag = {"comment": "--blocked" if word == "BLOCKED" else "--reported", "decide": "--decision", "resolve": "--summary"}[verb]
+        rest = rest.lstrip("\n")
+        return use(verb, number, flag, line, *(["--text", written(rest)] if rest.strip() else []), *options)
+
     def write(spec, number):
         """Runs one write SPEC on the board; the completed process."""
         verb, *rest = spec
@@ -122,9 +133,16 @@ def main(args):
             before, after, line = rest
             body = work / f"edit-{next(counter)}.md"
             body.write_text(after)
-            return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), "edit", str(number), str(body), line, "--base", board.body_sha(before)], capture_output=True, text=True)
+            return use("edit", number, "--body", body, "--reason", line, "--base", board.body_sha(before))
+        if verb == "call":
+            word, text, *options = rest
+            return use(word, number, *options, *([] if text is None else ["--text", written(text)]))
         text, *options = rest
-        return use(*(["file", "A task"] if verb == "file" else [verb, number]), *([] if text is None else [written(text)]), *options)
+        if verb == "file":
+            return use("file", "--title", "A task", "--body", written(text), *options)
+        if text is None:
+            return use(verb, number, "--holders" if verb == "hold" else "--depends", " ".join(options))
+        return keyed(verb, number, text, *options)
 
     def run(name, writes, holds):
         """Runs each of WRITES; HOLDS(done, changed) says whether one went as the case wants."""
@@ -146,8 +164,8 @@ def main(args):
 
     def stored_decision():
         number = board_git.file("A task", BASE, [])
-        question = use("comment", number, written("BLOCKED: which one?\n")).stdout.strip()
-        decided = use("decide", number, written("DECIDED: ship the probe today\n\nIt is ready.\n"), *BY, "--one-way", "--answers", question, "--holders", "a-worker b-worker", "--live-runs", "2")
+        question = keyed("comment", number, "BLOCKED: which one?\n").stdout.strip()
+        decided = keyed("decide", number, "DECIDED: ship the probe today\n\nIt is ready.\n", *BY, "--one-way", "--answers", question, "--holders", "a-worker b-worker", "--live-runs", "2")
         url, record, read = decided.stdout.strip(), stored(number, 2), use("read", number).stdout
         wanted = {"text": "DECIDED: ship the probe today\n\nIt is ready.\n", "decision": "ship the probe today", "by": "a-manager", "one_way": True, "answers": question,
                   "holders": ["a-worker", "b-worker"], "live_runs": 2}
@@ -158,18 +176,18 @@ def main(args):
 
     def stored_question():
         number = board_git.file("A task", BASE, [])
-        asked = use("comment", number, written("BLOCKED: which one?\n"), "--asks", "owner", *TWO)
+        asked = keyed("comment", number, "BLOCKED: which one?\n", "--asks", "owner", *TWO)
         url, record, read = asked.stdout.strip(), stored(number, 1), use("read", number).stdout
         shows = ["state: OPEN, waits on the owner\n", "open questions: 1\n", f"- #{number} to the owner: which one? ({url})\n", f"--- {url} (asks: owner)\nBLOCKED: which one?\n\n1. the first\n2. the second\n"]
         step("stored-question", asked.returncode == 0 and record == {"text": "BLOCKED: which one?\n", "asks": "owner", "options": ["the first", "the second"]}
              and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows), f"exit {asked.returncode} {asked.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
 
     def url_names_task():
-        filed = use("file", "A task", written(BASE))
+        filed = use("file", "--title", "A task", "--body", written(BASE))
         url = filed.stdout.strip()
         number = int(url.rsplit("/", 1)[1])
-        posted = use("comment", url, written("REPORTED: probe findings\n"))
-        held = use("hold", url, "a-worker")
+        posted = keyed("comment", url, "REPORTED: probe findings\n")
+        held = use("hold", url, "--holders", "a-worker")
         by_url, by_number = use("read", url), use("read", number)
         step("url-names-task", url.startswith("git+file://") and posted.stdout.strip() == f"{url}#comment-1" and held.stdout.strip() == f"{url}#comment-2"
              and by_url.returncode == 0 and by_url.stdout == by_number.stdout and f"#{number} A task\n" in by_url.stdout and "REPORTED: probe findings" in by_url.stdout

@@ -40,24 +40,20 @@ def use(*argv):
     return done.stdout.strip()
 
 
-def post(verb, number, text, *options):
-    path = work / f"text-{time.monotonic_ns()}.md"
-    path.write_text(text)
-    return use(verb, number, path, *options)
-
-
 def file(title):
     path = work / f"body-{time.monotonic_ns()}.md"
     path.write_text(BODY)
-    return int(use("file", title, path).rsplit("/", 1)[1])
+    return int(use("file", "--title", title, "--body", path).rsplit("/", 1)[1])
 
 
 def ask(number, question, owner=False):
-    return post("comment", number, f"BLOCKED: {question}\n", *(("--asks", "owner", "--option", "yes", "--option", "no") if owner else ()))
+    return use("comment", number, "--blocked", question, *(("--asks", "owner", "--option", "yes", "--option", "no") if owner else ()))
 
 
 def decide(number, text, answers="", by="probe-manager"):
-    return post("decide", number, f"DECIDED: {text}\n" + ("\n> the owner's words\n" if by == "owner" else ""), "--by", by, *(("--answers", answers) if answers else ()))
+    quote = work / f"quote-{time.monotonic_ns()}.md"
+    quote.write_text("> the owner's words\n")
+    return use("decide", number, "--decision", text, *(("--text", quote) if by == "owner" else ()), "--by", by, *(("--answers", answers) if answers else ()))
 
 
 def row(number):
@@ -86,7 +82,7 @@ def cases():
     task = file("Probe a plain answer")
     ask(task, "which cache")
     step("keep-comment-only", marks(task) == ("", ["which cache"]), marks(task))
-    post("comment", task, "REPORTED: probe findings\n")
+    use("comment", task, "--reported", "probe findings")
     step("keep-comment-only-after", marks(task) == ("", ["which cache"]), marks(task))
     signal = signal_stamp()
     decide(task, "use the shared cache")
@@ -108,7 +104,7 @@ def cases():
     ask(own, "which cache")
     decide(own, "my design keeps one cache", by="probe-worker")
     step("keep-worker-decision", marks(own) == ("", ["which cache"]), marks(own))
-    use("hold", own, "probe-worker")
+    use("hold", own, "--holders", "probe-worker")
     step("keep-event", marks(own) == ("", ["which cache"]), marks(own))
 
     to_owner = file("Probe a manager on an owner's ask")

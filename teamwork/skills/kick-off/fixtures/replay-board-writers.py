@@ -31,11 +31,10 @@ UNGUARDED = "REF, new)"
 
 WRITER_SCRIPT = """
 for k in $(seq {comments}); do
-  printf 'w{writer}-c%s\\n' "$k" > "$WORK/body-{writer}"
-  python3 "$USE" comment 1 "$WORK/body-{writer}" >/dev/null 2>>"$WORK/errors-{writer}" || echo "comment w{writer}-c$k exited $?" >> "$WORK/errors-{writer}"
+  python3 "$USE" comment 1 --reported "w{writer}-c$k" >/dev/null 2>>"$WORK/errors-{writer}" || echo "comment w{writer}-c$k exited $?" >> "$WORK/errors-{writer}"
   if [ "$k" -le {filings} ]; then
     printf 'w{writer}-t%s\\n' "$k" > "$WORK/body-{writer}"
-    python3 "$USE" file "w{writer}-t$k" "$WORK/body-{writer}" >/dev/null 2>>"$WORK/errors-{writer}" || echo "file w{writer}-t$k exited $?" >> "$WORK/errors-{writer}"
+    python3 "$USE" file --title "w{writer}-t$k" --body "$WORK/body-{writer}" >/dev/null 2>>"$WORK/errors-{writer}" || echo "file w{writer}-t$k exited $?" >> "$WORK/errors-{writer}"
   fi
 done
 """
@@ -49,7 +48,7 @@ def run_writers(use, work, repository):
     """Returns the findings, each a sentence; none means every record is there once."""
     environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "USE": str(use), "WORK": str(work)}
     (work / "seed").write_text("The task the writers comment on.\n")
-    subprocess.run([sys.executable, str(use), "file", "Seed", str(work / "seed")], cwd=repository, env=environment, capture_output=True, check=True)
+    subprocess.run([sys.executable, str(use), "file", "--title", "Seed", "--body", str(work / "seed")], cwd=repository, env=environment, capture_output=True, check=True)
     running = [subprocess.Popen(["sh", "-c", WRITER_SCRIPT.format(writer=i, comments=COMMENTS, filings=FILINGS)], cwd=repository, env=environment) for i in range(WRITERS)]
     for process in running:
         process.wait()

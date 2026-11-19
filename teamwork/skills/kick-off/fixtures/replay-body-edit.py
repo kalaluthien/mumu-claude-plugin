@@ -60,15 +60,15 @@ def main(args):
         (work / name).write_text(text)
         return work / name
 
-    use("file", "Print ok from the probe", write("one.md", BODY))
-    use("file", "Print ok twice", write("two.md", BODY + "\n"))
+    use("file", "--title", "Print ok from the probe", "--body", write("one.md", BODY))
+    use("file", "--title", "Print ok twice", "--body", write("two.md", BODY + "\n"))
     printed = [use("read", number, "--body") for number in (1, 2)]
     step("start", [answer[1] for answer in printed] == [stored(1), stored(2)] == [BODY, BODY + "\n"] and not any(answer[0] or answer[2] for answer in printed), printed)
 
     del calls[:]
     base = sha(1)
     new = write("new.md", use("read", 1, "--body")[1].replace("Line 7 of the goal.", "Line 7 of the goal, reworded."))
-    edited = use("edit", 1, new, "DECIDED: rewords line 7.", "--base", base)
+    edited = use("edit", 1, "--body", new, "--reason", "rewords line 7.", "--base", base)
     full = use("read", 1, "--full")[1]
     changed = [line for line in full.splitlines() if line[:1] in ("+", "-") and line[:3] not in ("+++", "---")]
     step("round", edited[0] == 0 and stored(1) == new.read_text() and calls[:3] == ["read", "read", "edit"] and "DECIDED: rewords line 7." in full
@@ -77,29 +77,29 @@ def main(args):
     step("shown", "+Line 7 of the goal, reworded." not in cut and "which `read --full` prints" in cut, cut[-600:])
 
     far = write("far.md", stored(2).replace("The probe prints ok.", "The probe prints ok, twice.").replace("Last line.", "Last line, reworded."))
-    edited = use("edit", 2, far, "DECIDED: rewords both ends.", "--base", sha(2))
+    edited = use("edit", 2, "--body", far, "--reason", "rewords both ends.", "--base", sha(2))
     full = use("read", 2, "--full")[1]
     step("far-apart", edited[0] == 0 and stored(2) == far.read_text() and full.count("```diff") == 1 and "+The probe prints ok, twice." in full and "+Last line, reworded." in full, [edited, full[-900:]])
 
     earlier = write("earlier.md", stored(2))
     odd = write("odd.md", stored(2).replace("Line 3 of the goal.", "Line 3 of\x0cthe goal.").replace("Line 20 of the goal.", "Line 20 of\u2028the goal."))
-    edited = use("edit", 2, odd, "DECIDED: adds odd characters.", "--base", sha(2))
+    edited = use("edit", 2, "--body", odd, "--reason", "adds odd characters.", "--base", sha(2))
     recorded = use("read", 2, "--full")[1].rsplit("```diff\n", 1)[-1].rsplit("```", 1)[0]
     patched = subprocess.run(["patch", "-s", str(earlier), str(write("recorded.diff", recorded))], capture_output=True, text=True)
     step("applies", edited[0] == 0 and patched.returncode == 0 and earlier.read_text() == odd.read_text() == stored(2), [edited, patched.stdout, patched.stderr])
 
-    edited = use("edit", 2, write("bare.md", stored(2).rstrip("\n").replace("twice", "three times")), "DECIDED: prints three times.", "--base", sha(2))
+    edited = use("edit", 2, "--body", write("bare.md", stored(2).rstrip("\n").replace("twice", "three times")), "--reason", "prints three times.", "--base", sha(2))
     step("no-newline", edited[0] == 0 and stored(2).endswith("Last line, reworded.") and "three times" in stored(2), [edited, stored(2)[-60:]])
 
     before = state()
     diff = write("edit.diff", "--- a/body\n+++ b/body\n@@ -1 +1 @@\n-The probe prints ok.\n+The probe prints ok, edited.\n")
-    given = use("edit", 1, diff, "DECIDED: hands a diff.", "--base", sha(1))
+    given = use("edit", 1, "--body", diff, "--reason", "hands a diff.", "--base", sha(1))
     step("diff-given", given[0] != 0 and not given[1] and "read 1 --body" in given[2] and given[2].count("\n") == 1 and state() == before, given)
 
-    same = use("edit", 1, write("same.md", stored(1)), "DECIDED: changes nothing.", "--base", sha(1))
+    same = use("edit", 1, "--body", write("same.md", stored(1)), "--reason", "changes nothing.", "--base", sha(1))
     step("unchanged", same[0] != 0 and not same[1] and "as it stands" in same[2] and state() == before, same)
 
-    stale = use("edit", 1, write("late.md", stored(1) + "\nA late line.\n"), "DECIDED: adds a late line.", "--base", base)
+    stale = use("edit", 1, "--body", write("late.md", stored(1) + "\nA late line.\n"), "--reason", "adds a late line.", "--base", base)
     step("stale", stale[0] != 0 and not stale[1] and "changed since you read it" in stale[2] and state() == before, stale)
 
     pages = [path for folder in ("lib", "hooks", "monitors", "skills") for path in (ROOT / folder).rglob("*") if path.suffix in (".py", ".md", ".tsx", ".json") and path != pathlib.Path(__file__).resolve()]

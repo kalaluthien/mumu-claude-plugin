@@ -25,11 +25,11 @@ def case_gate():
     subprocess.run(["git", "init", "-q", str(repository)], check=True)
     environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home")}
     (work / "label.md").write_text(BODY.format(name="Four closed"))
-    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "Probe the names", work / "label.md")
+    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "--title", "Probe the names", "--body", work / "label.md")
     if filed.returncode != 2 or "Complete sentence" not in filed.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").returncode == 0:
         return replay_probe.fail(f"a label was filed or not named: exit {filed.returncode}, {filed.stderr.strip()[-200:]!r}")
     (work / "sentence.md").write_text(BODY.format(name=SENTENCE))
-    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "Probe the names", work / "sentence.md")
+    filed = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "file", "--title", "Probe the names", "--body", work / "sentence.md")
     if filed.returncode:
         return replay_probe.fail(f"a sentence was refused: {filed.stderr.strip()[-200:]!r}")
     shown = replay_probe.run_python(LISTER, repository, environment, "proj").stdout
@@ -38,7 +38,7 @@ def case_gate():
     before = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout
     sha = next(line.split("body sha: ")[1].strip() for line in before.splitlines() if "body sha: " in line)
     (work / "new").write_text(BODY.format(name=SENTENCE) + "2. [check] **Honest count**: `echo PASS` prints `PASS`; on base `FAIL`.\n")
-    edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", work / "new", "DECIDED: add a label", "--base", sha)
+    edited = replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "edit", "1", "--body", work / "new", "--reason", "add a label", "--base", sha)
     if edited.returncode != 2 or "Complete sentence" not in edited.stderr or replay_probe.run_python(SCRIPTS / "use-board.py", repository, environment, "read", "1").stdout != before:
         return replay_probe.fail(f"an edit that adds a label was not refused cleanly: exit {edited.returncode}, {edited.stderr.strip()[-200:]!r}")
     return 0

@@ -36,14 +36,14 @@ def main(args):
     def text(name, body):
         return replay_probe.write_text(work, name, body)
 
-    number = use("file", "Probe a reopened task", text("body.md", "Probe.\n"), "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
-    use("hold", number, "w-worker")
-    again = use("comment", number, text("ask-again.md", "BLOCKED: which way now?\n"))
-    manager_ask = use("comment", number, text("ask-manager.md", "BLOCKED: which way?\n"))
-    owner_ask = use("comment", number, text("ask-owner.md", "BLOCKED: merge it?\n"), "--asks", "owner", "--option", "yes", "--option", "no")
-    use("decide", number, text("answer-manager.md", "DECIDED: the first way\n"), "--by", "manager", "--answers", manager_ask)
-    use("decide", number, text("answer-owner.md", 'DECIDED: merge\n\n> "merge it"\n'), "--by", "owner", "--answers", owner_ask)
-    use("resolve", number, text("report.md", "REPORTED: done\n"))
+    number = use("file", "--title", "Probe a reopened task", "--body", text("body.md", "Probe.\n"), "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
+    use("hold", number, "--holders", "w-worker")
+    again = use("comment", number, "--blocked", "which way now?")
+    manager_ask = use("comment", number, "--blocked", "which way?")
+    owner_ask = use("comment", number, "--blocked", "merge it?", "--asks", "owner", "--option", "yes", "--option", "no")
+    use("decide", number, "--decision", "the first way", "--by", "manager", "--answers", manager_ask)
+    use("decide", number, "--decision", "merge", "--text", text("answer-owner.md", '> "merge it"\n'), "--by", "owner", "--answers", owner_ask)
+    use("resolve", number, "--summary", "done")
     use("reopen", number)
     subprocess.run(["git", "fetch", "-q", str(first), "refs/teamwork-blackboard:refs/teamwork-blackboard"], cwd=second, check=True)
 

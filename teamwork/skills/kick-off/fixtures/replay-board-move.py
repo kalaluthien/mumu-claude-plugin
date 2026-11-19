@@ -93,22 +93,20 @@ def main(args):
     pane = sh(sys.executable, LIST, "probe", "--json")
     rows = json.loads(pane.stdout) if pane.returncode == 0 and pane.stdout.startswith("[") else []
     step("pane", sorted(row["number"] for row in rows) == [1, 2], pane.stdout + pane.stderr)
-    note = work / "note.md"
-    note.write_text("REPORTED: probe second note\n")
     count = commits(sh)
-    wrote = sh(sys.executable, USE, "comment", "2", note)
+    wrote = sh(sys.executable, USE, "comment", "2", "--reported", "probe second note")
     board = files(sh)
     step("moved", wrote.returncode == 0 and commits(sh) == count + 1 and moved(board), f"{wrote.stderr} {sorted(board)}")
     after_one, after_two = sh(sys.executable, USE, "read", "1").stdout, sh(sys.executable, USE, "read", "2").stdout
     lost = [line for line in two.stdout.split("\n") if line not in after_two.split("\n") and not line.startswith("body sha")]
     step("kept", after_one == one.stdout and "probe second note" in after_two and not lost, f"{one.stdout}\n---\n{after_one}\n---\nlost: {lost}")
     sh = old_board(work, "held")
-    wrote = sh(sys.executable, USE, "hold", "1", "other-worker")
+    wrote = sh(sys.executable, USE, "hold", "1", "--holders", "other-worker")
     read = sh(sys.executable, USE, "read", "1")
     step("hold-first", wrote.returncode == 0 and moved(files(sh)) and "holders: other-worker" in read.stdout, wrote.stderr + read.stdout)
     both = {**OLD_BOARD, "probe/1/task.json": record("Probe the part, renamed"), "probe/2/task.json": record("Probe the parent")}
     sh = old_board(work, "both", both)
-    wrote = sh(sys.executable, USE, "comment", "2", note)
+    wrote = sh(sys.executable, USE, "comment", "2", "--reported", "probe second note")
     board = files(sh)
     step("both-names", wrote.returncode == 0 and moved(board) and board["probe/1/task.json"] == both["probe/1/task.json"]
          and json.loads(board["probe/2/task.json"])["title"] == "Probe the parent", f"{wrote.stderr} {sorted(board)}")
