@@ -28,9 +28,9 @@ def record(bridge):
 def feed_line():
     import team_gaps
     me = {"name": "x-manager", "workspace_id": "w1", "agent_session": {"value": "s1"}}
-    issue = {"number": 7, "title": "Probe", "state": "OPEN", "parent": None, "labels": [], "body": "", "comments": []}
+    task = {"number": 7, "title": "Probe", "state": "OPEN", "parent": None, "labels": [], "body": "", "comments": []}
     comment = {"url": "https://example.com/c/1", "body": "REPORTED: landed\n"}
-    data = {"found": [], "everything": [], "prs": [], "outside": [], "feed": [(issue, comment)], "links": []}
+    data = {"found": [], "everything": [], "prs": [], "outside": [], "feed": [(task, comment)], "links": []}
     return [line for line in team_gaps.manager_actions(me, [me], data, set()) if line.startswith("feed ")]
 
 

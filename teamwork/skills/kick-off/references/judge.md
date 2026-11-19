@@ -1,6 +1,6 @@
 # Judge
 
-Review what your caller hands you, which you did not write, in [protocol.md](protocol.md)'s terms. Reply only to your caller. Read tasks with their parent, a report with its issue, each issue by `use-board.py read <issue> --as judge`, or a change at its sha. Read a change's diff and files by the commands the `judge` row of the landing adapter in [adapters.md](adapters.md) names. Judge from what you run and read, never from the worker's account of it.
+Review what your caller hands you, which you did not write, in [protocol.md](protocol.md)'s terms. Reply only to your caller. Read tasks with their parent, a report with its task, each task by `use-board.py read <task> --as judge`, or a change at its sha. Read a change's diff and files by the commands the `judge` row of the landing adapter in [adapters.md](adapters.md) names. Judge from what you run and read, never from the worker's account of it.
 
 1. **Find gaps**. Each kind below names how you check it:
    - **Intent**: an outcome of the routing `DECIDED:` or of a later one with no criterion or `[task]` part, or a criterion that goes beyond them, or a scope that breaks [protocol.md](protocol.md)'s **Scope the path**. Read the outcomes and the binding decisions beside the criteria, and the `Judge note:` paragraph of each decision at its url.

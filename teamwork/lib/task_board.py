@@ -1,9 +1,9 @@
-"""The issue board: the board's open tasks as a tree in the owner's reading order, laid out as guide-prefixed rows for a width."""
+"""The task board: the board's open tasks as a tree in the owner's reading order, laid out as guide-prefixed rows for a width."""
 import re
 import unicodedata
 
 import decisions
-import issue_state
+import task_state
 import task_links
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
@@ -46,25 +46,25 @@ def entry(node, superseded=frozenset()):
     """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
-    state = issue_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
-    summary = node.get("subIssuesSummary") or {}
-    closed = [{"number": task["number"], "title": issue_state.title(task), "url": task["url"], "blockers": blockers_of(task),
-               "stopped": task.get("stateReason") in STOPPED} for task in (node.get("subIssues") or {}).get("nodes", []) if task["state"] == "CLOSED"]
+    state = task_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
+    summary = node.get("partsSummary") or {}
+    closed = [{"number": task["number"], "title": task_state.title(task), "url": task["url"], "blockers": blockers_of(task),
+               "stopped": task.get("stateReason") in STOPPED} for task in (node.get("parts") or {}).get("nodes", []) if task["state"] == "CLOSED"]
     next_step = next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else ""
-    return {"number": node["number"], "title": issue_state.title(node), "url": node["url"],
-            "holder": " ".join(state["holders"] or []), "wait": state["waits"] if state["waits"] == issue_state.OWNER_WAIT else "",
+    return {"number": node["number"], "title": task_state.title(node), "url": node["url"],
+            "holder": " ".join(state["holders"] or []), "wait": state["waits"] if state["waits"] == task_state.OWNER_WAIT else "",
             "progress": progress_of(summary, blockers, next_step),
             "done": [item for item in state["done"] if item["kind"] != "task"],
             "next": next_step, "latest": max((comment.get("createdAt") or "" for comment in node["comments"]["nodes"]), default=""),
             **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 
-def need_of(issue):
+def need_of(task):
     """How soon a task needs someone, with its parts: 0 when it or a part waits on the owner, 1 when it or a part is held with no open blocker, else 2; and the latest comment time among them."""
-    parts = [need_of(task) for task in issue["tasks"]]
-    blocked = any(not blocker["closed"] for blocker in issue["blockers"])
-    own = 0 if issue["wait"] else 1 if issue["holder"] and not blocked else 2
-    return min([own] + [part[0] for part in parts]), max([issue["latest"]] + [part[1] for part in parts])
+    parts = [need_of(part) for part in task["tasks"]]
+    blocked = any(not blocker["closed"] for blocker in task["blockers"])
+    own = 0 if task["wait"] else 1 if task["holder"] and not blocked else 2
+    return min([own] + [part[0] for part in parts]), max([task["latest"]] + [part[1] for part in parts])
 
 
 def board(nodes):
@@ -77,15 +77,15 @@ def board(nodes):
         parent = (node["parent"] or {}).get("number")
         (items[parent]["tasks"] if parent in items else top).append(items[node["number"]])
 
-    def order(issues):
-        for issue in issues:
-            issue["tasks"].sort(key=lambda task: task["number"])
-            order(issue["tasks"])
+    def order(tasks):
+        for task in tasks:
+            task["tasks"].sort(key=lambda part: part["number"])
+            order(task["tasks"])
     order(top)
-    needs = {issue["number"]: need_of(issue) for issue in top}
-    top.sort(key=lambda issue: issue["number"])
-    top.sort(key=lambda issue: needs[issue["number"]][1], reverse=True)  # stable, so a tie keeps the lower number first
-    top.sort(key=lambda issue: needs[issue["number"]][0])
+    needs = {task["number"]: need_of(task) for task in top}
+    top.sort(key=lambda task: task["number"])
+    top.sort(key=lambda task: needs[task["number"]][1], reverse=True)  # stable, so a tie keeps the lower number first
+    top.sort(key=lambda task: needs[task["number"]][0])
     return top
 
 
@@ -125,25 +125,25 @@ def blocked_by(blockers):
     return "blocked by " + " ".join(f"#{blocker['number']}" for blocker in blockers if not blocker["closed"]) if not all(blocker["closed"] for blocker in blockers) else ""
 
 
-def status(issue):
-    return " ".join(part for part in (issue["progress"], issue["holder"], issue["wait"]) if part)
+def status(task):
+    return " ".join(part for part in (task["progress"], task["holder"], task["wait"]) if part)
 
 
-def rows(issues, width=PANE_WIDTH):
+def rows(tasks, width=PANE_WIDTH):
     """Each task in reading order as a row: `guide`, drawn before its first line, `pad`, before every later line, `home`, the parent
     a row too deep for WIDTH names as `(in #n)` at its parent's depth, and `ancestors`; a level adds 4 cells, a root's parts start at 2."""
     placed = []
 
-    def place(issue, depth, ancestors):
+    def place(task, depth, ancestors):
         home = None
         if depth and width is not None and width - (2 + 4 * depth) < MIN_TEXT:
             depth, home = depth - 1, ancestors[-1]
-        placed.append((issue, depth, home, ancestors))
-        for task in issue["tasks"]:
-            place(task, depth + 1, ancestors + [issue["number"]])
+        placed.append((task, depth, home, ancestors))
+        for part in task["tasks"]:
+            place(part, depth + 1, ancestors + [task["number"]])
 
-    for issue in issues:
-        place(issue, 0, [])
+    for task in tasks:
+        place(task, 0, [])
 
     def more_at(index, depth):
         for _, later, _, _ in placed[index + 1:]:
@@ -152,14 +152,14 @@ def rows(issues, width=PANE_WIDTH):
         return False
 
     out = []
-    for index, (issue, depth, home, ancestors) in enumerate(placed):
+    for index, (task, depth, home, ancestors) in enumerate(placed):
         if depth == 0:
             guide, pad = "", "  "
         else:
             lead = "  " + "".join("│   " if more_at(index, level) else "    " for level in range(1, depth))
             last = not more_at(index, depth)
             guide, pad = lead + ("└ " if last else "├ "), lead + ("    " if last else "│   ")
-        out.append({**issue, "done": [{**item, "line": criterion(item)} for item in issue["done"]], "tasks": [], "guide": guide, "pad": pad, "home": home, "ancestors": ancestors})
+        out.append({**task, "done": [{**item, "line": criterion(item)} for item in task["done"]], "tasks": [], "guide": guide, "pad": pad, "home": home, "ancestors": ancestors})
     return out
 
 
@@ -240,9 +240,9 @@ def note(mark, text, room, limit=NOTE_LINES):
     return [f"{mark} {lines[0]}"] + [f"{' ' * indent}{line}" for line in lines[1:]]
 
 
-def lines(issues, width=None):
+def lines(tasks, width=None):
     """The board as text, every row unfolded: a row's title, status and link lines, then what the pane folds under it, each wrapped to WIDTH."""
-    for row in rows(issues, width):
+    for row in rows(tasks, width):
         room = None if width is None else width - max(cells(row["guide"]), cells(row["pad"]))
         head = heading(row, width)
         yield row["guide"] + head["title"][0]
@@ -253,11 +253,11 @@ def lines(issues, width=None):
         yield from (row["pad"] + line for detail in details for line in wrap(detail, room))
 
 
-def check(issues):
+def check(tasks):
     """Per width, whether the rows fit: no line wider than the width, and each child not capped starting at least 2 cells right of every line of its parent."""
     for width in WIDTHS:
-        laid = rows(issues, width)
-        text = list(lines(issues, width))
+        laid = rows(tasks, width)
+        text = list(lines(tasks, width))
         widest = max(map(cells, text), default=0)
         start = {row["number"]: cells(row["guide"]) for row in laid}
         deepest = {row["number"]: max(cells(row["guide"]), cells(row["pad"])) for row in laid}

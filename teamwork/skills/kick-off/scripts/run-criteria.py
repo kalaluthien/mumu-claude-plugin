@@ -54,7 +54,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
 import decisions  # noqa: E402
-import issue_state  # noqa: E402
+import task_state  # noqa: E402
 import usage_parser  # noqa: E402
 
 HEADER = "REPORTED: criteria at "
@@ -98,7 +98,7 @@ def read_task(source):
 
 def runnable(task):
     """TASK when its author may write records; else exit, since an untrusted author's `[check]` would run as a command."""
-    if not issue_state.trusted(task):
+    if not task_state.trusted(task):
         sys.exit("run-criteria: the task's author is not trusted, so its checks are not run; a trusted author must file the criteria")
     return task
 
@@ -118,7 +118,7 @@ class Live:
     """The saved transcripts and the count of live sessions this worktree started, against the task's cap."""
 
     def __init__(self, root, task):
-        cap = issue_state.live_runs(task)
+        cap = task_state.live_runs(task)
         self.cap = LIVE_RUNS if cap is None else cap
         self.saved = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root) or tempfile.gettempdir(), "teamwork-live")
         self.counted = pathlib.Path(git_output("rev-parse", "--absolute-git-dir", cwd=root) or tempfile.gettempdir(), "teamwork-live-runs")
@@ -256,21 +256,21 @@ def fingerprint(criterion):
 
 
 def criteria(text):
-    for line in issue_state.ITEM.findall(text):
-        _, kind, name, detail = issue_state.CRITERION.match(line).groups()
+    for line in task_state.ITEM.findall(text):
+        _, kind, name, detail = task_state.CRITERION.match(line).groups()
         if kind != "task":  # a part is met by its own task's close, never by a command
             yield kind or "", name or detail, detail if name else ""
 
 
 def task_criteria(task):
-    return list(criteria(issue_state.sections(task.get("body")).get("done", "")))
+    return list(criteria(task_state.sections(task.get("body")).get("done", "")))
 
 
 def earlier_fails(task):
     """{name: {output, ...}} of the `fail` rows in earlier tables on the task, by trusted authors only."""
     found = {}
     for comment in task.get("comments", []):
-        if issue_state.trusted(comment) and comment["body"].startswith(HEADER):
+        if task_state.trusted(comment) and comment["body"].startswith(HEADER):
             for line in comment["body"].splitlines():
                 cells = [part.strip() for part in re.split(r"(?<!\\)\|", line)[1:-1]]
                 if len(cells) in (4, 5) and cells[2] == "fail":

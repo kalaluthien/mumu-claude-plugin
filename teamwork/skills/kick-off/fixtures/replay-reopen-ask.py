@@ -50,9 +50,9 @@ def main(args):
     os.chdir(second)
     import board
     import team_gaps
-    issue = board.fresh(int(number))
+    task = board.fresh(int(number))
     listed = [{"name": "w-worker", "pane_id": "w1:p2", "tab_id": "w1:t2", "workspace_id": "w1", "agent": "claude", "agent_status": "idle"}]
-    data = {"found": [issue], "everything": [issue], "prs": [], "outside": [], "feed": [], "links": []}
+    data = {"found": [task], "everything": [task], "prs": [], "outside": [], "feed": [], "links": []}
     named = [line for line in team_gaps.manager_actions({"name": "x-manager", "workspace_id": "w1"}, listed, data, set()) if line.startswith("answer #")]
     ok = len(named) == 1 and again.partition("refs/teamwork-blackboard/")[2] in named[0]
     print("PASS" if ok else "FAIL: " + " | ".join(named))

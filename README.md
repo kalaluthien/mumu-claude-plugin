@@ -35,7 +35,7 @@ What each one needs on your machine; every Python 3 below means Python 3.9 or la
 flowchart TB
   n_hook["Route hook"]
   n_monitor["Team monitor"]
-  n_pane["Issues pane"]
+  n_pane["Tasks pane"]
   n_kick["kick-off skill"]
   n_lib[["Shared lib"]]
   n_hook -->|"points to"| n_kick
@@ -50,15 +50,15 @@ flowchart TB
 
 </details>
 
-Teamwork splits work between a manager, workers, sentinels and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. The issues on the local git-refs board (`refs/teamwork-blackboard`) are the shared memory: the questions and answers on them outlive any session, and no team work goes to a GitHub issue.
+Teamwork splits work between a manager, workers, sentinels and judges; [the authority table](teamwork/skills/kick-off/references/protocol.md) says what each may decide. The tasks on the local git-refs board (`refs/teamwork-blackboard`) are the shared memory: the questions and answers on them outlive any session, and no team work goes to a GitHub issue.
 
 - **owner**: the person who asks the sessions for work and answers their questions; when you use teamwork, that is you.
-- **manager**: the one Claude session per project that writes down what the owner asks for as an issue on the board, hands it to a worker, and answers the worker's questions.
-- **worker**: a Claude session that takes one issue from the manager, splits it into tasks, and builds and merges them in its own copy of the repository.
+- **manager**: the one Claude session per project that writes down what the owner asks for as a task on the board, hands it to a worker, and answers the worker's questions.
+- **worker**: a Claude session that takes one task from the manager, splits it into parts, and builds and merges them in its own copy of the repository.
 - **sentinel**: a light Claude session that the manager starts for one endless duty, such as watching a log or a service, and that only reports what it sees.
 - **judge**: a new Claude helper that did not write the work and only reviews it, replying `approve` with the exact commit or `fix`, and nothing merges without that approval.
-- `BLOCKED:` starts an issue comment on the board in which a worker asks a question it may not settle alone, and then waits for the answer.
-- `DECIDED:` starts an issue comment on the board that gives the answer, so any later session can read and follow it.
+- `BLOCKED:` starts a task comment on the board in which a worker asks a question it may not settle alone, and then waits for the answer.
+- `DECIDED:` starts a task comment on the board that gives the answer, so any later session can read and follow it.
 
 **Usage.** In a herdr workspace, start a session and ask it to manage:
 
@@ -68,9 +68,9 @@ Be this project's teamwork manager: fix the login timeout
 
 That session becomes the manager. It files the root task, starts a worker in a new tab, and from then on you mostly answer questions.
 
-- A hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what waits on it, and keeps a worker from going idle while an issue it holds is open.
+- A hook ([`route-event.py`](teamwork/hooks/route-event.py)) tells each session at start what waits on it, and keeps a worker from going idle while a task it holds is open.
 - A monitor ([`print-team-gaps.py`](teamwork/monitors/print-team-gaps.py)) tells the manager where the board and the team disagree, and wakes a worker when its wait ends.
-- Ask the manager to show the Issues pane, a board of the open issues, again after you close it.
+- Ask the manager to show the Tasks pane, a board of the open tasks, again after you close it.
 
 ## Paperwork: system contracts
 

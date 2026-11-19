@@ -1,11 +1,11 @@
-"""Each role's next actions: the gaps between the board's issues and the live team, as lines a monitor or hook prints."""
+"""Each role's next actions: the gaps between the board's tasks and the live team, as lines a monitor or hook prints."""
 
 import re
 
 import background_work
 import board
 import decisions
-import issue_state
+import task_state
 import landing
 import own_reports
 import remote_control
@@ -13,53 +13,53 @@ import task_links
 from session import screen, sessions, tabs
 from team_names import crowding, members, owns, project, role
 
-ISSUE_LIMIT, PULL_LIMIT = 200, 50
+TASK_LIMIT, PULL_LIMIT = 200, 50
 
-ASK, ANSWER = issue_state.ASK, issue_state.ANSWER
-FEED = issue_state.INFORM
+ASK, ANSWER = task_state.ASK, task_state.ANSWER
+FEED = task_state.INFORM
 # the reports a worker posts as steps of its own work, which the owner need not follow: [run-criteria.py](../skills/kick-off/scripts/run-criteria.py)'s table and a filed task
 STEP_REPORTS = ("criteria at ", "task filed")
 
 
-def issues(scope=None, state="open"):
+def tasks(scope=None, state="open"):
     try:
-        found = board.issues(state, scope)
+        found = board.tasks(state, scope)
     except LookupError:  # a session whose folder lies outside a repository has no board to read, as a failed read has none
         return None
-    return found and found[:ISSUE_LIMIT]
+    return found and found[:TASK_LIMIT]
 
 
-def holds(issue, name):
-    return name in (issue_state.compose(issue)["holders"] or [])
+def holds(task, name):
+    return name in (task_state.compose(task)["holders"] or [])
 
 
-def asking(issue):
-    return bool(issue_state.open_questions(issue))
+def asking(task):
+    return bool(task_state.open_questions(task))
 
 
-def unanswered(issue):
-    """An outside contributor's issue or pull request that no trusted `DECIDED:` has routed or answered yet."""
-    return (not issue_state.trusted(issue) and not issue_state.holder_values(issue)
-            and not any(word == ANSWER for word, _, _ in issue_state.records(issue)[1:]))
+def unanswered(task):
+    """An outside contributor's task or pull request that no trusted `DECIDED:` has routed or answered yet."""
+    return (not task_state.trusted(task) and not task_state.holder_values(task)
+            and not any(word == ANSWER for word, _, _ in task_state.records(task)[1:]))
 
 
-def wait_blockers(numbers, open_issues):
+def wait_blockers(numbers, open_tasks):
     """Each of the open tasks NUMBERS and each of their open parts, mapped to the tasks it depends on that are not closed as completed;
     None when a read failed. A caller keeps it with its read, since each task costs a board read."""
-    wanted = {number for task in numbers for number in [task, *task_links.parts(open_issues[task]["body"])] if number in open_issues}
+    wanted = {number for task in numbers for number in [task, *task_links.parts(open_tasks[task]["body"])] if number in open_tasks}
     found = {number: board.blockers(number) for number in wanted}
     return None if None in found.values() else found
 
 
-def waiting(issue, open_issues, blockers):
+def waiting(task, open_tasks, blockers):
     """Whether an open task waits, as the grammar's Waits states: BLOCKERS, a `wait_blockers`, holds a task for it, or for each of its open parts."""
-    parts = [number for number in task_links.parts(issue["body"]) if number in open_issues]
-    return bool(blockers.get(issue["number"])) or bool(parts) and all(blockers.get(number) for number in parts)
+    parts = [number for number in task_links.parts(task["body"]) if number in open_tasks]
+    return bool(blockers.get(task["number"])) or bool(parts) and all(blockers.get(number) for number in parts)
 
 
-def stalled(issue, open_issues, blockers):
+def stalled(task, open_tasks, blockers):
     """Whether a held task waits on no one: not on another open task, nor on an answer."""
-    return not waiting(issue, open_issues, blockers) and not asking(issue)
+    return not waiting(task, open_tasks, blockers) and not asking(task)
 
 
 def background(agent):
@@ -69,47 +69,47 @@ def background(agent):
 
 
 def feed_read(name, since):
-    """The trusted reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its issues closed now, as (issue, comment);
+    """The trusted reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its tasks closed now, as (task, comment);
     None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
-    touched = board.issues("all", project(name), comments=False, since=since)
+    touched = board.tasks("all", project(name), comments=False, since=since)
     posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
-    by = {issue["number"]: issue for issue in touched if issue["state"] == "CLOSED" or issue["parent"] is None or task_links.parts(issue["body"])}
+    by = {task["number"]: task for task in touched if task["state"] == "CLOSED" or task["parent"] is None or task_links.parts(task["body"])}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[number], comment) for number, comment in posted
-             if number in by and comment["createdAt"] >= since and issue_state.trusted(comment) and issue_state.keyword(comment["body"]) == FEED
+             if number in by and comment["createdAt"] >= since and task_state.trusted(comment) and task_state.keyword(comment["body"]) == FEED
              and not comment["body"].split(":", 1)[1].strip().startswith(STEP_REPORTS)]
     # a closed task's last report is its close summary
-    last = {issue["number"]: comment["url"] for issue, comment in found}
-    return [(issue, comment) for issue, comment in found if issue["state"] == "OPEN" or last[issue["number"]] == comment["url"]]
+    last = {task["number"]: comment["url"] for task, comment in found}
+    return [(task, comment) for task, comment in found if task["state"] == "OPEN" or last[task["number"]] == comment["url"]]
 
 
 def manager_read(me, since=None):
     """What a manager's gaps need from the board, read once and kept by the caller until something changed; None when a read failed.
     SINCE adds the reports posted since then."""
-    found = issues(project(me["name"]))
+    found = tasks(project(me["name"]))
     if found is None:  # the first read failed, or the folder lies outside a repository: the reads below would fail the same way
         return None
-    # a worker may hold an open issue outside the project's folder, which the idle line must still count
-    everything = issues() if found is not None else found
+    # a worker may hold an open task outside the project's folder, which the idle line must still count
+    everything = tasks() if found is not None else found
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     pulls = landing.pulls("closed", limit=PULL_LIMIT)
     pulls = pulls and [pull for pull in pulls if pull["mergedAt"]]
-    # an outside contributor's issue or pull request carries no scope label, so it is read across the repository
-    outside = board.issues(pulls=True, comments=False)
-    outside = outside and [board.fresh(issue["number"]) for issue in outside if not issue_state.trusted(issue)]
+    # an outside contributor's task or pull request carries no scope label, so it is read across the repository
+    outside = board.tasks(pulls=True, comments=False)
+    outside = outside and [board.fresh(task["number"]) for task in outside if not task_state.trusted(task)]
     feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
     # a failed tree read costs only the link lines
     tree = board.tree(project(me["name"]))
     links = task_links.drift(tree) if tree is not None else ["unread: the board's tree read failed, so link gaps are not checked this time"]
     if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
         return None
-    open_issues = {issue["number"]: issue for issue in [*everything, *found]}
-    blockers = wait_blockers(open_issues, open_issues)
+    open_tasks = {task["number"]: task for task in [*everything, *found]}
+    blockers = wait_blockers(open_tasks, open_tasks)
     if blockers is None:
         return None
-    return {"found": found, "everything": everything, "prs": pulls, "outside": [issue for issue in outside if unanswered(issue)],
+    return {"found": found, "everything": everything, "prs": pulls, "outside": [task for task in outside if unanswered(task)],
             "feed": feed, "links": links, "blockers": blockers}
 
 
@@ -128,15 +128,15 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     # a started worker names its tab before its agent is live, so its tab counts it as routed
     present = set(team) | {tab.get("label") for tab in tabs(me.get("workspace_id", ""))}
     again = Reread(me)
-    open_issues = {issue["number"]: issue for issue in [*data["everything"], *found]}
-    blockers = data.get("blockers") or wait_blockers(open_issues, open_issues)
+    open_tasks = {task["number"]: task for task in [*data["everything"], *found]}
+    blockers = data.get("blockers") or wait_blockers(open_tasks, open_tasks)
     if blockers is None:
         return None
-    lines += routing_lines(found, present, open_issues, blockers, again)
+    lines += routing_lines(found, present, open_tasks, blockers, again)
     lines += [f"links {gap}" for gap in data.get("links", [])]
     lines += decisions.gaps(found)
     lines += outside_lines(data["outside"])
-    lines += team_lines(team, listed, data, open_issues, blockers, again)
+    lines += team_lines(team, listed, data, open_tasks, blockers, again)
     return lines + feed_lines(me, data, fed_urls)
 
 
@@ -157,40 +157,40 @@ class Reread:
         return set(members(self.me, listed)) | {tab.get("label") for tab in tabs(self.me.get("workspace_id", ""))} if listed else None
 
     def holding(self, name):
-        """The open issues NAME holds from a read now; None when it failed."""
-        found = issues()
-        return found and [issue for issue in found if holds(issue, name)]
+        """The open tasks NAME holds from a read now; None when it failed."""
+        found = tasks()
+        return found and [task for task in found if holds(task, name)]
 
     def status(self, name):
         return next((agent.get("agent_status") for agent in self.sessions() if agent.get("name") == name), None)
 
 
-def routing_lines(found, present, open_issues, blockers, again):
-    """Per open issue, a route line while no live worker in PRESENT holds it and an answer line while its worker asks.
+def routing_lines(found, present, open_tasks, blockers, again):
+    """Per open task, a route line while no live worker in PRESENT holds it and an answer line while its worker asks.
     AGAIN, a `Reread`, confirms a task that looks unrouted against a read now."""
     lines = []
-    unrouted = lambda issue, names: not unanswered(issue) and not waiting(issue, open_issues, blockers) and not any(holds(issue, name) for name in names if name)
-    for issue in found:
+    unrouted = lambda task, names: not unanswered(task) and not waiting(task, open_tasks, blockers) and not any(holds(task, name) for name in names if name)
+    for task in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
-        if unrouted(issue, present) and (names := again.present()) is not None and unrouted(board.fresh(issue["number"]) or issue, names):
-            lines.append(f"route #{issue['number']} {issue_state.title(issue)}: no live worker holds it; route it, or name by `depend` the open task it waits for, or close it as not planned")
+        if unrouted(task, present) and (names := again.present()) is not None and unrouted(board.fresh(task["number"]) or task, names):
+            lines.append(f"route #{task['number']} {task_state.title(task)}: no live worker holds it; route it, or name by `depend` the open task it waits for, or close it as not planned")
         # the kept read may predate the manager's own `decide`, so a question is read again before it is called open
-        if asking(issue) and asking(board.fresh(issue["number"]) or issue):
-            ask = issue_state.open_questions(issue)[-1]["ask"]
-            lines.append(f"answer #{issue['number']}: its worker asks at {ask['url']}; answer by `decide` there with `--answers {ask['url']}`; "
+        if asking(task) and asking(board.fresh(task["number"]) or task):
+            ask = task_state.open_questions(task)[-1]["ask"]
+            lines.append(f"answer #{task['number']}: its worker asks at {ask['url']}; answer by `decide` there with `--answers {ask['url']}`; "
                          f"the worker waits on it")
     return lines
 
 
 def outside_lines(outside):
-    """A line per outside contributor's issue or pull request."""
-    return [f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and issues are welcome"
-            if issue.get("isPullRequest") else
-            f"outside #{issue['number']} {issue_state.title(issue)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it"
-            for issue in outside]
+    """A line per outside contributor's task or pull request."""
+    return [f"outside #{task['number']} {task_state.title(task)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and GitHub issues are welcome"
+            if task.get("isPullRequest") else
+            f"outside #{task['number']} {task_state.title(task)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it"
+            for task in outside]
 
 
-def team_lines(team, listed, data, open_issues, blockers, again):
+def team_lines(team, listed, data, open_tasks, blockers, again):
     """Per worker or sentinel in TEAM, the line for its pane: blocked at a prompt, merged with nothing held, or idle with nothing to do."""
     status = {agent.get("name"): agent.get("agent_status") for agent in listed}
     panes = {agent.get("name"): agent.get("pane_id") for agent in listed}
@@ -198,36 +198,36 @@ def team_lines(team, listed, data, open_issues, blockers, again):
     lines = []
     merged = {name: [pull["number"] for pull in data["prs"] if owns(name, pull["headRefName"])] for name in team}
     for name in team:
-        held_issues = [issue for issue in data["everything"] if holds(issue, name)]
-        held = " ".join(f"#{issue['number']}" for issue in held_issues) or "nothing open"
+        held_tasks = [task for task in data["everything"] if holds(task, name)]
+        held = " ".join(f"#{task['number']}" for task in held_tasks) or "nothing open"
         choices = prompt_text(panes[name]) if status[name] == "blocked" and again.status(name) == "blocked" else None  # a blocked pane with no prompt on it is no claim on the worker, so its merged change still shows
         if choices:
             lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {choices}")
-        elif merged[name] and not held_issues and again.holding(name) == []:
+        elif merged[name] and not held_tasks and again.holding(name) == []:
             # a merged change is news only once its worker has nothing left to do, since until then the worker goes on with its next task
             lines.append(f"merged {' '.join(f'#{number}' for number in merged[name])} by {name}: it holds nothing open; close it and clean its worktree")
-        elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_issues or any(stalled(issue, open_issues, blockers) for issue in held_issues)) \
+        elif status[name] in ("idle", "done") and role(name) != "sentinel" and (not held_tasks or any(stalled(task, open_tasks, blockers) for task in held_tasks)) \
                 and not background(by_name[name]) and again.status(name) in ("idle", "done") \
-                and (held_issues or again.holding(name) == []):
+                and (held_tasks or again.holding(name) == []):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
     return lines
 
 
 def feed_lines(me, data, fed_urls):
-    """A line per issue with reports not yet fed to this manager; FED_URLS, when given, records the urls fed."""
+    """A line per task with reports not yet fed to this manager; FED_URLS, when given, records the urls fed."""
     news = {}
     own = own_reports.urls()  # what this manager posted itself is no news to it
-    for issue, comment in data.get("feed", []):
+    for task, comment in data.get("feed", []):
         if fed_urls is not None and comment["url"] not in fed_urls and comment["url"] not in own:
             fed_urls.add(comment["url"])
-            news.setdefault(issue["number"], (issue, []))[1].append(comment)
+            news.setdefault(task["number"], (task, []))[1].append(comment)
     lines = []
-    for issue, posted in news.values():
+    for task, posted in news.values():
         said = " | ".join(comment["body"].strip().splitlines()[0] for comment in posted)
         # a push reaches the owner away only through Remote Control, so without it the line sends none
         push = "push it to the owner by PushNotification" if remote_control.active((me.get("agent_session") or {}).get("value")) else "tell the owner in your tab; send no push, since Remote Control is off in your session"
-        lines.append(f"feed #{issue['number']} {issue_state.title(issue)}: {said} ({posted[-1]['url']}); {push}")
+        lines.append(f"feed #{task['number']} {task_state.title(task)}: {said} ({posted[-1]['url']}); {push}")
     return lines
 
 
@@ -250,66 +250,66 @@ def prompt_text(pane):
 
 
 def worker_goal(me):
-    """Each held issue's state from a fresh read, since a list read can lag a comment just posted."""
-    every = issues() or []
-    open_issues = {issue["number"]: issue for issue in every}
-    fresh = [board.fresh(issue["number"]) or issue for issue in every if holds(issue, me["name"])]
-    open_issues.update((issue["number"], issue) for issue in fresh)
-    blockers = wait_blockers([issue["number"] for issue in fresh], open_issues) or {}
-    return [f"#{issue['number']} {issue_state.title(issue)} ({issue['url']}): "
-            + ("waits on your manager" if asking(issue) else "waits on a task" if waiting(issue, open_issues, blockers) else "open") for issue in fresh]
+    """Each held task's state from a fresh read, since a list read can lag a comment just posted."""
+    every = tasks() or []
+    open_tasks = {task["number"]: task for task in every}
+    fresh = [board.fresh(task["number"]) or task for task in every if holds(task, me["name"])]
+    open_tasks.update((task["number"], task) for task in fresh)
+    blockers = wait_blockers([task["number"] for task in fresh], open_tasks) or {}
+    return [f"#{task['number']} {task_state.title(task)} ({task['url']}): "
+            + ("waits on your manager" if asking(task) else "waits on a task" if waiting(task, open_tasks, blockers) else "open") for task in fresh]
 
 
 def worker_read(me):
     """What a worker's wait needs from the board, read once and kept by the caller until something changed; None when a read failed."""
-    found = issues()
+    found = tasks()
     pulls = landing.pulls("open")
     if found is None or pulls is None:
         return None
     for pull in (pull for pull in pulls if owns(me["name"], pull["headRefName"])):  # the list read lacks mergeability, which a pull read gives
         pull["mergeable"] = {True: "CONFLICTING", False: "MERGEABLE"}.get(landing.conflicts(pull["number"]))
-    open_issues = {issue["number"]: issue for issue in found}
-    blockers = wait_blockers([issue["number"] for issue in found if holds(issue, me["name"])], open_issues)
+    open_tasks = {task["number"]: task for task in found}
+    blockers = wait_blockers([task["number"] for task in found if holds(task, me["name"])], open_tasks)
     return None if blockers is None else {"found": found, "prs": pulls, "blockers": blockers}
 
 
-def changed(issue):
+def changed(task):
     """What a worker reads of a held task: its body and every comment but a report, since a report is the worker's own step or news for the manager."""
-    return board.body_sha(issue["body"]), [comment["url"] for comment in issue["comments"] if issue_state.keyword(comment["body"]) != FEED]
+    return board.body_sha(task["body"]), [comment["url"] for comment in task["comments"] if task_state.keyword(comment["body"]) != FEED]
 
 
 def worker_actions(me, waited, read_of, data=None):
     """What ended a wait of this worker, each task it held that changed or no longer names it since the last poll, and a worker holding nothing, as the act it needs;
     None when a read failed.
-    WAITED, kept by the caller across polls, holds the held issues last seen waiting on a task, so only the end of that wait prints.
-    READ_OF, kept the same way, maps each held issue to what `changed` read, so a restart prints no change that came before it.
+    WAITED, kept by the caller across polls, holds the held tasks last seen waiting on a task, so only the end of that wait prints.
+    READ_OF, kept the same way, maps each held task to what `changed` read, so a restart prints no change that came before it.
     DATA is a `worker_read` kept from an earlier poll, else a read now."""
     data = data or worker_read(me)
     if data is None:
         return None
     name, found, pulls = me["name"], data["found"], data["prs"]
     lines = []
-    open_issues = {issue["number"]: issue for issue in found}
-    held = [issue for issue in found if holds(issue, name)]
+    open_tasks = {task["number"]: task for task in found}
+    held = [task for task in found if holds(task, name)]
     check = "read it, then fix any mismatch between its decisions, its `holders` and your progress"
-    for number in set(read_of) - {issue["number"] for issue in held}:
+    for number in set(read_of) - {task["number"] for task in held}:
         del read_of[number]
-        if number in open_issues:  # still open and no longer naming this worker
-            lines.append(f"changed #{number} (record {len(changed(open_issues[number])[1])}): {check}")
+        if number in open_tasks:  # still open and no longer naming this worker
+            lines.append(f"changed #{number} (record {len(changed(open_tasks[number])[1])}): {check}")
     if not held and Reread(me).holding(name) == []:  # the kept read may predate the manager's `hold`
         lines.append("holds nothing: no open task names you in its `holders`; read your task and name yourself by `hold`, or close yourself when your work is done")
-    for issue in held:
-        if read_of.setdefault(issue["number"], changed(issue)) != changed(issue):
-            read_of[issue["number"]] = changed(issue)
-            lines.append(f"changed #{issue['number']} (record {len(changed(issue)[1])}): {check}")  # the count makes each change its own line, which the monitor prints once
-        latest = issue_state.questions(issue)[-1:]
+    for task in held:
+        if read_of.setdefault(task["number"], changed(task)) != changed(task):
+            read_of[task["number"]] = changed(task)
+            lines.append(f"changed #{task['number']} (record {len(changed(task)[1])}): {check}")  # the count makes each change its own line, which the monitor prints once
+        latest = task_state.questions(task)[-1:]
         if latest and latest[0]["answer"]:
-            lines.append(f"answered #{issue['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
-        if waiting(issue, open_issues, data["blockers"]):
-            waited.add(issue["number"])
-        elif issue["number"] in waited:
-            waited.discard(issue["number"])
-            lines.append(f"start #{issue['number']}: every issue it waited on is closed")
+            lines.append(f"answered #{task['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
+        if waiting(task, open_tasks, data["blockers"]):
+            waited.add(task["number"])
+        elif task["number"] in waited:
+            waited.discard(task["number"])
+            lines.append(f"start #{task['number']}: every task it waited on is closed")
     for pull in pulls:
         if owns(name, pull["headRefName"]) and pull.get("mergeable") == "CONFLICTING" and landing.conflicts(pull["number"]):
             lines.append(f"rebase #{pull['number']}: it conflicts with its base")

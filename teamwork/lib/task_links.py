@@ -3,7 +3,7 @@
 looked for over both kinds together."""
 import re
 
-import issue_state
+import task_state
 import legacy_records
 
 PART = re.compile(r"^\s*(?:\d+\.|[-*])\s+\[task\]\s+#(\d+)\b", re.M)
@@ -12,7 +12,7 @@ DONE = ("COMPLETED", None, "")
 
 def parts(body):
     """The numbers its Definition of done names as parts, in order, each once."""
-    return list(dict.fromkeys(int(n) for n in PART.findall(issue_state.sections(body).get("done", ""))))
+    return list(dict.fromkeys(int(n) for n in PART.findall(task_state.sections(body).get("done", ""))))
 
 
 def depends(record):
@@ -23,21 +23,21 @@ def depends(record):
 
 def criteria(body):
     """Its Definition of done lines that are not parts."""
-    return [line for line in issue_state.ITEM.findall(issue_state.sections(body).get("done", "")) if not line.lstrip().startswith("[task]")]
+    return [line for line in task_state.ITEM.findall(task_state.sections(body).get("done", "")) if not line.lstrip().startswith("[task]")]
 
 
-def completed(issue):
-    """Whether a closed issue was closed as completed, which alone releases what waits on it."""
-    return issue.get("state") == "CLOSED" and (issue.get("stateReason") or issue.get("reason")) in DONE
+def completed(task):
+    """Whether a closed task was closed as completed, which alone releases what waits on it."""
+    return task.get("state") == "CLOSED" and (task.get("stateReason") or task.get("reason")) in DONE
 
 
 def refusals(number, body, waits, read, parent_of):
-    """Why NUMBER (None for an issue not yet filed) cannot have BODY and wait on the tasks WAITS numbers, each naming the issues; empty when it can.
-    READ(n) gives issue n's record, None when it does not exist; PARENT_OF(n) the issue whose body names n as a part, else None."""
+    """Why NUMBER (None for a task not yet filed) cannot have BODY and wait on the tasks WAITS numbers, each naming the tasks; empty when it can.
+    READ(n) gives task n's record, None when it does not exist; PARENT_OF(n) the task whose body names n as a part, else None."""
     found, named = [], parts(body)
     records = {n: read(n) for n in dict.fromkeys(waits + named) if n != number}
     found += [f"#{n} does not exist" for n, record in records.items() if record is None]
-    found += [f"#{n} is a pull request, not an issue" for n, record in records.items() if record and record.get("isPullRequest")]
+    found += [f"#{n} is a pull request, not a task" for n, record in records.items() if record and record.get("isPullRequest")]
     for part in named:
         owner = parent_of(part) if part != number else None
         if owner is not None and owner != number:
@@ -66,8 +66,8 @@ def cycle(number, targets, read):
 
 
 def derive(nodes, read):
-    """The open ones of NODES, issues in the shape the issue pane draws, with `parent`, `subIssues`, `subIssuesSummary` and `blockedBy` set from
-    their bodies; a closed node only lends its title and state, and READ(n) gives a record for an issue the nodes lack, else None."""
+    """The open ones of NODES, tasks in the shape the task pane draws, with `parent`, `parts`, `partsSummary` and `blockedBy` set from
+    their bodies; a closed node only lends its title and state, and READ(n) gives a record for a task the nodes lack, else None."""
     by_number = {node["number"]: node for node in nodes}
     lookup = lambda n: by_number.get(n) or read(n)
     owner = {part: node["number"] for node in nodes for part in parts(node["body"])}
@@ -76,22 +76,22 @@ def derive(nodes, read):
         waits = [record for record in map(lookup, depends(node)) if record]
         node["blockedBy"] = {"nodes": [{"number": record["number"], "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")} for record in waits]}
         found = [record for record in map(lookup, parts(node["body"])) if record]
-        node["subIssues"] = {"nodes": [{"number": record["number"], "title": record["title"], "url": record["url"], "state": record.get("state", "OPEN"),
+        node["parts"] = {"nodes": [{"number": record["number"], "title": record["title"], "url": record["url"], "state": record.get("state", "OPEN"),
                                         "stateReason": record.get("stateReason"), "trusted": record.get("trusted", True),
                                         "blockedBy": {"nodes": [{"number": n} for n in depends(record)]}} for record in found]}
-        node["subIssuesSummary"] = {"total": len(found), "completed": sum(completed(record) for record in found)}
+        node["partsSummary"] = {"total": len(found), "completed": sum(completed(record) for record in found)}
     for node in nodes:
-        for sub_issue in node["subIssues"]["nodes"]:
-            sub_issue["blockedBy"]["nodes"] = [{"number": n, "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")}
-                                               for n in (wait["number"] for wait in sub_issue["blockedBy"]["nodes"]) for record in [lookup(n)] if record]
+        for part in node["parts"]["nodes"]:
+            part["blockedBy"]["nodes"] = [{"number": n, "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")}
+                                               for n in (wait["number"] for wait in part["blockedBy"]["nodes"]) for record in [lookup(n)] if record]
     return [node for node in nodes if node.get("state", "OPEN") == "OPEN"]
 
 
-RETIRED_LABEL = "backlog"  # the label that marked a parent before parts did; no open issue keeps it
+RETIRED_LABEL = "backlog"  # the label that marked a parent before parts did; no open task keeps it
 
 
 def drift(nodes):
-    """Each link gap among NODES, open issues as a board's tree gives them: a cycle, a part two bodies name and the retired label;
+    """Each link gap among NODES, open tasks as a board's tree gives them: a cycle, a part two bodies name and the retired label;
     two concurrent writes can each pass alone."""
     by_number = {node["number"]: node for node in nodes}
     found, seen = [], set()

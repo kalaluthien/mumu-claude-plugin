@@ -2,8 +2,8 @@
 """Check the git board's edges the board scenario does not reach, in a temporary repository, printing `ok <case>` or `fail <case>: <detail>` per case
 and exit 1 on any failure:
 - `changed-since`, `comments-since`, `blockers`, `scoped`, `trusted`, `command`: each port read gives what the writes made, and the comment read finds the one comment written;
-- `posted`: `file` and `comment` print a git board's issue url and comment url;
-- `signal`: a write touches the signal file the issue pane watches;
+- `posted`: `file` and `comment` print a git board's task url and comment url;
+- `signal`: a write touches the signal file the task pane watches;
 - `outside`: a write outside a repository refuses, naming the repository it needs;
 - `stale-lock`: a write blocked by a minute-old `refs/teamwork-blackboard.lock` gives up within 5 seconds, naming that file.
 
@@ -60,9 +60,9 @@ def main(args):
         got = read()
         step(name, right(got), got)
 
-    issue_url = use("file", "Third", work / "b.md").stdout.strip()
+    task_url = use("file", "Third", work / "b.md").stdout.strip()
     comment_url = use("comment", 3, work / "c.md").stdout.strip()
-    step("posted", issue_url.startswith("git+file://") and issue_url.endswith("/3") and comment_url == f"{issue_url}#comment-1", f"{issue_url} {comment_url}")
+    step("posted", task_url.startswith("git+file://") and task_url.endswith("/3") and comment_url == f"{task_url}#comment-1", f"{task_url} {comment_url}")
 
     before = team_signal.stamp()
     time.sleep(0.01)

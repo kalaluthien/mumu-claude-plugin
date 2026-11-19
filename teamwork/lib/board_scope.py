@@ -1,5 +1,5 @@
 """Which folder of the repository a project's records live in: the top-level folder named like the project, else the repository root (''), and no setting.
-A folder is a path from the repository root, `teamwork` or `teamwork/hooks`; the folder of a record holds `<n>/issue.json`."""
+A folder is a path from the repository root, `teamwork` or `teamwork/hooks`; the folder of a record holds `<n>/task.json`."""
 import pathlib
 import subprocess
 

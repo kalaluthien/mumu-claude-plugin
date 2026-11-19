@@ -102,7 +102,7 @@ CASES = {
         {"teamwork/bin/planted-command": "#!/bin/sh\n"}, {SKILL_MD: "\nrun planted-command\n"}, [], ["teamwork/bin/planted-command"]),
     "a script imported without its extension is not listed, one nobody imports is": (
         {"teamwork/hooks/planted-module.ts": "export const x = 1\n", "teamwork/hooks/planted-orphan.ts": "export const y = 1\n"},
-        {"teamwork/hooks/draw-issue-pane.tsx": "\nimport { x } from './planted-module'\n"}, ["unreached teamwork/hooks/planted-orphan.ts"], ["teamwork/hooks/planted-module.ts"]),
+        {"teamwork/hooks/draw-task-pane.tsx": "\nimport { x } from './planted-module'\n"}, ["unreached teamwork/hooks/planted-orphan.ts"], ["teamwork/hooks/planted-module.ts"]),
     "a dead file in each other plugin is listed": (
         {"homework/lib/planted-dead.md": "dead\n", "paperwork/lib/planted-dead.md": "dead\n"}, {},
         ["unreached homework/lib/planted-dead.md", "unreached paperwork/lib/planted-dead.md"], []),

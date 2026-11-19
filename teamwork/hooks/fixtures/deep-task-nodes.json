@@ -3,7 +3,7 @@
   "number": 10,
   "title": "Let the owner steer the team from one pane",
   "url": "u/10",
-  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the issues pane at narrow widths\n",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the tasks pane at narrow widths\n",
   "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
@@ -97,7 +97,7 @@
  },
  {
   "number": 16,
-  "title": "Draw the graph in the issues pane at narrow widths",
+  "title": "Draw the graph in the tasks pane at narrow widths",
   "url": "u/16",
   "body": "## Goal\n\nx\n\n```teamwork\ndepends on: #11 #12\n```\n",
   "authorAssociation": "OWNER",

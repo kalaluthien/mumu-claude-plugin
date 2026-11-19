@@ -4,8 +4,8 @@ and print `PASS` as the last line when the case holds, else `FAIL: <what differe
 
 usage: replay-local-task.py [--case <name>]
 With no case: file a part and a root that names it, route the part by `hold`, branch, change, judge-approved merge and push of a worker's change, `resolve` the part so the root closes,
-the issue pane and the heartbeat, writing and reading the real hooks and scripts, and require an empty gh log.
-- layout: `file --scope probe` puts an issue at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds an issue by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own issues only
+the task pane and the heartbeat, writing and reading the real hooks and scripts, and require an empty gh log.
+- layout: `file --scope probe` puts a task at `probe/<n>/` of the one ref `refs/teamwork-blackboard` and a filing with no scope puts it at `<n>/`, each url names its folder, a `--scope` that names no folder of the repository is refused with no commit, `read` finds a task by number alone, and the pane of `probe` reads its folder only while a project with no folder reads the root's own tasks only
 - old-setting: a leftover `TEAMWORK_BOARD` or `TEAMWORK_LANDING` in the environment and in the project's settings changes nothing, and the whole path still calls no gh
 - base-required: `use-board.py edit` with no `--base` exits 2 and adds no commit, and with the board's `body sha` it adds one
 - cloud-refused: a comment whose teamwork fence holds a `cloud:` line is refused and adds no commit, and `start-session.py` with `set remote` exits 2
@@ -71,7 +71,7 @@ def state(environment, repository, number):
 def case_whole(work, repository, origin, environment):
     use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe")
     use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT), "--scope", "probe")
-    use(environment, repository, "use-board.py", "file", "Probe the late issue", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
+    use(environment, repository, "use-board.py", "file", "Probe the late task", replay_probe.write_text(work, "late.md", "Unrouted.\n"), "--scope", "probe")
     use(environment, repository, "use-board.py", "hold", "1", "probe-worker")
     herdr = work / "herdr.json"
     team = [{"name": name, "pane_id": "w1:p" + str(number), "tab_id": "w1:t" + str(number), "workspace_id": "w1", "agent": "claude", "agent_status": "working", "interactive_ready": True}
@@ -85,7 +85,7 @@ def case_whole(work, repository, origin, environment):
         while time.time() < end and "route #3" not in log.read_text():
             time.sleep(0.3)
         if "route #3" not in log.read_text():
-            return replay_probe.fail(f"the heartbeat routed no unrouted issue on the git board: {log.read_text()[-300:]}")
+            return replay_probe.fail(f"the heartbeat routed no unrouted task on the git board: {log.read_text()[-300:]}")
     finally:
         live.kill()
     tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
@@ -100,8 +100,8 @@ def case_whole(work, repository, origin, environment):
     use(environment, repository, "use-board.py", "resolve", "1", replay_probe.write_text(work, "done.md", "Probe part done.\n"))
     if state(environment, repository, "2") != ["state: CLOSED"]:
         return replay_probe.fail(f"the root did not close with its last part: {state(environment, repository, '2')}")
-    pane = sh(sys.executable, HOOKS / "list-issue-board.py", "probe", "--json", cwd=repository, environment=environment, check=False)
-    if pane.returncode or "Probe the late issue" not in pane.stdout:
+    pane = sh(sys.executable, HOOKS / "list-task-board.py", "probe", "--json", cwd=repository, environment=environment, check=False)
+    if pane.returncode or "Probe the late task" not in pane.stdout:
         return replay_probe.fail(f"the pane: exit {pane.returncode} {pane.stdout[:200]} {pane.stderr[-200:]}")
     if gh_calls(work):
         return replay_probe.fail(f"gh was called: {gh_calls(work)[:300]}")
@@ -133,7 +133,7 @@ def case_layout(work, repository, origin, environment):
     part = use(environment, repository, "use-board.py", "file", "Probe the part", replay_probe.write_text(work, "part.md", PART), "--scope", "probe").stdout.strip()
     root = use(environment, repository, "use-board.py", "file", "Probe the root", replay_probe.write_text(work, "root.md", ROOT)).stdout.strip()
     held = set(sh("git", "ls-tree", "-r", "--name-only", REF, cwd=repository, environment=environment).stdout.split())
-    if not {"probe/1/issue.json", "probe/1/body.md", "2/issue.json", "2/body.md"} <= held:
+    if not {"probe/1/task.json", "probe/1/body.md", "2/task.json", "2/body.md"} <= held:
         return replay_probe.fail(f"the ref holds {sorted(held)}")
     if sh("git", "rev-parse", "--verify", "-q", "refs/teamwork/board", cwd=repository, environment=environment, check=False).returncode == 0:
         return replay_probe.fail("the old ref refs/teamwork/board was written")
@@ -147,7 +147,7 @@ def case_layout(work, repository, origin, environment):
     if "scope: probe\n" not in read["1"] or "scope: (repository root)\n" not in read["2"]:
         return replay_probe.fail(f"read gives {read['1'][:80]!r} and {read['2'][:80]!r}")
     for project, wanted in (("probe", {1}), ("nofolder", {2})):
-        pane = sh(sys.executable, HOOKS / "list-issue-board.py", project, "--json", cwd=repository, environment=environment, check=False)
+        pane = sh(sys.executable, HOOKS / "list-task-board.py", project, "--json", cwd=repository, environment=environment, check=False)
         shown = {row["number"] for row in json.loads(pane.stdout)} if pane.returncode == 0 else None
         if shown != wanted:
             return replay_probe.fail(f"the pane of {project} shows {shown}, wanted {wanted}: {pane.stderr[-200:]}")

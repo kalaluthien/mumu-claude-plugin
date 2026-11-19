@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Replay the answers a task's question gets on a temporary git board, written only by use-board.py and read as the issues pane reads it
-(list-issue-board.py --json), and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail.
+"""Replay the answers a task's question gets on a temporary git board, written only by use-board.py and read as the tasks pane reads it
+(list-task-board.py --json), and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail.
 - answer-no-answers, answer-owner, answer-by-owner: a decision with no `--answers` clears a manager's question by a manager or the owner, and an owner's question by the owner
 - answer-reposted: a decision naming the last of three identical asks clears all three
 - answer-both: two different questions each need their own decision
@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
-LIST = ROOT / "hooks" / "list-issue-board.py"
+LIST = ROOT / "hooks" / "list-task-board.py"
 BODY = f"## Goal\n\nProbe an answered question.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{replay_probe.CHECK}"
 failures = []
 
@@ -61,7 +61,7 @@ def decide(number, text, answers="", by="probe-manager"):
 
 
 def row(number):
-    """The pane row of task NUMBER, as list-issue-board.py --json prints it."""
+    """The pane row of task NUMBER, as list-task-board.py --json prints it."""
     listed = json.loads(subprocess.run([sys.executable, str(LIST), "probe", "--json"], capture_output=True, text=True).stdout or "[]")
     return next((found for found in listed if found["number"] == number), {"wait": "no row", "questions": []})
 

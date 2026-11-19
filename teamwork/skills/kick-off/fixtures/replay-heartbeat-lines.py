@@ -101,10 +101,10 @@ def file(title, body="Probe the heartbeat.", holder=None, depends=()):
     return int(number)
 
 
-def lines(listed, issues, pulls=(), feed=(), fed=None):
+def lines(listed, tasks, pulls=(), feed=(), fed=None):
     import board
     import team_gaps
-    fresh = [board.fresh(number) for number in issues]
+    fresh = [board.fresh(number) for number in tasks]
     data = {"found": fresh, "everything": fresh, "prs": list(pulls), "outside": [], "feed": list(feed), "links": []}
     return team_gaps.manager_actions({"name": "x-manager", "workspace_id": "w1"}, listed, data, set() if fed is None else fed)
 

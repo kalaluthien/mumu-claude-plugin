@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draw a board of four open tasks through list-issue-board.py and print `PASS` as the last line when a held task with an open blocker sorts after a held task with none, else `FAIL: <what differed>` and exit 1.
+"""Draw a board of four open tasks through list-task-board.py and print `PASS` as the last line when a held task with an open blocker sorts after a held task with none, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-board-order.py"""
 import json
@@ -11,7 +11,7 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
 import replay_probe  # noqa: E402
 
-LISTER = pathlib.Path(__file__).resolve().parents[1] / "list-issue-board.py"
+LISTER = pathlib.Path(__file__).resolve().parents[1] / "list-task-board.py"
 
 
 def node(number, holder, stamp, blocker=None):
@@ -30,7 +30,7 @@ def main(args):
         path.write_text(json.dumps(nodes))
         done = subprocess.run([sys.executable, str(LISTER), "--nodes", str(path), "--json"], capture_output=True, text=True)
     if done.returncode:
-        return replay_probe.fail(f"list-issue-board.py exited {done.returncode}: {done.stderr.strip()[-200:]}")
+        return replay_probe.fail(f"list-task-board.py exited {done.returncode}: {done.stderr.strip()[-200:]}")
     order = [row["number"] for row in json.loads(done.stdout)]
     if order != [2, 1, 3, 4]:
         return replay_probe.fail(f"the board lists {order}, not [2, 1, 3, 4]: the held task with an open blocker must sort after the held task with none")

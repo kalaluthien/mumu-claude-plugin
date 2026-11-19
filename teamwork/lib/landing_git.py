@@ -42,7 +42,7 @@ def record(number):
 
 
 def save(entry, new=False):
-    """Writes ENTRY whole, then touches the signal file, which the issue pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
+    """Writes ENTRY whole, then touches the signal file, which the task pane and the heartbeat wait on; NEW claims its number, raising FileExistsError
     when another session took it first."""
     path = folder() / f"{entry['number']}.json"
     # written aside, then put in place in one step, so a reader never meets half a record

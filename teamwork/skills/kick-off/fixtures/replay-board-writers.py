@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Start 8 processes that comment on one issue and file issues at once on a throwaway git board, then count every record.
+"""Start 8 processes that comment on one task and file tasks at once on a throwaway git board, then count every record.
 
 usage: replay-board-writers.py [--case concurrent|unguarded]   (no argument: every one in turn)
 
-- `concurrent`: prints `PASS` as its last line only when every comment and issue the writers posted is on the board exactly once,
+- `concurrent`: prints `PASS` as its last line only when every comment and task the writers posted is on the board exactly once,
   every writer exited 0, and the ref's history is one line of commits, one per write.
 - `unguarded`: runs the same scenario on a copy of the board code whose `update-ref` drops its old-value argument, and prints `PASS`
   only when the scenario then finds a lost record, which shows that argument is what keeps the records.
@@ -48,7 +48,7 @@ def git(repository, *args):
 def run_writers(use, work, repository):
     """Returns the findings, each a sentence; none means every record is there once."""
     environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "USE": str(use), "WORK": str(work)}
-    (work / "seed").write_text("The issue the writers comment on.\n")
+    (work / "seed").write_text("The task the writers comment on.\n")
     subprocess.run([sys.executable, str(use), "file", "Seed", str(work / "seed")], cwd=repository, env=environment, capture_output=True, check=True)
     running = [subprocess.Popen(["sh", "-c", WRITER_SCRIPT.format(writer=i, comments=COMMENTS, filings=FILINGS)], cwd=repository, env=environment) for i in range(WRITERS)]
     for process in running:
@@ -63,9 +63,9 @@ def run_writers(use, work, repository):
     paths = git(repository, "ls-tree", "-r", "--name-only", REF).split()
     read = lambda path: git(repository, "show", f"{REF}:{path}")
     comments = collections.Counter(read(path).strip() for path in paths if path.startswith("1/comments/"))
-    titles = collections.Counter(json.loads(read(path))["title"] for path in paths if path.endswith("/issue.json") and path != "1/issue.json")
+    titles = collections.Counter(json.loads(read(path))["title"] for path in paths if path.endswith("/task.json") and path != "1/task.json")
     for kind, found, expected in (("comment", comments, {f"w{i}-c{k}" for i in range(WRITERS) for k in range(1, COMMENTS + 1)}),
-                                  ("issue", titles, {f"w{i}-t{k}" for i in range(WRITERS) for k in range(1, FILINGS + 1)})):
+                                  ("task", titles, {f"w{i}-t{k}" for i in range(WRITERS) for k in range(1, FILINGS + 1)})):
         lost = sorted(expected - set(found))
         doubled = sorted(name for name, n in found.items() if n > 1)
         if lost:

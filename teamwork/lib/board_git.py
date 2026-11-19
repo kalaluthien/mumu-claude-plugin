@@ -11,7 +11,7 @@ import time
 import board_records
 
 REF = "refs/teamwork-blackboard"
-TRIES = 100  # 40 writers racing gc on one issue needed at most 34 in the probes
+TRIES = 100  # 40 writers racing gc on one task needed at most 34 in the probes
 STALE = 10  # seconds a ref lock may stand before it is taken for a killed writer's, since a live write holds it for milliseconds
 WRITER = {"GIT_AUTHOR_NAME": "teamwork", "GIT_AUTHOR_EMAIL": "teamwork@localhost", "GIT_COMMITTER_NAME": "teamwork", "GIT_COMMITTER_EMAIL": "teamwork@localhost"}
 
@@ -36,7 +36,7 @@ class Ref(board_records.Store):
         return run
 
     def refresh(self):
-        """Reads the tree of the ref's commit, once per commit, since a reader such as the issue pane reads again on every signal."""
+        """Reads the tree of the ref's commit, once per commit, since a reader such as the task pane reads again on every signal."""
         tip = self.git("rev-parse", "-q", "--verify", f"{REF}^{{commit}}", check=False).stdout.decode().strip()
         if tip == self.tip:
             return
@@ -58,7 +58,7 @@ class Ref(board_records.Store):
         places = {}
         for path in files:
             *folder, number, name = ["", *path.split("/")]
-            if name == "issue.json" and number.isdigit():
+            if name in (board_records.RECORD, board_records.OLD_RECORD) and number.isdigit():
                 places[int(number)] = "/".join(folder[1:])
         self.tip, self.files, self.folders, self.places = tip, files, folders, places
 

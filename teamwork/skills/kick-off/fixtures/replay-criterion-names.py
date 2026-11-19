@@ -14,7 +14,7 @@ sys.path.insert(0, str(LIB))
 import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-LISTER = pathlib.Path(__file__).resolve().parents[3] / "hooks" / "list-issue-board.py"
+LISTER = pathlib.Path(__file__).resolve().parents[3] / "hooks" / "list-task-board.py"
 SENTENCE = "The closed list shows the latest four tasks"
 BODY = "## Goal\n\nProbe the names.\n\nPath: caller: the session start; meets: the owner in the pane\n\n## Definition of done\n\n1. [check] **{name}**: `echo PASS` prints `PASS`; on base `FAIL`.\n"
 

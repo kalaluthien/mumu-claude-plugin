@@ -4,9 +4,9 @@ Run the one endless duty your manager named, such as watching a log, a page or a
 
 ## Steps
 
-1. **Read** the duty from your kick-off's words, or from the issue its url names: what to watch, how often, and what to report. A duty fed by an outside change source: read the instructions it names first, then follow **Change source** below.
+1. **Read** the duty from your kick-off's words, or from the task its url names: what to watch, how often, and what to report. A duty fed by an outside change source: read the instructions it names first, then follow **Change source** below.
 2. **Run** it by the cheapest instrument that repeats it: a `Monitor` on a script in your scratchpad for a stream or a poll, else `CronCreate` for a timed check.
-3. **Report** each finding the duty asks for to your manager by `tell`, or as a `REPORTED:` comment on the duty's issue; reach the owner by `notify` only when the duty says so.
+3. **Report** each finding the duty asks for to your manager by `tell`, or as a `REPORTED:` comment on the duty's task; reach the owner by `notify` only when the duty says so.
 4. **Wait** between rounds; idle is your normal state, and your manager's heartbeat reads it so.
 
 ## Rules

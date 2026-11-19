@@ -1,4 +1,4 @@
-"""An issue's latest state, composed from its body and the fields of its comments, which board-record-schema.json names."""
+"""A task's latest state, composed from its body and the fields of its comments, which board-record-schema.json names."""
 import difflib
 import json
 import pathlib
@@ -7,7 +7,7 @@ import re
 import legacy_records
 
 SKILL = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off"
-GRAMMAR = SKILL / "references" / "issue-grammar.md"
+GRAMMAR = SKILL / "references" / "task-grammar.md"
 SCHEMA = json.loads((SKILL / "assets" / "board-record-schema.json").read_text())
 # the word a comment's first line opens with: a question, a decision or an event, anything else
 ASK, ANSWER, INFORM = "BLOCKED", "DECIDED", "REPORTED"
@@ -24,7 +24,7 @@ OWNER_WAIT = "waits on the owner"
 DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # a data fence at a line's start, which a text may not hold, since every datum is an option
 FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
-FENCE_OPTIONS = {"teamwork": "`hold <issue> <name>...`, `depend <issue> <n>...`, `comment --asks owner` or `decide --live-runs <n>`",
+FENCE_OPTIONS = {"teamwork": "`hold <task> <name>...`, `depend <task> <n>...`, `comment --asks owner` or `decide --live-runs <n>`",
                  "decision": "`decide [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`, whose sentence is the text's first line"}
 # the keyword each posting verb opens its text with; a comment asks or informs
 VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
@@ -168,7 +168,7 @@ def sections(text):
 
 
 def trusted(item):
-    """Whether an issue's or comment's author may write records, as the board adapter marked it, since each board says who may."""
+    """Whether a task's or comment's author may write records, as the board adapter marked it, since each board says who may."""
     return item.get("trusted") is True
 
 
@@ -192,10 +192,10 @@ def fields(comment):
     return stored if stored is not None else legacy_records.fields(comment.get("body"))
 
 
-def records(issue):
+def records(task):
     """The body, then each comment, as (keyword, fields, comment), oldest first; the body has no keyword and only an older one holds fields, and an
     untrusted author's text records nothing."""
-    return [(None, legacy_records.fields(issue.get("body")) if trusted(issue) else {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in issue.get("comments", []) if trusted(comment)]
+    return [(None, legacy_records.fields(task.get("body")) if trusted(task) else {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in task.get("comments", []) if trusted(comment)]
 
 
 def event(found):
@@ -213,13 +213,13 @@ def place(url):
     return url.partition("refs/teamwork-blackboard/")[2] or url
 
 
-def questions(issue):
+def questions(task):
     """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
     a later decision settles the question whose url it names and each earlier open ask with the same first line, since an ask
     posted again is one question; one that names none settles each open question its decider may answer: the owner any, a manager any
     not asked of the owner, a worker none, and a `DECIDED:` from before decisions were typed any."""
     found = []
-    for word, held, comment in records(issue)[1:]:
+    for word, held, comment in records(task)[1:]:
         if word == ASK:
             found.append({"ask": comment, "fields": held, "answer": None})
         elif word == ANSWER and not event(held):
@@ -233,32 +233,32 @@ def questions(issue):
     return found
 
 
-def open_questions(issue):
-    return [question for question in questions(issue) if question["answer"] is None]
+def open_questions(task):
+    return [question for question in questions(task) if question["answer"] is None]
 
 
-def holder_values(issue):
+def holder_values(task):
     """Each holders value set, oldest first, as a list of names."""
-    return [held["holders"] for _, held, _ in records(issue) if "holders" in held]
+    return [held["holders"] for _, held, _ in records(task) if "holders" in held]
 
 
-def live_runs(issue):
+def live_runs(task):
     """The latest `live_runs` count a trusted record set, or None when none did."""
-    return next((held["live_runs"] for _, held, _ in reversed(records(issue)) if "live_runs" in held), None)
+    return next((held["live_runs"] for _, held, _ in reversed(records(task)) if "live_runs" in held), None)
 
 
-def compose(issue, blockers=()):
+def compose(task, blockers=()):
     """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
-    holders = (holder_values(issue) or [None])[-1]
-    if any(question["fields"].get("asks") == "owner" for question in open_questions(issue)):
+    holders = (holder_values(task) or [None])[-1]
+    if any(question["fields"].get("asks") == "owner" for question in open_questions(task)):
         waits = OWNER_WAIT
     elif blockers:
         waits = " ".join(f"blocked by #{number}" for number in blockers)
     else:
         waits = "held" if holders else "no holder"
     # the body alone, since a section is edited there with its diff posted as a comment
-    current = sections(issue.get("body"))
+    current = sections(task.get("body"))
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
     done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
             for criterion in done]

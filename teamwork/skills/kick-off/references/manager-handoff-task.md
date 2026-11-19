@@ -5,7 +5,7 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 ## Domain
 
 - **addition**: what the next reader cannot get from the words alone, one of the rows below.
-- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <issue> --as worker`.
+- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <task> --as worker`.
 - **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits.
 - **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, with a blank line after it, which the judge reads among the binding decisions and a worker's `read --as worker` omits: a way to score (`yes`, `no` or `Unknown`) and the cases to try against each outcome, at most 120 words, never the worker's reasoning or the manager's history.
 - **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm, since an unmarked one reads as the owner's word.

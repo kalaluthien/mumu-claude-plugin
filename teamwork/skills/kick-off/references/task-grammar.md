@@ -1,6 +1,6 @@
-# Issue grammar
+# Task grammar
 
-How a teamwork issue is written: its text is prose a person reads, and its data is fields [use-board.py](../scripts/use-board.py) takes as options, so no code reads data out of prose and no writer formats any. A write this grammar refuses posts nothing.
+How a teamwork task is written: its text is prose a person reads, and its data is fields [use-board.py](../scripts/use-board.py) takes as options, so no code reads data out of prose and no writer formats any. A write this grammar refuses posts nothing.
 
 ## Keywords
 
@@ -18,11 +18,11 @@ A comment is kept as its text and the fields [board-record-schema.json](../asset
 
 | field | set by | meaning |
 | --- | --- | --- |
-| holders | `hold <issue> <name>...`, `decide --holders` | the sessions that hold the task; none when empty |
+| holders | `hold <task> <name>...`, `decide --holders` | the sessions that hold the task; none when empty |
 | asks | `comment --asks owner` | the owner answers this `BLOCKED`, not the manager |
 | options | `comment --option <answer>`, once per answer | the answers a `BLOCKED` offers, numbered from 1 in the order given; two or more on a question to the owner, who answers with a number |
 | live runs | `decide --live-runs <n>` | how many live sessions the checks run in one worktree may start in all; 4 when none says |
-| depends | `depend <issue> <n>...`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
+| depends | `depend <task> <n>...`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
 | decision | `decide`, the text's first line | one binding sentence |
 | by | `decide --by <who>`, else the calling session | who decided: `owner`, the owner's words quoted in the text as a `>` line or in double quotes, else a session's name |
 | one-way | `decide --one-way` | the decision is hard to undo |
@@ -46,7 +46,7 @@ A task's sections, each a `## <section>` heading in the body, which holds their 
 | `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) and the board writes `file` and `edit` of [use-board.py](../scripts/use-board.py) refuse a Goal without one); the title sums it up |
 | `Definition of done` | criteria, one per numbered or bulleted line |
 
-A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file`, `edit` and `depend` refuse, writing nothing, parts and waits that make a cycle or a second parent or name an unknown issue.
+A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file`, `edit` and `depend` refuse, writing nothing, parts and waits that make a cycle or a second parent or name an unknown task.
 
 ## States
 
@@ -65,7 +65,7 @@ A task is open, completed or stopped; `use-board.py` changes a task's state only
 
 ## Waits
 
-What an open issue waits on, first match:
+What an open task waits on, first match:
 
 1. an open question to the owner: `waits on the owner`, the one wait the pane highlights; the opened row numbers the answers each such question offers, under its question when two are open, and the owner answers the manager with a number;
 2. a task it depends on that is not closed as completed: `blocked by #<n>`;
@@ -76,11 +76,11 @@ A question to the manager is no wait of the task's: it stays an open question, d
 
 ## Rules
 
-- **Read**: `read <issue>` cuts each body edit's diff to one line unless `--full`; `read <issue> --body` prints the stored body and nothing else, the file an `edit` starts from. `--as worker` leaves out each `Judge note:` paragraph, which names probes of a criterion's implementation; `--as judge` leaves out the open questions and each `BLOCKED:` comment, which are worker history.
-- **Body**: written when the issue is filed, in free Markdown; afterwards only its sections and its summary line change, and only by `edit`, which takes the whole new body, posts a comment holding the diff from the stored one, then stores it.
+- **Read**: `read <task>` cuts each body edit's diff to one line unless `--full`; `read <task> --body` prints the stored body and nothing else, the file an `edit` starts from. `--as worker` leaves out each `Judge note:` paragraph, which names probes of a criterion's implementation; `--as judge` leaves out the open questions and each `BLOCKED:` comment, which are worker history.
+- **Body**: written when the task is filed, in free Markdown; afterwards only its sections and its summary line change, and only by `edit`, which takes the whole new body, posts a comment holding the diff from the stored one, then stores it.
 - **Summary line**: a root's body opens with one plain sentence that sums up the work, on one line. The sentence carries no label (`**Summary:**`) and no quote header (`Owner said, verbatim:`). The owner's words follow verbatim, then a `Why:` line of the purpose in the manager's words. Another task's title sums it up, so its `Goal` opens with no summary.
-- **Plain words**: a title and a decision's sentence are what the issue pane shows, and a summary line opens a root's body, so a reader who knows no task's history must read each at once: one idea, in everyday words, naming no task by its number and no term the owner did not use. A summary line or decision holds at most 20 words and one `,`, `;` or `:`, and a title at most 40 characters; the write path refuses one that breaks a cap, posting nothing. Put the detail, the numbers and the terms in the body or the comment around it.
+- **Plain words**: a title and a decision's sentence are what the task pane shows, and a summary line opens a root's body, so a reader who knows no task's history must read each at once: one idea, in everyday words, naming no task by its number and no term the owner did not use. A summary line or decision holds at most 20 words and one `,`, `;` or `:`, and a title at most 40 characters; the write path refuses one that breaks a cap, posting nothing. Put the detail, the numbers and the terms in the body or the comment around it.
 - **Complete sentence**: each criterion opens with its name, `1. [check] **<name>**: <details>`, because the pane shows the name alone; the name is a complete sentence a reader understands without the task's history, such as `**The closed list shows the latest four tasks**`, not a label such as `Four closed`; the write path refuses, posting nothing, a name of fewer than 5 words or beyond the caps of Plain words.
-- **Comment**: every later fact. Its first line opens with a keyword and a colon, then the kind of work it records in plain words after the keyword, `REPORTED: batch landed …`; the rest is free Markdown. A keyword says what the comment does to the issue, never who spoke; name a source in the content, `owner said: …`.
+- **Comment**: every later fact. Its first line opens with a keyword and a colon, then the kind of work it records in plain words after the keyword, `REPORTED: batch landed …`; the rest is free Markdown. A keyword says what the comment does to the task, never who spoke; name a source in the content, `owner said: …`.
 - **Trusted authors**: only a body or comment by an author the board adapter trusts records anything; code reads any other as prose, since anyone may comment on a public board.
 - **Latest wins**: a later value of a field replaces an earlier one; no comment is edited or deleted.

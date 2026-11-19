@@ -2,7 +2,7 @@
 """Play one task's round on a temporary git board, every datum passed as an option: the manager files and routes a root, a worker files a part that
 waits on another, asks the owner a question with options, the manager answers it, the worker hands the task on, and a judge reads it. Print
 `ok <case>` or `fail <case>: <detail>` per case, then the round's cost, and exit 1 on any failure:
-- `calls`: each of the round's writes is one call that exits 0 and prints a url, the issue named by its number or by that url;
+- `calls`: each of the round's writes is one call that exits 0 and prints a url, the task named by its number or by that url;
 - `stored`: every comment the round wrote is a `.json` whose keys board-record-schema.json names, and no text holds a data fence;
 - `read`: one `read` prints the task's holders, the task it waits on, the decision that binds it from its root, and the open question with its options numbered;
 - `answered`: after the answer the question is closed and the answer binds; a judge's read shows no question;
@@ -10,7 +10,7 @@ waits on another, asks the owner a question with options, the manager answers it
 - `unread`: a verb given a word that is neither a task's number nor its url prints the usage and exits 2, with no traceback;
 - `refused`: a text that carries a `teamwork` or `decision` fence posts nothing and names the option to use, an empty or keyword-only text posts nothing on `comment`, `decide`, `resolve` and `file`, nor does an empty title, an `edit` that leaves the body empty or a field the schema refuses;
 - `older`: a comment written as text with fences, as records before the fields were, still gives its holder and its decision;
-- `pane`: the issue pane's listing draws the round's holder and its decisions;
+- `pane`: the task pane's listing draws the round's holder and its decisions;
 - `cost`: the round takes fewer calls and fewer written characters than MAIN_ROUND, the same round written as fences and read with `list-decisions.py`;
 - `one-reader`: `list-decisions.py` is gone, only `legacy_records.py` holds a data fence's pattern, and no playbook names a fence, a decision key or that script.
 
@@ -101,14 +101,14 @@ def main(args):
 
     step("cost", cost["calls"] < MAIN_ROUND["calls"] and cost["written"] < MAIN_ROUND["written"], cost)
     print(f"cost: {cost['calls']} calls against {MAIN_ROUND['calls']}, {cost['written']} characters written against {MAIN_ROUND['written']}, {cost['read']} characters in the one read")
-    listing = subprocess.run([sys.executable, str(ROOT / "hooks" / "list-issue-board.py"), "", "--width", "80"], cwd=repository, capture_output=True, text=True).stdout
+    listing = subprocess.run([sys.executable, str(ROOT / "hooks" / "list-task-board.py"), "", "--width", "80"], cwd=repository, capture_output=True, text=True).stdout
     drawn = ("second-worker", "the probe prints ok in two halves.", "the probe prints ok in lower case.")
     step("pane", all(word in listing for word in drawn), listing)
     bare_lines = use("comment", "3", "<file>", text="REPORTED: a note on the order.\n\ndepends on: #1\nholders: x-worker\nasks: owner\n")
     after_lines = use("read", "3")[1]
     step("prose-lines", bare_lines[0] == 0 and "holders: second-worker" in after_lines and "depends: #2" in after_lines, [bare_lines, after_lines])
     before = git("rev-parse", "refs/teamwork-blackboard")
-    unread = [use("read", "/tmp/1")] + [use(verb, "no-issue", "<file>", "word") for verb in ("read", "comment", "decide", "hold", "depend", "edit", "title", "resolve", "reopen", "label")]
+    unread = [use("read", "/tmp/1")] + [use(verb, "no-task", "<file>", "word") for verb in ("read", "comment", "decide", "hold", "depend", "edit", "title", "resolve", "reopen", "label")]
     step("unread", all(code == 2 and not out and "usage: use-board.py" in err and "Traceback" not in err for code, out, err in unread), unread)
     fenced = [use("comment", "3", "<file>", text="REPORTED: a note.\n\n```teamwork\nholders: x-worker\n```\n"),
               use("decide", "3", "<file>", "--by", "probe-worker", text="DECIDED: keep it.\n\n```decision\ndecision: keep it\ndecided by: probe-worker\ndoor: two-way\n```\n"),
@@ -124,17 +124,17 @@ def main(args):
 
     sys.path.insert(0, str(ROOT / "lib"))
     import decisions
-    import issue_state
+    import task_state
     older = {"number": 9, "body": "A body.\n\n```teamwork\ndepends on: #2\n```\n", "trusted": True, "parent": None, "state": "OPEN",
              "comments": [{"body": OLDER, "url": "x#comment-1", "createdAt": "2026-11-06T00:00:00Z", "trusted": True}]}
     import task_links
     found = decisions.typed(9, older)
-    step("older", issue_state.compose(older)["holders"] == ["older-worker"] and [decision["decision"] for decision in found] == ["keep the older record readable"]
-         and found[0]["role"] == "owner" and task_links.depends(older) == [2], [issue_state.compose(older), found])
+    step("older", task_state.compose(older)["holders"] == ["older-worker"] and [decision["decision"] for decision in found] == ["keep the older record readable"]
+         and found[0]["role"] == "owner" and task_links.depends(older) == [2], [task_state.compose(older), found])
 
     code = [path for folder in ("lib", "hooks", "monitors", "skills/kick-off/scripts") for path in (ROOT / folder).glob("*.py") if path.name != "legacy_records.py"]
     pages = [*(ROOT / "skills" / "kick-off").glob("*.md"), *(ROOT / "skills" / "kick-off" / "references").rglob("*.md")]
-    named = [f"{path.name}: {word}" for path in code + pages for word in OLD_WORDS if word in path.read_text() and not (word == "```decision" and path.name == "issue_state.py")]
+    named = [f"{path.name}: {word}" for path in code + pages for word in OLD_WORDS if word in path.read_text() and not (word == "```decision" and path.name == "task_state.py")]
     step("one-reader", not named and not (ROOT / "skills" / "kick-off" / "scripts" / "list-decisions.py").exists(), named)
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Edit a task's body on a temporary git board by handing `use-board.py edit` the new body. Print `ok <case>` or `fail <case>: <detail>` per case,
 then `PASS` or `FAIL`, and exit 1 on any failure:
-- `start`: `read <issue> --body` prints the stored body byte for byte, with or without a final newline, and nothing else;
+- `start`: `read <task> --body` prints the stored body byte for byte, with or without a final newline, and nothing else;
 - `round`: that output with one line changed, handed to `edit`, becomes the stored body, in three calls, and the new comment holds the keyword line and a diff of only the changed line;
 - `shown`: `read` cuts that diff to one line and `read --full` prints it;
 - `far-apart`: a new body that changes its first and its last line is stored whole, the two changes in one comment;
 - `applies`: the diff a comment holds, applied by `patch` to the body before it, gives the body after it, also where a line holds a form feed or U+2028;
 - `no-newline`: a new body that drops the final newline is stored without it;
-- `diff-given`: a diff handed as the body changes nothing and names `read <issue> --body`;
+- `diff-given`: a diff handed as the body changes nothing and names `read <task> --body`;
 - `unchanged`: the stored body handed back changes nothing and says so;
 - `stale`: a `--base` that is not the stored body's sha changes nothing;
 - `one-script`: `edit-issue-body.py` is gone and no playbook or script names it.

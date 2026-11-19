@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """File a root and a task, make the task the root's part by a body edit and the root wait on it by `depend`, set holders, ask by BLOCKED, answer by DECIDED, edit the
-body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each issue it filed and the board lines, numbers and urls replaced
+body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each task it filed and the board lines, numbers and urls replaced
 by names, so a change that moves the protocol shows in the text. The board is a temporary repository.
 
 usage: replay-board-scenario.py"""
@@ -17,7 +17,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 import usage_parser  # noqa: E402
 
-names = {}  # the number each issue got, by the name the output uses
+names = {}  # the number each task got, by the name the output uses
 
 
 def use(*argv):
@@ -33,26 +33,26 @@ def filed(name, title, body, labels=()):
 
 
 def number(name):
-    return next(issue_number for issue_number, known in names.items() if known == name)
+    return next(task_number for task_number, known in names.items() if known == name)
 
 
 def plain(out):
-    """OUT with each url one word and each issue number its name."""
+    """OUT with each url one word and each task number its name."""
     return re.sub(r"#(\d+)", lambda match: "#" + names.get(int(match.group(1)), match.group(1)), re.sub(r"(?:https|(?:git\+)?file)://\S+", "<url>", out))
 
 
 def show(step):
     print(f"step {step}")
-    for issue_number, name in sorted(names.items(), key=lambda item: item[1]):
-        record = board.fresh(issue_number)
-        state = issue_state.compose(record, board.blockers(issue_number))
+    for task_number, name in sorted(names.items(), key=lambda item: item[1]):
+        record = board.fresh(task_number)
+        state = task_state.compose(record, board.blockers(task_number))
         parent = names.get(record["parent"])
         criteria = [(criterion["kind"], criterion["name"], bool(criterion["met"])) for criterion in state["done"]]
         print(plain(f"{name}: {record['state']} labels={sorted(record['labels'])} parent={parent} holders={state['holders']} waits={state['waits']} comments={len(record['comments'])} criteria={criteria}"))
     nodes = board.tree(None)
     if nodes is None:
         sys.exit("replay-board-scenario: the board read failed")
-    print(plain("\n".join(issue_board.lines(issue_board.board([node for node in nodes if node["number"] in names])))))
+    print(plain("\n".join(task_board.lines(task_board.board([node for node in nodes if node["number"] in names])))))
 
 
 def link(name, added, why):
@@ -65,7 +65,7 @@ TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the o
 
 
 def main(args):
-    global work, board, issue_board, issue_state
+    global work, board, task_board, task_state
     usage_parser.parser(__doc__).parse_args(args)
     work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))
     subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
@@ -73,8 +73,8 @@ def main(args):
     os.environ["HOME"] = str(work)
     # imported here, since they read the board and folder set above when they load
     import board
-    import issue_board
-    import issue_state
+    import task_board
+    import task_state
 
     filed("root", "Probe the board root", "Probe the board by a root.\n")
     filed("task", "Probe the board task", TASK)

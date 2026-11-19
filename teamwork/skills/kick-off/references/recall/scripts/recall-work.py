@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Print the earlier issues and pull requests of this repository most related to WORDS and to the history of each PATH,
+"""Print the earlier tasks and pull requests of this repository most related to WORDS and to the history of each PATH,
 best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its comments
-that opens with a keyword of issue-grammar.md.
+that opens with a keyword of task-grammar.md.
 
 usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
 
@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
-import issue_state  # noqa: E402
+import task_state  # noqa: E402
 from judge_note import without_judge_note  # noqa: E402
 import landing  # noqa: E402
 import task_links  # noqa: E402
@@ -25,7 +25,7 @@ STOP = set("a an and as at be by for from in into is it its no not of on or the 
 # a file's newest commits say what it is now, its oldest why it exists, so both ends of its history weigh most
 PATH_WEIGHT = 3.0
 # work continues what was filed just before it: an item's score grows up to 9x, halving per 5 items filed since;
-# tuned by replaying 30 past tasks against the earlier issues each cites
+# tuned by replaying 30 past tasks against the earlier tasks each cites
 RECENT_GAIN, RECENT_HALF_LIFE = 8, 5
 
 
@@ -45,9 +45,9 @@ def words(text):
 
 
 def load(before):
-    found = board.issues("all", pulls=True)
+    found = board.tasks("all", pulls=True)
     if found is None:
-        sys.exit("recall-work.py: the REST read of the issues failed")
+        sys.exit("recall-work.py: the REST read of the tasks failed")
     items = {}
     for item in found:
         if before and item["createdAt"] >= before:
@@ -56,10 +56,10 @@ def load(before):
         if item["isPullRequest"]:
             kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
         else:
-            kind = "parent" if task_links.parts(item["body"]) else "issue"
+            kind = "parent" if task_links.parts(item["body"]) else "task"
             state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
         items[item["number"]] = {
-            "head": f"#{item['number']} {kind} {state}: {issue_state.title(item)}",
+            "head": f"#{item['number']} {kind} {state}: {task_state.title(item)}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [without_judge_note(text.strip()).strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
@@ -84,7 +84,7 @@ def text_scores(items, query):
 
 
 def path_scores(items, paths, before):
-    """Pull requests whose commits touched each path, across renames, and the issues they closed."""
+    """Pull requests whose commits touched each path, across renames, and the tasks they closed."""
     scores = collections.Counter()
     for path in paths:
         log = run("git", "log", *(["--before", before] if before else []), "--follow", "--format=%s", "--", path)
@@ -110,7 +110,7 @@ def main(args):
         scores[number] *= 1 + RECENT_GAIN * .5 ** ((newest - number) / RECENT_HALF_LIFE)
     ranked = [number for number, _ in scores.most_common() if number in items][:options.top]
     if not ranked:
-        print("No earlier issue or pull request matches; widen the words or name a path.")
+        print("No earlier task or pull request matches; widen the words or name a path.")
     for number in ranked:
         print(items[number]["head"])
         for record in items[number]["records"][:3]:

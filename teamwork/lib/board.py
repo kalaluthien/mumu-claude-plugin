@@ -1,9 +1,9 @@
-"""The board: where a team keeps its issues and records, the git board `board_git`, whose functions this module re-exports by the same names:
-- reads: `issues(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (issue number, comment),
+"""The board: where a team keeps its tasks and records, the git board `board_git`, whose functions this module re-exports by the same names:
+- reads: `tasks(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (task number, comment),
   `changed_since(stamp)`, `blockers(number)` the numbers of the tasks it waits on that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root),
-  `tree(project, nodes)` the open issues' nodes the issue pane draws; each None when a read failed
+  `tree(project, nodes)` the open tasks' nodes the task pane draws; each None when a read failed
 - writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text, fields)`, `file(title, body, labels, scope, depends) -> int` (`scope` the folder), `depend(number, targets)`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
-  `label(number, name, remove)`; this module's `edit`, `resolve` and `reopen` move the tree as issue-grammar.md's States table says
+  `label(number, name, remove)`; this module's `edit`, `resolve` and `reopen` move the tree as task-grammar.md's States table says
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body, depends)` raises LookupError naming why NUMBER cannot have BODY and wait on DEPENDS
 - `trusted(record)`, whether a record's author may write records; `command(text)`, the board write a shell command runs
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted`,
@@ -11,7 +11,7 @@ A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CL
 import hashlib
 
 import board_git
-import issue_state
+import task_state
 import task_links
 
 
@@ -34,7 +34,7 @@ def edit(number, text):
 
 
 def edit_whole(number, text):
-    """Writes TEXT as NUMBER's body, then moves the tree as issue-grammar.md's States table says for an `edit`."""
+    """Writes TEXT as NUMBER's body, then moves the tree as task-grammar.md's States table says for an `edit`."""
     old = board_git.fresh(number, comments=False)
     board_git.edit(number, text)
     gained = set(task_links.parts(text)) - set(task_links.parts(old["body"])) if old else set()
@@ -50,7 +50,7 @@ def resolve(number, summary, completed=True):
 
 
 def resolve_whole(number, summary, completed=True):
-    """Closes NUMBER as issue-grammar.md's States table says, its open parts stopped with it named in one `DECIDED:` on it."""
+    """Closes NUMBER as task-grammar.md's States table says, its open parts stopped with it named in one `DECIDED:` on it."""
     record = board_git.fresh(number, comments=False)
     if record and record["state"] == "CLOSED":
         raise LookupError(f"#{number} is closed; reopen it first")
@@ -58,7 +58,7 @@ def resolve_whole(number, summary, completed=True):
         raise LookupError(f"#{number} has a part not closed as completed; resolve each open part first, `edit` a stopped part out of #{number}'s body, or `resolve` #{number} --not-planned")
     stopping = [part for part in task_links.parts(record["body"]) if (found := board_git.fresh(part, comments=False)) and found["state"] == "OPEN"] if record and not completed else []
     if stopping:
-        board_git.comment(number, f"{issue_state.ANSWER}: stopping #{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
+        board_git.comment(number, f"{task_state.ANSWER}: stopping #{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
     board_git.resolve(number, summary, completed)
     for part in stopping:
         resolve(part, f"REPORTED: stopped with its parent #{number}.", False)

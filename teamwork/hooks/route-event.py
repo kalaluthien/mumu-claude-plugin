@@ -21,7 +21,7 @@ import team_gaps  # noqa: E402
 import team_names  # noqa: E402
 
 PLAYBOOKS = ROOT / "skills" / "kick-off" / "references"
-GRAMMAR = PLAYBOOKS / "issue-grammar.md"
+GRAMMAR = PLAYBOOKS / "task-grammar.md"
 # the rules are found in the playbooks at each call, never copied here, so a playbook edit cannot leave a stale reminder
 NO_DATA = "A text never carries data"
 REMINDED = {"file": ("`file`", "40 characters", NO_DATA), "change": ("40 characters",), "comment": ("**Comment**", "`comment`", NO_DATA), "change comment": ("**Comment**",),
@@ -60,7 +60,7 @@ SED_STATEMENT = r"(?:(?:\d+|\$|/[^/\\[\\\\]*/)(?:,(?:\d+|\$|/[^/\\[\\\\]*/))?)?(
 SED_READ = re.compile(rf"{SED_STATEMENT}(?:;{SED_STATEMENT})*;?")
 # one addressed print, delete or quit, whose address may hold a bracket expression since nothing follows it that a bracket could hide
 SED_ADDRESSED = re.compile(r"(?:/[^/\\]*/|\d+|\$)(?:,(?:/[^/\\]*/|\d+|\$))?[pdq]")
-# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL issue or comment mutation. A `gh`, shell or `eval`
+# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL mutation of a GitHub issue or comment. A `gh`, shell or `eval`
 # word runs when it opens a simple command or follows only words that are no NEVER_RUNS word, such as a wrapper and its flags, read in a text with its
 # quoted strings, substitutions, comments and heredoc bodies blanked, since a commit message, a grep pattern or a note may name it; what it is given is read
 # unblanked. A shell or `eval` runs its `-c` code or its words, else the heredoc or here-string it reads and the text a pipe feeds it; a command

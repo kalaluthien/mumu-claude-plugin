@@ -4,7 +4,7 @@
 // usage: bun teamwork/hooks/fixtures/replay-pane-tool.ts
 import { handlers, on } from './stand-in-modules.ts'
 
-const TOOL = 'show-issues-pane'
+const TOOL = 'show-tasks-pane'
 const PLUGIN = JSON.parse(await Bun.file(`${import.meta.dir}/../../.claude-plugin/plugin.json`).text()).name
 const FULL = `mcp__${PLUGIN}__${TOOL}`
 const calls: string[] = []
@@ -12,7 +12,7 @@ let session = 'worker-one-worker'
 let boardReads = 0
 const $ = {
   plugin: { root: '/plugin' },
-  ui: { open: async () => void calls.push('open'), close: async () => void calls.push('close'), panes: async () => [{ id: 'teamwork-issues', isShown: false }] },
+  ui: { open: async () => void calls.push('open'), close: async () => void calls.push('close'), panes: async () => [{ id: 'teamwork-tasks', isShown: false }] },
   tool: { register: async (spec: { name: string }) => void calls.push(`register ${spec.name}`) },
   clock: { after: () => ({ cancel: () => undefined }) },
   process: {
@@ -26,7 +26,7 @@ const $ = {
 }
 
 const verdict = async (): Promise<string> => {
-  const { register } = await import('../draw-issue-pane.tsx')
+  const { register } = await import('../draw-task-pane.tsx')
   register(on as any)
   await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
   if (calls.some(call => call.startsWith('register'))) return 'a session that is no manager got the tool'

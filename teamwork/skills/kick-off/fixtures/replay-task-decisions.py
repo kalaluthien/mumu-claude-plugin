@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Check typed decisions on a board, writing only through use-board.py and reading through its `read`, and print `ok <case>` or
-`fail <case>: <what it saw>` per case; exit 1 on any fail. git runs every case; nodes the pane's, from issue
+`fail <case>: <what it saw>` per case; exit 1 on any fail. git runs every case; nodes the pane's, from task
 nodes written here by hand. The git board trusts every comment, so pane-untrusted there marks one of the board's own
 decision comments untrusted, as an outsider's is marked, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes, record-answers-elsewhere, record-answers-own: `decide`
@@ -15,7 +15,7 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
   a question to the owner and the decision that answers it
 - route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task that waits on an open task,
   or whose open parts all do, until that task closes
-- pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-issue-board.py's `?` and `◆` lines; pane-linear, on nodes
+- pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-task-board.py's `?` and `◆` lines; pane-linear, on nodes
   only: one draw parses each task's comments a bounded number of times, however many tasks there are
 - row-no-deferral, row-finished-parent, row-one-color, on nodes: a `deferred:` line sets no wait; a parent
   whose parts are all done shows its next step in full among its always-shown lines; and every row's number takes the color of its own state, drawn by one Button
@@ -36,7 +36,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
-LIST = ROOT / "hooks" / "list-issue-board.py"
+LIST = ROOT / "hooks" / "list-task-board.py"
 CHECK = replay_probe.CHECK
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
 failures = []
@@ -204,7 +204,7 @@ def heartbeat(numbers):
     import team_gaps
     team_gaps.sessions = lambda: ([{"name": "probe-manager"}], {})
     team_gaps.tabs, team_gaps.crowding, team_gaps.members = (lambda workspace: []), (lambda me, listed: []), (lambda me, listed: [])
-    found = [issue for issue in board.issues("open") if issue["number"] in numbers]
+    found = [task for task in board.tasks("open") if task["number"] in numbers]
     data = {"found": found, "everything": found, "prs": [], "outside": [], "feed": [], "links": []}
     lines = team_gaps.manager_actions({"name": "probe-manager", "workspace_id": ""}, [], data)
     return [line for line in lines if line.startswith(("question ", "answer ", "superseded twice ", "one-way ", "route "))]
@@ -252,7 +252,7 @@ def heartbeat_cases():
 
 
 def older_cases():
-    import issue_state
+    import task_state
     task = file("Probe an older task")
     older(task, "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\nlive runs: 3\n```\n")
     question = older(task, "BLOCKED: may the sync run\n\n```teamwork\nasks: owner\n```\n")
@@ -260,12 +260,12 @@ def older_cases():
     rule = older(task, f"DECIDED: the sync may run\n\n> run it\n\n```decision\ndecision: the sync runs nightly\ndecided by: owner\ndoor: one-way\nanswers: {question}\n```\n")
     settled = use("read", task).stdout
     step("older-records", "\nholders: probe-worker\n" in waiting and ", waits on the owner\n" in waiting and f"- #{task} to the owner: may the sync run ({question})" in waiting
-         and issue_state.live_runs(board.fresh(task)) == 3 and f"- #{task} owner, one-way: the sync runs nightly ({rule}); answers {question}" in settled
+         and task_state.live_runs(board.fresh(task)) == 3 and f"- #{task} owner, one-way: the sync runs nightly ({rule}); answers {question}" in settled
          and "open questions: 0" in settled and ", held\n" in settled, [waiting, settled])
 
 
 def block(lines, number, strip=True):
-    """NUMBER's row block in list-issue-board.py's LINES: from its row to the next row at any depth, guides stripped when STRIP."""
+    """NUMBER's row block in list-task-board.py's LINES: from its row to the next row at any depth, guides stripped when STRIP."""
     start = next((i for i, line in enumerate(lines) if re.match(rf"^[\s│├└]*#{number} ", line)), len(lines))
     end = next((i for i in range(start + 1, len(lines)) if re.match(r"^[\s│├└]*#\d+ ", lines[i])), len(lines))
     return [line.lstrip(" │") if strip else line for line in lines[start:end]]
@@ -300,19 +300,19 @@ def board_pane():
     outsider = decide(untrusted, "probe the team's board", by="owner", door="one-way", quote="probe ours")
     listed = subprocess.run([sys.executable, str(LIST), "probe"], capture_output=True, text=True).stdout.splitlines()
     narrow = subprocess.run([sys.executable, str(LIST), "probe", "--width", "24"], capture_output=True, text=True).stdout.splitlines()
-    import issue_board
+    import task_board
     nodes = board.tree(None)
     for node in nodes:
         for comment in node["comments"]["nodes"]:
             comment["trusted"] = comment["url"] != outsider
-    untrusted_lines = list(issue_board.lines(issue_board.board(nodes), issue_board.PANE_WIDTH))
+    untrusted_lines = list(task_board.lines(task_board.board(nodes), task_board.PANE_WIDTH))
     pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untrusted)
     step("pane-question-next-line", "? which width counts" in block(listed, later), block(listed, later))
 
 
 def node(number, comments=()):
     return {"number": number, "title": f"Probe {number}", "url": f"https://github.com/o/r/issues/{number}", "body": body(), "authorAssociation": "OWNER",
-            "state": "OPEN", "stateReason": None, "parent": None, "labels": {"nodes": []}, "subIssues": {"nodes": []}, "subIssuesSummary": {"total": 0},
+            "state": "OPEN", "stateReason": None, "parent": None, "labels": {"nodes": []}, "parts": {"nodes": []}, "partsSummary": {"total": 0},
             "blockedBy": {"nodes": []}, "comments": {"nodes": list(comments)}}
 
 
@@ -333,24 +333,24 @@ def nodes_pane():
     listed = subprocess.run([sys.executable, str(LIST), "--nodes", str(path)], capture_output=True, text=True).stdout.splitlines()
     narrow = subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--width", "24"], capture_output=True, text=True).stdout.splitlines()
     pane_cases(listed, narrow, None, 1, 2, 3, None)
-    import issue_board
-    import issue_state
-    original, parses = issue_state.records, [0]
+    import task_board
+    import task_state
+    original, parses = task_state.records, [0]
 
-    def counted(issue):
+    def counted(task):
         parses[0] += 1
-        return original(issue)
+        return original(task)
 
     def draw(count):
         parses[0] = 0
-        issue_board.board(board.tree(None, [node(n, [comment(n, k % 10, f"DECIDED: rule {k}") for k in range(20)]) for n in range(1, count + 1)]))
+        task_board.board(board.tree(None, [node(n, [comment(n, k % 10, f"DECIDED: rule {k}") for k in range(20)]) for n in range(1, count + 1)]))
         return parses[0]
 
-    issue_state.records = counted
+    task_state.records = counted
     try:
         small, large = draw(40), draw(80)
     finally:
-        issue_state.records = original
+        task_state.records = original
     step("pane-linear", large <= 2.5 * small, f"{small} parses for 40 tasks, {large} for 80")
     later = work / "deferred.json"
     later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\n```teamwork\nholders:\ndeferred: waits on the probe\n```\n")])]))
@@ -368,8 +368,8 @@ def nodes_pane():
                                                                                        capture_output=True, text=True).stdout or "[]")}
     step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
     rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
-    pane = (ROOT / "hooks" / "draw-issue-pane.tsx").read_text()
-    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(issue.number, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
+    pane = (ROOT / "hooks" / "draw-task-pane.tsx").read_text()
+    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(task.number, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
 
 
 def main(args):

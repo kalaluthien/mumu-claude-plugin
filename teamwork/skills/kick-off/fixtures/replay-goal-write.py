@@ -27,7 +27,7 @@ NO_GOAL = "Root intent of the owner.\n\n## Definition of done\n\n" + CRITERION
 
 
 def start(floor):
-    """(work folder, repository, environment) of a repository whose next issue takes the number FLOOR + 1."""
+    """(work folder, repository, environment) of a repository whose next task takes the number FLOOR + 1."""
     work = pathlib.Path(tempfile.mkdtemp(prefix="goal-write-"))
     repository = work / "proj"
     subprocess.run(["git", "init", "-q", str(repository)], check=True)
@@ -91,7 +91,7 @@ def case_shared():
 
 
 def seed(repository, environment, text):
-    """The number of an issue written straight to the board, as a Goal filed before this check was, which `file` would refuse."""
+    """The number of a task written straight to the board, as a Goal filed before this check was, which `file` would refuse."""
     code = "import board, sys; print(board.file('Probe a held Goal', open(sys.argv[1]).read(), []))"
     done = subprocess.run([sys.executable, "-c", code, str(repository.parent / "seed.md")], cwd=repository, env={**environment, "PYTHONPATH": str(LIB)}, capture_output=True, text=True)
     return int(done.stdout)

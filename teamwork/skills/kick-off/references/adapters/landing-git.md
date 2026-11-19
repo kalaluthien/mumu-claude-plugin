@@ -1,12 +1,12 @@
 # Landing git
 
-A change is a branch of the repository, filed and merged in local git by [use-landing.py](landing-git/scripts/use-landing.py), the project's landing; the merge pushes the base to `origin`. Each change is numbered apart from the board's issues.
+A change is a branch of the repository, filed and merged in local git by [use-landing.py](landing-git/scripts/use-landing.py), the project's landing; the merge pushes the base to `origin`. Each change is numbered apart from the board's tasks.
 
 | operation | how |
 | --- | --- |
 | `branch` | [add-worktree.py](../../scripts/add-worktree.py) `<name> <base> [<branch>]` |
 | `push` | nothing for the branch: every worktree shares the repository's branches |
-| `change` | `use-landing.py change <branch> <title> <body-file> [<base>]`, the body citing its issue; it prints the change's url, whose number the heartbeat names |
+| `change` | `use-landing.py change <branch> <title> <body-file> [<base>]`, the body citing its task; it prints the change's url, whose number the heartbeat names |
 | `judge` | the judge reads the change at its sha by `git diff <base>...<sha>` and `git show <sha>:<path>`, with no fetch |
 | `merge` | `use-landing.py merge <change> <sha>`, the sha the judge approved, which it refuses when the branch tip moved; it pushes the merge to `origin`'s base as one atomic fast-forward, and only then moves the local base and the worktree that has it checked out; a repository with no `origin` skips the push |
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |

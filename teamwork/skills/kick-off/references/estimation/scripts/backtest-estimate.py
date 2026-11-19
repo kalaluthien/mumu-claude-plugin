@@ -7,7 +7,7 @@ The first 60% calibrate the range
 levels, the last 40% only score: held-out coverage of the per-task range, its median width and median absolute error, for
 the estimator and for the baseline (the p10-p90 of all earlier tasks), then how often the bootstrap total covers the
 actual sum over 5 consecutive tasks. `--as-of <time> --tasks ...` prints those tasks' ranges from the history before
-<time> beside their actual hours. `--from-json` is {"<repository>": [issues]} in place of the board."""
+<time> beside their actual hours. `--from-json` is {"<repository>": [tasks]} in place of the board."""
 import argparse
 import json
 import pathlib
@@ -23,7 +23,7 @@ def main(args):
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
-    parser.add_argument("--tasks", type=lambda value: {int(issue_number) for issue_number in value.split(",")}, default=set())
+    parser.add_argument("--tasks", type=lambda value: {int(task_number) for task_number in value.split(",")}, default=set())
     options = parser.parse_args(args)
     fixture, cutoff, numbers = options.from_json, options.as_of, options.tasks
     repos = list(fixture) if fixture else [task_history.own_repository()]

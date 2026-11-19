@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Replay what the issues pane shows of a waiting task, on a temporary git board written by use-board.py and read as the pane reads it
-(list-issue-board.py --json), and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail.
+"""Replay what the tasks pane shows of a waiting task, on a temporary git board written by use-board.py and read as the pane reads it
+(list-task-board.py --json), and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail.
 - team-question: a question to the manager gives the row no wait, and its note is among the dim lines;
 - owner-question: a question to the owner gives `waits on the owner`, its note is not dim, and the row lists its options numbered only once opened;
 - owner-first: a task that is blocked by another and asks the owner still waits on the owner;
@@ -20,7 +20,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
-LIST = ROOT / "hooks" / "list-issue-board.py"
+LIST = ROOT / "hooks" / "list-task-board.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `echo ok` prints `ok`; on base nothing.\n")
 OWNER = "waits on the owner"
@@ -104,7 +104,7 @@ def main(args):
     folded, opened, dim = notes(after)
     step("answered", after["wait"] == OWNER and folded == ["? when does the probe run?"] and opened[:2] == ["1. today", "2. tomorrow"] and "1. print it in lower case" not in opened, after)
 
-    pages = [ROOT / "hooks" / "draw-issue-pane.tsx", LIST, ROOT / "lib" / "issue_board.py", ROOT / "lib" / "issue_state.py", ROOT / "skills" / "kick-off" / "references" / "issue-grammar.md"]
+    pages = [ROOT / "hooks" / "draw-task-pane.tsx", LIST, ROOT / "lib" / "task_board.py", ROOT / "lib" / "task_state.py", ROOT / "skills" / "kick-off" / "references" / "task-grammar.md"]
     named = [f"{path.name}: {word}" for path in pages for word in GONE if word in path.read_text()]
     step("one-kind", not named, named)
     print("FAIL" if failed else "PASS")

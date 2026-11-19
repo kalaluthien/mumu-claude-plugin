@@ -37,7 +37,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
 import decisions  # noqa: E402
-import issue_state  # noqa: E402
+import task_state  # noqa: E402
 
 NEXT_WORD = r"[^A-Za-z0-9-]+([A-Za-z0-9-]+)"  # the word after a marker such as `prints`
 # the first task number filed after the commit that wrote this line, so every task filed before keeps its old rules
@@ -142,7 +142,7 @@ def defects(kind, name, detail):
     """The defects of one criterion, in the order the task lists them."""
     found = [] if kind in ("check", "score") else ["no kind"]
     found += [] if name else ["no name"]
-    span = issue_state.SPAN.search(detail)
+    span = task_state.SPAN.search(detail)
     rest = detail[:span.start()] + detail[span.end():] if span else detail
     if kind == "check":
         # tasks filed before the base was named quote `on main`
@@ -167,7 +167,7 @@ def main(args):
         print(CUT_OFF)
         return 0
     if len(args) == 2 and args[0] in ("--title", "--edit-line"):
-        written = issue_state.defects("title" if args[0] == "--title" else "edit-line", args[1])
+        written = task_state.defects("title" if args[0] == "--title" else "edit-line", args[1])
         for found in written:
             print(f"write: {found}")
         return 1 if written else 0
@@ -196,12 +196,12 @@ def main(args):
         body = found["body"] if found else sys.exit(f"check-criteria: the board holds no task #{task}")
     else:
         sys.exit(f"check-criteria: {source} is no file here" + ("" if task is not None else ", and no task's number or url"))
-    lines = issue_state.ITEM.findall(issue_state.sections(body).get("done", ""))
+    lines = task_state.ITEM.findall(task_state.sections(body).get("done", ""))
     new_rules = task is None or task >= CUT_OFF
-    goal = issue_state.sections(body).get("goal")
+    goal = task_state.sections(body).get("goal")
     goal_found = criteria_check.goal_defects(goal) if goal is not None and (task is None or task >= criteria_check.GOAL_CUT_OFF) else []
     # a part, `[task] #n`, is no criterion, so its form is the graph's to check
-    matched = [(line_number, issue_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
+    matched = [(line_number, task_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
     criteria = [(line_number, groups) for line_number, groups in matched if groups[0] != "task"]
     flagged = [(line_number, found) for line_number, groups in criteria
                for found in [defects(*groups) + (scenario_defects(groups[0], groups[2]) + live_defects(groups[0], groups[2]) if new_rules else [])] if found]
@@ -209,7 +209,7 @@ def main(args):
         flagged.insert(0, ("body", ["more than 5 criteria"]))
     flagged = ([("goal", goal_found)] if goal_found else []) + flagged
     # `file` and `edit` refuse a body that breaks the Plain words caps, so a lint that passes it would only move the refusal to the write
-    written = issue_state.defects("file", body) if new_rules else []
+    written = task_state.defects("file", body) if new_rules else []
     for position, found in flagged:
         print(f"{position}: {', '.join(found)}")
     for name in dict.fromkeys(defect for _, found in flagged for defect in found):

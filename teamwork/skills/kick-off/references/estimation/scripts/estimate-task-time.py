@@ -56,10 +56,10 @@ def load(options, urls):
             sys.exit(f"estimate-task-time.py: {url} is on the board of {repo}, which this folder's board is not; run it inside that project's checkout")
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
-        issue = board.fresh(number, repo, comments=False)
-        if issue is None:
+        task = board.fresh(number, repo, comments=False)
+        if task is None:
             sys.exit(f"estimate-task-time.py: the board read of {url} failed")
-        tasks.append({"number": issue["number"], "labels": issue["labels"], "repo": repo})
+        tasks.append({"number": task["number"], "labels": task["labels"], "repo": repo})
     return [row for rows in history.values() for row in rows], tasks
 
 

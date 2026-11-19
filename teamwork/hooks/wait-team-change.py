@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print `changed` once at start, then once per burst of marks by team sessions to the issues, after the file has been quiet for QUIET seconds, until killed.
+"""Print `changed` once at start, then once per burst of marks by team sessions to the tasks, after the file has been quiet for QUIET seconds, until killed.
 
 usage: wait-team-change.py
 It blocks on the signal file through kqueue, so it reads no board and wakes only when a session touches the file."""
@@ -15,11 +15,12 @@ EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | 
 
 
 def watch(queue):
-    """A watch on the signal file, made anew when it is missing, since a deleted file's watch never fires again."""
+    """Watches on both signal files, made anew when one is missing, since a deleted file's watch never fires again; a session started
+    before the rename marks only the old one."""
     team_signal.touch()
-    handle = open(team_signal.SIGNAL)
-    queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, EVENTS)], 0)
-    return handle
+    handles = [open(signal) for signal in (team_signal.SIGNAL, team_signal.OLD_SIGNAL)]
+    queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, EVENTS) for handle in handles], 0)
+    return handles
 
 
 def main(args):
@@ -27,15 +28,16 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     queue = select.kqueue()
-    handle = watch(queue)
+    handles = watch(queue)
     print("changed", flush=True)
     while True:
         # one `changed` per burst: a session often marks several writes in a row, and each would otherwise read the board
         event = queue.control(None, 1)
         while event:
             if event[0].fflags & (select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME):
-                handle.close()
-                handle = watch(queue)
+                for handle in handles:
+                    handle.close()
+                handles = watch(queue)
             event = queue.control(None, 1, QUIET)
         print("changed", flush=True)
 

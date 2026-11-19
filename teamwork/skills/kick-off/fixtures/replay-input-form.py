@@ -101,10 +101,10 @@ def main(args):
     counter = iter(range(10 ** 6))
 
     def snapshot():
-        return [(each["number"], each["body"], each["state"], each["depends"], [(note["body"], note.get("fields")) for note in each["comments"]]) for each in board_git.issues("all")]
+        return [(each["number"], each["body"], each["state"], each["depends"], [(note["body"], note.get("fields")) for note in each["comments"]]) for each in board_git.tasks("all")]
 
     def prepare(spec):
-        """The issue SPEC writes to, filed straight on the board so even a body the guard refuses is there; its number, None for a `file`."""
+        """The task SPEC writes to, filed straight on the board so even a body the guard refuses is there; its number, None for a `file`."""
         return board_git.file("A task", spec[1] if spec[0] == "edit" else BASE, []) if spec[0] != "file" else None
 
     def written(text):

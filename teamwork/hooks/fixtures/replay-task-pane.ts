@@ -1,5 +1,5 @@
-// Render a manager's issue pane from the board in a nodes file, every row unfolded, at body widths 30, 40, 60 and 88, through stand-ins for
-// `claude-code` and the JSX runtime, and check it row for row against `list-issue-board.py` laid out for that width less the fold mark: each
+// Render a manager's task pane from the board in a nodes file, every row unfolded, at body widths 30, 40, 60 and 88, through stand-ins for
+// `claude-code` and the JSX runtime, and check it row for row against `list-task-board.py` laid out for that width less the fold mark: each
 // row's title, status, `?`, `◆` and `next step:` lines, guide included, are the lines its `--json` row lays out, in the order `--width` prints them,
 // each fits the body with the first line's fold mark, no row ends in a blank line, a title that fits on one line takes one, and an unfolded row with criteria or
 // closed parts draws them: `same`, else `differ: <the first difference>`, exit 1.
@@ -22,10 +22,10 @@ if (nodes.startsWith('-')) {
   console.error('usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n> --fresh]]')
   process.exit(2)
 }
-const lister = `${import.meta.dir}/../list-issue-board.py`
+const lister = `${import.meta.dir}/../list-task-board.py`
 const listed = (...args: string[]) => {
   const run = Bun.spawnSync(['python3', lister, '--nodes', nodes, ...args])
-  if (run.exitCode !== 0) throw new Error(`list-issue-board.py ${args.join(' ')} exited ${run.exitCode}: ${run.stderr}`)
+  if (run.exitCode !== 0) throw new Error(`list-task-board.py ${args.join(' ')} exited ${run.exitCode}: ${run.stderr}`)
   return run.stdout.toString()
 }
 
@@ -65,7 +65,7 @@ const draw = (props: object) => drawPane($, props)
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 
-const { register } = await import('../draw-issue-pane.tsx')
+const { register } = await import('../draw-task-pane.tsx')
 register(on as any)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)

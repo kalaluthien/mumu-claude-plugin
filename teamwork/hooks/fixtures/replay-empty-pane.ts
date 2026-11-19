@@ -1,4 +1,4 @@
-// Render a manager's issue pane before any board read, after a failed read and after a good read of no issues, through stand-ins for
+// Render a manager's task pane before any board read, after a failed read and after a good read of no tasks, through stand-ins for
 // `claude-code` and the JSX runtime, and print the pane's text at each: `unread: <text>`, `failed: <text>`, then `empty: <text>`.
 // usage: bun teamwork/hooks/fixtures/replay-empty-pane.ts
 import { drawPane, handlers, on } from './stand-in-modules.ts'
@@ -19,7 +19,7 @@ const $ = {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
       reads++
-      return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-issue-board: the git board read failed' }
+      return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-task-board: the git board read failed' }
     },
     spawn: () => (async function* () { yield { text: 'changed' } })(),
   },
@@ -29,13 +29,13 @@ const render = async () => text(await draw({ bodyColumns: 0 }))
 // a read's atoms change just after its run returns, so the render waits a little past it
 const settle = async (count: number) => { while (reads < count) await new Promise(done => setTimeout(done, 5)); await new Promise(done => setTimeout(done, 50)) }
 
-const { register } = await import('../draw-issue-pane.tsx')
+const { register } = await import('../draw-task-pane.tsx')
 register(on as any)
 console.log(`unread: ${await render()}`)
 await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 console.log(`failed: ${await render()}`)
 exitCode = 0
-await handlers['tool.call mcp__teamwork__show-issues-pane']($, {}, async () => ({}))
+await handlers['tool.call mcp__teamwork__show-tasks-pane']($, {}, async () => ({}))
 await settle(2)
 console.log(`empty: ${await render()}`)

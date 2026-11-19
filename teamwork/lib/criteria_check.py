@@ -2,7 +2,7 @@
 run-criteria.py runs a check by it and check-criteria.py refuses a check it cannot read, so both share this one parse."""
 import re
 
-import issue_state
+import task_state
 
 # the number of the task that added the Goal path check, so every Goal written before it keeps its old rules
 GOAL_CUT_OFF = 1305
@@ -37,10 +37,10 @@ def goal_defects(goal):
 def goal_refusals(body, number=None, old=""):
     """The sentences, each ending in its fix, that refuse BODY's `## Goal` for naming no flow; none for a body with no Goal, a task numbered below the cut-off,
     or a defect OLD already held, so an edit to some other part of a body is never blocked."""
-    goal = issue_state.sections(body).get("goal")
+    goal = task_state.sections(body).get("goal")
     if goal is None or number is not None and number < GOAL_CUT_OFF:
         return []
-    before = issue_state.sections(old).get("goal")
+    before = task_state.sections(old).get("goal")
     held = goal_defects(before) if before is not None else []
     return [f"the `## Goal` {name}: {GOAL_FIX[name]}" for name in goal_defects(goal) if name not in held]
 
@@ -48,7 +48,7 @@ def goal_refusals(body, number=None, old=""):
 PLACEHOLDER = re.compile(r"<[A-Za-z][\w .-]*>")
 # a code span, or an empty one, which SPAN skips
 # an empty one only where the clause goes on to its end, so a padded `` echo `x` `` stays one span
-SPANS = re.compile(r"(?<!`)``(?=\s*(?:$|[;.,)]|\bon\b|\bwhen\b))|" + issue_state.SPAN.pattern)
+SPANS = re.compile(r"(?<!`)``(?=\s*(?:$|[;.,)]|\bon\b|\bwhen\b))|" + task_state.SPAN.pattern)
 # a remark in parentheses is hidden too, since it may hold a `,` or `;`
 HIDDEN = re.compile(SPANS.pattern + r"|\([^()]*\)")
 NOTE = re.compile(r"\s*\0(\d+)\0$")
@@ -102,12 +102,12 @@ def expectation(detail):
     # a further command before the base's output is a second condition, which this value alone would pass; a `when` explains
     tail = re.split(r"\bon (?:base|main)\b", after_clause)[0]
     tail = show(re.sub(r"\bwhen\b.*?(?:[;.](?:\s|$)|$)", "", tail, flags=re.S), kept)
-    if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", match.group(2)) for match in issue_state.SPAN.finditer(tail)):
+    if re.match(r"[,;]\s*and\b", tail) or any(re.search(r"\s", match.group(2)) for match in task_state.SPAN.finditer(tail)):
         return command, (None, "more than one condition")
     if verb.group(1) == "exits":
         code = re.fullmatch(r"`?(\d+)`?", clause)
         return command, ("exits", int(code.group(1))) if code else (None, "expected status not one value")
-    found = list(issue_state.SPAN.finditer(clause))
+    found = list(task_state.SPAN.finditer(clause))
     span = found[0] if len(found) == 1 and found[0].span() == (0, len(clause)) else None
     more = re.fullmatch(r"`?(\d+)`? or more", clause)
     if clause == "nothing":
@@ -130,7 +130,7 @@ def base_quote(detail):
     _, found, rest = (re.split(r"\b(on (?:base|main))\b", hidden, maxsplit=1) + ["", ""])[:3]
     clause = clause_of(show(rest, kept))[0]
     clause = re.sub(r"^(?:it\s+)?prints\s+", "", clause)
-    spans = list(issue_state.SPAN.finditer(clause))
+    spans = list(task_state.SPAN.finditer(clause))
     if len(spans) == 1 and spans[0].span() == (0, len(clause)):
         return spans[0].group(2)
     if clause in ("nothing", "``"):

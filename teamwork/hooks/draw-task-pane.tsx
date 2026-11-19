@@ -1,13 +1,13 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
-import type { BoardIssue } from '../types'
+import type { BoardTask } from '../types'
 
-const PANE = 'teamwork-issues'
+const PANE = 'teamwork-tasks'
 // the tool a manager gets to show the pane again, which `register` serves by this full name
-const PANE_TOOL = 'show-issues-pane'
+const PANE_TOOL = 'show-tasks-pane'
 const RETRY_MS = 120000
-const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardIssue[])
+const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardTask[])
 // why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
 const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 // whether a read has worked yet, so an empty board never looks like one not read
@@ -36,7 +36,7 @@ let refresh: (() => Promise<void>) | undefined
 // Kept outside state, since a render may not write state, and read again on a clock tick, an event of its own
 let laidWidth = 0
 let relayout: (() => void) | undefined
-const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Issues' })
+const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Tasks' })
 // a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
 async function showPane($: any) {
   if ((await $.ui.panes()).some((pane: { id: string; isShown: boolean }) => pane.id === PANE && !pane.isShown)) await $.ui.close({ id: PANE })
@@ -46,7 +46,7 @@ function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
   // only a manager's model sees the tool, since the model reads the pane's name in manager.md
-  void $.tool.register({ name: PANE_TOOL, description: 'Show the Issues pane again, brought forward, with its board read anew.', isDeferred: false }).catch(() => undefined)
+  void $.tool.register({ name: PANE_TOOL, description: 'Show the Tasks pane again, brought forward, with its board read anew.', isDeferred: false }).catch(() => undefined)
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
@@ -55,11 +55,11 @@ function watch($: any, name: string) {
     retry?.cancel()
     try {
       const width = laidWidth
-      const run = await $.process.run([`${$.plugin.root}/hooks/list-issue-board.py`, project, '--json', ...(width > FOLD ? ['--width', String(width - FOLD)] : [])],
+      const run = await $.process.run([`${$.plugin.root}/hooks/list-task-board.py`, project, '--json', ...(width > FOLD ? ['--width', String(width - FOLD)] : [])],
         { cwd: startFolder, timeoutMs: 60000 })
       if (width !== laidWidth) return  // a resize during the read started a read for the new width
       if (run.exitCode === 0) {
-        await update($, board, () => JSON.parse(run.stdout) as BoardIssue[])
+        await update($, board, () => JSON.parse(run.stdout) as BoardTask[])
         await update($, loaded, () => true)
       }
       await update($, failure, () => run.exitCode === 0 ? '' : (run.stderr ?? '').trim() || `the board read exited ${run.exitCode}`)
@@ -107,20 +107,20 @@ const spansOf = (lines: string[], starts: (line: string) => boolean, pattern: Re
   return found
 }
 // where a pattern matches in a task's lines: `hidden` is true when a match sits in text a folded task does not draw
-const matchesIn = (issue: BoardIssue, pattern: RegExp) => {
-  const title = spansOf(issue.lines.title, () => false, pattern)
-  const status = spansOf(issue.lines.status, () => true, pattern)
-  const notes = spansOf(issue.lines.notes, line => !line.startsWith(' '), pattern)
-  const done = issue.done.map(criterion => spansOf([criterion.line], () => true, pattern)[0])
-  const closed = issue.closed.map(task => spansOf([`#${task.number} ${task.title}`], () => true, pattern)[0])
+const matchesIn = (task: BoardTask, pattern: RegExp) => {
+  const title = spansOf(task.lines.title, () => false, pattern)
+  const status = spansOf(task.lines.status, () => true, pattern)
+  const notes = spansOf(task.lines.notes, line => !line.startsWith(' '), pattern)
+  const done = task.done.map(criterion => spansOf([criterion.line], () => true, pattern)[0])
+  const closed = task.closed.map(part => spansOf([`#${part.number} ${part.title}`], () => true, pattern)[0])
   const any = (found: Spans[]) => found.some(spans => spans.length > 0)
   // a decision or a question the lister cut to its width still counts, so a search finds the same tasks at any width; only the drawn part is painted
   const said = (text: string) => (text.match(pattern) ?? []).some(match => match !== '')
-  const cut = (issue.questions ?? []).some(said)
-  const cutDecision = (issue.decided ?? []).some(decision => said(decision.decision))
+  const cut = (task.questions ?? []).some(said)
+  const cutDecision = (task.decided ?? []).some(decision => said(decision.decision))
   const painted = (found: Spans[]) => found.some(spans => spans.some(([start, end]) => end > start))
   return { title, status, notes, done, closed, found: any(title) || any(status) || any(notes) || any(done) || any(closed) || cut || cutDecision,
-           hidden: painted(notes.slice(issue.lines.questions)) || painted(done) || painted(closed) || cutDecision }
+           hidden: painted(notes.slice(task.lines.questions)) || painted(done) || painted(closed) || cutDecision }
 }
 
 export const register: Register = on => {
@@ -129,7 +129,7 @@ export const register: Register = on => {
     const ran = await next(event)
     if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(event.command)) {
       const claudeFolder = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
-      await $.process.run(['touch', `${claudeFolder}/teamwork/issues-changed`]).catch(() => undefined)
+      await $.process.run(['touch', `${claudeFolder}/teamwork/tasks-changed`, `${claudeFolder}/teamwork/issues-changed`]).catch(() => undefined)
     }
     return ran
   }).catch(($, event, next) => next(event))  // a failed mark must never fail the command it follows
@@ -156,8 +156,8 @@ export const register: Register = on => {
   on('tool.call', { tool: `mcp__teamwork__${PANE_TOOL}` }, async ($) => {
     await showPane($)
     await refresh?.()
-    return { result: 'Issues pane shown' }
-  }).catch(() => ({ deny: 'the Issues pane could not be shown' }))
+    return { result: 'Tasks pane shown' }
+  }).catch(() => ({ deny: 'the Tasks pane could not be shown' }))
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
     const width = event.props.bodyColumns
@@ -213,64 +213,64 @@ export const register: Register = on => {
     // the space after a number, yellow when a match runs over it
     const gap = (spans: Spans, at: number) => <Text backgroundColor={spans.some(([start, end]) => start <= at && end > at) ? 'yellow' : undefined}> </Text>
     // a status line's holder and wait take their colors, its other parts stay dim; a part wrapped over lines is dim, since only a whole part is known
-    const status = (issue: BoardIssue, line: string, spans: Spans) => {
+    const status = (task: BoardTask, line: string, spans: Spans) => {
       const pieces: { part: string; at: number }[] = []
       for (let rest = line; rest;) {
-        const part = [issue.progress, issue.holder, issue.wait].find(name => name && rest.startsWith(name)) ?? rest
+        const part = [task.progress, task.holder, task.wait].find(name => name && rest.startsWith(name)) ?? rest
         pieces.push({ part, at: line.length - rest.length })
         rest = rest.slice(part.length).replace(/^ /, '')
       }
-      return pieces.flatMap(({ part, at }, k) => [k ? gap(spans, at - 1) : null, <Text dimColor={part !== issue.holder && part !== issue.wait}
-        color={part === issue.holder ? 'suggestion' : part === issue.wait ? 'error' : undefined} weight={part === issue.wait ? 'semibold' : undefined}>{lit(line, spans, at, at + part.length)}</Text>])
+      return pieces.flatMap(({ part, at }, k) => [k ? gap(spans, at - 1) : null, <Text dimColor={part !== task.holder && part !== task.wait}
+        color={part === task.holder ? 'suggestion' : part === task.wait ? 'error' : undefined} weight={part === task.wait ? 'semibold' : undefined}>{lit(line, spans, at, at + part.length)}</Text>])
     }
     const lead = (text: string) => <Text dimColor>{text}</Text>
     // a question the team answers and a manager's or a worker's decision are dim, as the lister marks them in `quiet`
-    const note = (issue: BoardIssue, pad: string, line: string, k: number, spans: Spans) =>
-      <Text>{lead(pad)}<Text color={line.startsWith('?') && !issue.lines.quiet.includes(k) ? 'warning' : undefined} dimColor={issue.lines.quiet.includes(k)}>{lit(line, spans)}</Text></Text>
-    // a row as list-issue-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits.
+    const note = (task: BoardTask, pad: string, line: string, k: number, spans: Spans) =>
+      <Text>{lead(pad)}<Text color={line.startsWith('?') && !task.lines.quiet.includes(k) ? 'warning' : undefined} dimColor={task.lines.quiet.includes(k)}>{lit(line, spans)}</Text></Text>
+    // a row as list-task-board.py lays it out for the pane: its guide, then each line it wrapped; the guide is drawn text, so the tree reads at any width it fits.
     // While a search is on, every match is a top-level row with no guide, and one whose match sits in folded text is open
-    const row = (issue: BoardIssue): JSX.Element => {
-      const found = pattern ? matchesIn(issue, pattern) : undefined
-      const [guide, pad] = pattern ? ['', '  '] : [issue.guide, issue.pad]
-      const open = searching ? (!foldedTasks.has(issue.number) || Boolean(found?.hidden)) !== pressed.has(issue.number) : !foldedTasks.has(issue.number)
-      const more = Boolean(issue.lines.notes.length > issue.lines.questions || issue.done.length || issue.closed.length || issue.earlier)
-      const [first, ...rest] = issue.lines.title
-      const label = `#${issue.number}`
+    const row = (task: BoardTask): JSX.Element => {
+      const found = pattern ? matchesIn(task, pattern) : undefined
+      const [guide, pad] = pattern ? ['', '  '] : [task.guide, task.pad]
+      const open = searching ? (!foldedTasks.has(task.number) || Boolean(found?.hidden)) !== pressed.has(task.number) : !foldedTasks.has(task.number)
+      const more = Boolean(task.lines.notes.length > task.lines.questions || task.done.length || task.closed.length || task.earlier)
+      const [first, ...rest] = task.lines.title
+      const label = `#${task.number}`
       const spans = (kind: 'title' | 'status' | 'notes', k: number): Spans => found?.[kind][k] ?? []
-      const numberColor = issue.wait ? NUMBER_COLOR.owner : issue.holder ? NUMBER_COLOR.held
-        : issue.blockers.some(blocker => !blocker.closed) ? NUMBER_COLOR.blocked : NUMBER_COLOR.ready
+      const numberColor = task.wait ? NUMBER_COLOR.owner : task.holder ? NUMBER_COLOR.held
+        : task.blockers.some(blocker => !blocker.closed) ? NUMBER_COLOR.blocked : NUMBER_COLOR.ready
       return (
         <Box flexDirection="column">
           <Box flexDirection="row">
             {lead(guide)}
             {/* the number's button and the space after it sit outside the title's Button, so its press area and highlight start at the title's first letter */}
-            {numeral(issue.number, label, spans('title', 0), numberColor)}
+            {numeral(task.number, label, spans('title', 0), numberColor)}
             {gap(spans('title', 0), label.length)}
-            <Button key={`row-${issue.number}`} plain onPress={toggle(issue.number)}><Text weight="semibold">{lit(first, spans('title', 0), label.length + 1, issue.lines.held[0])}</Text></Button>
+            <Button key={`row-${task.number}`} plain onPress={toggle(task.number)}><Text weight="semibold">{lit(first, spans('title', 0), label.length + 1, task.lines.held[0])}</Text></Button>
             {/* a wait is quiet text outside the Button, so a press on it does nothing */}
-            {issue.lines.held[0] < first.length && <Text dimColor>{lit(first, spans('title', 0), issue.lines.held[0])}</Text>}
+            {task.lines.held[0] < first.length && <Text dimColor>{lit(first, spans('title', 0), task.lines.held[0])}</Text>}
             <Box flexGrow={1} />
-            {more && <Button key={`fold-${issue.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(issue.number)} />}
+            {more && <Button key={`fold-${task.number}`} plain dimColor label={open ? ' -' : ' +'} onPress={toggle(task.number)} />}
           </Box>
-          {rest.map((line, k) => <Text>{lead(pad)}<Text weight="semibold">{lit(line, spans('title', k + 1), 0, issue.lines.held[k + 1])}</Text><Text dimColor>{lit(line, spans('title', k + 1), issue.lines.held[k + 1])}</Text></Text>)}
-          {issue.lines.status.map((line, k) => <Text>{lead(pad)}{status(issue, line, spans('status', k))}</Text>)}
+          {rest.map((line, k) => <Text>{lead(pad)}<Text weight="semibold">{lit(line, spans('title', k + 1), 0, task.lines.held[k + 1])}</Text><Text dimColor>{lit(line, spans('title', k + 1), task.lines.held[k + 1])}</Text></Text>)}
+          {task.lines.status.map((line, k) => <Text>{lead(pad)}{status(task, line, spans('status', k))}</Text>)}
           {/* a task folds to its title, status and open questions; opened, it adds every decision newest first, what keeps it open, its criteria and its closed parts, all flat */}
-          {issue.lines.notes.map((line, k) => (open || k < issue.lines.questions) && note(issue, pad, line, k, spans('notes', k)))}
+          {task.lines.notes.map((line, k) => (open || k < task.lines.questions) && note(task, pad, line, k, spans('notes', k)))}
           {/* an open task with no criterion, closed part or earlier mark has nothing to put here, and an empty box would draw a blank line after it */}
-          {open && (issue.done.length > 0 || issue.closed.length > 0 || issue.earlier) && (
+          {open && (task.done.length > 0 || task.closed.length > 0 || task.earlier) && (
             <Box flexDirection="row">
               {lead(pad)}
               <Box flexDirection="column">
-                {issue.done.map((criterion, k) => <Text wrap="wrap">{lit(criterion.line, found?.done[k] ?? [])}</Text>)}
+                {task.done.map((criterion, k) => <Text wrap="wrap">{lit(criterion.line, found?.done[k] ?? [])}</Text>)}
                 {/* closed parts dim and newest first, so what landed last stays in view */}
-                {issue.closed.map((task, k) => {
+                {task.closed.map((part, k) => {
                   const marked = found?.closed[k] ?? []
-                  const head = `#${task.number} `.length
-                  return <Box flexDirection="row">{numeral(task.number, `#${task.number}`, marked, 'subtle')}{gap(marked, head - 1)}
-                    <Text wrap="wrap" dimColor><Text strikethrough={task.stopped}>{lit(`#${task.number} ${task.title}`, marked, head)}</Text>
-                    {task.blockers.some(blocker => !blocker.closed) && <Text> blocked by {task.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text></Box>
+                  const head = `#${part.number} `.length
+                  return <Box flexDirection="row">{numeral(part.number, `#${part.number}`, marked, 'subtle')}{gap(marked, head - 1)}
+                    <Text wrap="wrap" dimColor><Text strikethrough={part.stopped}>{lit(`#${part.number} ${part.title}`, marked, head)}</Text>
+                    {part.blockers.some(blocker => !blocker.closed) && <Text> blocked by {part.blockers.filter(blocker => !blocker.closed).map(blocker => `#${blocker.number}`).join(' ')}</Text>}</Text></Box>
                 })}
-                {issue.earlier && <Text dimColor>…</Text>}
+                {task.earlier && <Text dimColor>…</Text>}
               </Box>
             </Box>
           )}
@@ -278,8 +278,8 @@ export const register: Register = on => {
       )
     }
     // a row that cannot be drawn, such as one read by an older module from fields a newer lister dropped, says so instead of blanking the pane
-    const safely = (issue: BoardIssue): JSX.Element => {
-      try { return row(issue) } catch (error) { return <Text wrap="wrap" color="error">{`#${issue?.number ?? '?'} could not be drawn: ${error}`}</Text> }
+    const safely = (task: BoardTask): JSX.Element => {
+      try { return row(task) } catch (error) { return <Text wrap="wrap" color="error">{`#${task?.number ?? '?'} could not be drawn: ${error}`}</Text> }
     }
     const task = await read($, opened)
     // the back control at the top left returns to the list, whose folds and search the atoms above kept
@@ -291,8 +291,8 @@ export const register: Register = on => {
     )
     const list = await read($, board)
     const error = await read($, failure)
-    const empty = (await read($, loaded)) ? 'The board has no open issues.' : 'No board read yet.'
-    const shown = pattern ? list.filter(issue => { try { return matchesIn(issue, pattern!).found } catch { return true } }) : list
+    const empty = (await read($, loaded)) ? 'The board has no open tasks.' : 'No board read yet.'
+    const shown = pattern ? list.filter(task => { try { return matchesIn(task, pattern!).found } catch { return true } }) : list
     return (
       <Box flexDirection="column">
         <Box borderStyle="round" paddingX={1}>

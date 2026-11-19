@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""Print one task as Markdown, the text the issue pane draws when a task's number is pressed: its title, state, body, then each comment after a rule.
+"""Print one task as Markdown, the text the task pane draws when a task's number is pressed: its title, state, body, then each comment after a rule.
 
 usage: print-task-markdown.py <number>
        print-task-markdown.py --nodes <file> <number>
-`--nodes` reads the task from the issue nodes in a file instead of the board."""
+`--nodes` reads the task from the task nodes in a file instead of the board."""
 import json
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
-import issue_state  # noqa: E402
+import task_state  # noqa: E402
 
 
 def main(args):
@@ -24,15 +24,15 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     if nodes is None:
-        issue = board.fresh(args[0])
+        task = board.fresh(args[0])
     else:
         found = next((node for node in nodes if node["number"] == int(args[0])), None)
-        issue = found and {**found, "trusted": True, "state": found.get("state", "OPEN"), "comments": [{"body": note["body"]} for note in found["comments"]["nodes"]]}
-    if not issue:
+        task = found and {**found, "trusted": True, "state": found.get("state", "OPEN"), "comments": [{"body": note["body"]} for note in found["comments"]["nodes"]]}
+    if not task:
         print(f"print-task-markdown: cannot read #{args[0]}", file=sys.stderr)
         return 1
-    print(f"# #{issue['number']} {issue_state.title(issue)}\n\n{issue['state'].lower()}\n\n{issue['body'].strip()}")
-    for note in issue["comments"]:
+    print(f"# #{task['number']} {task_state.title(task)}\n\n{task['state'].lower()}\n\n{task['body'].strip()}")
+    for note in task["comments"]:
         print(f"\n---\n\n{note['body'].strip()}")
     return 0
 

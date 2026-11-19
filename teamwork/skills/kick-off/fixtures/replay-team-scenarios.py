@@ -115,7 +115,7 @@ def git_team():
 
 
 def git_board():
-    """The protocol on a git board: an issue filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
+    """The protocol on a git board: a task filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
     code, out = run([HERE / "replay-board-scenario.py"], herdr(*TEAM))
     steps = dict(re.findall(r"^step (\S+)\n((?:(?!step ).*\n?)*)", out, re.M))
     ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=root" in steps.get("part", "") \

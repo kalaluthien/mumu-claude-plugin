@@ -17,7 +17,7 @@ PLUGIN = "teamwork"
 UNKNOWN = ("--help", "--x")
 # the valid calls of each script, each word either a file the sandbox holds (`body`, `diff`) or a name; an option goes in at every position
 CALLS = {
-    "hooks/list-issue-board.py": [["project", "--width", "80"], ["--nodes", "body", "--json"], ["project", "--check"]],
+    "hooks/list-task-board.py": [["project", "--width", "80"], ["--nodes", "body", "--json"], ["project", "--check"]],
     "hooks/print-task-markdown.py": [["1"], ["--nodes", "body", "1"]],
     "skills/kick-off/scripts/add-worktree.py": [["name", "main", "branch"]],
     "skills/kick-off/scripts/answer-prompt.py": [["name", "1"]],
@@ -70,7 +70,7 @@ def run(command, **options):
 
 
 def build_sandbox(root, work):
-    """A git repository with a board holding issue 1, a home, and a PATH with the stand-in herdr first."""
+    """A git repository with a board holding task 1, a home, and a PATH with the stand-in herdr first."""
     repository, home = work / "repository", work / "home"
     repository.mkdir()
     home.mkdir()

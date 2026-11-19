@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Check the task graph's links on a board, writing only through use-board.py, and print `ok <case>` or `fail <case>: <what it saw>` per case;
-exit 1 on any fail. The git board runs every case but the nodes'; nodes the heartbeat and the pane, from issue nodes written here by hand.
+exit 1 on any fail. The git board runs every case but the nodes'; nodes the heartbeat and the pane, from task nodes written here by hand.
 - refuse-cycle, refuse-part-waits-on-parent, refuse-second-parent-open, refuse-second-parent-closed, refuse-unknown: an `edit` or a `depend`
-  that exits 1 naming the issues, the body, the comments and the tasks it waits on unchanged; refuse-on-file: a `file` naming an unknown issue exits 1, no issue made
+  that exits 1 naming the tasks, the body, the comments and the tasks it waits on unchanged; refuse-on-file: a `file` naming an unknown task exits 1, no task made
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
   derive-drop-closes-parent, derive-follow-up-reopens, derive-link-edit-keeps-ask (neither a `depend` nor a body edit's `DECIDED:` answers a `BLOCKED:`; a
   decision naming it by `--answers` does), derive-stop-closes-parts
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, 
   heartbeat-tree-unread: a failed tree read leaves the manager's read whole, with one `unread` link line
-- pane-nesting, pane-wait-line, pane-done-count: list-issue-board.py's lines
+- pane-nesting, pane-wait-line, pane-done-count: list-task-board.py's lines
 - older-depends, on the git board: a body written straight to the board with a `depends on` line in a `teamwork` fence still makes its task wait;
   the nodes' heartbeat-cycle reads the same fence
 
@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
-LIST = ROOT / "hooks" / "list-issue-board.py"
+LIST = ROOT / "hooks" / "list-task-board.py"
 CHECK = replay_probe.CHECK
 failures = []
 
@@ -107,9 +107,9 @@ def refuse_cases():
     refused("refuse-second-parent-closed", other, lambda: edit(other, body(parts=[closed_part], check=False)), closed_part, closed_parent)
     unknown = 10 ** 7
     refused("refuse-unknown", first, lambda: depend(first, second, unknown), unknown)
-    count = len(board.issues("all", comments=False))
+    count = len(board.tasks("all", comments=False))
     done = use("file", "Probe an unknown link", write("file.md", body()), "--depends", unknown)
-    step("refuse-on-file", done.returncode == 1 and f"#{unknown}" in done.stderr and len(board.issues("all", comments=False)) == count, f"exit {done.returncode}: {done.stderr}")
+    step("refuse-on-file", done.returncode == 1 and f"#{unknown}" in done.stderr and len(board.tasks("all", comments=False)) == count, f"exit {done.returncode}: {done.stderr}")
 
 
 def derive_cases():
@@ -212,7 +212,7 @@ def older(*depends):
 
 
 def older_depends():
-    """Writes, behind the write path, an issue as one filed before `depend` was: no `depends` in its record, the link in its body's fence."""
+    """Writes, behind the write path, a task as one filed before `depend` was: no `depends` in its record, the link in its body's fence."""
     target, waiting = file("Probe an older target", body()), file("Probe an older waiting task", body())
     import board_git
     import board_records
@@ -221,7 +221,7 @@ def older_depends():
     def change():
         kept = board_records.meta(store, waiting)
         kept.pop("depends")
-        store.stage(f"{board_records.home(store, waiting)}/issue.json", json.dumps(kept))
+        store.stage(f"{board_records.home(store, waiting)}/task.json", json.dumps(kept))
         store.stage(f"{board_records.home(store, waiting)}/body.md", older(target))
     store.write(change)
     read = use("read", waiting).stdout
@@ -231,7 +231,7 @@ def older_depends():
 def node(number, text, labels=(), state="OPEN", reason=None, depends=None):
     return {**({} if depends is None else {"depends": depends}), "number": number, "title": f"Probe {number}", "url": f"https://github.com/o/r/issues/{number}", "body": text, "authorAssociation": "OWNER",
             "state": state, "stateReason": reason, "parent": None, "labels": {"nodes": [{"name": name} for name in labels]},
-            "subIssues": {"nodes": []}, "subIssuesSummary": {"total": 0}, "blockedBy": {"nodes": []}, "comments": {"nodes": []}}
+            "parts": {"nodes": []}, "partsSummary": {"total": 0}, "blockedBy": {"nodes": []}, "comments": {"nodes": []}}
 
 
 def pane_nodes():
@@ -287,7 +287,7 @@ def main(args):
     resolve(closed_part)
     shown = subprocess.run([sys.executable, str(LIST), "probe"], capture_output=True, text=True)
     lines = shown.stdout.splitlines()
-    # the board holds every case's issues, so only the root's block is read: from its row to the next root's
+    # the board holds every case's tasks, so only the root's block is read: from its row to the next root's
     start = next((i for i, line in enumerate(lines) if line.startswith(f"#{root} ")), len(lines))
     end = next((i for i in range(start + 1, len(lines)) if re.match(r"^#\d+ ", lines[i])), len(lines))
     pane_cases(lines[start:end], root, waiting, first, second)
