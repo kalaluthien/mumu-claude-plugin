@@ -202,7 +202,7 @@ def team_lines(team, listed, data, open_tasks, blockers, again):
         held = " ".join(f"#{task['number']}" for task in held_tasks) or "nothing open"
         choices = prompt_text(panes[name]) if status[name] == "blocked" and again.status(name) == "blocked" else None  # a blocked pane with no prompt on it is no claim on the worker, so its merged change still shows
         if choices:
-            lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the Tool prompt rule once the owner says so: {choices}")
+            lines.append(f"blocked {name} (pane {panes[name]}): it waits at a tool-use prompt; tell the owner this screen, then answer by the manager's Triage row for a tool prompt once the owner says so: {choices}")
         elif merged[name] and not held_tasks and again.holding(name) == []:
             # a merged change is news only once its worker has nothing left to do, since until then the worker goes on with its next task
             lines.append(f"merged {' '.join(f'#{number}' for number in merged[name])} by {name}: it holds nothing open; close it and clean its worktree")

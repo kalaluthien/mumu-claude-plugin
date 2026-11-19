@@ -1,0 +1,31 @@
+두 응답은 `manager.md`의 분류 표와 **Report form**을 따라 작성했습니다.
+
+```json
+{
+  "cases": {
+    "update-open-root": {"section": "Steps", "locator": "adds to work on the board, open or closed", "operations": ["decide", "tell"]},
+    "live-worker-work": {"section": "Steps", "locator": "adds to work on the board, open or closed", "operations": ["decide", "tell"]},
+    "follow-up-closed": {"section": "Steps", "locator": "adds to work on the board, open or closed", "operations": ["reopen", "decide", "tell"]},
+    "new-work": {"section": "Steps", "locator": "asks for new work, or approves a follow-up you proposed", "operations": ["file", "decide", "start"]},
+    "other-project": {"section": "Steps", "locator": "asks for new work, or approves a follow-up you proposed", "operations": ["file", "list", "tell", "start"]},
+    "start-manager": {"section": "Steps", "locator": "asks for a session or a pane", "operations": ["start"]},
+    "endless-duty": {"section": "Steps", "locator": "asks for a session or a pane", "operations": ["start", "close"]},
+    "stop-work": {"section": "Steps", "locator": "stops or pauses work", "operations": ["resolve", "close", "edit"]},
+    "tasks-pane": {"section": "Steps", "locator": "asks for a session or a pane", "operations": ["mcp__teamwork__show-tasks-pane"]},
+    "remark": {"section": "Steps", "locator": "asks a question, thanks or remarks", "operations": []},
+    "prompt-covered": {"section": "Steps", "locator": "answers a question or a tool prompt, or has already allowed a prompt's action in this conversation", "operations": ["answer", "screen"]},
+    "prompt-uncovered": {"section": "Steps", "locator": "is owed news: a landing, a question or tool prompt only the owner settles, a `feed` line, a blocker", "operations": ["ask", "answer"]},
+    "work-style": {"section": "Steps", "locator": "adds to work on the board, open or closed", "operations": ["tell"]},
+    "approved-follow-up": {"section": "Steps", "locator": "asks for new work, or approves a follow-up you proposed", "operations": ["start"]},
+    "usage-limit": {"section": "Steps", "locator": "stops or pauses work", "operations": ["decide", "tell", "ask"]},
+    "owner-answer": {"section": "Steps", "locator": "answers a question or a tool prompt, or has already allowed a prompt's action in this conversation", "operations": ["decide", "tell"]},
+    "batch-landed": {"section": "Steps", "locator": "is owed news: a landing, a question or tool prompt only the owner settles, a `feed` line, a blocker", "operations": ["reopen"]},
+    "status-check": {"section": "Steps", "locator": "asks how work stands", "operations": ["read", "list"]},
+    "progress-report": {"section": "Steps", "locator": "is owed news: a landing, a question or tool prompt only the owner settles, a `feed` line, a blocker", "operations": []},
+    "prompt-refused": {"section": "Steps", "locator": "is owed news: a landing, a question or tool prompt only the owner settles, a `feed` line, a blocker", "operations": ["ask"]},
+    "pause-idle": {"section": "Steps", "locator": "stops or pauses work", "operations": []}
+  },
+  "status-reply": "| task | state | done since last report | next | waits on |\n| --- | --- | --- | --- | --- |\n| owner-router-worker: Route owner requests by one table | 진행 중 (표 초안 작성) | 없음 | 리베이스 | 'Take each board write field as an option' 작업 |\n| board-writes-worker: Take each board write field as an option | 병합 완료 | 변경이 병합되었습니다 | 없음 | 없음 |\n\n결정이 필요한 항목은 없습니다.",
+  "progress-reply": "| task | state | done since last report | next | waits on |\n| --- | --- | --- | --- | --- |\n| board-writes-worker: Take each board write field as an option | 병합 완료 | 변경이 병합되었습니다 | 없음 | 없음 |\n\n결정이 필요한 항목은 없습니다."
+}
+```
