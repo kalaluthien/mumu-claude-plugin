@@ -6,32 +6,24 @@
 // overlay, each step of each scenario, each property with its overlay, and the lists the Scenarios and
 // Properties buttons open. `text` is the text the window draws and `shown` says whether the view's overlay or
 // list came. It exits 1 with a `setup:` line when Playwright or its browser is missing, and 2 on another call.
-// Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
-// newest headless shell Playwright installed, never an installed Google Chrome.
-const fs = require("fs");
-const os = require("os");
+// The browser is the one ../../../lib/launch-browser.cjs starts.
 const path = require("path");
 
-const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
+const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const asked = process.argv.slice(2);
 if (asked.length !== 1 || asked[0].startsWith("-")) {
   console.error("usage: list-page-texts.cjs PAGE.html");
   process.exit(2);
 }
 
-function browserBinary() {
-  const cache = path.join(os.homedir(), "Library/Caches/ms-playwright");
-  const shells = fs.existsSync(cache) ? fs.readdirSync(cache).filter((name) => name.startsWith("chromium_headless_shell-")).sort() : [];
-  return shells.length ? path.join(cache, shells[shells.length - 1], "chrome-headless-shell-mac-arm64/chrome-headless-shell") : null;
-}
-
 async function main() {
-  const binary = browserBinary(), built = "file://" + path.resolve(asked[0]);
-  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
-    console.log("setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell");
+  const built = "file://" + path.resolve(asked[0]);
+  if (browsers.missing()) {
+    console.log(`setup: ${browsers.missing()}`);
     return 1;
   }
-  const browser = await require(PLAYWRIGHT).chromium.launch({ executablePath: binary });
+  const browser = await browsers.launch().catch((error) => { console.log(`setup: ${error.message}`); return null; });
+  if (!browser) return 1;
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
     await page.goto(built);

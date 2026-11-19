@@ -78,23 +78,22 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .tool:focus-visible, #crumbs button:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); border-radius: 6px; }
 .tool.quiet { color: var(--muted-foreground); font-weight: 400; }
 
-#card { position: fixed; z-index: 30; width: 340px; overflow: hidden; padding: 14px 16px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
-#card.kept { width: 420px; box-shadow: var(--shadow-lg); }
+#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 14px 16px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
+#card.kept { box-shadow: var(--shadow-lg); }
 #card.long { overflow-y: auto; }
+#card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
 #card.show { opacity: 1; transform: none; pointer-events: auto; }
 #card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
 #card .tag { display: inline-flex; margin: 6px 6px 0 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
 #card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
-#card dl { margin: 10px 0 0; display: grid; gap: 8px; }
+#card dl { margin: 10px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 #card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
-#card dd { margin: 2px 0 0; overflow-wrap: break-word; word-break: keep-all; }
-#card .clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-#card .more { display: block; margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+#card dd { margin: 2px 0 0; word-break: keep-all; }
 #card ul { margin: 0; padding-left: 18px; } #card li + li { margin-top: 2px; }
 #card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
-#card th { text-align: left; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; } #card th, #card td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
+#card th { text-align: left; font-weight: 500; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--border); vertical-align: top; }
 #card tr:last-child td { border-bottom: 0; }
-#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 6px 8px; white-space: pre-wrap; overflow-wrap: break-word; } #card code { padding: 1px 4px; }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 6px 8px; white-space: pre-wrap; } #card code { padding: 1px 4px; }
 #card pre code { padding: 0; background: none; }
 #card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
 #card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }

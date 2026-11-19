@@ -529,21 +529,19 @@
     if (hovered) card(hovered); else if (view.at) card(view.at); else hide(true);
   }
   const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, ...part.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece])) : part);
-  const FOLD = { list: 4, table: 3, tree: 4, code: 5 }; // the items a row of the resting card shows
-  const value = (form, data, most) => {
-    const rest = count => count > most ? [make("small", { class: "more" }, `+${count - most} more`)] : [];
-    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.slice(0, most).map(item => make("li", {}, ...prose(item)))), ...rest(data.length)];
+  const value = (form, data) => {
+    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
     if (form === "table" && data && data.columns) {
       const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
-      table.append(make("tbody", {}, ...data.rows.slice(0, most).map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
-      return [table, ...rest(data.rows.length)];
+      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
+      return [table];
     }
     if (form === "tree" && Array.isArray(data)) {
       const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, words(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
-      return [branch(data.slice(0, most)), ...rest(data.length)];
+      return [branch(data)];
     }
-    if (form === "code") { const lines = String(data).split("\n"); return [make("pre", {}, make("code", {}, lines.slice(0, most).join("\n"))), ...rest(lines.length)]; }
-    return [make("span", most < Infinity ? { class: "clamp" } : {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
+    if (form === "code") return [make("pre", {}, make("code", {}, String(data)))];
+    return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
   };
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
@@ -570,7 +568,7 @@
     const points = (one, weight) => line(one).forEach(point => keep({ left: point.x, top: point.y, right: point.x, bottom: point.y }, 6, weight));
     keep(spot, 8, 400);
     points(id, 400);
-    for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 0, 40); points(one, 12); }
+    for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 4, records[one].kind === "node" ? 400 : 40); points(one, 12); }
     for (const node of records[view.level].record.nodes) if (!tied.has(node.id)) keep(lies(node.id), 0, apart);
     for (const [one, face] of Object.entries(faces)) if (one !== id && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
     for (const bar of [$("tools"), $("crumbs"), $("play")]) if (bar.id !== "play" || bar.classList.contains("show")) keep(bar.getBoundingClientRect(), 8, 400);
@@ -580,63 +578,75 @@
       return covers(x, y, 0) + 20 * far + far * far / 4;
     };
     let best = null;
-    const weigh = (x, y) => {
-      const left = Math.min(Math.max(8, x), innerWidth - w - 8), top = Math.min(Math.max(8, y), innerHeight - h - 8), cost = price(left, top);
-      if (!best || cost < best.cost) best = { left, top, cost };
+    const weigh = (x, y) => { // a spot clear of what is tied beats any that covers it, however near
+      const left = Math.min(Math.max(8, x), innerWidth - w - 8), top = Math.min(Math.max(8, y), innerHeight - h - 8), cost = price(left, top), tied = covers(left, top, 400);
+      if (!best || (tied > 0) < (best.tied > 0) || (tied > 0) === (best.tied > 0) && cost < best.cost) best = { left, top, cost, tied };
     };
     for (let k = 0; k <= 8; k++) {
       for (const x of [spot.right + 12, spot.left - 12 - w]) weigh(x, spot.top - h + (h + spot.height) * k / 8);
       for (const y of [spot.bottom + 12, spot.top - 12 - h]) weigh(spot.left - w + (w + spot.width) * k / 8, y);
     }
     for (let x = 8; x <= innerWidth - w - 8; x += 40) for (let y = 8; y <= innerHeight - h - 8; y += 40) weigh(x, y);
+    if (best.tied) { // a gap the grid steps over may still hold the card clear, so the spots flush with each edge of what it must not cover are tried
+      const walls = dear.filter(held => held.weight >= 400), xs = [8, ...walls.flatMap(held => [held.right, held.left - w])], ys = [8, ...walls.flatMap(held => [held.bottom, held.top - h])];
+      for (const x of xs) for (const y of ys) weigh(x, y);
+    }
     const rough = best;
     for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
-    return { ...best, tied: covers(best.left, best.top, 40) }; // `tied` is what the spot still covers of the record and of what is tied to it
+    return best; // `tied` is what the spot still covers of the record and of what is tied to it
   }
-  let leaf = 0; // the page of rows the kept card shows
-  function card(id) {
+  let leaf = 0; // the page of rows the card shows
+  function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
     const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
-    if (box.dataset.for !== id || !kept) leaf = 0;
+    if (box.dataset.for !== id) leaf = 0;
     const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
     for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
     const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
     box.replaceChildren(make("h2", {}, words(record.label || record.title || record.id)), tags, list, foot);
     box.dataset.for = id;
     box.classList.toggle("kept", kept);
-    const limit = Math.floor(kept ? innerHeight * .7 : Math.min(innerHeight * .46, 400));
-    const lay = (from, most = Infinity) => { // the rows from FROM on that the card's height holds, MOST at most, and the row after them
+    const limit = Math.floor(Math.min(innerHeight * .46, 400));
+    const lay = (from, most, cap) => { // the rows from FROM on that CAP pixels of the card hold, MOST at most, and the row after them
       box.classList.remove("long");
       box.style.maxHeight = "none";
       list.replaceChildren();
       let to = from;
       for (; to < all.length && to - from < most; to++) {
         const [name, form, data] = all[to];
-        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data, kept ? Infinity : FOLD[form] || 3))));
-        if (to > from && box.offsetHeight > limit) { list.lastChild.remove(); break; }
+        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data))));
+        if (to > from && box.offsetHeight > cap) { list.lastChild.remove(); break; }
       }
       return to;
     };
-    const starts = [0];
-    for (let to = lay(0); to < all.length; to = lay(to)) starts.push(to);
-    leaf = Math.min(leaf, starts.length - 1);
     const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
-    const fill = most => { // the card with MOST rows at most, and the place it would take
-      const end = lay(starts[leaf], most), turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${starts[leaf] + 1}–${end} of ${all.length} ›`);
-      turn.addEventListener("click", () => { leaf = (leaf + 1) % starts.length; card(id); });
-      foot.replaceChildren(...(kept ? (starts.length < 2 ? [] : [turn]) : end < all.length ? [make("span", {}, `+${all.length - end} more`)] : []),
-        make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
-      box.style.maxHeight = limit + "px";
-      box.classList.toggle("long", box.scrollHeight > limit + 1);
-      return { ...beside(id, box.offsetWidth, box.offsetHeight), rows: end - starts[leaf] };
+    const fill = (most, page) => { // the card with MOST rows a page at most on its PAGE-th page, placed by its first page, its later pages growing up from the same foot, a row taller than the room above scrolling under its fixed foot
+      const sign = (from, to, paged, next) => {
+        const turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${from + 1}–${to} of ${all.length} ›`);
+        turn.addEventListener("click", () => { leaf = next; card(id); });
+        foot.replaceChildren(...(paged ? [turn] : []), make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
+      };
+      const firstEnd = lay(0, most, limit);
+      sign(0, firstEnd, firstEnd < all.length, 0);
+      const first = Math.min(box.offsetHeight, limit), place = beside(id, box.offsetWidth, first), bottom = place.top + first, cap = Math.min(limit, bottom - 8);
+      const starts = [0];
+      for (let to = firstEnd; to < all.length; to = lay(to, most, cap)) starts.push(to);
+      const shown = Math.min(page, starts.length - 1);
+      sign(starts[shown], lay(starts[shown], most, shown ? cap : limit), starts.length > 1, (shown + 1) % starts.length);
+      const height = shown ? cap : limit;
+      box.style.maxHeight = height + "px";
+      box.classList.toggle("long", box.scrollHeight > height + 1);
+      return { ...place, bottom, most, page: shown };
     };
-    let at = fill(Infinity);
-    for (let most = at.rows - 1, tried = at; !kept && tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows until one does
-      tried = fill(most);
-      if (tried.cost < at.cost) at = tried;
+    let at = fill(Infinity, 0);
+    for (let most = list.children.length - 1, tried = at; tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows a page until one does
+      tried = fill(most, 0);
+      if ((tried.tied > 0) < (at.tied > 0) || (tried.tied > 0) === (at.tied > 0) && tried.cost < at.cost) at = tried;
     }
-    if (list.children.length !== at.rows) fill(at.rows);
+    at = fill(at.most, leaf);
+    leaf = at.page;
     box.style.left = at.left + "px";
-    box.style.top = at.top + "px";
+    box.style.top = "auto";
+    box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
     box.classList.add("show");
   }
   function hide(now) {

@@ -18,15 +18,14 @@
 //          diagram's records span and the share fixed chrome covers; per motion: each running animation's property,
 //          duration, delay and easing; per hover: the wait until the card shows and the neighbours it covers; per
 //          scenario step: the characters shown outside the diagram, and whether they cover the record the step names.
-// Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the newest
-// headless shell Playwright installed.
+// The browser is the one ../../../lib/launch-browser.cjs starts.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
-const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
+const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SMALL = [1024, 768], DESK = [1440, 900], WIDE = [1920, 1080];
 const FRAMES = [40, 160, 300, 460, 640, 840, 1060, 1300];
 const args = process.argv.slice(2);
@@ -34,12 +33,6 @@ if (!args.length || args.some((word) => word.startsWith("-")) || args.slice(1).s
   const lines = fs.readFileSync(__filename, "utf8").split("\n").slice(1);
   console.error(lines.slice(0, lines.findIndex((line) => !line.startsWith("//"))).map((line) => line.replace(/^\/\/ ?/, "")).join("\n"));
   process.exit(2);
-}
-
-function browserBinary() {
-  const cache = path.join(os.homedir(), "Library/Caches/ms-playwright");
-  const shells = fs.existsSync(cache) ? fs.readdirSync(cache).filter((name) => name.startsWith("chromium_headless_shell-")).sort() : [];
-  return shells.length ? path.join(cache, shells[shells.length - 1], "chrome-headless-shell-mac-arm64/chrome-headless-shell") : null;
 }
 
 // ---- what the page shows, read through standard interfaces only ----
@@ -313,9 +306,9 @@ async function capture(browser, file, out) {
 }
 
 async function main() {
-  const started = Date.now(), binary = browserBinary();
-  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
-    console.log("FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell");
+  const started = Date.now();
+  if (browsers.missing()) {
+    console.log(`FAIL setup: ${browsers.missing()}`);
     return 1;
   }
   const out = path.resolve(args[0]);
@@ -330,7 +323,8 @@ async function main() {
       pages.push({ name, file });
     }
   }
-  const browser = await require(PLAYWRIGHT).chromium.launch({ executablePath: binary });
+  const browser = await browsers.launch().catch((error) => { console.log(`FAIL setup: ${error.message}`); return null; });
+  if (!browser) return 1;
   let failed = 0;
   await Promise.all(pages.map(async (one) => {
     try { console.log(`${one.name}: ${await capture(browser, one.file, path.join(out, one.name))} pictures and measures.json in ${path.join(out, one.name)}`); }

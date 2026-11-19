@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [overlay] [moves] [changes] [search] [tasks] [sweep]
-// With no word it runs the seven steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep]
+// With no word it runs the nine steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -13,9 +13,14 @@
 //            window, each state inside its region, one anchor per node, edge and area; no console error, no request.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
 //            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
-//            area's is its header), that scrolls nothing and counts the rows it folds away; it stays under the
-//            pointer and after a click, which keeps it open with one row per item over its pages, each in its
+//            area's is its header), that scrolls nothing and counts the rows its later pages hold; it stays under
+//            the pointer and after a click, which keeps it open with one row per item over its pages, each in its
 //            form, and Escape closes it.
+//   fit      on a copy of the first example whose first node cites an address of 300 characters with no break point,
+//            that node's card has the same width and height under the pointer and kept, and no part of it reaches
+//            past its sides.
+//   clear    the pointer resting on each node of each example's levels raises a card that overlaps no node an edge
+//            joins to that node.
 //   moves    each scenario marks each step on the record it names, on that record's level, in 80 characters at
 //            most, under controls of a tenth of the window at most, forward and back by the arrow keys; the
 //            space key plays a scenario by itself and stops it, a step's button leads to that step, and the step
@@ -52,22 +57,21 @@
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
-// Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
-// newest headless shell Playwright installed, never an installed Google Chrome.
+// The browser is the one ../../../lib/launch-browser.cjs starts.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
-const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
+const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "moves", "changes", "search", "tasks", "sweep"];
+const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "tasks", "sweep"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
-  console.error("usage: run-page.cjs [diagram] [overlay] [moves] [changes] [search] [tasks] [sweep]");
+  console.error("usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [tasks] [sweep]");
   process.exit(2);
 }
 
@@ -78,15 +82,9 @@ const examples = fs.readdirSync(path.join(ROOT, "examples")).filter((name) => fs
 const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
 const python = (script, ...args) => spawnSync("python3", [script, ...args], { encoding: "utf8" });
 
-function browserBinary() {
-  const cache = path.join(os.homedir(), "Library/Caches/ms-playwright");
-  const shells = fs.existsSync(cache) ? fs.readdirSync(cache).filter((name) => name.startsWith("chromium_headless_shell-")).sort() : [];
-  return shells.length ? path.join(cache, shells[shells.length - 1], "chrome-headless-shell-mac-arm64/chrome-headless-shell") : null;
-}
-
 let launches = 0;
 const loads = []; // each address a page was sent to, so a step can count what it opened
-const launch = (binary) => { launches += 1; return require(PLAYWRIGHT).chromium.launch({ executablePath: binary }); };
+const launch = () => { launches += 1; return browsers.launch(); };
 
 function make(example) { // the page of one contract file, and what its page data says of each record
   const made = python(path.join(ROOT, "scripts", "make-page.py"), example.source, example.built);
@@ -241,11 +239,10 @@ async function point(page, target) { // where the pointer rests for a record
     return null;
   }, target);
 }
-const card = (page) => page.evaluate(() => { // the overlay as it stands: where it is, how each row is drawn and how many rows it leaves out
+const card = (page) => page.evaluate(() => { // the overlay as it stands: where it is, how each row is drawn and how many rows its later pages hold
   const card = document.getElementById("card"), rect = card.getBoundingClientRect(), turn = card.querySelector("footer .turn"), paged = turn ? turn.textContent.match(/(\d+) of (\d+)/) : null;
-  const folded = [...card.querySelectorAll("footer > span:not(.hints)")].map((cue) => +(cue.textContent.match(/\+(\d+) more/) || [0, 0])[1]).reduce((sum, count) => sum + count, 0);
   const rows = [...card.querySelectorAll("dl > div")].map((row) => ({ form: row.dataset.form, list: !!row.querySelector("dd > ul"), nested: !!row.querySelector("dd ul ul"), columns: row.querySelectorAll("dd table th").length, code: !!row.querySelector("dd pre code") }));
-  return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, rows, folded, after: paged ? paged[2] - paged[1] : 0, scrolls: card.scrollHeight > card.clientHeight + 1, markup: card.querySelectorAll("dd script, dd style, dd img, dd iframe").length };
+  return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, rows, after: paged ? paged[2] - paged[1] : 0, scrolls: card.scrollHeight > card.clientHeight + 1, markup: card.querySelectorAll("dd script, dd style, dd img, dd iframe").length };
 });
 async function leaves(page, dropped = null) { // the kept overlay over its pages, turned by its More rows button; DROPPED is a form whose rows are taken out of each page before it is read
   const read = [];
@@ -303,7 +300,7 @@ async function overlay(browser) {
         check((box.right - box.left) * (box.bottom - box.top) <= size[0] * size[1] / 3, `${where}: ${what} covers over a third of the window`);
       };
       const seen = await card(page);
-      check(seen.rows.length + seen.folded === target.rows, `${where}: the overlay holds ${seen.rows.length} rows and folds ${seen.folded} for ${target.rows} items`);
+      check(seen.rows.length + seen.after === target.rows, `${where}: the overlay holds ${seen.rows.length} rows and pages ${seen.after} for ${target.rows} items`);
       check(!seen.scrolls || seen.rows.length === 1, `${where}: the overlay scrolls inside`);
       check(!seen.markup, `${where}: the overlay ran text as markup`);
       const box = seen.rect;
@@ -333,6 +330,136 @@ async function overlay(browser) {
     check(!page.faults.length, `${example.name} at ${size.join("x")} wrote to the console: ${page.faults[0]}`);
     await page.context().close();
   }));
+}
+
+// ---- fit and clear ----
+const LONG = "https://example.com/" + "a".repeat(280); // an address of 300 characters with no point to break it at
+const HEADER = "column-" + "b".repeat(53); // a table header of 60 characters with no point to break it at
+const carded = (page, id) => page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id, { timeout: 8000 });
+async function hoverNode(page, id, size) { // the pointer brought onto a node, and the card it raises come to rest
+  const find = () => page.evaluate((id) => { // a point of the node's box that nothing drawn over it hides
+    const element = document.querySelector(`#stage .node[data-id="${id}"]`), rect = element.getBoundingClientRect();
+    for (const [x, y] of [[.5, .5], [.2, .8], [.8, .8], [.2, .2], [.8, .2], [.5, .9], [.5, .1]]) {
+      const at = { x: rect.left + rect.width * x, y: rect.top + rect.height * y }, under = document.elementFromPoint(at.x, at.y);
+      if (under && under.closest(".node") === element) return at;
+    }
+    return null;
+  }, id);
+  let spot = await find();
+  if (!spot) { // the card of the last node hides it, so the pointer leaves until that card has gone
+    await page.mouse.move(2, size[1] - 2);
+    await page.clock.fastForward(450);
+    await page.waitForFunction(() => !document.getElementById("card").classList.contains("show"), null, { timeout: 4000 });
+    spot = await find();
+  }
+  check(spot, `no part of ${id} is under the pointer`);
+  await page.mouse.move(spot.x, spot.y);
+  await carded(page, id);
+  await rest(page);
+  return spot;
+}
+async function turnTo(page, text) { // the card's pages turned until one shows TEXT, as a person looking for it would
+  for (let leaf = 0; leaf < 12; leaf++) {
+    if (await page.evaluate((text) => document.getElementById("card").textContent.includes(text), text)) return true;
+    if (!(await page.locator("#card .turn").count())) return false;
+    await page.click("#card .turn");
+    await rest(page);
+  }
+  return false;
+}
+const measure = (page) => page.evaluate(() => { // the card's box, the first part of it that reaches past its sides, whether it scrolls and whether its button lies outside it
+  const card = document.getElementById("card"), rect = card.getBoundingClientRect(), turn = card.querySelector(".turn");
+  const out = [...card.querySelectorAll("*")].find((part) => { const box = part.getBoundingClientRect(); return box.width && (box.left < rect.left - 0.5 || box.right > rect.right + 0.5); });
+  return { rows: card.querySelectorAll("dl > div").length, width: rect.width, height: rect.height, out: out ? `${out.tagName.toLowerCase()} of ${Math.round(out.getBoundingClientRect().width)} px` : "", scrolls: card.scrollHeight > card.clientHeight + 1, lost: !!turn && turn.getBoundingClientRect().bottom > rect.bottom + 0.5 };
+});
+async function fit(browser) {
+  const example = examples[0], flat = JSON.parse(fs.readFileSync(example.source, "utf8")), node = flat.nodes[0];
+  flat.sources = (flat.sources || []).concat([{ id: "long-address", path: LONG, says: "an address with no break point" }]);
+  node.evidence = ["long-address"];
+  node.info = { ...(node.info || {}), failure: { columns: [HEADER, "what happens"], rows: [["a fault", "the run stops"]] } };
+  const copy = { name: example.name + "-long", source: path.join(scratch, example.name + "-long.json"), built: path.join(scratch, example.name + "-long.html") };
+  fs.writeFileSync(copy.source, JSON.stringify(flat));
+  make(copy);
+  await Promise.all(SIZES.map(async (size) => {
+    const where = `${copy.name} ${node.id} at ${size.join("x")}`, page = await open(browser, copy, size, { at: "#level=" + node.level });
+    const looks = async (state) => { // the card turned to the page of each long text, as it stands there
+      const seen = [];
+      for (const [text, what] of [[LONG, "the address"], [HEADER, "the long table header"]]) {
+        check(await turnTo(page, text), `${where}: no page of the ${state} card shows ${what}`);
+        const one = await measure(page);
+        check(!one.out, `${where}: the ${state} card holds a ${one.out} wider than itself, on the page of ${what}`);
+        check(!one.scrolls, `${where}: the ${state} card scrolls on the page of ${what}`);
+        check(!one.lost, `${where}: the ${state} card's More rows button lies below it, on the page of ${what}`);
+        seen.push(one);
+      }
+      return seen;
+    };
+    const spot = await hoverNode(page, node.id, size), hovered = await looks("hovered");
+    await page.mouse.click(spot.x, spot.y);
+    await page.mouse.move(2, size[1] - 2, { steps: 4 });
+    await page.clock.fastForward(450);
+    await rest(page);
+    const kept = await looks("kept");
+    hovered.forEach((one, i) => check(Math.abs(one.width - kept[i].width) < 0.5 && Math.abs(one.height - kept[i].height) < 0.5, `${where}: the hovered card is ${Math.round(one.width)} by ${Math.round(one.height)} px and the kept one ${Math.round(kept[i].width)} by ${Math.round(kept[i].height)}`));
+    check(!page.faults.length, `${where}: the page wrote to the console: ${page.faults[0]}`);
+    await page.context().close();
+  }));
+}
+async function clear(browser) {
+  const faults = [];
+  const stress = (example, kind, change) => { // a copy of an example whose every node's card CHANGE makes long
+    const flat = JSON.parse(fs.readFileSync(example.source, "utf8")), many = Array.from({ length: 59 }, (unused, i) => ({ id: `many-${i}`, path: `src/part-${i}.md`, says: "a source" }));
+    flat.sources = (flat.sources || []).concat(many, [{ id: "long-address", path: LONG, says: "an address with no break point" }]);
+    for (const node of flat.nodes) change(node, many.map((one) => one.id));
+    const copy = { name: `${example.name}-${kind}`, source: path.join(scratch, `${example.name}-${kind}.json`), built: path.join(scratch, `${example.name}-${kind}.html`), stressed: true };
+    fs.writeFileSync(copy.source, JSON.stringify(flat));
+    return make(copy);
+  };
+  const stressed = examples.flatMap((example) => [
+    stress(example, "tall", (node, many) => { node.purpose = Array(6).fill(node.purpose).join(" "); node.evidence = many.concat("long-address"); }), // rows taller than the room a card has
+    stress(example, "wide", (node) => { node.evidence = ["long-address"]; node.info = { ...(node.info || {}), failure: { columns: [HEADER, "what happens"], rows: [["a fault", "the run stops"]] } }; }), // rows of text with no point to break at
+  ]);
+  const groups = examples.flatMap((example) => SIZES.map((size) => [example, size])).concat(stressed.map((example) => [example, SIZES[0]])).flatMap(([example, size]) => example.contract.levels.flatMap((level) => { // a page per 12 nodes, so a large level takes no longer than a small one
+    const split = [];
+    for (let i = 0; i < level.nodes.length; i += 12) split.push({ example, size, level, nodes: level.nodes.slice(i, i + 12) });
+    return split;
+  }));
+  await Promise.all(groups.map(async ({ example, size, level, nodes }) => {
+    const page = await open(browser, example, size, { at: "#level=" + level.id });
+    await settled(page);
+    for (const node of nodes) {
+      const tied = [...new Set((level.edges || []).flatMap((edge) => edge.from === node.id ? [edge.to] : edge.to === node.id ? [edge.from] : []))].filter((id) => id !== node.id);
+      if (!tied.length) continue;
+      const came = await hoverNode(page, node.id, size).catch(() => hoverNode(page, node.id, size)).then(() => true, () => false); // a busy machine can miss the pointer's timing once
+      if (!came) { faults.push(`${example.name} ${node.id} at ${size.join("x")} raises no card`); continue; }
+      const covered = await page.evaluate((tied) => {
+        const card = document.getElementById("card").getBoundingClientRect();
+        return tied.filter((id) => {
+          const element = document.querySelector(`#stage .node[data-id="${id}"]`), box = element && element.getBoundingClientRect();
+          return box && Math.min(card.right, box.right) - Math.max(card.left, box.left) > 0.5 && Math.min(card.bottom, box.bottom) - Math.max(card.top, box.top) > 0.5;
+        });
+      }, tied);
+      const room = covered.length && example.stressed && await page.evaluate(([id, tied]) => { // a long card is held to the rule only where some spot of the window would hold it clear
+        const card = document.getElementById("card").getBoundingClientRect(), grow = (element, by) => { const box = element.getBoundingClientRect(); return { left: box.left - by, top: box.top - by, right: box.right + by, bottom: box.bottom + by }; };
+        const walls = [grow(document.querySelector(`#stage .node[data-id="${id}"]`), 8), ...["tools", "crumbs"].map((bar) => grow(document.getElementById(bar), 8)), ...tied.map((one) => grow(document.querySelector(`#stage .node[data-id="${one}"]`), 4))];
+        for (let x = 8; x <= innerWidth - card.width - 8; x += 4) for (let y = 8; y <= innerHeight - card.height - 8; y += 4) if (!walls.some((wall) => Math.min(x + card.width, wall.right) > Math.max(x, wall.left) && Math.min(y + card.height, wall.bottom) > Math.max(y, wall.top))) return true;
+        return false;
+      }, [node.id, tied]);
+      if (covered.length && (!example.stressed || room)) faults.push(`${example.name} ${node.id} at ${size.join("x")} covers ${covered.join(", ")}`);
+      for (let leaf = 0; example.stressed && leaf < 12; leaf++) { // each page of a long card holds its button and scrolls only round a row taller than the card
+        const one = await measure(page);
+        if (one.lost || one.scrolls && one.rows > 1) { faults.push(`${example.name} ${node.id} at ${size.join("x")} ${one.lost ? "puts its More rows button below the card" : "scrolls"} on page ${leaf + 1}`); break; }
+        const turn = await page.locator("#card .turn").textContent().catch(() => "");
+        const [, to, of] = turn.match(/(\d+) of (\d+)/) || [];
+        if (!to || to === of) break;
+        const pressed = await page.click("#card .turn", { timeout: 4000 }).then(() => "", (error) => error.message.split("\n").filter((line) => /not stable|detached|intercepts|outside/.test(line)).slice(-1)[0] || error.message.split("\n")[0]);
+        if (pressed) { faults.push(`${example.name} ${node.id} at ${size.join("x")} lets no one press More rows on page ${leaf + 1}: ${pressed.trim()}`); break; }
+        await rest(page);
+      }
+    }
+    await page.context().close();
+  }));
+  check(!faults.length, `${faults.length} hover cards cover a node an edge joins to their own or page wrongly, as ${faults.slice(0, 3).join("; ")}`);
 }
 
 // ---- moves ----
@@ -781,17 +908,16 @@ async function sweep(browser) {
 }
 
 async function main() {
-  const binary = browserBinary();
-  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
-    console.log("FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell");
+  if (browsers.missing()) {
+    console.log(`FAIL setup: ${browsers.missing()}`);
     return 1;
   }
   let failed = 0, browser = null;
   try {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
-    browser = await launch(binary);
-    const steps = { diagram, overlay, moves, changes, search, tasks, sweep };
+    browser = await launch();
+    const steps = { diagram, overlay, fit, clear, moves, changes, search, tasks, sweep };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
