@@ -21,4 +21,4 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 ## Rules
 
 - **Code draws**: a change of look, layout or motion goes into [../assets/page.css](../assets/page.css) or [../assets/page.js](../assets/page.js), and a change of content into the contract; no page is edited by hand.
-- **After a change to the page's code**: build each example's page again, then run `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/run-page.cjs`, which opens the pages in a headless browser at three desktop sizes and must print `PASS`.
+- **After a change to the page's code**: build each example's page again, then run `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/run-page.cjs`, which opens the examples' pages in a headless browser at three desktop sizes, then the pages of the fixtures the checker passes at one, and must print `PASS`.

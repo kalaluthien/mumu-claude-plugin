@@ -54,6 +54,7 @@
    "label": "a door",
    "tag": "service",
    "level": "locker",
+   "area": "box",
    "opens": "door-life",
    "purpose": "Let a courier in for a while.",
    "info": {

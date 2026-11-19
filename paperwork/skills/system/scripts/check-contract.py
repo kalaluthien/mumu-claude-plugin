@@ -52,7 +52,7 @@ RULES = {
     "tag-known": "an area, node or edge carries a tag of its kind from the catalogue",
     "info-item": "an `info` key is an item of its element's tag, or an item every element of that kind may hold",
     "info-form": "an `info` value has the shape of its item's form: text, number, list, table, tree or code",
-    "area-known": "a node's `area` is an area of its level",
+    "area-known": "a node's `area` is an area of its level, and every area holds one node at least",
     "edge-ends": "an edge joins two different nodes of its own level, one pair is joined once by one label in a direction, and the edge's id holds neither end's id",
     "edge-sentence": "a static edge's label opens in lower case, holds no full stop, question or exclamation mark, closes with no article, is more than a lone preposition and holds neither end's label; that it opens with a verb and that `<from label> <label> <to label>` is true is the writer's to check by the `read` call",
     "level-links": "`opens` names a level, every level but the first is opened by at least one node, and no chain of `opens` leads from a level back to it, so the first level is opened by none",
@@ -324,6 +324,9 @@ def breaks(contract, root=None):
                         found.append((where, "info-form", f"`{name}` must be a {allowed[name]['form']}"))
                 found += [(where, "evidence-source", message) for entry in element.get("evidence", []) for message in cited(entry, sources, root)]
                 found += [(where, "evidence-source", f"`files` names `{name}`, which is no source") for name in element.get("files", []) if not isinstance(name, str) or name not in sources]
+        for area in level.get("areas", []):  # the page frames an area around its nodes, so one with none has nothing to draw
+            if not any(node.get("area") == area["id"] for node in level["nodes"]):
+                found.append((f"{home}/{area['id']}", "area-known", "holds no node; an area groups one node at least"))
         for node in level["nodes"]:
             where = f"{home}/{node['id']}"
             if "area" in node and node["area"] not in area_tags:

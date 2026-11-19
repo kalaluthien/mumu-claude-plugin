@@ -68,6 +68,7 @@
       "label": "the back of a courier",
       "tag": "service",
       "level": "locker",
+      "area": "box",
       "opens": "door-life",
       "purpose": "Keep one parcel until its code is typed.",
       "info": {

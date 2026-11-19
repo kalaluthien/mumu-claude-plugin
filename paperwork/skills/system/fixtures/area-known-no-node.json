@@ -1,0 +1,429 @@
+{
+ "title": "A bakery's order line",
+ "purpose": "Bake by morning what {buyer} asked for the evening before.",
+ "sources": [
+  {
+   "id": "handbook",
+   "path": "https://example.org/bakery-handbook",
+   "says": "how an evening's requests become the morning's loaves"
+  }
+ ],
+ "terms": [
+  {
+   "term": "loaf",
+   "meaning": "one baked unit a request asks for"
+  }
+ ],
+ "levels": [
+  {
+   "id": "bakery",
+   "title": "The bakery"
+  },
+  {
+   "id": "order-life",
+   "title": "Life of a request"
+  }
+ ],
+ "areas": [
+  {
+   "id": "counter",
+   "label": "The counter",
+   "tag": "module",
+   "level": "bakery",
+   "info": {
+    "purpose": "takes requests"
+   }
+  },
+  {
+   "id": "back-room",
+   "label": "The back room",
+   "tag": "deployment",
+   "level": "bakery",
+   "info": {
+    "location": "behind the shop"
+   }
+  },
+  {
+   "id": "staff-only",
+   "label": "Staff only",
+   "tag": "trustZone",
+   "level": "bakery"
+  },
+  {
+   "id": "night-shift",
+   "label": "The night shift",
+   "tag": "lane",
+   "level": "bakery",
+   "info": {
+    "owner": "the baker on duty"
+   }
+  },
+  {
+   "id": "cooling",
+   "label": "The cooling",
+   "tag": "phase",
+   "level": "bakery",
+   "info": {
+    "order": 2
+   }
+  },
+  {
+   "id": "shop-floor",
+   "label": "The shop floor",
+   "tag": "module",
+   "level": "bakery"
+  },
+  {
+   "id": "request-states",
+   "label": "Request states",
+   "tag": "region",
+   "level": "order-life",
+   "info": {
+    "initial": "taken"
+   }
+  },
+  {
+   "id": "heat-states",
+   "label": "Heat states",
+   "tag": "region",
+   "level": "order-life",
+   "info": {
+    "initial": "kept-hot"
+   }
+  }
+ ],
+ "nodes": [
+  {
+   "id": "buyer",
+   "label": "a buyer",
+   "tag": "actor",
+   "level": "bakery",
+   "purpose": "Ask for loaves to collect in the morning.",
+   "info": {
+    "goal": "fresh loaves at opening time"
+   }
+  },
+  {
+   "id": "order-form",
+   "label": "the order form",
+   "tag": "endpoint",
+   "level": "bakery",
+   "area": "counter",
+   "purpose": "Take one request and say it was taken.",
+   "info": {
+    "address": "POST /orders"
+   }
+  },
+  {
+   "id": "front-door",
+   "label": "the front door",
+   "tag": "router",
+   "level": "bakery",
+   "area": "counter",
+   "purpose": "Send each request to the part that keeps it."
+  },
+  {
+   "id": "order-desk",
+   "label": "the order desk",
+   "tag": "service",
+   "level": "bakery",
+   "area": "counter",
+   "purpose": "Keep each request until its loaves are baked.",
+   "opens": "order-life",
+   "evidence": [
+    "handbook:4"
+   ]
+  },
+  {
+   "id": "order-book",
+   "label": "the order book",
+   "tag": "dataStore",
+   "level": "bakery",
+   "area": "back-room",
+   "purpose": "Remember every request and how far it has come.",
+   "info": {
+    "layout": [
+     {
+      "name": "one page per day",
+      "note": "newest first",
+      "children": [
+       {
+        "name": "one line per request"
+       }
+      ]
+     }
+    ],
+    "volume": 400,
+    "schema": {
+     "columns": [
+      "field",
+      "meaning"
+     ],
+     "rows": []
+    }
+   }
+  },
+  {
+   "id": "bake-list",
+   "label": "the bake list",
+   "tag": "queue",
+   "level": "bakery",
+   "area": "back-room",
+   "purpose": "Hold the loaves still to bake, oldest first."
+  },
+  {
+   "id": "night-bake",
+   "label": "the night bake",
+   "tag": "job",
+   "level": "bakery",
+   "area": "night-shift",
+   "purpose": "Bake every loaf on the list before opening time.",
+   "info": {
+    "steps": [
+     "mix",
+     "prove",
+     "bake"
+    ],
+    "schedule": "0 2 * * *",
+    "inputs": {
+     "columns": [
+      "name",
+      "from"
+     ],
+     "rows": [
+      [
+       "dough",
+       "the cold store"
+      ]
+     ]
+    },
+    "why": "baked at night so the loaves are fresh at opening time"
+   }
+  },
+  {
+   "id": "oven-timer",
+   "label": "the oven timer",
+   "tag": "trigger",
+   "level": "bakery",
+   "area": "night-shift",
+   "purpose": "Start the baking at the same hour each night.",
+   "info": {}
+  },
+  {
+   "id": "bread-batch",
+   "label": "the bread batch",
+   "tag": "artifact",
+   "level": "bakery",
+   "area": "cooling",
+   "purpose": "Be the night's finished loaves, counted once."
+  },
+  {
+   "id": "allergy-rule",
+   "label": "the allergy rule",
+   "tag": "policy",
+   "level": "bakery",
+   "area": "staff-only",
+   "purpose": "Keep nut loaves off the trays that plain loaves use."
+  },
+  {
+   "id": "shop-oven",
+   "label": "the shop oven",
+   "tag": "host",
+   "level": "bakery",
+   "area": "back-room",
+   "purpose": "Give the baking its heat and its room."
+  },
+  {
+   "id": "staff-badge",
+   "label": "the staff badge",
+   "tag": "credential",
+   "level": "bakery",
+   "area": "staff-only",
+   "purpose": "Prove that its holder may change a request."
+  },
+  {
+   "id": "taken",
+   "label": "request taken",
+   "tag": "state",
+   "level": "order-life",
+   "area": "request-states"
+  },
+  {
+   "id": "baked",
+   "label": "request baked",
+   "tag": "state",
+   "level": "order-life",
+   "area": "request-states"
+  },
+  {
+   "id": "kept-hot",
+   "label": "kept hot",
+   "tag": "state",
+   "level": "order-life",
+   "area": "heat-states"
+  }
+ ],
+ "edges": [
+  {
+   "id": "sends",
+   "from": "buyer",
+   "to": "order-form",
+   "label": "sends a request through",
+   "tag": "call"
+  },
+  {
+   "id": "hands",
+   "from": "order-form",
+   "to": "front-door",
+   "label": "hands each request to",
+   "tag": "sequence"
+  },
+  {
+   "id": "forwards",
+   "from": "front-door",
+   "to": "order-desk",
+   "label": "forwards requests to",
+   "tag": "call",
+   "info": {
+    "rate": 30
+   }
+  },
+  {
+   "id": "screen",
+   "from": "order-form",
+   "to": "order-desk",
+   "label": "is one screen of",
+   "tag": "partOf"
+  },
+  {
+   "id": "writes",
+   "from": "order-desk",
+   "to": "order-book",
+   "label": "writes each request into",
+   "tag": "access"
+  },
+  {
+   "id": "queues",
+   "from": "order-desk",
+   "to": "bake-list",
+   "label": "puts loaves to bake on",
+   "tag": "publish"
+  },
+  {
+   "id": "starts",
+   "from": "oven-timer",
+   "to": "night-bake",
+   "label": "starts",
+   "tag": "triggers"
+  },
+  {
+   "id": "works",
+   "from": "night-bake",
+   "to": "bake-list",
+   "label": "works through",
+   "tag": "access"
+  },
+  {
+   "id": "bakes",
+   "from": "night-bake",
+   "to": "bread-batch",
+   "label": "bakes",
+   "tag": "produces"
+  },
+  {
+   "id": "limits",
+   "from": "allergy-rule",
+   "to": "night-bake",
+   "label": "limits",
+   "tag": "governs"
+  },
+  {
+   "id": "needs",
+   "from": "night-bake",
+   "to": "shop-oven",
+   "label": "needs",
+   "tag": "dependsOn"
+  },
+  {
+   "id": "ready",
+   "from": "taken",
+   "to": "baked",
+   "label": "loaves ready",
+   "tag": "transition",
+   "info": {
+    "action": "tell the shop"
+   }
+  }
+ ],
+ "scenarios": [
+  {
+   "id": "evening-request",
+   "title": "An evening's request",
+   "purpose": "A request made in the evening is baked by morning.",
+   "principle": true,
+   "steps": [
+    {
+     "at": "sends"
+    },
+    {
+     "at": "forwards",
+     "note": "one request at a time"
+    },
+    {
+     "at": "writes"
+    },
+    {
+     "at": "queues"
+    },
+    {
+     "at": "starts",
+     "note": "two hours past midnight"
+    },
+    {
+     "at": "bakes"
+    },
+    {
+     "at": "ready"
+    }
+   ]
+  },
+  {
+   "id": "nut-loaf",
+   "title": "A nut loaf",
+   "purpose": "A nut loaf never shares a tray.",
+   "steps": [
+    {
+     "at": "allergy-rule"
+    },
+    {
+     "at": "limits"
+    },
+    {
+     "at": "night-bake",
+     "note": "its own tray"
+    }
+   ]
+  }
+ ],
+ "properties": [
+  {
+   "id": "every-loaf-asked",
+   "kind": "invariant",
+   "statement": "Every loaf in {bread-batch} answers one line of {order-book}.",
+   "on": [
+    "bread-batch",
+    "order-book"
+   ]
+  }
+ ],
+ "questions": [
+  {
+   "id": "who-keeps",
+   "asks": "What keeps a request until its loaves are baked?",
+   "answers": [
+    "order-desk",
+    "every-loaf-asked"
+   ]
+  }
+ ]
+}

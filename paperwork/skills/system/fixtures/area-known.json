@@ -47,6 +47,7 @@
    "label": "a courier",
    "tag": "actor",
    "level": "locker",
+   "area": "box",
    "purpose": "Leave a parcel without meeting its receiver."
   },
   {

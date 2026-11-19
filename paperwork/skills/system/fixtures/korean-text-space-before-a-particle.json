@@ -68,6 +68,7 @@
    "label": "a door",
    "tag": "service",
    "level": "locker",
+   "area": "box",
    "opens": "door-life",
    "purpose": "code 를 누를 때까지 소포 하나를 보관합니다.",
    "info": {
