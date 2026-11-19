@@ -2,21 +2,30 @@
 // Open the page of each example contract in a headless Chromium, as file://, at 1024 by 768, 1440 by 900 and
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 //
-// usage: run-page.cjs [diagram] [overlay] [moves] [search] [tasks] [sweep]
-// With no word it runs the six steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step, each with its
-// seconds, then the seconds of the whole run and PASS or FAIL, and exits 1 on a failure and 2 on a word it does not know.
+// usage: run-page.cjs [diagram] [overlay] [moves] [changes] [search] [tasks] [sweep]
+// With no word it runs the seven steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
+// and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
 //            contract the checker refuses builds none; the relay page checker prints `follows`; each level fills the
 //            window, draws each node as a rectangle with its label and tag, none over another, nothing outside the
 //            window, each state inside its region, one anchor per node, edge and area; no console error, no request.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
-//            shows an overlay with one row per item, each in its form, inside the window, over a third of it at
-//            most, off the element under the pointer (an area's is its header); it stays under the pointer and
-//            after a click, and Escape closes it.
+//            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
+//            area's is its header), that scrolls nothing and counts the rows it folds away; it stays under the
+//            pointer and after a click, which keeps it open with one row per item over its pages, each in its
+//            form, and Escape closes it.
 //   moves    each scenario marks each step on the record it names, on that record's level, in 80 characters at
-//            most, under controls of a tenth of the window at most, forward and back by the arrow keys; three
+//            most, under controls of a tenth of the window at most, forward and back by the arrow keys; the
+//            space key plays a scenario by itself and stops it, a step's button leads to that step, and the step
+//            after the last offers the scenario again; three
 //            orders of a move down, a move up, a search hit and a scenario step that changes level are walked back
 //            and forward by the browser's history and by the page's own keys, and each view's address opens it.
+//   changes  on a scratch copy of each example's contract one node no edge touches is planted, with a last step of
+//            the first scenario that names it; then a node a scenario walks gets a new label, an edge a scenario
+//            walks moves to another node of its level, and the planted node moves to another level. The checker
+//            accepts the copy after each change, and the page built from it plays every scenario by the arrow
+//            keys, each step on the level that now holds its record, the renamed node under its new label.
 //   search   each query of fixtures/search-queries.json typed into its example's page: the wanted record is the
 //            first hit for 17 in 20 and among the first three for 19 in 20, and first for 3 in 4 of the misspelt
 //            queries and of those typed with the Korean layout left on.
@@ -32,12 +41,14 @@
 //   sweep    of the contracts in fixtures/ that the checker passes, the fewest it finds, four at most, that hold
 //            between them every tag and every item form of the catalogue, a node no edge touches, a region of one
 //            state and an `info` with no item, each taken for what it adds; each builds a page, and at 1440 by 900 each level draws as diagram asks, one overlay per item
-//            form shows its rows, each scenario plays to its last step on the page its levels opened and nothing
+//            form, kept by a click, shows its rows over its pages, each scenario plays to its last step on the page its levels opened and nothing
 //            is written to the console; each empty shape the checker refuses is still refused. The step fails
 //            when a page was sent to any address but each level's once or the run launched a second browser, and
 //            unless it reports four faults it makes itself: a node's box removed, a form's rows removed, a console
 //            error and a scenario a step short.
-// overlay and moves also read each transition: its timing is not linear, and it lasts no time under reduced motion.
+// overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
+// each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
+// and a move turned back goes on from the level still seen.
 // Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
 // newest headless shell Playwright installed, never an installed Google Chrome.
 const fs = require("fs");
@@ -48,12 +59,12 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "moves", "search", "tasks", "sweep"];
+const STEPS = ["diagram", "overlay", "moves", "changes", "search", "tasks", "sweep"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
-  console.error("usage: run-page.cjs [diagram] [overlay] [moves] [search] [tasks] [sweep]");
+  console.error("usage: run-page.cjs [diagram] [overlay] [moves] [changes] [search] [tasks] [sweep]");
   process.exit(2);
 }
 
@@ -74,21 +85,21 @@ let launches = 0;
 const loads = []; // each address a page was sent to, so a step can count what it opened
 const launch = (binary) => { launches += 1; return require(PLAYWRIGHT).chromium.launch({ executablePath: binary }); };
 
-function build(examples) {
-  for (const example of examples) {
-    const made = python(path.join(ROOT, "scripts", "make-page.py"), example.source, example.built);
-    check(made.status === 0, `make-page.py refused ${example.name}: ${(made.stderr || "").split("\n")[0]}`);
-    example.contract = JSON.parse(fs.readFileSync(example.built, "utf8").match(/<script type="application\/json" id="page-data">(.*)<\/script>/)[1]);
-    example.levelOf = {};
-    for (const level of example.contract.levels) {
-      example.levelOf[level.id] = level.id;
-      for (const kind of ["nodes", "edges", "areas"]) for (const record of level[kind] || []) example.levelOf[record.id] = level.id;
-    }
-    const names = {};
-    for (const level of example.contract.levels) for (const node of level.nodes) names[node.id] = node.label;
-    for (const level of example.contract.levels) for (const edge of level.edges || []) edge.shown = edge.label.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || whole);
+function make(example) { // the page of one contract file, and what its page data says of each record
+  const made = python(path.join(ROOT, "scripts", "make-page.py"), example.source, example.built);
+  check(made.status === 0, `make-page.py refused ${example.name}: ${(made.stdout + made.stderr).split("\n")[0]}`);
+  example.contract = JSON.parse(fs.readFileSync(example.built, "utf8").match(/<script type="application\/json" id="page-data">(.*)<\/script>/)[1]);
+  example.levelOf = {};
+  for (const level of example.contract.levels) {
+    example.levelOf[level.id] = level.id;
+    for (const kind of ["nodes", "edges", "areas"]) for (const record of level[kind] || []) example.levelOf[record.id] = level.id;
   }
+  const names = {};
+  for (const level of example.contract.levels) for (const node of level.nodes) names[node.id] = node.label;
+  for (const level of example.contract.levels) for (const edge of level.edges || []) edge.shown = edge.label.replace(/\{([a-z0-9-]+)\}/g, (whole, id) => names[id] || whole);
+  return example;
 }
+const build = (wanted) => wanted.forEach(make);
 
 async function open(browser, example, size, options = {}) {
   const context = await browser.newContext({ viewport: { width: size[0], height: size[1] }, reducedMotion: options.still ? "reduce" : "no-preference" });
@@ -104,14 +115,15 @@ async function open(browser, example, size, options = {}) {
   await rest(page);
   return page;
 }
-const rest = async (page) => {
+const rest = async (page) => { // a move under way is carried to its end, since what a step reads is where the page comes to rest
+  await page.evaluate(() => document.getAnimations().forEach((one) => { try { one.finish(); } catch (error) { /* one that never ends has no end to reach */ } }));
   await page.waitForFunction(() => document.body.dataset.busy === "", null, { timeout: 5000 });
   await page.waitForTimeout(40);
 };
 const settled = async (page) => { await rest(page); await page.waitForTimeout(520); };
 const view = (page) => page.evaluate(() => {
   const now = document.querySelector("#crumbs [aria-current]"), pinned = document.querySelector("#stage .pinned"), marked = document.querySelector("#stage .node.step, #stage .edge.step");
-  const dots = [...document.querySelectorAll("#play .dots i")];
+  const dots = [...document.querySelectorAll("#play .dots button")];
   return {
     address: location.hash, level: now ? now.dataset.level : null, pinned: pinned ? pinned.dataset.id || pinned.dataset.edge : null,
     playing: document.getElementById("play").classList.contains("show"), step: document.getElementById("play").classList.contains("show") ? dots.findIndex((dot) => dot.classList.contains("now")) : null, marked: marked ? marked.dataset.id : null,
@@ -122,6 +134,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 // What is wrong with the level the page shows, or nothing: the one test of a level that diagram and sweep share.
 const drawn = (page, level) => page.evaluate((level) => {
   const box = (element) => element.getBoundingClientRect(), stage = document.getElementById("stage");
+  const words = (tag) => tag.replace(/[A-Z]/g, (letter) => " " + letter.toLowerCase()); // a tag is shown as the words its id joins
   const one = (id) => { const found = stage.querySelectorAll(`[data-id="${id}"]`); return found.length === 1 ? found[0] : null; };
   const inside = (rect, frame, slack = 0.5) => rect.left >= frame.left - slack && rect.top >= frame.top - slack && rect.right <= frame.right + slack && rect.bottom <= frame.bottom + slack;
   const whole = { left: 0, top: 0, right: innerWidth, bottom: innerHeight }, main = box(document.getElementById("diagram"));
@@ -135,8 +148,8 @@ const drawn = (page, level) => page.evaluate((level) => {
     const rect = box(card), style = getComputedStyle(card), name = card.querySelector("b");
     if (rect.width < 40 || rect.height < 20) return `node ${node.id} is not drawn`;
     if (parseFloat(style.borderTopLeftRadius) > Math.min(card.offsetWidth, card.offsetHeight) / 4 || style.clipPath !== "none") return `node ${node.id} is not a rectangle`;
-    if (name.textContent !== node.label || name.scrollWidth > name.clientWidth) return `node ${node.id} does not show its whole label`;
-    if (card.querySelector("small").textContent !== node.tag) return `node ${node.id} does not show its tag`;
+    if (name.textContent !== node.label || name.scrollWidth > name.clientWidth || box(name).top < rect.top || box(card.querySelector("small")).bottom > rect.bottom) return `node ${node.id} does not show its whole label`;
+    if (card.querySelector("small").textContent !== words(node.tag)) return `node ${node.id} does not show its tag`;
     if (!inside(rect, whole)) return `node ${node.id} is outside the window`;
     for (const other of rects) if (rect.left < other.rect.right && other.rect.left < rect.right && rect.top < other.rect.bottom && other.rect.top < rect.bottom) return `node ${node.id} is over ${other.id}`;
     rects.push({ id: node.id, rect });
@@ -145,7 +158,7 @@ const drawn = (page, level) => page.evaluate((level) => {
     const frame = one(area.id);
     if (!frame) return `area ${area.id} has not one anchor`;
     if (!inside(box(frame), whole)) return `area ${area.id} is outside the window`;
-    if (!frame.textContent.includes(area.label) || !frame.textContent.includes(area.tag)) return `area ${area.id} does not show its label and tag`;
+    if (!frame.textContent.includes(area.label) || !frame.textContent.includes(words(area.tag))) return `area ${area.id} does not show its label and tag`;
     for (const node of level.nodes) if (node.area === area.id && !inside(box(one(node.id)), box(frame))) return `node ${node.id} is outside its area ${area.id}`;
   }
   for (const edge of level.edges || []) {
@@ -172,7 +185,7 @@ async function diagram(browser) {
   broken.edges[0].to = "no-such-node";
   fs.writeFileSync(refused, JSON.stringify(broken));
   check(python(path.join(ROOT, "scripts", "make-page.py"), refused, unbuilt).status === 1 && !fs.existsSync(unbuilt), "a contract the checker refuses built a page");
-  for (const size of SIZES) for (const example of examples) {
+  await Promise.all(SIZES.flatMap((size) => examples.map(async (example) => {
     const page = await open(browser, example, size, { still: true });
     for (const level of example.contract.levels) {
       await page.goto("file://" + example.built + "#level=" + level.id);
@@ -183,7 +196,7 @@ async function diagram(browser) {
     check(!page.faults.length, `${example.name} at ${size.join("x")} wrote to the console: ${page.faults[0]}`);
     check(!page.asked.length, `${example.name} at ${size.join("x")} asked for ${page.asked[0]}`);
     await page.context().close();
-  }
+  })));
 }
 
 // ---- overlay ----
@@ -224,13 +237,24 @@ async function point(page, target) { // where the pointer rests for a record
     return null;
   }, target);
 }
-const card = (page) => page.evaluate(() => { // the overlay as it stands: where it is and how each row is drawn
-  const card = document.getElementById("card"), rect = card.getBoundingClientRect();
+const card = (page) => page.evaluate(() => { // the overlay as it stands: where it is, how each row is drawn and how many rows it leaves out
+  const card = document.getElementById("card"), rect = card.getBoundingClientRect(), turn = card.querySelector("footer .turn"), paged = turn ? turn.textContent.match(/(\d+) of (\d+)/) : null;
+  const folded = [...card.querySelectorAll("footer > span:not(.hints)")].map((cue) => +(cue.textContent.match(/\+(\d+) more/) || [0, 0])[1]).reduce((sum, count) => sum + count, 0);
   const rows = [...card.querySelectorAll("dl > div")].map((row) => ({ form: row.dataset.form, list: !!row.querySelector("dd > ul"), nested: !!row.querySelector("dd ul ul"), columns: row.querySelectorAll("dd table th").length, code: !!row.querySelector("dd pre code") }));
-  return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, rows, markup: card.querySelectorAll("dd script, dd style, dd img, dd iframe").length };
+  return { rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, rows, folded, after: paged ? paged[2] - paged[1] : 0, scrolls: card.scrollHeight > card.clientHeight + 1, markup: card.querySelectorAll("dd script, dd style, dd img, dd iframe").length };
 });
-function rowFault(seen, target) { // what is wrong with the rows an overlay shows for a record, or nothing
-  if (seen.rows.length !== target.rows) return `the overlay holds ${seen.rows.length} rows for ${target.rows} items`;
+async function leaves(page, dropped = null) { // the kept overlay over its pages, turned by its More rows button; DROPPED is a form whose rows are taken out of each page before it is read
+  const read = [];
+  for (let leaf = 0; leaf < 12; leaf++) {
+    if (dropped) await page.evaluate((form) => document.querySelectorAll(`#card dl > div[data-form="${form}"]`).forEach((row) => row.remove()), dropped);
+    read.push(await card(page));
+    if (!read[leaf].after) break;
+    await page.click("#card .turn");
+  }
+  return { rects: read.map((one) => one.rect), rows: read.flatMap((one) => one.rows), markup: read.reduce((sum, one) => sum + one.markup, 0) };
+}
+function rowFault(seen, target) { // what is wrong with the rows a kept overlay shows for a record, or nothing
+  if (seen.rows.length !== target.rows) return `the kept overlay holds ${seen.rows.length} rows for ${target.rows} items`;
   for (const form of target.forms) if (!seen.rows.some((row) => row.form === form)) return `no row is drawn as ${form}`;
   for (const row of seen.rows) {
     if (row.form === "list" && !row.list) return "a list is not drawn as a list";
@@ -238,11 +262,19 @@ function rowFault(seen, target) { // what is wrong with the rows an overlay show
     if (row.form === "tree" && !row.list) return "a tree is not drawn as nested lists";
     if (row.form === "code" && !row.code) return "code is not in a code block";
   }
-  return seen.markup ? "the overlay ran text as markup" : "";
+  return seen.markup ? "the kept overlay ran text as markup" : "";
 }
 async function overlay(browser) {
   const still = await open(browser, examples[0], SIZES[1], { still: true });
-  check(await still.evaluate(() => parseFloat(getComputedStyle(document.getElementById("card")).transitionDuration) === 0), "the overlay still moves under reduced motion");
+  check(await still.evaluate(() => !/transform|all/.test(getComputedStyle(document.getElementById("card")).transitionProperty)), "the overlay still moves under reduced motion");
+  const shifts = await still.evaluate(() => ["card", "chip", "play", "palette"].filter((id) => { // a part that only fades stands hidden where it stands shown
+    const part = document.getElementById(id), hidden = getComputedStyle(part).transform;
+    part.classList.add("show");
+    const shown = getComputedStyle(part).transform;
+    part.classList.remove("show");
+    return hidden !== shown;
+  }));
+  check(!shifts.length, `under reduced motion ${shifts.join(", ")} shifts as it shows`);
   await still.context().close();
   // every picked record at the middle size, on two pages; the first node, edge and area at the other sizes
   const shares = examples.flatMap((example) => SIZES.flatMap((size) => size === SIZES[1]
@@ -262,11 +294,16 @@ async function overlay(browser) {
       await page.mouse.move(spot.x, spot.y, { steps: 4 });
       await page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where}: no overlay came`); });
       await page.waitForTimeout(320);
-      const seen = await card(page), wrong = rowFault(seen, target);
-      check(!wrong, `${where}: ${wrong}`);
+      const framed = (box, what) => {
+        check(box.left >= 0 && box.top >= 0 && box.right <= size[0] && box.bottom <= size[1], `${where}: ${what} leaves the window`);
+        check((box.right - box.left) * (box.bottom - box.top) <= size[0] * size[1] / 3, `${where}: ${what} covers over a third of the window`);
+      };
+      const seen = await card(page);
+      check(seen.rows.length + seen.folded === target.rows, `${where}: the overlay holds ${seen.rows.length} rows and folds ${seen.folded} for ${target.rows} items`);
+      check(!seen.scrolls || seen.rows.length === 1, `${where}: the overlay scrolls inside`);
+      check(!seen.markup, `${where}: the overlay ran text as markup`);
       const box = seen.rect;
-      check(box.left >= 0 && box.top >= 0 && box.right <= size[0] && box.bottom <= size[1], `${where}: the overlay leaves the window`);
-      check((box.right - box.left) * (box.bottom - box.top) <= size[0] * size[1] / 3, `${where}: the overlay covers over a third of the window`);
+      framed(box, "the overlay");
       check(box.right <= spot.rect.left || spot.rect.right <= box.left || box.bottom <= spot.rect.top || spot.rect.bottom <= box.top, `${where}: the overlay covers what it describes`);
       const shown = () => page.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id);
       const inside = [(box.left + box.right) / 2, (box.top + box.bottom) / 2];
@@ -279,6 +316,10 @@ async function overlay(browser) {
       await page.mouse.move(2, size[1] - 2, { steps: 4 });
       await page.waitForTimeout(450);
       check(await shown(), `${where}: the overlay closed after a click kept it`);
+      const kept = await leaves(page);
+      for (const rect of kept.rects) framed(rect, "the kept overlay");
+      const wrong = rowFault(kept, target);
+      check(!wrong, `${where}: ${wrong}`);
       await page.keyboard.press("Escape");
       await rest(page);
       await page.waitForTimeout(120);
@@ -291,36 +332,82 @@ async function overlay(browser) {
 }
 
 // ---- moves ----
-async function scenarios(browser, example, size, most, lent) {
+async function scenarios(browser, example, size, walked, named = null, lent = null) { // NAMED is a node whose label is read, on a walk that only goes forward; LENT is a page already open, played on with no load
   const page = lent || await open(browser, example, size, { still: true });
-  for (const scenario of (example.contract.scenarios || []).slice(0, most)) {
+  for (const scenario of walked) {
     const where = `${example.name} scenario ${scenario.id} at ${size.join("x")}`;
     if (lent) await page.keyboard.press("Escape"); // a lent page is opened once, so the play before is ended, not loaded away
     else await page.goto("file://" + example.built);
     await rest(page);
     await page.click("#scenarios");
+    const listed = await page.textContent(`#hits [data-hit="${scenario.id}"]`);
     await page.click(`#hits [data-hit="${scenario.id}"]`);
     await rest(page);
-    const order = scenario.steps.map((step, i) => i).concat(scenario.steps.map((step, i) => i).reverse().slice(1));
+    const titled = await page.textContent("#play .title");
+    check(!/\{[a-z0-9-]+\}/.test(listed + titled), `${where}: its title names a record by its id in braces`);
+    const order = scenario.steps.map((step, i) => i).concat(named ? [] : scenario.steps.map((step, i) => i).reverse().slice(1));
     for (let turn = 0; turn < order.length; turn++) {
       const i = order[turn], step = scenario.steps[i];
       if (turn) { await page.keyboard.press(turn < scenario.steps.length ? "ArrowRight" : "ArrowLeft"); await rest(page); }
-      const seen = await page.evaluate((at) => {
+      const seen = await page.evaluate(([at, named]) => {
         const marked = [...document.querySelectorAll("#stage .node.step, #stage .edge.step, #stage .area.step")].map((element) => element.dataset.id);
         const area = (id) => { const rect = document.getElementById(id).getBoundingClientRect(); return document.getElementById(id).classList.contains("show") ? rect.width * rect.height : 0; };
         const token = document.getElementById("token");
-        return { marked, level: document.body.dataset.level, step: +document.body.dataset.step, words: document.getElementById("chip").textContent.length, controls: area("play") + area("chip"), runs: !!token && token.classList.contains("run"), edge: !!document.querySelector(`#stage .edge[data-id="${at}"]`) };
-      }, step.at);
+        const label = (id) => { // a node's label as drawn, or nothing when part of it lies outside its box
+          const node = document.querySelector(`#stage .node[data-id="${id}"]`), name = node && node.querySelector("b");
+          return name && name.scrollWidth <= name.clientWidth && name.getBoundingClientRect().top >= node.getBoundingClientRect().top && node.querySelector("small").getBoundingClientRect().bottom <= node.getBoundingClientRect().bottom ? name.textContent : null;
+        };
+        return { marked, level: document.body.dataset.level, step: +document.body.dataset.step, label: named && label(named.id), words: document.getElementById("chip").textContent.length, controls: area("play") + area("chip"), runs: !!token && token.classList.contains("run"), edge: !!document.querySelector(`#stage .edge[data-id="${at}"]`) };
+      }, [step.at, named]);
       check(seen.step === i, `${where}: the key left it at step ${seen.step}, not ${i}`);
+      if (named && seen.level === example.levelOf[named.id]) { check(seen.label === named.label, `${where} step ${i}: node ${named.id} reads ${seen.label}, not ${named.label}`); named.seen = true; }
       check(seen.level === example.levelOf[step.at], `${where} step ${i}: on level ${seen.level}, not ${example.levelOf[step.at]}`);
       check(seen.marked.length === 1 && seen.marked[0] === step.at, `${where} step ${i}: marks ${seen.marked.join(",") || "nothing"}, not ${step.at}`);
-      check(seen.words <= 80, `${where} step ${i}: shows ${seen.words} characters`);
+      check(named || seen.words <= 80, `${where} step ${i}: shows ${seen.words} characters`); // a note that names the renamed node holds its long new label
       check(seen.controls <= size[0] * size[1] / 10, `${where} step ${i}: its controls cover over a tenth of the window`);
       check(!seen.edge || seen.runs, `${where} step ${i}: no mark moves along the edge`);
     }
   }
   if (lent) return;
   check(!page.faults.length, `${example.name} wrote to the console: ${page.faults[0]}`);
+  await page.context().close();
+}
+async function plays(browser, example) { // a scenario that plays by itself, a step's own button and the step after the last
+  const page = await open(browser, example, SIZES[1], { still: true });
+  const scenario = example.contract.scenarios.reduce((short, one) => (one.steps.length < short.steps.length ? one : short)), last = scenario.steps.length - 1, where = `${example.name} scenario ${scenario.id}`;
+  const step = () => page.evaluate(() => +document.body.dataset.step);
+  await page.click("#scenarios");
+  const listed = await page.textContent(`#hits [data-hit="${scenario.id}"]`);
+  check(listed.includes(`${scenario.steps.length} steps`), `${where}: the list shows ${listed}, not its ${scenario.steps.length} steps`);
+  await page.click(`#hits [data-hit="${scenario.id}"]`);
+  await rest(page);
+  await page.mouse.move(2, 2);
+  check(await page.getByRole("button", { name: "Play" }).isVisible(), `${where}: no button is named Play`);
+  await page.keyboard.press("Space");
+  check((await step()) === 1 && (await page.getByRole("button", { name: "Pause" }).isVisible()), `${where}: the space key did not start the play at once`);
+  if (last > 1) await page.waitForFunction(() => +document.body.dataset.step === 2, null, { timeout: 6000 }).catch(() => { throw new Error(`${where}: the play did not go on by itself`); });
+  await page.keyboard.press("Space");
+  const held = await step();
+  await page.waitForTimeout(700);
+  check((await step()) === held && (await page.getByRole("button", { name: "Play" }).isVisible()), `${where}: the space key did not stop the play`);
+  await page.getByRole("button", { name: `Step ${last + 1}`, exact: true }).click();
+  await rest(page);
+  check((await step()) === last, `${where}: the button of step ${last + 1} led to step ${(await step()) + 1}`);
+  check(!(await page.locator("#next").isDisabled()) && !(await page.locator("#again").isVisible()), `${where}: the last step already shows the end`);
+  await page.keyboard.press("ArrowRight");
+  await rest(page);
+  const ended = await page.evaluate(() => ({ step: +document.body.dataset.step, marked: document.querySelectorAll("#stage .step").length, chip: document.getElementById("chip").classList.contains("show") }));
+  check(ended.step === last + 1 && !ended.marked && !ended.chip, `${where}: after the last step the page shows ${JSON.stringify(ended)}`);
+  check(await page.locator("#again").isVisible(), `${where}: the end offers no replay`);
+  check((await page.locator("#onward").isVisible()) === (example.contract.scenarios.length > 1), `${where}: the end offers another scenario only when one exists`);
+  const address = await page.evaluate(() => location.hash);
+  const fresh = await open(browser, example, SIZES[1], { still: true, at: address });
+  check(await fresh.locator("#again").isVisible(), `${where}: the address ${address} does not open the end`);
+  await fresh.context().close();
+  await page.click("#again");
+  await rest(page);
+  check((await step()) === 0, `${where}: Replay led to step ${(await step()) + 1}`);
+  check(!page.faults.length, `${where} wrote to the console: ${page.faults[0]}`);
   await page.context().close();
 }
 async function mixed(browser, example, size, order) {
@@ -378,24 +465,88 @@ async function mixed(browser, example, size, order) {
   }
 }
 async function moves(browser) {
+  const drawn = async (page) => { // the level move a click on a node's open button starts, and the mark of a scenario step
+    await page.mouse.move(2, 2);
+    await page.click("#stage .node .open");
+    return page.evaluate(() => {
+      const token = document.getElementById("token");
+      token.classList.add("run");
+      return { level: [document.getElementById("stage"), document.querySelector(".stage.old")].flatMap((stage) => (stage ? stage.getAnimations() : [])).map((one) => ({ curve: one.effect.getTiming().easing, long: one.effect.getTiming().duration, wait: one.effect.getTiming().delay, moves: one.effect.getKeyframes().some((frame) => "transform" in frame) })),
+        step: { name: getComputedStyle(token).animationName, curve: getComputedStyle(token).animationTimingFunction } };
+    });
+  };
   const moving = await open(browser, examples[0], SIZES[1]);
-  const timing = await moving.evaluate(() => {
-    const stage = getComputedStyle(document.getElementById("stage")), token = [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules]).find((rule) => rule.selectorText === "#token.run");
-    return { level: stage.transitionTimingFunction, long: Math.max(...stage.transitionDuration.split(",").map(parseFloat)), step: token ? token.style.animation : "" };
-  });
-  check(timing.long > 0 && timing.level.includes("cubic-bezier") && !timing.level.includes("linear"), `a level move's transition is ${timing.level} over ${timing.long}s`);
-  check(/var\(--ease\)|cubic-bezier/.test(timing.step) && !timing.step.includes("linear"), `a scenario step's mark moves as ${timing.step || "nothing"}`);
+  const timing = await drawn(moving);
+  check(timing.level.length === 2 && timing.level.every((one) => one.long > 0 && one.moves && one.curve.includes("cubic-bezier")), `a level move is drawn as ${JSON.stringify(timing.level)}`);
+  check(new Set(timing.level.map((one) => one.wait)).size === 2, "the level left and the level entered move at once, not one after the other");
+  check(timing.step.curve.includes("cubic-bezier"), `a scenario step's mark moves as ${timing.step.curve}`);
   await moving.context().close();
-  const still = await open(browser, examples[0], SIZES[1], { still: true });
-  const stopped = await still.evaluate(() => {
-    const token = document.getElementById("token");
-    token.classList.add("run");
-    return [getComputedStyle(document.getElementById("stage")).transitionDuration, getComputedStyle(token).animationDuration].every((value) => value.split(",").every((one) => parseFloat(one) === 0));
+  const turned = await open(browser, examples[0], SIZES[1]); // a level move held part-way, with the pointer on a node of the level arriving
+  await turned.mouse.move(2, 2);
+  const leave = () => turned.evaluate(() => {
+    document.querySelector("#stage .node .open").click();
+    document.getAnimations().forEach((one) => { one.pause(); one.currentTime = 140; });
+    const node = document.querySelector("#stage .node");
+    node.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    return { id: node.dataset.id, left: +getComputedStyle(document.querySelector(".stage.old")).opacity };
   });
-  check(stopped, "a level move or a scenario step still moves under reduced motion");
+  const carded = (id) => turned.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id);
+  const first = await turned.evaluate(() => document.body.dataset.level), entered = await leave();
+  await turned.waitForTimeout(400);
+  check(!(await carded(entered.id)), "an overlay rises over a level still arriving");
+  await rest(turned);
+  await turned.waitForTimeout(200);
+  check(await carded(entered.id), "no overlay comes for the node under the pointer once its level has arrived");
+  const home = async () => { await turned.keyboard.press("["); await turned.waitForFunction((level) => document.body.dataset.level === level, first); };
+  await home();
+  await rest(turned);
+  const again = await leave();
+  await home(); // turned back while the level left is half gone
+  const resumed = await turned.evaluate(() => [document.getElementById("stage"), document.querySelector(".stage.old")].flatMap((stage) => (stage ? stage.getAnimations() : [])).map((one) => +one.effect.getKeyframes()[0].opacity));
+  check(again.left > 0 && again.left < 1 && resumed.length > 0 && resumed.every((from) => Math.abs(from - again.left) < 0.05), `a move turned back with the level left at opacity ${again.left} goes on from opacity ${resumed.join(", ") || "nothing"}`);
+  await turned.context().close();
+  const still = await open(browser, examples[0], SIZES[1], { still: true });
+  const stopped = await drawn(still);
+  check(stopped.level.length === 2 && stopped.level.every((one) => !one.moves && one.long > 0 && one.long <= 500) && stopped.step.name === "appear", `under reduced motion a level move is ${JSON.stringify(stopped.level)} and a step's mark ${stopped.step.name}`);
   await still.context().close();
-  await Promise.all(SIZES.flatMap((size) => examples.map((example) => scenarios(browser, example, size, size === SIZES[1] ? Infinity : 1)))
-    .concat(examples.flatMap((example) => [["down", "search", "up", "step"], ["search", "step", "down", "up"], ["step", "up", "search", "down"]].map((order) => mixed(browser, example, SIZES[1], order)))));
+  await Promise.all(examples.map((example) => plays(browser, example)).concat(SIZES.flatMap((size) => examples.flatMap((example) => (size === SIZES[1] ? (example.contract.scenarios || []).map((scenario) => [scenario]) : [(example.contract.scenarios || []).slice(0, 1)]).map((walked) => scenarios(browser, example, size, walked))))
+    .concat(examples.flatMap((example) => [["down", "search", "up", "step"], ["search", "step", "down", "up"], ["step", "up", "search", "down"]].map((order) => mixed(browser, example, SIZES[1], order))))));
+}
+
+// ---- changes ----
+const PLANTED = "part-set-apart";
+const RENAMED = "the part named anew, at a length no box holds on one line"; // longer than the widest node holds on one line, so the page must go on to a second
+function changed(example) { // a copy of one example's contract that holds the planted node and the three changes, the checker asked after each
+  const planted = JSON.parse(fs.readFileSync(example.source, "utf8"));
+  check(planted.levels.length > 1 && (planted.scenarios || []).length, `${example.name} has one level or no scenario, so nothing can change under a scenario`);
+  planted.nodes.push({ id: PLANTED, label: "the part set apart", tag: planted.nodes.find((node) => node.level === planted.levels[0].id).tag, level: planted.levels[0].id, purpose: "Stand on the level that asks about it." });
+  planted.scenarios[0].steps.push({ at: PLANTED });
+  const walked = new Set(planted.scenarios.flatMap((scenario) => scenario.steps.map((step) => step.at)));
+  const levelOf = Object.fromEntries(planted.nodes.map((node) => [node.id, node.level]));
+  const fixed = new Set((planted.properties || []).flatMap((item) => (item.paths || []).flat()));
+  const renamed = planted.nodes.find((node) => node.id !== PLANTED && (walked.has(node.id) || planted.edges.some((edge) => walked.has(edge.id) && edge.to === node.id)));
+  check(renamed, `${example.name}: no scenario walks a node`);
+  const source = path.join(scratch, `${example.name}-changed.json`);
+  const accepted = (contract) => { fs.writeFileSync(source, JSON.stringify(contract)); return python(path.join(ROOT, "scripts", "check-contract.py"), "check", source).status === 0; };
+  check(accepted(planted), `${example.name}: the checker refuses the planted node`);
+  planted.nodes.find((node) => node.id === renamed.id).label = RENAMED;
+  check(accepted(planted), `${example.name}: the checker refuses node ${renamed.id} under a new label`);
+  const ends = planted.edges.filter((edge) => walked.has(edge.id) && edge.tag !== "transition" && !fixed.has(edge.id)).flatMap((edge) => planted.nodes
+    .filter((node) => node.level === levelOf[edge.from] && node.tag !== "state" && node.id !== edge.from && node.id !== edge.to && !planted.edges.some((other) => other.from === edge.from && other.to === node.id)).map((node) => [edge, node.id]));
+  const moved = ends.find(([edge, end]) => { const old = edge.to; edge.to = end; return accepted(planted) || ((edge.to = old), false); }); // an end a rule of the contract forbids is passed over
+  check(moved, `${example.name}: no edge a scenario walks can move to another node of its level`);
+  planted.nodes.find((node) => node.id === PLANTED).level = planted.levels[1].id;
+  check(accepted(planted), `${example.name}: the checker refuses the planted node on another level`);
+  return { name: `${example.name} after its changes`, source, built: source.replace(/json$/, "html"), named: { id: renamed.id, label: RENAMED }, moved: { id: moved[0].id, to: moved[1] } };
+}
+async function changes(browser) {
+  await Promise.all(examples.map(changed).map(async (copy) => {
+    make(copy);
+    const edge = copy.contract.levels.flatMap((level) => level.edges || []).find((one) => one.id === copy.moved.id);
+    check(copy.contract.scenarios[0].steps.slice(-1)[0].at === PLANTED && copy.levelOf[PLANTED] === copy.contract.levels[1].id && edge.to === copy.moved.to, `${copy.name}: the page holds another contract than the changed one`);
+    await Promise.all(copy.contract.scenarios.map((scenario) => scenarios(browser, copy, SIZES[1], [scenario], copy.named)));
+    check(copy.named.seen, `${copy.name}: no step shows the level of ${copy.named.id}`);
+  }));
 }
 
 // ---- search ----
@@ -559,19 +710,22 @@ async function sweep(browser) {
         await page.mouse.move(2, size[1] - 2);
         await page.mouse.move(spot.x, spot.y, { steps: 4 });
         await page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where} ${target.id}: no overlay came`); });
-        const wrong = rowFault(await card(page), target);
+        await page.mouse.click(spot.x, spot.y); // a click keeps the overlay, which then shows every row over its pages
+        await rest(page);
+        const wrong = rowFault(await leaves(page), target);
         check(!wrong, `${where} ${target.id}: ${wrong}`);
         if (!forms.size) { // the first overlay, with the rows of one form taken out, must read as wrong
-          await page.evaluate((form) => document.querySelectorAll(`#card dl > div[data-form="${form}"]`).forEach((row) => row.remove()), target.forms[0]);
-          missed = rowFault(await card(page), target) ? "" : "the sweep passes an overlay with a form's rows removed";
+          if (await page.locator("#card .turn").count()) await page.click("#card .turn"); // from its last page round to its first
+          missed = rowFault(await leaves(page, target.forms[0]), target) ? "" : "the sweep passes an overlay with a form's rows removed";
         }
         target.forms.forEach((form) => forms.add(form));
+        await page.keyboard.press("Escape");
         await page.mouse.move(2, size[1] - 2);
         await rest(page);
       }
     }
     const shown = page; // its scenarios play on the page its levels opened, beside the next contract's levels
-    plays.push(scenarios(browser, example, size, Infinity, shown).then(() => {
+    plays.push(scenarios(browser, example, size, example.contract.scenarios || [], null, shown).then(() => {
       check(!shown.faults.length, `${example.name} wrote to the console: ${shown.faults[0]}`);
       check(!shown.asked.length, `${example.name} asked for ${shown.asked[0]}`);
       return example === swept[swept.length - 1] ? null : shown.context().close();
@@ -583,8 +737,8 @@ async function sweep(browser) {
   const last = swept[swept.length - 1], played = (last.contract.scenarios || [])[0];
   check(played, "no swept contract holds a scenario");
   const short = { ...last, contract: { ...last.contract, scenarios: [{ ...played, steps: played.steps.concat(played.steps.slice(-1)) }] } }; // one step more than the page holds
-  const stopped = await scenarios(browser, short, size, 1, page).then(() => "", (error) => error.message);
-  check(stopped.includes("the key left it at step"), `the sweep passes a scenario that stops a step early: ${stopped || "no fault"}`);
+  const stopped = await scenarios(browser, short, size, short.contract.scenarios, null, page).then(() => "", (error) => error.message);
+  check(stopped.includes(`step ${played.steps.length}: marks nothing`), `the sweep passes a scenario that stops a step early: ${stopped || "no fault"}`);
   await page.keyboard.press("Escape");
   await rest(page);
   const here = await page.evaluate(() => document.body.dataset.level), level = last.contract.levels.find((one) => one.id === here);
@@ -615,7 +769,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch(binary);
-    const steps = { diagram, overlay, moves, search, tasks, sweep };
+    const steps = { diagram, overlay, moves, changes, search, tasks, sweep };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
@@ -628,8 +782,7 @@ async function main() {
     if (browser) await browser.close();
     fs.rmSync(scratch, { recursive: true, force: true });
   }
-  console.log(`whole run ${process.uptime().toFixed(1)} s`);
-  console.log(failed ? "FAIL" : "PASS");
+  console.log(`${failed ? "FAIL" : "PASS"} in ${process.uptime().toFixed(1)} s`);
   return failed ? 1 : 0;
 }
 

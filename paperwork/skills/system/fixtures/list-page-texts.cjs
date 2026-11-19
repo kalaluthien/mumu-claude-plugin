@@ -41,7 +41,7 @@ async function main() {
       views.push({ view: `level ${level.id}`, address: `#level=${level.id}` });
       for (const kind of ["areas", "nodes", "edges"]) for (const record of level[kind] || []) views.push({ view: `${kind} ${record.id}`, address: `#level=${level.id}&at=${record.id}`, card: record.id });
     }
-    for (const scenario of contract.scenarios || []) scenario.steps.forEach((step, k) => views.push({ view: `scenario ${scenario.id} step ${k + 1}`, address: `#scenario=${scenario.id}&step=${k}`, step: k }));
+    for (const scenario of contract.scenarios || []) scenario.steps.forEach((step, k) => views.push({ view: `scenario ${scenario.id} step ${k + 1}`, address: `#scenario=${scenario.id}&step=${k}`, step: k, note: !!step.note }));
     for (const property of contract.properties || []) views.push({ view: `property ${property.id}`, address: `#at=${property.id}`, card: property.id });
     for (const button of ["scenarios", "properties"]) views.push({ view: `list of ${button}`, address: "", button });
     for (const one of views) {
@@ -53,7 +53,7 @@ async function main() {
         const card = document.getElementById("card");
         if (view.card) return card.classList.contains("show") && card.dataset.for === view.card;
         if (view.button) return document.querySelectorAll("#hits [data-hit]").length > 0;
-        if ("step" in view) return +document.body.dataset.step === view.step && document.getElementById("chip").textContent.length > 0;
+        if ("step" in view) return +document.body.dataset.step === view.step && (!view.note || document.getElementById("chip").textContent.length > 0); // a step without a note shows no chip
         return true;
       }, one, { timeout: 3000 }).then(() => true, () => false);
       console.log(JSON.stringify({ view: one.view, text: await page.evaluate(() => document.body.innerText), shown }));

@@ -16,7 +16,7 @@
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, turn = 0;
+  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
 
   // ---- the contract's records ----
@@ -41,6 +41,7 @@
     const plain = !/[./_\d]|[a-z][A-Z]/.test(name.split(/\s+/)[0]); // a file name stays as written
     return plain && (at === 0 || all.slice(0, at).endsWith(". ")) ? name[0].toUpperCase() + name.slice(1) : name;
   });
+  const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
     ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
     : `${label(edge.from)} ${words(edge.label)} ${label(edge.to)}.`;
@@ -99,35 +100,54 @@
     return down ? { at, w: span, h: far - gapMain } : { at, w: far - gapMain, h: span };
   }
 
-  const NODE = { w: 196, h: 58 };
+  const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+  const ROOM = { side: 40, top: 76, bottom: 76 };
+  const FITS = [ // a level's drawings from roomy to dense; inner and outer hold the gap along a flow down, along a flow across, then beside each
+    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 16, head: 30, labels: true },
+    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 16, head: 30 },
+    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 10, head: 24, dense: true },
+    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 8, head: 22, dense: true },
+  ];
   const pen = document.createElement("canvas").getContext("2d");
-  function size(level) { // every node of a level as wide as its longest label needs
-    pen.font = '500 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif';
-    const longest = Math.max(...level.nodes.map(node => pen.measureText(node.label).width * 1.12 + (node.opens ? 62 : 30)));
-    NODE.w = Math.min(320, Math.max(196, Math.ceil(longest)));
+  function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
+    pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
+    const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 22 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
+    const need = node => text(node) + beside(node);
+    const lines = node => need(node) <= most ? 1 : Math.ceil(text(node) * 1.15 / (most - beside(node))); // a label too long for the widest box goes on over more lines
+    const widest = Math.min(most, Math.max(196, ...level.nodes.map(need))), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
+    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) } : { w: widest, h: tallest }]));
   }
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
-  const fill = plan => Math.min((innerWidth - 80) / plan.w, (innerHeight - 152) / plan.h);
+  const fill = plan => Math.min((innerWidth - 2 * ROOM.side) / plan.w, (innerHeight - ROOM.top - ROOM.bottom) / plan.h);
   function arrange(level) {
-    let best = null;
-    size(level);
-    const wide = innerWidth - 80, tall = innerHeight - 152;
-    for (const outerDown of [false, true]) for (const innerDown of [false, true]) {
-      const plan = Object.assign(attempt(level, outerDown, innerDown, 1, 1), { outerDown, innerDown });
-      if (!best || fill(plan) > fill(best) + .01) best = plan;
+    const across = innerWidth - 2 * ROOM.side, down = innerHeight - ROOM.top - ROOM.bottom;
+    const used = plan => { const scale = Math.min(fill(plan), 1.3); return Math.min(plan.w * scale / across, plan.h * scale / down); };
+    const spread = plan => { // the side with room to spare gets wider gaps, never larger type
+      for (let wider = 1, taller = 1, turns = 0; turns < 16; turns++) {
+        const steps = [[wider * 1.25, taller], [wider, taller * 1.25]];
+        if (plan.w / across > plan.h / down) steps.reverse();
+        const gain = steps.filter(step => Math.max(...step) <= 3).map(step => ({ step, next: { ...plan, ...attempt(level, plan.fit, plan.sizes, plan.outerDown, plan.innerDown, ...step) } }))
+          .find(({ next }) => Math.min(fill(next), 1) >= Math.min(fill(plan), 1) - .001 && used(next) > used(plan) + .001);
+        if (!gain) break;
+        [wider, taller] = gain.step;
+        plan = gain.next;
+      }
+      return plan;
+    };
+    for (const fit of FITS) { // the roomiest drawing that fits near full size, turned the way that uses the window most
+      const least = fit.dense ? 1 : .85;
+      const pick = sizes => {
+        const plans = [false, true].flatMap(outerDown => [false, true].map(innerDown => spread({ ...attempt(level, fit, sizes, outerDown, innerDown, 1, 1), fit, sizes, outerDown, innerDown })));
+        const fitting = plans.filter(plan => fill(plan) >= least);
+        return fitting.length ? fitting.reduce((a, b) => used(b) > used(a) + .01 ? b : a) : plans.reduce((a, b) => fill(b) > fill(a) + .01 ? b : a);
+      };
+      let best = pick(size(level, fit));
+      for (let turn = 0; turn < 2 && fill(best) < 1; turn++) best = pick(size(level, fit, 1 / Math.max(fill(best), .85))); // a level drawn smaller keeps its type's size, so its nodes are measured for the larger type
+      if (fill(best) >= least || fit === FITS[FITS.length - 1]) return best;
     }
-    for (let across = 1, along = 1, turns = 0; fill(best) >= 1 && turns < 12; turns++) { // a window with room to spare gets wider gaps, never larger type
-      const wider = best.w / wide < best.h / tall, step = wider ? [across + .15, along] : [across, along + .15];
-      if (Math.max(...step) > 1.75) break;
-      const next = Object.assign(attempt(level, best.outerDown, best.innerDown, ...step), { outerDown: best.outerDown, innerDown: best.innerDown });
-      if (fill(next) < 1) break;
-      [across, along] = step;
-      best = next;
-    }
-    return best;
   }
-  function attempt(level, outerDown, innerDown, across, along) {
-    const PAD = 16, HEAD = 30;
+  function attempt(level, fit, sizes, outerDown, innerDown, across, along) {
+    const gaps = (four, down, edges) => down ? [along * four[0], across * four[2]] : [across * Math.max(four[1], fit.labels ? wide(edges) : 0), along * four[3]];
     const groups = new Map();
     for (const area of level.areas || []) groups.set(area.id, { id: area.id, area, nodes: [] });
     for (const node of level.nodes) {
@@ -140,20 +160,19 @@
     for (const group of used) {
       group.nodes.forEach(node => (groupOf[node.id] = group.id));
       const inner = edges.filter(edge => groupOf[edge.from] === group.id && group.nodes.some(node => node.id === edge.to));
-      group.inside = layered(group.nodes.map(node => ({ id: node.id, ...NODE })), inner.map(edge => [edge.from, edge.to]), (innerDown ? along * 52 : across * Math.max(72, wide(inner))), innerDown ? across * 28 : along * 22, innerDown);
-      group.w = group.inside.w + (group.area ? 2 * PAD : 0);
-      group.h = group.inside.h + (group.area ? PAD + HEAD : 0);
+      group.inside = layered(group.nodes.map(node => ({ id: node.id, ...sizes[node.id] })), inner.map(edge => [edge.from, edge.to]), ...gaps(fit.inner, innerDown, inner), innerDown);
+      group.w = group.inside.w + (group.area ? 2 * fit.pad : 0);
+      group.h = group.inside.h + (group.area ? fit.pad + fit.head : 0);
     }
     const between = edges.filter(edge => groupOf[edge.from] !== groupOf[edge.to]);
-    const outer = layered(used.map(group => ({ id: group.id, w: group.w, h: group.h })), between.map(edge => [groupOf[edge.from], groupOf[edge.to]]),
-      (outerDown ? along * 64 : across * Math.max(96, wide(between))), outerDown ? across * 44 : along * 36, outerDown);
+    const outer = layered(used.map(group => ({ id: group.id, w: group.w, h: group.h })), between.map(edge => [groupOf[edge.from], groupOf[edge.to]]), ...gaps(fit.outer, outerDown, between), outerDown);
     const box = {};
     for (const group of used) {
       const spot = outer.at[group.id];
       if (group.area) box[group.id] = { ...spot };
       for (const node of group.nodes) {
         const inner = group.inside.at[node.id];
-        box[node.id] = { x: spot.x + inner.x + (group.area ? PAD : 0), y: spot.y + inner.y + (group.area ? HEAD : 0), ...NODE };
+        box[node.id] = { x: spot.x + inner.x + (group.area ? fit.pad : 0), y: spot.y + inner.y + (group.area ? fit.head : 0), ...sizes[node.id] };
       }
     }
     return { box, w: outer.w, h: outer.h };
@@ -171,7 +190,7 @@
     for (const node of level.nodes) cover(box[node.id], blocked, CLEAR);
     for (const area of level.areas || []) if (box[area.id]) {
       const frame = box[area.id];
-      cover({ ...frame, h: 26 }, dear, 0);
+      cover({ ...frame, h: 22 }, dear, 0);
       for (const side of [{ ...frame, h: 0 }, { ...frame, y: frame.y + frame.h, h: 0 }, { ...frame, w: 0 }, { ...frame, x: frame.x + frame.w, w: 0 }]) cover(side, dear, 8);
     }
     const MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -267,38 +286,78 @@
 
   // ---- drawing a level ----
   const OPEN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
+  const lap = (spot, others) => others.reduce((sum, other) => sum + Math.max(0, Math.min(spot.x + spot.w, other.x + other.w) - Math.max(spot.x, other.x)) * Math.max(0, Math.min(spot.y + spot.h, other.y + other.h) - Math.max(spot.y, other.y)), 0);
+  const runs = ids => ids.flatMap(id => curves[id].points.slice(1).map((point, k) => { // the straight runs of some edges' lines, as thin boxes
+    const start = curves[id].points[k];
+    return { x: Math.min(start.x, point.x) - 3, y: Math.min(start.y, point.y) - 3, w: Math.abs(point.x - start.x) + 6, h: Math.abs(point.y - start.y) + 6 };
+  }));
+  function seat(id, w, h, taken, wires, far) { // the place on an edge's line where its label covers least; `far` also tries places a label or two off the line
+    const stage = $("stage");
+    let best = null;
+    for (let k = 0; k <= 20; k++) {
+      const t = .5 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * .04, on = along(curves[id].points, t), ahead = along(curves[id].points, t + .01);
+      const upright = Math.abs(ahead.y - on.y) > Math.abs(ahead.x - on.x);
+      for (const side of far ? [0, 1, -1, 2, -2, 3, -3] : [0, 1, -1]) { // on a level run of its line, else on an upright one, else beside the line
+        const reach = Math.sign(side) * ((upright ? w / 2 + 6 : h / 2 + 4) + (Math.abs(side) - 1) * ((upright ? w : h) + 8));
+        const point = { x: on.x + (upright ? reach : 0), y: on.y + (upright ? 0 : reach) };
+        const spot = { x: point.x - w / 2 - 2, y: point.y - h / 2 - 2, w: w + 4, h: h + 4 };
+        const outside = spot.x < 0 || spot.y < 0 || spot.x + spot.w > +stage.dataset.w || spot.y + spot.h > +stage.dataset.h, over = lap(spot, taken) + (outside ? w * h : 0), cross = lap(spot, wires), price = (over ? 1e9 + over : 0) + (cross ? 1e5 + cross : 0) + (side ? 2000 * Math.abs(side) : upright ? 1000 : 0) + k;
+        if (!best || price < best.price) best = { point, spot, over, cross, price };
+      }
+    }
+    return best;
+  }
+  function settle(shown, first) { // a label with no free place at rest takes one among the lines and labels now lit
+    const taken = [...blocks, ...Object.values(faces).filter(face => !face.text.classList.contains("tucked")).map(face => face.spot)];
+    const lines = [...shown].filter(id => curves[id]);
+    for (const id of Object.keys(faces).filter(id => faces[id].text.classList.contains("tucked")).sort((a, b) => (b === first) - (a === first))) {
+      const face = faces[id], best = shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first), point = seen ? best.point : face.point;
+      face.text.classList.toggle("shown", seen);
+      face.text.style.left = point.x + "px"; face.text.style.top = point.y + "px";
+      if (seen) taken.push(best.spot);
+    }
+  }
   function paint(level) {
-    const stage = $("stage"), plan = arrange(level);
-    boxes = plan.box; curves = route(level, boxes, plan.w, plan.h);
+    const stage = $("stage"), key = `${level.id} ${innerWidth} ${innerHeight}`; // a level is laid out once per window size, since a scenario comes back to it
+    if (!plans[key]) { const plan = arrange(level); plans[key] = { plan, lines: route(level, plan.box, plan.w, plan.h), seats: {} }; }
+    const plan = plans[key].plan;
+    boxes = plan.box; curves = plans[key].lines;
     stage.replaceChildren();
     stage.style.width = plan.w + "px"; stage.style.height = plan.h + "px";
     stage.dataset.w = plan.w; stage.dataset.h = plan.h;
+    stage.classList.toggle("dense", !!plan.fit.dense);
+    fit();
     for (const area of level.areas || []) {
       const spot = boxes[area.id];
       if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
-        make("header", {}, area.label, make("small", {}, area.tag))));
+        make("header", {}, area.label, make("small", {}, tagName(area.tag)))));
     }
     const svg = draw("svg", { width: plan.w, height: plan.h });
     stage.append(svg);
     for (const node of level.nodes) {
       const spot = boxes[node.id];
       const card = make("div", { class: "node", "data-id": node.id, "data-tag": node.tag, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
-        make("b", {}, node.label), make("small", {}, node.tag));
+        make("b", {}, node.label), make("small", {}, tagName(node.tag)));
       const region = (level.areas || []).find(area => area.id === node.area && area.tag === "region");
       if (region && region.info && region.info.initial === node.id) card.classList.add("first");
       if (node.opens) {
-        const open = make("button", { class: "open", type: "button", "aria-label": `Open ${label(node.opens)}`, title: `Open ${label(node.opens)}` });
+        const open = make("button", { class: "open", type: "button", "aria-label": `Open ${words(label(node.opens))}`, title: `Open ${words(label(node.opens))}` });
         open.innerHTML = OPEN;
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
       }
       stage.append(card);
     }
-    const taken = level.nodes.map(node => ({ ...boxes[node.id] }));
+    blocks = level.nodes.map(node => ({ ...boxes[node.id] }));
     for (const header of stage.querySelectorAll(".area > header")) {
       const spot = boxes[header.parentElement.dataset.id];
-      taken.push({ x: spot.x, y: spot.y, w: header.scrollWidth, h: 30 });
+      blocks.push({ x: spot.x, y: spot.y, w: header.scrollWidth, h: plan.fit.head });
     }
+    const taken = [...blocks], frames = (level.areas || []).filter(area => boxes[area.id]).flatMap(area => {
+      const frame = boxes[area.id];
+      return [{ x: frame.x - 3, y: frame.y - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y + frame.h - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y - 3, w: 6, h: frame.h + 6 }, { x: frame.x + frame.w - 3, y: frame.y - 3, w: 6, h: frame.h + 6 }];
+    });
+    faces = {};
     for (const edge of level.edges || []) {
       const group = draw("g", { class: "edge", "data-id": edge.id, "data-tag": edge.tag });
       const tip = curves[edge.id].points[curves[edge.id].points.length - 1];
@@ -307,45 +366,39 @@
       svg.append(group);
       const text = make("div", { class: "label", "data-edge": edge.id }, words(edge.label));
       stage.append(text);
-      const w = text.offsetWidth, h = text.offsetHeight;
-      const clash = spot => taken.reduce((sum, other) => sum + Math.max(0, Math.min(spot.x + spot.w, other.x + other.w) - Math.max(spot.x, other.x)) * Math.max(0, Math.min(spot.y + spot.h, other.y + other.h) - Math.max(spot.y, other.y)), 0);
-      const wires = (level.edges || []).filter(other => other !== edge).flatMap(other => curves[other.id].points.slice(1).map((point, k) => {
-        const start = curves[other.id].points[k];
-        return { x: Math.min(start.x, point.x) - 3, y: Math.min(start.y, point.y) - 3, w: Math.abs(point.x - start.x) + 6, h: Math.abs(point.y - start.y) + 6 };
-      }));
-      for (const area of level.areas || []) if (boxes[area.id]) {
-        const frame = boxes[area.id];
-        wires.push({ x: frame.x - 3, y: frame.y - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y + frame.h - 3, w: frame.w + 6, h: 6 }, { x: frame.x - 3, y: frame.y - 3, w: 6, h: frame.h + 6 }, { x: frame.x + frame.w - 3, y: frame.y - 3, w: 6, h: frame.h + 6 });
+      if (!plans[key].seats[edge.id]) {
+        const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
+        plans[key].seats[edge.id] = { w, h, point: best.point, spot: best.spot, tucked: !!(best.over || best.cross) };
       }
-      const crossed = spot => wires.reduce((sum, other) => sum + Math.max(0, Math.min(spot.x + spot.w, other.x + other.w) - Math.max(spot.x, other.x)) * Math.max(0, Math.min(spot.y + spot.h, other.y + other.h) - Math.max(spot.y, other.y)), 0);
-      let best = null;
-      for (let k = 0; k <= 20; k++) {
-        const t = .5 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * .04, on = along(curves[edge.id].points, t), ahead = along(curves[edge.id].points, t + .01);
-        const upright = Math.abs(ahead.y - on.y) > Math.abs(ahead.x - on.x);
-        for (const side of [0, 1, -1]) { // on a level run of its line, else on an upright one, else beside the line
-          const point = { x: on.x + (upright ? side * (w / 2 + 6) : 0), y: on.y + (upright ? 0 : side * (h / 2 + 4)) };
-          const spot = { x: point.x - w / 2 - 2, y: point.y - h / 2 - 2, w: w + 4, h: h + 4 };
-          const outside = spot.x < 0 || spot.y < 0 || spot.x + spot.w > plan.w || spot.y + spot.h > plan.h, over = clash(spot) + (outside ? w * h : 0), cross = crossed(spot), price = (over ? 1e9 + over : 0) + (cross ? 1e5 + cross : 0) + (side ? 2000 : upright ? 1000 : 0) + k;
-          if (!best || price < best.price) best = { point, spot, over, cross, price };
-        }
-      }
-      if (best.over || best.cross) text.classList.add("tucked"); else taken.push(best.spot);
-      text.style.left = best.point.x + "px"; text.style.top = best.point.y + "px";
+      const place = plans[key].seats[edge.id];
+      if (place.tucked) text.classList.add("tucked"); else taken.push(place.spot);
+      faces[edge.id] = { text, w: place.w, h: place.h, point: place.point, spot: place.spot };
+      text.style.left = place.point.x + "px"; text.style.top = place.point.y + "px";
     }
     stage.append(make("div", { id: "token" }));
-    fit();
   }
   function fit() {
     const stage = $("stage"), w = +stage.dataset.w, h = +stage.dataset.h;
-    const room = { side: 40, top: 76, bottom: 76 };
-    const x = scale => room.side + (innerWidth - 2 * room.side - w * scale) / 2, y = scale => room.top + (innerHeight - room.top - room.bottom - h * scale) / 2;
-    const scale = Math.min((innerWidth - 2 * room.side) / w, (innerHeight - room.top - room.bottom) / h, 1.3);
-    stage.style.setProperty("--grow", scale >= .9 ? 1 / scale : 1);
+    const x = scale => ROOM.side + (innerWidth - 2 * ROOM.side - w * scale) / 2, y = scale => ROOM.top + (innerHeight - ROOM.top - ROOM.bottom - h * scale) / 2;
+    const scale = Math.min((innerWidth - 2 * ROOM.side) / w, (innerHeight - ROOM.top - ROOM.bottom) / h, 1.3);
+    stage.style.setProperty("--grow", 1 / Math.max(scale, .85)); // type keeps its size while the boxes around it grow or give a little
     Object.assign(stage.dataset, { x: x(scale), y: y(scale), scale });
     stage.style.transform = `translate(${x(scale)}px, ${y(scale)}px) scale(${scale})`;
   }
   const found = id => document.querySelector(`#stage [data-id="${CSS.escape(id)}"]`);
   const face = id => records[id] && records[id].kind === "edge" ? document.querySelector(`#stage .label[data-edge="${CSS.escape(id)}"]`) : found(id);
+  const lies = id => { // where a record's face rests in the window, whatever move is under way
+    const stage = $("stage"), text = boxes[id] ? null : face(id), head = records[id] && records[id].kind === "area" && found(id) && found(id).firstChild; // an area's face is its header
+    const spot = head ? { x: boxes[id].x, y: boxes[id].y, w: head.offsetWidth, h: head.offsetHeight } : boxes[id] || (text && { x: text.offsetLeft - text.offsetWidth / 2, y: text.offsetTop - text.offsetHeight / 2, w: text.offsetWidth, h: text.offsetHeight });
+    if (!spot) return null;
+    const scale = +stage.dataset.scale, left = +stage.dataset.x + spot.x * scale, top = +stage.dataset.y + spot.y * scale;
+    return { left, top, right: left + spot.w * scale, bottom: top + spot.h * scale, width: spot.w * scale, height: spot.h * scale };
+  };
+  const line = id => { // points along an edge's line, in the window
+    const stage = $("stage"), scale = +stage.dataset.scale;
+    return curves[id] ? Array.from({ length: 17 }, (_, k) => along(curves[id].points, k / 16)).map(point => ({ x: +stage.dataset.x + point.x * scale, y: +stage.dataset.y + point.y * scale })) : [];
+  };
+  const door = (opened, held) => (openers[opened] || []).find(id => levelOf[id] === held); // the node of one level that opens the other
 
   // ---- one history for every move ----
   const address = state => "#" + ["level", "at", "scenario"].filter(key => state[key]).map(key => key + "=" + encodeURIComponent(state[key])).concat(state.scenario ? ["step=" + state.step] : []).join("&");
@@ -358,7 +411,7 @@
     if (!records[state.level] || records[state.level].kind !== "level") state.level = contract.levels[0].id;
     if (state.at && !records[state.at]) state.at = null;
     if (state.scenario && !(records[state.scenario] && records[state.scenario].kind === "scenario")) state.scenario = null;
-    if (!state.scenario || !records[state.scenario].record.steps[state.step]) state.step = 0;
+    if (!state.scenario || !(state.step >= 0 && state.step <= records[state.scenario].record.steps.length)) state.step = 0; // one past the last step is the scenario's end
     return state;
   }
   function go(change, replace) {
@@ -368,47 +421,53 @@
     history[replace ? "replaceState" : "pushState"](next, "", address(next));
     show(next);
   }
+  const LEAVE = "cubic-bezier(.4, 0, .6, 1)", ARRIVE = "cubic-bezier(.3, .6, .2, 1)", MOVE = { leave: 280, wait: 220, arrive: 680 }; // the level left is gone before the level entered shows
+  let late = 0, leftLevel = null; // how long a scenario's mark waits for its level to arrive, and the level a move is leaving
   function show(next) {
     Object.assign(view, next);
-    const mine = ++turn, stage = $("stage"), level = records[view.level].record;
-    const settle = () => {
-      if (mine !== turn) return;
-      Object.assign(document.body.dataset, { level: view.level, at: view.at || "", scenario: view.scenario || "", step: view.scenario ? view.step : "" });
-      crumbs(); mark(); play();
-      document.body.dataset.busy = "";
-    };
-    document.body.dataset.busy = "1";
+    const stage = $("stage"), from = shownLevel;
     hovered = null;
     hide(true);
-    if (shownLevel === view.level) return settle();
-    const from = shownLevel, centre = () => ({ x: +stage.dataset.w / 2, y: +stage.dataset.h / 2 });
-    const about = (spot, by) => ` translate(${spot.x}px, ${spot.y}px) scale(${by}) translate(${-spot.x}px, ${-spot.y}px)`;
-    const door = (opened, held) => (openers[opened] || []).find(id => levelOf[id] === held); // the node of one level that opens the other
-    const middle = id => ({ x: boxes[id].x + boxes[id].w / 2, y: boxes[id].y + boxes[id].h / 2 });
-    const down = from && door(view.level, from), up = from && door(from, view.level);
-    const swap = () => {
-      if (mine !== turn) return;
+    if (from !== view.level) {
+      const down = from && door(view.level, from), up = from && door(from, view.level);
+      const placed = (one = stage) => ({ x: +one.dataset.x, y: +one.dataset.y, scale: +one.dataset.scale, w: +one.dataset.w, h: +one.dataset.h });
+      const at = spot => `translate(${spot.x}px, ${spot.y}px) scale(${spot.scale})`;
+      const within = (spot, rect) => { // a level drawn inside the node that opens it
+        const scale = Math.min(rect.width / spot.w, rect.height / spot.h);
+        return at({ x: rect.left + rect.width / 2 - spot.w * scale / 2, y: rect.top + rect.height / 2 - spot.h * scale / 2, scale });
+      };
+      const about = (spot, rect, by) => { // a level zoomed about that node
+        const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+        return at({ x: x + (spot.x - x) * by, y: y + (spot.y - y) * by, scale: spot.scale * by });
+      };
+      const drawn = one => { const style = getComputedStyle(one); return { transform: style.transform, opacity: +style.opacity }; };
+      const fading = document.querySelector(".stage.old"), seen = fading && drawn(fading).opacity > drawn(stage).opacity ? fading : stage, held = drawn(seen); // a move turned back mid-way goes on from the level still seen
+      const back = seen === fading && leftLevel === view.level, old = from === null || back ? null : seen.cloneNode(true), before = old && placed(seen), entered = down && lies(down);
+      if (seen === stage) leftLevel = from;
+      for (const left of document.querySelectorAll(".stage.old")) left.remove();
+      for (const one of stage.getAnimations()) one.cancel();
       shownLevel = view.level;
-      paint(level);
-      stage.classList.add("enter");
-      stage.style.transform += up ? about(middle(up), 1.6) : about(centre(), down ? .72 : .96);
-      stage.getBoundingClientRect();
-      stage.classList.remove("enter");
-      fit();
-      settle();
-    };
-    if (shownLevel === null || still()) return swap();
-    crumbs();
-    const old = stage.cloneNode(true);
-    old.removeAttribute("id");
-    old.querySelectorAll("[id]").forEach(part => part.removeAttribute("id"));
-    old.classList.add("old");
-    stage.after(old);
-    old.getBoundingClientRect();
-    old.classList.add("leave");
-    old.style.transform += down ? about(middle(down), 1.6) : about(centre(), up ? .72 : 1.04);
-    setTimeout(() => old.remove(), 460);
-    swap();
+      paint(records[view.level].record);
+      if (old) {
+        const after = placed(), left = up && lies(up), middle = { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 }, quiet = still();
+        old.removeAttribute("id");
+        old.querySelectorAll("[id]").forEach(part => part.removeAttribute("id"));
+        old.classList.add("old");
+        stage.after(old);
+        old.animate(quiet ? [{ opacity: held.opacity }, { opacity: 0 }] : [{ transform: held.transform, opacity: held.opacity }, { transform: entered ? about(before, entered, 2.4) : left ? within(before, left) : about(before, middle, 1.04), opacity: 0 }],
+          { duration: quiet ? 180 : MOVE.leave, easing: quiet ? "ease-out" : LEAVE, fill: "forwards" }).finished.then(() => old.remove(), () => old.remove());
+        stage.animate(quiet ? [{ opacity: 0 }, { opacity: 1 }] : [{ transform: entered ? within(after, entered) : left ? about(after, left, 2.4) : about(after, middle, .96), opacity: 0 }, { transform: at(after), opacity: 1 }],
+          { duration: quiet ? 240 : MOVE.arrive, delay: quiet ? 0 : MOVE.wait, easing: quiet ? "ease-out" : ARRIVE, fill: "backwards" }).finished.then(() => { document.body.dataset.busy = ""; }, () => {});
+        late = quiet ? 0 : MOVE.wait + 40;
+      } else if (back) {
+        stage.animate(still() ? [{ opacity: held.opacity }, { opacity: 1 }] : [held, { transform: at(placed()), opacity: 1 }], { duration: still() ? 240 : MOVE.arrive, easing: still() ? "ease-out" : ARRIVE })
+          .finished.then(() => { document.body.dataset.busy = ""; }, () => {});
+      }
+      document.body.dataset.busy = old || back ? "1" : "";
+    }
+    Object.assign(document.body.dataset, { level: view.level, at: view.at || "", scenario: view.scenario || "", step: view.scenario ? view.step : "" });
+    crumbs(); mark(); play();
+    late = 0;
   }
 
   function crumbs() {
@@ -421,7 +480,7 @@
     bar.replaceChildren();
     path.forEach((id, i) => {
       if (i) bar.append(make("span", { class: "sep" }, "/"));
-      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, records[id].record.title);
+      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, words(records[id].record.title));
       item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
       bar.append(item);
     });
@@ -446,32 +505,45 @@
     for (const one of [...set]) if (records[one] && records[one].kind === "node" && records[one].record.area) set.add(records[one].record.area);
     return set;
   }
+  const TONES = ["ahead", "past", "next", "step"]; // how far a playing scenario's walk has come at a record, the later name winning
   function mark() {
-    const stage = $("stage"), step = view.scenario ? records[view.scenario].record.steps[view.step] : null;
-    const focus = hovered || view.at || (step && step.at), set = focus ? near(focus) : new Set();
-    stage.classList.toggle("focus", !!focus);
+    const stage = $("stage"), scenario = view.scenario ? records[view.scenario].record : null, step = scenario ? scenario.steps[view.step] : null;
+    const focus = hovered || view.at || (step && step.at);
+    const lit = !focus ? new Set() : focus === (step && step.at) && records[focus].kind === "node" ? new Set([focus, records[focus].record.area]) : near(focus);
+    const tone = {}, held = new Set();
+    if (scenario) scenario.steps.forEach((one, i) => {
+      const id = levelOf[one.at] === view.level ? one.at : i === view.step + 1 ? door(levelOf[one.at], view.level) : null; // a next step on another level is hinted at the node that opens it
+      const is = i < view.step ? "past" : i === view.step ? "step" : i === view.step + 1 ? "next" : "ahead";
+      if (id && TONES.indexOf(is) > TONES.indexOf(tone[id])) tone[id] = is;
+      if (id && records[id].record.area) held.add(records[id].record.area);
+    });
+    stage.classList.toggle("playing", !!scenario && !hovered && !view.at);
     for (const element of stage.querySelectorAll("[data-id], .label")) {
       const id = element.dataset.id || element.dataset.edge;
-      element.classList.toggle("on", set.has(id));
+      element.classList.toggle("on", lit.has(id));
       element.classList.toggle("pinned", id === view.at);
-      element.classList.toggle("step", !!step && step.at === id);
+      for (const is of TONES) element.classList.toggle(is, tone[id] === is);
+      element.classList.toggle("dim", !!(focus || scenario) && !lit.has(id) && !tone[id] && !held.has(id));
     }
+    settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
     if (hovered) card(hovered); else if (view.at) card(view.at); else hide(true);
   }
-  const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, part.slice(1, -1)) : part);
-  const value = (form, data) => {
-    if (form === "list" && Array.isArray(data)) return make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))));
+  const prose = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("code", {}, ...part.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece])) : part);
+  const FOLD = { list: 4, table: 3, tree: 4, code: 5 }; // the items a row of the resting card shows
+  const value = (form, data, most) => {
+    const rest = count => count > most ? [make("small", { class: "more" }, `+${count - most} more`)] : [];
+    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.slice(0, most).map(item => make("li", {}, ...prose(item)))), ...rest(data.length)];
     if (form === "table" && data && data.columns) {
       const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
-      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
-      return table;
+      table.append(make("tbody", {}, ...data.rows.slice(0, most).map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
+      return [table, ...rest(data.rows.length)];
     }
     if (form === "tree" && Array.isArray(data)) {
       const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, words(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
-      return branch(data);
+      return [branch(data.slice(0, most)), ...rest(data.length)];
     }
-    if (form === "code") return make("pre", {}, make("code", {}, String(data)));
-    return make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)));
+    if (form === "code") { const lines = String(data).split("\n"); return [make("pre", {}, make("code", {}, lines.slice(0, most).join("\n"))), ...rest(lines.length)]; }
+    return [make("span", most < Infinity ? { class: "clamp" } : {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
   };
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
@@ -484,57 +556,87 @@
       const item = items.find(one => one.name === name);
       add(item ? item.label : name, item ? item.form : Array.isArray(data) ? "list" : "text", name === "initial" ? label(data) : data);
     }
-    if (record.opens) add("opens", "text", label(record.opens));
+    if (record.opens) add("opens", "text", words(label(record.opens)));
     if (record.evidence) add("evidence", "list", record.evidence.map(entry => {
       const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
       return (known ? known.path : source) + (line ? ":" + line : "");
     }));
     return list;
   }
-  function card(id) {
-    const { kind, record } = records[id], box = $("card"), target = face(id);
-    box.replaceChildren(make("h2", {}, words(record.label || record.title || record.id)));
-    const tags = make("div", {}, make("span", { class: "tag fill" }, record.tag || record.kind || kind));
-    for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
-    box.append(tags);
-    const list = make("dl");
-    for (const [name, form, data] of rows(id)) list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, value(form, data))));
-    box.append(list, make("footer", {}, make("span", {}, view.at === id ? "pinned" : "click to pin"), make("kbd", {}, "esc")));
-    box.dataset.for = id;
-    box.style.maxHeight = Math.floor(Math.min(innerHeight * .46, innerWidth * innerHeight * .3 / 320)) + "px";
-    const gap = 12, w = 320, h = box.offsetHeight;
-    let left = innerWidth / 2 - w / 2, top = 68;
-    const settle = (x, y) => { // inside the window and clear of the bars
-      let at = { left: Math.min(Math.max(8, x), innerWidth - w - 8), top: Math.min(Math.max(8, y), innerHeight - h - 8) };
-      for (const bar of [$("tools"), $("crumbs")]) {
-        const held = bar.getBoundingClientRect();
-        if (at.left < held.right + 8 && at.left + w > held.left - 8 && at.top < held.bottom + 8) at.top = held.bottom + 8;
-      }
-      return at;
+  function beside(id, w, h, apart = .6) { // the spot nearest a record that covers neither it nor what the reader follows from it; `apart` is what covering another node costs
+    const spot = lies(id), tied = near(id), dear = [];
+    if (!spot) return { left: innerWidth / 2 - w / 2, top: 68 };
+    const keep = (rect, by, weight) => dear.push({ left: rect.left - by, top: rect.top - by, right: rect.right + by, bottom: rect.bottom + by, weight });
+    const points = (one, weight) => line(one).forEach(point => keep({ left: point.x, top: point.y, right: point.x, bottom: point.y }, 6, weight));
+    keep(spot, 8, 400);
+    points(id, 400);
+    for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 0, 40); points(one, 12); }
+    for (const node of records[view.level].record.nodes) if (!tied.has(node.id)) keep(lies(node.id), 0, apart);
+    for (const [one, face] of Object.entries(faces)) if (one !== id && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
+    for (const bar of [$("tools"), $("crumbs"), $("play")]) if (bar.id !== "play" || bar.classList.contains("show")) keep(bar.getBoundingClientRect(), 8, 400);
+    const covers = (x, y, least) => dear.reduce((sum, held) => held.weight < least ? sum : sum + held.weight * Math.max(0, Math.min(x + w, held.right) - Math.max(x, held.left)) * Math.max(0, Math.min(y + h, held.bottom) - Math.max(y, held.top)), 0);
+    const price = (x, y) => { // a spot twice as far costs four times as much, so a far clear spot loses to a near one that covers a little
+      const far = Math.hypot(Math.max(spot.left - x - w, x - spot.right, 0), Math.max(spot.top - y - h, y - spot.bottom, 0));
+      return covers(x, y, 0) + 20 * far + far * far / 4;
     };
-    if (target) {
-      const spot = target.getBoundingClientRect(), kept = [{ left: spot.left - 4, top: spot.top - 4, right: spot.right + 4, bottom: spot.bottom + 4, dear: 50 }];
-      for (const one of near(id)) { // what the reader follows from the target stays in sight
-        if (one === id || !records[one] || records[one].kind === "area") continue;
-        const part = face(one);
-        if (part) { const held = part.getBoundingClientRect(); kept.push({ left: held.left, top: held.top, right: held.right, bottom: held.bottom, dear: 1 }); }
-        const line = records[one].kind === "edge" && document.querySelector(`#stage .edge[data-id="${CSS.escape(one)}"] path.line`);
-        for (let k = 0; line && k <= 16; k++) {
-          const point = line.getPointAtLength(line.getTotalLength() * k / 16).matrixTransform(line.getScreenCTM());
-          kept.push({ left: point.x - 6, top: point.y - 6, right: point.x + 6, bottom: point.y + 6, dear: 4 });
-        }
+    let best = null;
+    const weigh = (x, y) => {
+      const left = Math.min(Math.max(8, x), innerWidth - w - 8), top = Math.min(Math.max(8, y), innerHeight - h - 8), cost = price(left, top);
+      if (!best || cost < best.cost) best = { left, top, cost };
+    };
+    for (let k = 0; k <= 8; k++) {
+      for (const x of [spot.right + 12, spot.left - 12 - w]) weigh(x, spot.top - h + (h + spot.height) * k / 8);
+      for (const y of [spot.bottom + 12, spot.top - 12 - h]) weigh(spot.left - w + (w + spot.width) * k / 8, y);
+    }
+    for (let x = 8; x <= innerWidth - w - 8; x += 40) for (let y = 8; y <= innerHeight - h - 8; y += 40) weigh(x, y);
+    const rough = best;
+    for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
+    return { ...best, tied: covers(best.left, best.top, 40) }; // `tied` is what the spot still covers of the record and of what is tied to it
+  }
+  let leaf = 0; // the page of rows the kept card shows
+  function card(id) {
+    const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
+    if (box.dataset.for !== id || !kept) leaf = 0;
+    const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
+    for (const extra of [record.basis, record.strength, record.status, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
+    box.replaceChildren(make("h2", {}, words(record.label || record.title || record.id)), tags, list, foot);
+    box.dataset.for = id;
+    box.classList.toggle("kept", kept);
+    const limit = Math.floor(kept ? innerHeight * .7 : Math.min(innerHeight * .46, 400));
+    const lay = (from, most = Infinity) => { // the rows from FROM on that the card's height holds, MOST at most, and the row after them
+      box.classList.remove("long");
+      box.style.maxHeight = "none";
+      list.replaceChildren();
+      let to = from;
+      for (; to < all.length && to - from < most; to++) {
+        const [name, form, data] = all[to];
+        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data, kept ? Infinity : FOLD[form] || 3))));
+        if (to > from && box.offsetHeight > limit) { list.lastChild.remove(); break; }
       }
-      for (const other of document.querySelectorAll("#stage .node")) if (!near(id).has(other.dataset.id)) { const held = other.getBoundingClientRect(); kept.push({ left: held.left, top: held.top, right: held.right, bottom: held.bottom, dear: .3 }); }
-      const covered = at => kept.reduce((sum, held) => sum + held.dear * Math.max(0, Math.min(at.left + w, held.right) - Math.max(at.left, held.left)) * Math.max(0, Math.min(at.top + h, held.bottom) - Math.max(at.top, held.top)), 0);
-      let least = Infinity;
-      for (const [x, y] of [[spot.right + gap, spot.top + spot.height / 2 - h / 2], [spot.left - gap - w, spot.top + spot.height / 2 - h / 2], [spot.left + spot.width / 2 - w / 2, spot.bottom + gap], [spot.left + spot.width / 2 - w / 2, spot.top - gap - h],
-        [spot.right + gap, spot.top], [spot.right + gap, spot.bottom - h], [spot.left - gap - w, spot.top], [spot.left - gap - w, spot.bottom - h]]) {
-        const at = settle(x, y), price = covered(at);
-        if (price < least) { least = price; ({ left, top } = at); }
-      }
-    } else ({ left, top } = settle(left, top));
-    box.style.left = left + "px";
-    box.style.top = top + "px";
+      return to;
+    };
+    const starts = [0];
+    for (let to = lay(0); to < all.length; to = lay(to)) starts.push(to);
+    leaf = Math.min(leaf, starts.length - 1);
+    const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
+    const fill = most => { // the card with MOST rows at most, and the place it would take
+      const end = lay(starts[leaf], most), turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${starts[leaf] + 1}–${end} of ${all.length} ›`);
+      turn.addEventListener("click", () => { leaf = (leaf + 1) % starts.length; card(id); });
+      foot.replaceChildren(...(kept ? (starts.length < 2 ? [] : [turn]) : end < all.length ? [make("span", {}, `+${all.length - end} more`)] : []),
+        make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
+      box.style.maxHeight = limit + "px";
+      box.classList.toggle("long", box.scrollHeight > limit + 1);
+      return { ...beside(id, box.offsetWidth, box.offsetHeight), rows: end - starts[leaf] };
+    };
+    let at = fill(Infinity);
+    for (let most = at.rows - 1, tried = at; !kept && tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows until one does
+      tried = fill(most);
+      if (tried.cost < at.cost) at = tried;
+    }
+    if (list.children.length !== at.rows) fill(at.rows);
+    box.style.left = at.left + "px";
+    box.style.top = at.top + "px";
     box.classList.add("show");
   }
   function hide(now) {
@@ -544,7 +646,11 @@
   function hover(id) {
     clearTimeout(leave); clearTimeout(rest);
     if (hovered === id) return;
-    rest = setTimeout(() => { hovered = id; mark(); }, hovered ? (nearing ? 420 : 60) : 140);
+    const rested = () => { // no card rises over a level still on its way
+      if (document.body.dataset.busy) rest = setTimeout(rested, 80);
+      else { hovered = id; mark(); }
+    };
+    rest = setTimeout(rested, hovered ? (nearing ? 420 : 60) : 140);
   }
   function unhover() {
     clearTimeout(rest); clearTimeout(leave);
@@ -556,21 +662,45 @@
   };
 
   // ---- scenario play ----
-  function play() {
-    const bar = $("play"), chip = $("chip"), token = $("token");
-    if (!view.scenario) { bar.classList.remove("show"); chip.classList.remove("show"); if (token) { token.classList.remove("run", "carry"); token.dataset.at = ""; } return; }
-    const scenario = records[view.scenario].record, step = scenario.steps[view.step];
-    bar.querySelector(".title").textContent = scenario.title;
-    bar.querySelector(".dots").replaceChildren(...scenario.steps.map((one, i) => make("i", { class: i < view.step ? "done" : i === view.step ? "now" : "" })));
+  let auto = false, timer = null; // a scenario that plays by itself, and its next step
+  function transport() {
+    const bar = $("play"), scenario = records[view.scenario].record, steps = scenario.steps, ended = view.step === steps.length;
+    bar.querySelector(".count").textContent = ended ? "Done" : `${view.step + 1}/${steps.length}`;
+    bar.querySelector(".title").textContent = words(scenario.title);
+    const dots = bar.querySelector(".dots");
+    if (dots.dataset.for !== view.scenario) dots.replaceChildren(...steps.map((one, i) => { // kept while the scenario plays, so a pressed one keeps the focus
+      const dot = make("button", { type: "button", "aria-label": `Step ${i + 1}`, title: words(label(one.at)) });
+      dot.addEventListener("click", () => go({ step: i, level: home(one.at), at: null }));
+      return dot;
+    }));
+    dots.dataset.for = view.scenario;
+    [...dots.children].forEach((dot, i) => { dot.className = i < view.step ? "done" : i === view.step ? "now" : ""; });
+    $("run").setAttribute("aria-label", auto ? "Pause" : "Play");
+    $("run").dataset.on = auto ? "1" : "";
+    $("run").hidden = ended;
+    $("prev").disabled = view.step === 0;
+    $("next").disabled = ended;
+    $("again").hidden = !ended;
+    $("onward").hidden = !ended || contract.scenarios.length < 2;
     bar.classList.add("show");
-    const target = face(step.at);
-    chip.replaceChildren(make("b", {}, `${view.step + 1}/${scenario.steps.length}`), ...(step.note ? prose(step.note) : []));
-    if (target) {
-      const spot = target.getBoundingClientRect();
-      chip.style.left = spot.left + spot.width / 2 + "px";
-      chip.style.top = Math.max(8, spot.top - 34) + "px";
+  }
+  function play() {
+    const chip = $("chip"), token = $("token");
+    clearTimeout(timer);
+    chip.classList.remove("show");
+    if (!view.scenario) { auto = false; $("play").classList.remove("show"); if (token) { token.classList.remove("run", "carry"); token.dataset.at = ""; } return; }
+    const step = records[view.scenario].record.steps[view.step];
+    if (!step) auto = false;
+    transport();
+    if (!step) return;
+    if (step.note) {
+      chip.replaceChildren(...prose(step.note));
+      const at = beside(step.at, chip.offsetWidth, chip.offsetHeight, 12); // a note is small enough to keep off every node
+      chip.style.left = at.left + "px";
+      chip.style.top = at.top + "px";
       chip.classList.add("show");
     }
+    if (auto) timer = setTimeout(() => stride(1), 1300 + late + (step.note || "").length * 20);
     if (!token) return;
     token.classList.remove("run", "carry");
     const from = token.dataset.at ? token.dataset.at.split(",").map(Number) : null;
@@ -585,16 +715,23 @@
     }
     if (!way) { token.dataset.at = ""; return; }
     token.style.offsetPath = `path("${way}")`;
+    token.style.animationDelay = late + "ms";
     token.dataset.at = `${end.x},${end.y}`;
     token.getBoundingClientRect();
     token.classList.add("run"); token.classList.toggle("carry", !!from);
   }
   function stride(by) {
     if (!view.scenario) return;
-    const scenario = records[view.scenario].record, step = view.step + by;
-    if (step >= 0 && step < scenario.steps.length) go({ step, level: home(scenario.steps[step].at), at: null });
+    const steps = records[view.scenario].record.steps, step = view.step + by;
+    if (step >= 0 && step <= steps.length) go({ step, at: null, ...(steps[step] ? { level: home(steps[step].at) } : {}) });
   }
   const start = id => go({ scenario: id, step: 0, level: home(records[id].record.steps[0].at), at: null });
+  function run() { // the walk starts at once and stops where it stands
+    if (!view.scenario) return;
+    auto = !auto;
+    if (!auto) { clearTimeout(timer); return transport(); }
+    if (view.step === records[view.scenario].record.steps.length) start(view.scenario); else stride(1);
+  }
 
   // ---- search ----
   const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
@@ -611,12 +748,12 @@
     const list = [], add = (id, kind, name, note, fields) => list.push({ id, kind, name, note, fields: fields.filter(([text]) => text).map(([text, weight]) => ({ text: plain(text), tokens: plain(text).split(" "), weight })) });
     const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
     for (const level of contract.levels) {
-      add(level.id, "level", level.title, "level", [[level.title, 10], [level.id, 8], [level.about && words(level.about), 2]]);
-      for (const node of level.nodes) add(node.id, "node", node.label, node.tag, [[node.label, 10], [node.id, 8], [node.tag, 4], [node.purpose && words(node.purpose), 2], [texts(node.info), 1]]);
-      for (const area of level.areas || []) add(area.id, "area", area.label, area.tag, [[area.label, 10], [area.id, 8], [area.tag, 4], [texts(area.info), 1]]);
-      for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), edge.tag, [[words(edge.label), 9], [sentence(edge), 6], [edge.id, 5], [edge.tag, 3], [texts(edge.info), 1]]);
+      add(level.id, "level", words(level.title), "level", [[words(level.title), 10], [level.id, 8], [level.about && words(level.about), 2]]);
+      for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 10], [node.id, 8], [node.tag, 4], [node.purpose && words(node.purpose), 2], [texts(node.info), 1]]);
+      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 10], [area.id, 8], [area.tag, 4], [texts(area.info), 1]]);
+      for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 9], [sentence(edge), 6], [edge.id, 5], [edge.tag, 3], [texts(edge.info), 1]]);
     }
-    for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", scenario.title, "scenario", [[scenario.title, 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
+    for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 10], [scenario.id, 8], [scenario.purpose && words(scenario.purpose), 2]]);
     for (const property of contract.properties || []) add(property.id, "property", words(property.statement), property.kind, [[property.id, 9], [words(property.statement), 5], [property.kind, 4]]);
     for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 3], [question.id, 2]]);
     return list;
@@ -768,6 +905,9 @@
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
+    $("run").addEventListener("click", run);
+    $("again").addEventListener("click", () => start(view.scenario));
+    $("onward").addEventListener("click", () => start(contract.scenarios[(contract.scenarios.indexOf(records[view.scenario].record) + 1) % contract.scenarios.length].id));
     addEventListener("keydown", event => {
       if (document.body.dataset.palette) {
         if (event.key === "Escape") shut();
@@ -779,13 +919,14 @@
       if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); return ask(); }
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
+      else if (event.key === " " && view.scenario && !event.target.closest("button, input")) { event.preventDefault(); run(); }
       else if (event.key === "ArrowRight") stride(1);
       else if (event.key === "ArrowLeft") stride(-1);
       else if (event.key === "[") history.back();
       else if (event.key === "]") history.forward();
     });
     addEventListener("popstate", () => show(parse()));
-    addEventListener("resize", () => { fit(); mark(); play(); });
+    addEventListener("resize", () => { paint(records[view.level].record); mark(); play(); });
   }
 
   window.pageRender = data => {
