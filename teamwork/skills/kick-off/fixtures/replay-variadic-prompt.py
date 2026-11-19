@@ -21,6 +21,7 @@ CASES = (
     ("claude --allowedTools Read \"say hi\" -p | grep -c hi", "--allowedTools"),
     ("claude -p --allowedTools \"say hi\" | grep -c hi", "--allowedTools"),
     ("claude -p --allowedTools Read -- | grep -c hi", "--"),
+    ("claude -p --allowedTools=Read \"say hi\" | grep -c hi", None),
     ("claude -p \"say hi\" --allowedTools Read Edit | grep -c hi", None),
     ("claude -p --allowedTools Read Edit --model sonnet -- \"say hi\" | grep -c hi", None),
     ("claude -p --allowedTools Read Edit -- \"say hi\" | grep -c hi", None),

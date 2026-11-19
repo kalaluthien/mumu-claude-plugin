@@ -233,7 +233,7 @@ def swallowed_flag(command):
             return "--" if at == len(words) - 1 and not prompted else None
         if word.startswith("-"):
             found = found or (flag if flag and values > 0 else None)
-            flag, values = (word.split("=")[0], 0) if word.split("=")[0] in VARIADIC else (None, 0)
+            flag, values = (word, 0) if word in VARIADIC else (None, 0)
             skip = word in SINGLE
         elif flag:
             values += 1
