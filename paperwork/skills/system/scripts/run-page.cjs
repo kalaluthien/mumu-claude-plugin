@@ -125,11 +125,17 @@ async function open(browser, example, size, options = {}) {
   page.on("pageerror", (error) => page.faults.push(String(error)));
   page.on("request", (request) => { if (!request.url().startsWith("file://" + example.built)) page.asked.push(request.url()); });
   await page.clock.install(); // the page's timers then run on a clock a step can turn forward, so no step sleeps
+  if (options.held) await page.clock.pauseAt(Date.now() + 1000); // and only when it does, so a busy machine that slows the pointer leaves the page's time as it is
   const go = page.goto.bind(page);
   page.goto = (address) => { loads.push(address); return go(address); };
   await page.goto("file://" + example.built + (options.at || ""));
   await rest(page);
   return page;
+}
+const PAGES = 4; // the pages a step drives at once, since each page more slows every pointer event of the others
+async function each(items, work) { // WORK done for each of ITEMS, at most PAGES at a time
+  const waiting = [...items];
+  await Promise.all(Array.from({ length: Math.min(PAGES, waiting.length) }, async () => { while (waiting.length) await work(waiting.shift()); }));
 }
 const rest = async (page) => { // a move under way is carried to its end, since what a step reads is where the page comes to rest
   await page.evaluate(() => document.getAnimations().forEach((one) => { try { one.finish(); } catch (error) { /* one that never ends has no end to reach */ } }));
@@ -195,6 +201,7 @@ async function rested(page, target, size, where) { // the pointer comes from a c
   check(spot, `${where}: no part of it is under the pointer`);
   await page.mouse.move(2, size[1] - 2);
   await page.mouse.move(spot.x, spot.y, { steps: 4 });
+  await page.clock.fastForward(450);
   await page.waitForFunction(CARDED, target.id, { timeout: 8000 }).catch(() => { throw new Error(`${where}: no overlay came`); });
   return spot;
 }
@@ -372,8 +379,8 @@ async function overlay(browser) {
   const shares = examples.flatMap((example) => SIZES.flatMap((size) => size === SIZES[1]
     ? [0, 1].map((share) => ({ size, example, picked: targets(example).filter((target, i) => i % 2 === share) }))
     : [{ size, example, picked: ["node", "edge", "area"].map((kind) => targets(example).find((target) => target.kind === kind)).filter(Boolean) }]));
-  await Promise.all(shares.filter((one) => one.picked.length).map(async ({ size, example, picked }) => {
-    const page = await open(browser, example, size);
+  await each(shares.filter((one) => one.picked.length), async ({ size, example, picked }) => {
+    const page = await open(browser, example, size, { held: true });
     const timing = await page.evaluate(() => { const style = getComputedStyle(document.getElementById("card")); return { curve: style.transitionTimingFunction, long: Math.max(...style.transitionDuration.split(",").map(parseFloat)) }; });
     check(timing.long > 0 && timing.curve.includes("cubic-bezier") && !timing.curve.includes("linear"), `the overlay's transition is ${timing.curve} over ${timing.long}s`);
     const probe = async (target) => {
@@ -413,10 +420,10 @@ async function overlay(browser) {
       await page.clock.fastForward(120);
       check(!(await page.evaluate(() => document.getElementById("card").classList.contains("show"))), `${where}: Escape left the overlay open`);
     };
-    for (const target of picked) await probe(target).catch(() => probe(target)); // a busy machine can miss the pointer's timing once
+    for (const target of picked) await probe(target);
     quiet(page, `${example.name} at ${size.join("x")}`);
     await page.context().close();
-  }));
+  });
 }
 
 // ---- fit and clear ----
@@ -441,6 +448,7 @@ async function hoverNode(page, id, size) { // the pointer brought onto a node, a
   }
   check(spot, `no part of ${id} is under the pointer`);
   await page.mouse.move(spot.x, spot.y);
+  await page.clock.fastForward(450);
   await carded(page, id);
   await rest(page);
   return spot;
@@ -511,13 +519,13 @@ async function clear(browser) {
     for (let i = 0; i < level.nodes.length; i += 12) split.push({ example, size, level, nodes: level.nodes.slice(i, i + 12) });
     return split;
   }));
-  await Promise.all(groups.map(async ({ example, size, level, nodes }) => {
-    const page = await open(browser, example, size, { at: "#level=" + level.id });
+  await each(groups, async ({ example, size, level, nodes }) => {
+    const page = await open(browser, example, size, { at: "#level=" + level.id, held: true });
     await settled(page);
     for (const node of nodes) {
       const tied = [...new Set((level.edges || []).flatMap((edge) => edge.from === node.id ? [edge.to] : edge.to === node.id ? [edge.from] : []))].filter((id) => id !== node.id);
       if (!tied.length) continue;
-      const came = await hoverNode(page, node.id, size).catch(() => hoverNode(page, node.id, size)).then(() => true, () => false); // a busy machine can miss the pointer's timing once
+      const came = await hoverNode(page, node.id, size).then(() => true, () => false);
       if (!came) { faults.push(`${example.name} ${node.id} at ${size.join("x")} raises no card`); continue; }
       const covered = await page.evaluate((tied) => {
         const card = document.getElementById("card").getBoundingClientRect();
@@ -545,7 +553,7 @@ async function clear(browser) {
       }
     }
     await page.context().close();
-  }));
+  });
   check(!faults.length, `${faults.length} hover cards cover a node an edge joins to their own or page wrongly, as ${faults.slice(0, 3).join("; ")}`);
 }
 
