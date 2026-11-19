@@ -94,7 +94,8 @@ class Ref(board_records.Store):
         env = {"GIT_INDEX_FILE": str(index), **WRITER}
         try:
             self.git("read-tree", *([self.tip] if self.tip else ["--empty"]), env=env)
-            listing = "".join(f"100644 {self.git('hash-object', '-w', '--stdin', data=text.encode()).stdout.decode().strip()}\t{path}\n" for path, text in staged.items())
+            listing = "".join(f"0 {'0' * 40}\t{path}\n" if text is None else f"100644 {self.git('hash-object', '-w', '--stdin', data=text.encode()).stdout.decode().strip()}\t{path}\n"
+                              for path, text in staged.items())
             self.git("update-index", "--index-info", data=listing.encode(), env=env)
             tree = self.git("write-tree", env=env).stdout.decode().strip()
             message = "write " + ", ".join(staged)

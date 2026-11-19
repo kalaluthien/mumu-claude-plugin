@@ -15,10 +15,9 @@ EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | 
 
 
 def watch(queue):
-    """Watches on both signal files, made anew when one is missing, since a deleted file's watch never fires again; a session started
-    before the rename marks only the old one."""
+    """A watch on the signal file, made anew when it is missing, since a deleted file's watch never fires again."""
     team_signal.touch()
-    handles = [open(signal) for signal in (team_signal.SIGNAL, team_signal.OLD_SIGNAL)]
+    handles = [open(team_signal.SIGNAL)]
     queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, EVENTS) for handle in handles], 0)
     return handles
 

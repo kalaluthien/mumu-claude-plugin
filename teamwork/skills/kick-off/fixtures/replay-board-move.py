@@ -4,15 +4,11 @@ put straight on `refs/teamwork-blackboard`, then the real scripts read it, list 
 `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `read`: `use-board.py read` finds an old record's title, comment and holders;
 - `pane`: `list-task-board.py --json` lists every old record of the project;
-- `mirrored`: the first write, a `comment`, gives every record a `task.json` and keeps each `issue.json` equal to it, in one commit, since a
-  heartbeat started before the rename reads only `issue.json`;
+- `moved`: the first write, a `comment`, gives every record a `task.json` and leaves no `issue.json`, in one commit;
 - `kept`: a record the write did not touch reads the same before and after it, and the commented one only adds the comment;
-- `hold-first`: on a second old board whose first write is a `hold`, every record gets its `task.json` and the new holder reads back;
-- `old-after-new`: a write as the code before the rename makes it, to `issue.json` alone, after the new code's writes, is what the new reader
-  and the pane lister show, and the next new write keeps it in both names;
-- `same-second`: an older session's write in the same second as the new code's last write, which leaves the two names differing, is
-  what the new reader shows;
-- `old-signal`: `wait-team-change.py` wakes on a mark of `issues-changed` alone, the one a session started before the rename makes.
+- `hold-first`: on a second old board whose first write is a `hold`, every record is moved and the new holder reads back;
+- `both-names`: on a board the mirroring code left, each record in both names, a write removes every `issue.json` and keeps each `task.json`
+  as it was, apart from the written record's own change.
 
 usage: replay-board-move.py"""
 import json
@@ -21,12 +17,10 @@ import pathlib
 import subprocess
 import sys
 import tempfile
-import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
-WAIT = ROOT / "hooks" / "wait-team-change.py"
 REF = "refs/teamwork-blackboard"
 failed = []
 
@@ -52,8 +46,8 @@ OLD_BOARD = {
 }
 
 
-def old_board(work, name):
-    """A runner of commands in a new repository whose board is OLD_BOARD, committed straight on the ref."""
+def old_board(work, name, board=OLD_BOARD):
+    """A runner of commands in a new repository whose board is BOARD, committed straight on the ref."""
     environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
     repository = work / name
     (repository / "probe").mkdir(parents=True)
@@ -66,7 +60,7 @@ def old_board(work, name):
         sh(*command)
     index = {**environment, "GIT_INDEX_FILE": str(work / f"{name}-index")}
     subprocess.run(["git", "read-tree", "--empty"], cwd=repository, env=index, check=True)
-    for path, text in OLD_BOARD.items():
+    for path, text in board.items():
         blob = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=repository, env=index, input=text, capture_output=True, text=True, check=True).stdout.strip()
         subprocess.run(["git", "update-index", "--add", "--cacheinfo", f"100644,{blob},{path}"], cwd=repository, env=index, check=True)
     tree = subprocess.run(["git", "write-tree"], cwd=repository, env=index, capture_output=True, text=True, check=True).stdout.strip()
@@ -75,24 +69,12 @@ def old_board(work, name):
     return sh
 
 
-def old_write(sh, path, text):
-    """Commits TEXT at PATH on the board's tip, as the code before the rename writes `issue.json`."""
-    index = {**os.environ, "GIT_INDEX_FILE": sh("git", "rev-parse", "--absolute-git-dir").stdout.strip() + "/old-write-index"}
-    top = sh("git", "rev-parse", "--show-toplevel").stdout.strip()
-    git = lambda *argv, data=None: subprocess.run(["git", *argv], cwd=top, env=index, input=data, capture_output=True, text=True, check=True).stdout.strip()
-    git("read-tree", REF)
-    git("update-index", "--add", "--cacheinfo", f"100644,{git('hash-object', '-w', '--stdin', data=text)},{path}")
-    commit = git("commit-tree", git("write-tree"), "-p", REF, "-m", "old write")
-    sh("git", "update-ref", REF, commit)
-
-
 def files(sh):
     return {path: sh("git", "show", f"{REF}:{path}").stdout for path in sh("git", "ls-tree", "-r", "--name-only", REF).stdout.split()}
 
 
-def mirrored(board):
-    records = [path for path in board if path.endswith("/task.json")]
-    return len(records) == 2 and all(board.get(path[:-len("task.json")] + "issue.json") == board[path] for path in records)
+def moved(board):
+    return sorted(path for path in board if path.endswith(".json") and "/comments/" not in path) == ["probe/1/task.json", "probe/2/task.json"]
 
 
 def commits(sh):
@@ -116,43 +98,20 @@ def main(args):
     count = commits(sh)
     wrote = sh(sys.executable, USE, "comment", "2", note)
     board = files(sh)
-    step("mirrored", wrote.returncode == 0 and commits(sh) == count + 1 and mirrored(board), f"{wrote.stderr} {sorted(board)}")
+    step("moved", wrote.returncode == 0 and commits(sh) == count + 1 and moved(board), f"{wrote.stderr} {sorted(board)}")
     after_one, after_two = sh(sys.executable, USE, "read", "1").stdout, sh(sys.executable, USE, "read", "2").stdout
     lost = [line for line in two.stdout.split("\n") if line not in after_two.split("\n") and not line.startswith("body sha")]
     step("kept", after_one == one.stdout and "probe second note" in after_two and not lost, f"{one.stdout}\n---\n{after_one}\n---\nlost: {lost}")
     sh = old_board(work, "held")
     wrote = sh(sys.executable, USE, "hold", "1", "other-worker")
     read = sh(sys.executable, USE, "read", "1")
-    step("hold-first", wrote.returncode == 0 and mirrored(files(sh)) and "holders: other-worker" in read.stdout, wrote.stderr + read.stdout)
-    closed = json.loads(files(sh)["probe/1/issue.json"])
-    old_write(sh, "probe/1/issue.json", json.dumps({**closed, "state": "CLOSED", "reason": "COMPLETED", "updatedAt": "2099-01-01T00:00:00Z"}))
-    read = sh(sys.executable, USE, "read", "1")
-    pane = sh(sys.executable, LIST, "probe", "--json")
-    open_rows = [row["number"] for row in json.loads(pane.stdout)] if pane.stdout.startswith("[") else None
-    wrote = sh(sys.executable, USE, "comment", "1", note)
+    step("hold-first", wrote.returncode == 0 and moved(files(sh)) and "holders: other-worker" in read.stdout, wrote.stderr + read.stdout)
+    both = {**OLD_BOARD, "probe/1/task.json": record("Probe the part, renamed"), "probe/2/task.json": record("Probe the parent")}
+    sh = old_board(work, "both", both)
+    wrote = sh(sys.executable, USE, "comment", "2", note)
     board = files(sh)
-    step("old-after-new", "state: CLOSED" in read.stdout and open_rows is not None and 1 not in open_rows and wrote.returncode == 0
-         and json.loads(board["probe/1/task.json"])["state"] == "CLOSED" and board["probe/1/task.json"] == board["probe/1/issue.json"],
-         f"{read.stdout[:200]} {pane.stdout[:200]} {pane.stderr[:200]} {wrote.stderr}")
-    same = json.loads(files(sh)["probe/1/task.json"])
-    old_write(sh, "probe/1/issue.json", json.dumps({**same, "labels": ["oldlabel"]}))
-    read = sh(sys.executable, USE, "read", "1")
-    step("same-second", "oldlabel" in read.stdout, read.stdout[:300])
-    environment = {**os.environ, "CLAUDE_CONFIG_DIR": str(work / "claude")}
-    waiter = subprocess.Popen([sys.executable, str(WAIT)], env=environment, stdout=subprocess.PIPE, text=True)
-    try:
-        first = waiter.stdout.readline()
-        time.sleep(0.5)
-        (work / "claude" / "teamwork" / "issues-changed").touch()
-        deadline = time.time() + 10
-        second = ""
-        os.set_blocking(waiter.stdout.fileno(), False)
-        while time.time() < deadline and not second:
-            second = waiter.stdout.readline()
-            time.sleep(0.2)
-    finally:
-        waiter.kill()
-    step("old-signal", first.strip() == "changed" and second.strip() == "changed", f"{first!r} {second!r}")
+    step("both-names", wrote.returncode == 0 and moved(board) and board["probe/1/task.json"] == both["probe/1/task.json"]
+         and json.loads(board["probe/2/task.json"])["title"] == "Probe the parent", f"{wrote.stderr} {sorted(board)}")
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 

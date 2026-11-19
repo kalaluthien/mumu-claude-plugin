@@ -1,9 +1,9 @@
 """A local board's records, whatever store keeps them: each task is a folder `<scope>/<n>/` (`<n>/` at the repository root) holding `task.json`
-(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, a comment written before that schema a `comments/<k>.md` of text alone, where `<scope>` is the folder of the repository the task belongs to; `commentTimes` in `task.json`, when a copy set it, holds the first comments' times. A board written before the rename names that file `issue.json`: the readers take whichever of the two has the later `updatedAt`, and every write keeps both names in step, giving each record its `task.json` on the first and copying a newer `issue.json` over it, since a session started before the rename reads and writes only `issue.json` until it reloads. Every record is trusted, since only local users write the store.
+(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, a comment written before that schema a `comments/<k>.md` of text alone, where `<scope>` is the folder of the repository the task belongs to; `commentTimes` in `task.json`, when a copy set it, holds the first comments' times. A board written before the rename names that file `issue.json`: the readers take `task.json`, else `issue.json`, and every write moves each `issue.json` to `task.json`, removing the old name, so the first write after the rename leaves none. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `homes()` says the folder of each task number (a store may cache it),
-`load(path)` reads one, raising OSError when it is missing, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
+`load(path)` reads one, raising OSError when it is missing, a staged text of None removing it, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
 long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
 `bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace.
 A task's parts live in its body, as `task_links` reads them."""
@@ -72,19 +72,18 @@ class Store:
         """CHANGE's result, its staged files kept at once; a change made inside another, as resolve's comment, joins it."""
         if self.pending is not None:
             return change()
-        result = self.keep(lambda: (change(), self.mirror())[0])
+        result = self.keep(lambda: (change(), self.move())[0])
         team_signal.touch()  # the task pane rereads on it
         return result
 
-    def mirror(self):
-        """Stages `task.json` for each record whose `issue.json` is newer or alone, and `issue.json` beside each `task.json` the change staged."""
+    def move(self):
+        """Stages, for each record still holding `issue.json`, its text as `task.json` unless one exists, and the removal of `issue.json`."""
         for number, folder in self.homes().items():
             path = f"{folder}/{number}" if folder else str(number)
-            if f"{path}/{RECORD}" not in self.pending and OLD_RECORD in self.names(path) and newer(self, path) == OLD_RECORD:
-                self.stage(f"{path}/{RECORD}", self.load(f"{path}/{OLD_RECORD}"))
-        for path, text in list(self.pending.items()):
-            if path.endswith(f"/{RECORD}") or path == RECORD:
-                self.stage(path[:-len(RECORD)] + OLD_RECORD, text)
+            if OLD_RECORD in self.names(path):
+                if RECORD not in self.names(path) and f"{path}/{RECORD}" not in self.pending:
+                    self.stage(f"{path}/{RECORD}", self.load(f"{path}/{OLD_RECORD}"))
+                self.stage(f"{path}/{OLD_RECORD}", None)
 
     def view(self):
         """Refreshes before a read, except inside a change, which reads the state it started from."""
@@ -113,29 +112,12 @@ def next_number(store):
     return max(max(numbers(store), default=0), floor) + 1
 
 
-def newer(store, folder):
-    """Which of FOLDER's `task.json` and `issue.json` holds its latest fields: the one alone, else the later `updatedAt`, and on a tie
-    `issue.json` when the two differ, since a write by this code leaves them equal and only an older session's write parts them; a
-    `task.json` the running change staged wins, since its `issue.json` copy is staged only when the change ends."""
-    if f"{folder}/{RECORD}" in (store.pending or {}):
-        return RECORD
-    found = {}
-    for name in (RECORD, OLD_RECORD):
-        try:
-            found[name] = store.read(f"{folder}/{name}")
-        except FileNotFoundError:
-            pass
-    if not found:
-        raise FileNotFoundError(f"{folder}/{RECORD}")
-    if len(found) == 1 or found[RECORD] == found[OLD_RECORD]:
-        return next(iter(found))
-    times = {name: json.loads(text).get("updatedAt") or "" for name, text in found.items()}
-    return RECORD if times[RECORD] > times[OLD_RECORD] else OLD_RECORD
-
-
 def meta(store, number):
     folder = home(store, number)
-    return json.loads(store.read(f"{folder}/{newer(store, folder)}"))
+    try:
+        return json.loads(store.read(f"{folder}/{RECORD}"))
+    except FileNotFoundError:
+        return json.loads(store.read(f"{folder}/{OLD_RECORD}"))
 
 
 def save(store, number, **change):

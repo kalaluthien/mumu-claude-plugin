@@ -129,7 +129,7 @@ export const register: Register = on => {
     const ran = await next(event)
     if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(event.command)) {
       const claudeFolder = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
-      await $.process.run(['touch', `${claudeFolder}/teamwork/tasks-changed`, `${claudeFolder}/teamwork/issues-changed`]).catch(() => undefined)
+      await $.process.run(['touch', `${claudeFolder}/teamwork/tasks-changed`]).catch(() => undefined)
     }
     return ran
   }).catch(($, event, next) => next(event))  // a failed mark must never fail the command it follows
