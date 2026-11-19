@@ -156,7 +156,8 @@ ${MEMORY_RULES} Return preferences = [] when there are no preference steps above
   e. Stale: fix a dead path, command, flag or package when the new target is plain, else delete the entry; keep an entry whose tool is merely not installed here.
   f. Placement: a lesson in the wrong memory folder moves by python3 ${SCRIPTS}/move-memory.py <file> <folder>; a lesson that belongs in an instruction file, a document or a skill stays in memory and goes to other_fixes.
   g. Promote and demote, by the Placement test in ${ROOT}/skills/wrap-up/SKILL.md: a lesson a repeat shows was needed before its situation was visible goes to other_fixes as a move into the instruction file that test names; an instruction-file line whose situation is plainly visible when it arises becomes a memory file here, its cut going to other_fixes; a lesson list-drift.py lists as never found again is weakened, its index line narrowed to the situation it came from, or moved down to the one project it came from.
-  h. Size: an index past its load limit is cut to one line per entry.
+  h. Guarded: remove each **Guarded lesson**, as the Domain defines it, returning in applied 'guarded: <file>: <the lesson> by <the guard's path:line>'.
+  i. Size: an index past its load limit is cut to one line per entry.
 ${MEMORY_RULES} Change no file outside the memory folders: return each other fix (an instruction file, document, skill, hook, script or rules file) in other_fixes, with its reason and, for a skill, hook or script, the check that must still pass. Return in applied one line per memory fix made.`, { label: 'tidy', phase: 'Tidy', schema: TIDY, model: 'sonnet' })
 
   result = {
