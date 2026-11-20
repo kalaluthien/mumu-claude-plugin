@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Run run-criteria.py `--hunks` on a temporary git repository whose change holds a 30-hunk file that every revert breaks, a
-3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a deleted file and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
+3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a deleted file, an added file, a file whose last line lost its newline and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
 `FAIL`, and exit 1 on any failure:
 - `few-runs`: the check ran at most 3 times with the big file reverted in part or whole;
 - `names-unneeded`: the unneeded hunk's line and the unreached refusal's line are named, no line of the big file or the deleted file is, and the call exits 1;
 - `names-whole`: every hunk of the unread file is named, since reverting them together passes;
 - `names-half`: the first four hunks of the half-needed file are named and the line says four are not judged one by one;
 - `names-deletions`: the same for the file of deletions, whose hunks git apply would place wrongly in the order that suits a replacement;
+- `names-edges`: the added file and the file whose last line had no newline are named, since reverting each leaves a file no check tells from the base's;
 - `each-judges-all`: with `--each` the check ran once per hunk of the big file.
 
 usage: replay-hunk-groups.py"""
@@ -47,6 +48,7 @@ def main(args):
     (work / "wide.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "half.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(8)))
     (work / "dels.txt").write_text("".join(f"gone {n} a\ngone {n} b\nkeep {n}\n" for n in range(8)))
+    (work / "nonl.txt").write_text("a\nlast")
     (work / "c.py").write_text("import sys\nprint('old')\n")
     git("add", ".")
     git("commit", "-q", "-m", "base")
@@ -57,11 +59,14 @@ def main(args):
     (work / "wide.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "half.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(8)))
     (work / "dels.txt").write_text("".join(f"keep {n}\n" for n in range(8)))
+    (work / "nonl.txt").write_text("a\nlast2\n")
+    (work / "added.txt").write_text("added\n")
     (work / "c.py").write_text("import sys\nif len(sys.argv) > 1: sys.exit('refused')\nprint('new')\n")
-    git("commit", "-qam", "change")
+    git("add", "-A")
+    git("commit", "-qm", "change")
     # a run that leaves a line in the log is one where the big file is not whole, so a reverted run; the unneeded hunk is the middle one of small.txt
     command = (f"test $(grep -c '^new' big.txt) = {HUNKS} || echo big >> {log}; "
-               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && grep -q '^a new' small.txt && grep -q '^c new' small.txt && test ! -e gone.txt && python3 c.py | grep -q new && echo ok")
+               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && test ! -e gone.txt && python3 c.py | grep -q new && echo ok")
     body = work.parent / f"{work.name}-body.md"
     body.write_text(BODY.format(command=command))
 
@@ -76,6 +81,7 @@ def main(args):
     step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
     step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
     step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))
+    step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out, (code, out, error))
     code, out, error, runs = call("--each")
     step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
     print("PASS" if all(results.values()) else "FAIL")
