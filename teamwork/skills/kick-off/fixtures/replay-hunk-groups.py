@@ -8,11 +8,14 @@
 - `names-half`: the first four hunks of the half-needed file are named and the line says four are not judged one by one;
 - `names-deletions`: the same for the file of deletions, whose hunks git apply would place wrongly in the order that suits a replacement;
 - `names-edges`: the added file and the file whose last line had no newline are named, since reverting each leaves a file no check tells from the base's;
+- `takes-back-bytes`: 400 random pairs of files, whose lines hold form feeds, carriage returns, trailing spaces and empty lines, with or without a final newline, are taken back by `take_back` to the base byte for byte;
 - `each-judges-all`: with `--each` the check ran once per hunk of the big file.
 
 usage: replay-hunk-groups.py"""
+import importlib.util
 import os
 import pathlib
+import random
 import subprocess
 import sys
 import tempfile
@@ -21,12 +24,40 @@ SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `{command}` prints `ok`; on base nothing.\n")
 HUNKS = 30
+PIECES = ["a", "b", "", "x\x0cy", "t  ", "c\r", "d\x0bx", "e\x85", "same", "-dash", "+plus", "@@ at", "\\ slash"]
+PAIRS = 400
 results = {}
 
 
 def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
     results[name] = ok
+
+
+def random_lines(generator):
+    body = [generator.choice(PIECES) for _ in range(generator.randint(0, 9))]
+    return "".join(piece + "\n" for piece in body[:-1]) + "".join(piece + generator.choice(["", "\n"]) for piece in body[-1:])
+
+
+def take_back_bytes():
+    """The pairs whose head, taken back, differs from their base."""
+    spec = importlib.util.spec_from_file_location("run_criteria", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(SCRIPT.parents[3] / "lib"))
+    spec.loader.exec_module(module)
+    generator = random.Random(1450)
+    work = pathlib.Path(tempfile.mkdtemp(prefix="take-back-"))
+    for name in ("old", "new"):
+        (work / name).mkdir()
+    wrong = []
+    for _ in range(PAIRS):
+        base, head = random_lines(generator), random_lines(generator)
+        (work / "old" / "f").write_bytes(base.encode("latin-1"))
+        (work / "new" / "f").write_bytes(head.encode("latin-1"))
+        diff = subprocess.run(["git", "diff", "--no-index", "-U0", "--src-prefix=a/", "--dst-prefix=b/", "old/f", "new/f"], cwd=work, capture_output=True).stdout
+        if module.take_back(head, [patch for _, _, patch in module.split_hunks(diff.decode("latin-1"))]) != base:
+            wrong.append((base, head))
+    return wrong
 
 
 def main(args):
@@ -84,6 +115,8 @@ def main(args):
     step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out, (code, out, error))
     code, out, error, runs = call("--each")
     step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
+    wrong = take_back_bytes()
+    step("takes-back-bytes", not wrong, wrong[:2])
     print("PASS" if all(results.values()) else "FAIL")
     return 0 if all(results.values()) else 1
 
