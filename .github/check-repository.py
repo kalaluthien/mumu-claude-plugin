@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, and each `scripts/` script whose usage lists a `fixtures` call, run with it.
 
-usage: check-repository.py [--skip-fixtures] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy)
+usage: check-repository.py [--skip-fixtures] [--fresh] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner even when it passed on the same files)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. A fixture runner that passed on the same files, its plugin's folder and `.github/` (every file for one in `.github/`), is not run again by any session of the repository, which the summary counts as replayed; a failed runner always runs. Standard library only, Python 3.9.
 """
 
 import concurrent.futures
+import hashlib
 import json
 import os
 import pathlib
@@ -246,9 +247,35 @@ def check_scripts(root, files, failures):
     return len(scripts)
 
 
-def run_fixtures(root, files, failures):
+def files_digest(root, files, folders):
+    """A sha-256 of the path and bytes of each file of FILES under one of FOLDERS, in order."""
+    digest = hashlib.sha256()
+    for path in files:
+        if any(path.startswith(folder) for folder in folders):
+            try:
+                with open(os.path.join(root, path), "rb") as handle:
+                    digest.update(path.encode() + b"\0" + handle.read() + b"\0")
+            except OSError:
+                digest.update(path.encode() + b"\0missing\0")
+    return digest.hexdigest()
+
+
+def passes_folder(root):
+    """The folder in the git common dir that keeps one marker per runner pass, or None when ROOT is no git checkout."""
+    common = subprocess.run(["git", "-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
+    return pathlib.Path(common.stdout.strip(), "check-repository-passes") if common.returncode == 0 and common.stdout.strip() else None
+
+
+def runner_marker(root, files, folder, path, argv):
+    """The marker file of a pass of runner PATH on its files: those of its plugin's folder and `.github/`, or all of them for a runner of `.github/`, with the interpreter."""
+    folders = ("",) if path.startswith(".github/") else (path.split("/")[0] + "/", ".github/")
+    digest = hashlib.sha256("\0".join([root, sys.version, files_digest(root, files, folders), *argv]).encode()).hexdigest()[:32]
+    return folder / digest
+
+
+def run_fixtures(root, files, failures, fresh):
     """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
-    fail each that exits non-zero or runs past RUNNER_SECONDS; returns how many ran."""
+    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH; returns (how many, how many replayed)."""
     calls = []
     for path in files:
         if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
@@ -264,8 +291,15 @@ def run_fixtures(root, files, failures):
             os.chmod(os.path.join(stand_ins, name), 0o755)
         environment = {**os.environ, "PATH": stand_ins + os.pathsep + os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"}
 
+        folder = passes_folder(root)
+        replayed = []
+
         def run(call):
             path, argv = call
+            marker = runner_marker(root, files, folder, path, argv) if folder else None
+            if marker and not fresh and marker.exists():
+                replayed.append(path)
+                return None
             try:
                 done = subprocess.run(argv, cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=RUNNER_SECONDS)
             except (OSError, subprocess.TimeoutExpired) as error:
@@ -273,16 +307,23 @@ def run_fixtures(root, files, failures):
             lines = (done.stdout.strip() or done.stderr.strip()).splitlines() or [""]
             # a runner's last line is only its verdict, so the lines naming each fault go with it, for a reader of the CI log
             faults = ["    " + line[:200] for line in lines[:-1] if line.startswith("FAIL")]
-            return "\n".join(["fixture {}: exit {}, {}".format(path, done.returncode, lines[-1][:200])] + faults) if done.returncode else None
+            if done.returncode:
+                return "\n".join(["fixture {}: exit {}, {}".format(path, done.returncode, lines[-1][:200])] + faults)
+            if marker:
+                folder.mkdir(parents=True, exist_ok=True)
+                marker.write_text(path + "\n")
+            return None
 
         with concurrent.futures.ThreadPoolExecutor(4) as pool:
             failures += [line for line in pool.map(run, calls) if line]
-    return len(calls)
+    return len(calls), len(replayed)
 
 
 def main(args):
-    skip_fixtures = args[:1] == ["--skip-fixtures"]
-    args = args[1:] if skip_fixtures else args
+    skip_fixtures = fresh = False
+    while args[:1] in (["--skip-fixtures"], ["--fresh"]):
+        skip_fixtures, fresh = skip_fixtures or args[0] == "--skip-fixtures", fresh or args[0] == "--fresh"
+        args = args[1:]
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__, file=sys.stderr)
         return 2
@@ -324,11 +365,11 @@ def main(args):
         if listed.returncode or not summary.search(listed.stdout):
             lines = [line for line in listed.stdout.splitlines() if line.startswith(kind)]
             failures += lines or ["{}{}: exit {}, no summary line: {}".format(kind, os.path.basename(script), listed.returncode, listed.stderr.strip())]
-    runners = 0 if skip_fixtures else run_fixtures(root, files, failures)
+    runners, replayed = (0, 0) if skip_fixtures else run_fixtures(root, files, failures, fresh)
     for line in failures:
         print(line)
-    counts = "{} py compiled, {} manifests parsed, {} hook paths found, {} scripts called, {} fixture runners passed, {} links in {} md resolved, {} failures".format(
-        compiled, manifests, paths, scripts, runners - sum(line.startswith("fixture ") for line in failures), links, docs, len(failures))
+    counts = "{} py compiled, {} manifests parsed, {} hook paths found, {} scripts called, {} fixture runners passed ({} replayed), {} links in {} md resolved, {} failures".format(
+        compiled, manifests, paths, scripts, runners - sum(line.startswith("fixture ") for line in failures), replayed, links, docs, len(failures))
     print(("FAIL: " if failures else "ok: ") + counts)
     return 1 if failures else 0
 

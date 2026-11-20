@@ -3,7 +3,7 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--base [--ref <ref>] | --hunks [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
 
 A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
@@ -14,7 +14,8 @@ A row is `pass` or `fail` by the output the criterion says it `prints`, or the s
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
 first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
-its first judged table. A `BLOCKED due: <name>` line follows
+its first judged table. A `[check]` that passed on the same files (the folder's, or with `--base` the base's) is not run again by any session of the
+repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check and a live check always run. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
@@ -35,11 +36,13 @@ without running and a `BLOCKED due: live runs` line follows.
 `--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
 runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
-hunk; a git check, which the export cannot run, never counts. A hunk no check can
+hunk; a git check, which the export cannot run, never counts. A file of more than 4 hunks is reverted whole, then by
+halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<file>: <n> hunks not judged one by one` is
+printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer is. A hunk no check can
 see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
 for each whose branch no criterion reaches, exit 1 too, since a refusal no check reaches hides inside a hunk a check needs. It runs
-the checks once per hunk and per such line, so give a long check time with `--timeout`; it never fetches.
+the checks once per reverted group and per such line, so give a long check time with `--timeout`; it never fetches.
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
@@ -55,7 +58,9 @@ import os
 import pathlib
 import re
 import shlex
+import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -70,6 +75,7 @@ import usage_parser  # noqa: E402
 HEADER = "REPORTED: criteria at "
 CELL = 160
 LIVE_RUNS = 4
+FEW_HUNKS = 4  # a file with more hunks is reverted whole, then by halves
 UNWATCHED = {".git", "__pycache__", ".DS_Store"}
 WRONG_BASE_FIX = """
 To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
@@ -173,13 +179,69 @@ class Live:
         return line + due
 
 
+class Memory:
+    """The `pass` of each check on one tree of files, kept in the git common dir's `teamwork-passes/`, so a check whose files did not change runs once for every session of the repository."""
+
+    def __init__(self, root, tree, scope, fresh):
+        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root) or tempfile.gettempdir(), "teamwork-passes")
+        self.prefix = f"{tree}\0{scope}\0" if tree else None  # no tree, no memory
+        self.fresh = fresh
+        self.replayed = 0
+
+    def entry(self, detail):
+        return self.folder / hashlib.sha256((self.prefix + detail).encode()).hexdigest()[:32]
+
+    def recall(self, detail):
+        """(status, output) of the check's earlier pass on these files, or None."""
+        if self.prefix is None or self.fresh or criteria_check.live_stage(detail):
+            return None
+        try:
+            status, out = json.loads(self.entry(detail).read_text())
+        except (OSError, ValueError):
+            return None
+        self.replayed += 1
+        return status, out
+
+    def keep(self, detail, status, out):
+        if self.prefix is not None and not criteria_check.live_stage(detail):
+            self.folder.mkdir(parents=True, exist_ok=True)
+            self.entry(detail).write_text(json.dumps([status, out]))
+
+    def report(self):
+        return f"\ncached: {self.replayed} checks replayed from an earlier pass on the same files; --fresh runs them again" if self.replayed else ""
+
+
+def tree_of_files(root):
+    """The git tree of every file in ROOT not ignored, as a sha, so equal files give an equal tree whoever wrote them; empty when git cannot say."""
+    with tempfile.TemporaryDirectory(prefix="run-criteria-index-") as folder:
+        index = pathlib.Path(folder, "index")
+        current = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-path", "index", cwd=root) or folder)
+        if current.is_file():
+            shutil.copy(current, index)
+        environment = {**os.environ, "GIT_INDEX_FILE": str(index)}
+        added = subprocess.run(["git", "add", "-A"], cwd=root, env=environment, capture_output=True)
+        written = subprocess.run(["git", "write-tree"], cwd=root, env=environment, capture_output=True, text=True)
+        return written.stdout.strip() if not added.returncode and not written.returncode else ""
+
+
 def execute(command, detail, cwd, timeout, live):
     """(status, output) of a check, its live first stage replayed from a saved transcript when it has one."""
     stages = criteria_check.live_stage(detail)
     return live.run(*stages, criteria_check.watched(detail), cwd, timeout) if stages else run(command, cwd, timeout)
 
 
-def base_row(label, kind, name, detail, archive, timeout, live):
+def recalled(memory, detail, command, cwd, timeout, live, passes):
+    """(status, output) of a check from MEMORY when it passed on these files, else from running it, kept when PASSES(status, output) holds."""
+    found = memory.recall(detail) if memory else None
+    if found:
+        return found
+    status, out = execute(command, detail, cwd, timeout, live)
+    if memory and passes(status, out):
+        memory.keep(detail, status, out)
+    return status, out
+
+
+def base_row(label, kind, name, detail, archive, timeout, live, memory):
     command, test = criteria_check.expectation(detail)
     quoted = criteria_check.base_quote(detail)
     if kind != "check":
@@ -191,7 +253,7 @@ def base_row(label, kind, name, detail, archive, timeout, live):
         return label, name, "unclear", "not run: an `exits` or `more` check has no quoted output"
     if quoted is None:
         return label, name, "unclear", "not run: no one value after `on base`"
-    status, out = execute(command, detail, archive, timeout, live)
+    status, out = recalled(memory, detail, command, archive, timeout, live, lambda status, out: status is not None and out == quoted)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
@@ -215,14 +277,14 @@ def base_ref(ref):
     return next(filter(None, known), None) or sys.exit("run-criteria: found no origin/HEAD, origin/main or main; name the base with --ref")
 
 
-def run_on_base(root, ref, rows, timeout, live):
+def run_on_base(root, ref, rows, timeout, live, memory):
     """Rows of every criterion run in a `git archive` copy of the base, so the head's files never answer."""
     with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as copy:
         exported = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
         subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
         if exported.wait():
             sys.exit(f"run-criteria: could not export {ref}; fetch it first")
-        return [base_row(str(n), *criterion, copy, timeout, live) for n, criterion in enumerate(rows, 1)]
+        return [base_row(str(n), *criterion, copy, timeout, live, memory) for n, criterion in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
@@ -244,7 +306,7 @@ def cell(text):
     return text if len(text) <= CELL else text[:CELL - 1] + "…"
 
 
-def row(label, kind, name, detail, cwd, timeout, live):
+def row(label, kind, name, detail, cwd, timeout, live, memory=None):
     if kind == "score":
         return label, name, "judged", "not run: a score is judged"
     if kind != "check":
@@ -252,7 +314,7 @@ def row(label, kind, name, detail, cwd, timeout, live):
     command, test = criteria_check.expectation(detail)
     if test[0] is None:
         return label, name, "unclear", f"not run: {test[1]}"
-    status, out = execute(command, detail, cwd, timeout, live)
+    status, out = recalled(memory, detail, command, cwd, timeout, live, lambda status, out: criteria_check.verdict(test, status, out) == "pass")
     return label, name, criteria_check.verdict(test, status, out), cell(out)
 
 
@@ -336,29 +398,52 @@ def run_per_hunk(options, task, root, live):
             print(live.report(), end="")
             return 1
         held = {label for label, result in at_head.items() if result == "pass"}
-        unneeded, conditions = [], 0
-        for file, line, patch in hunks:
-            apply = ["git", "apply", "--unidiff-zero", "--whitespace=nowarn", "-"]
-            reverted = subprocess.run([*apply[:2], "-R", *apply[2:]], cwd=copy, input=patch, text=True, capture_output=True)
-            if reverted.returncode:
-                sys.exit(f"run-criteria: could not revert the hunk at {file}:{line}: {reverted.stderr.strip()}")
+        unneeded, conditions, unjudged = [], 0, []
+
+        def survives(group):
+            """True when no passing row changes with every hunk of GROUP, all of one file, reverted together."""
+            path = pathlib.Path(copy, group[0][0])
+            kept = path.read_bytes() if path.is_file() else None
+            mode = path.stat().st_mode if kept is not None else None
+            for file, line, patch in sorted(group, key=lambda hunk: -hunk[1]):  # from the last line up, so each keeps its line number
+                reverted = subprocess.run(["git", "apply", "-R", "--unidiff-zero", "--whitespace=nowarn", "-"], cwd=copy, input=patch, text=True, capture_output=True)
+                if reverted.returncode:
+                    sys.exit(f"run-criteria: could not revert the hunk at {file}:{line}: {reverted.stderr.strip()}")
             still = {label for label, result in results(copy).items() if result == "pass"}
-            subprocess.run(apply, cwd=copy, input=patch, text=True, capture_output=True, check=True)
-            if held <= still:
-                unneeded.append(f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous")
-                continue
+            if kept is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(kept)
+                path.chmod(stat.S_IMODE(mode))
+            return held <= still
+
+        by_file = {}
+        for hunk in hunks:
+            by_file.setdefault(hunk[0], []).append(hunk)
+        for file, group in by_file.items():
+            if len(group) > FEW_HUNKS and not options.each:
+                # a file of many hunks, such as a built page, is judged whole and by halves, so the rest of it is judged only when --each asks
+                halves = [] if survives(group) else [group[:len(group) // 2], group[len(group) // 2:]]
+                passing = [half for half in halves if survives(half)]
+                alone = [hunk for half in passing for hunk in half] if halves else group
+                unjudged += [(file, len(half)) for half in halves if half not in passing]
+            else:
+                alone = [hunk for hunk in group if survives([hunk])]
+            unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone]
             path = pathlib.Path(copy, file)
             text = path.read_text() if file.endswith(".py") and path.is_file() else ""
-            for number, start, end in added_conditions(file, line, patch, text):
-                data = text.encode()
-                path.write_bytes(data[:start] + b"False" + data[end:])
-                still = {label for label, result in results(copy).items() if result == "pass"}
-                path.write_text(text)
-                conditions += 1
-                if held <= still:
-                    unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
-    print(f"hunks: {len(hunks)} reverted one at a time against {ref}, {conditions} conditions made False, {len(unneeded)} unneeded")
+            for _, line, patch in (hunk for hunk in group if hunk not in alone):
+                for number, start, end in added_conditions(file, line, patch, text):
+                    data = text.encode()
+                    path.write_bytes(data[:start] + b"False" + data[end:])
+                    still = {label for label, result in results(copy).items() if result == "pass"}
+                    path.write_text(text)
+                    conditions += 1
+                    if held <= still:
+                        unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
+    print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {len(unneeded)} unneeded")
     print(*unneeded, sep="\n")
+    print(*[f"{file}: {count} hunks not judged one by one, since reverting them together fails a criterion; --each judges each" for file, count in unjudged], sep="\n")
     print(live.report(), end="")
     return 1 if unneeded else 0
 
@@ -391,13 +476,14 @@ def run_against_base(options, task, root, live):
     live.strict = False
     ref = base_ref(options.ref)
     sha = git_output("rev-parse", "--short", ref, cwd=root)
-    rows = run_on_base(root, ref, task_criteria(task), options.timeout, live)
+    memory = Memory(root, git_output("rev-parse", f"{ref}^{{tree}}", cwd=root), "base", options.fresh)
+    rows = run_on_base(root, ref, task_criteria(task), options.timeout, live, memory)
     print(f"REPORTED: base outputs at {ref} {sha}\n\n| # | criterion | result | output on base |\n| --- | --- | --- | --- |")
     for table_row in rows:
         print(table_line(table_row))
     if any(table_row[2] == "wrong base" for table_row in rows):
         print(WRONG_BASE_FIX)
-    print(live.report(), end="")
+    print(live.report() + memory.report(), end="")
     return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
 
 
@@ -406,7 +492,8 @@ def run_at_head(options, task, root, live):
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
     found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
-    rows = [(*row(label, *criterion, root, options.timeout, live), fingerprint(criterion)) for label, criterion in found]
+    memory = Memory(root, tree_of_files(root), str(root), options.fresh)
+    rows = [(*row(label, *criterion, root, options.timeout, live, memory), fingerprint(criterion)) for label, criterion in found]
     print(f"{HEADER}{git_output('rev-parse', 'HEAD', cwd=root)}" + (" with uncommitted changes" if git_output("status", "--porcelain", cwd=root) else ""))
     print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")
     for table_row in rows:
@@ -415,7 +502,7 @@ def run_at_head(options, task, root, live):
     for _, name, result, out, _ in rows:
         if result == "fail" and out in before.get(name.replace("|", "\\|"), ()):
             print(f"\nBLOCKED due: {name} failed with the same output as in an earlier table; ask your manager by `BLOCKED:`.")
-    print(live.report(), end="")
+    print(live.report() + memory.report(), end="")
     return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
 
 
@@ -424,6 +511,8 @@ def main(args):
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--hunks", action="store_true")
+    parser.add_argument("--each", action="store_true")
+    parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
