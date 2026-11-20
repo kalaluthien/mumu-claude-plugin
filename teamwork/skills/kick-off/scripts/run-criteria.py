@@ -33,6 +33,7 @@ task's latest `decide --live-runs <n>` or else `LIVE_RUNS` (4), kept in the work
 missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
 
+A check run in an export of `--base` or `--hunks` has every process still running a file of that export killed when it ends, since a monitor it starts in a session of its own would poll for ever.
 `--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
 runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
@@ -317,18 +318,30 @@ def run_on_base(root, ref, rows, timeout, live, memory):
             return [base_row(str(n), *criterion, copy, timeout, live, memory, exported_files.name) for n, criterion in enumerate(rows, 1)]
 
 
+def end_strays(folder):
+    """Kill every process that runs a file of the temporary copy FOLDER, since a check may start a monitor in a session of its own that outlives it, and a copy with a hunk reverted can miss the call that ends it."""
+    listed = subprocess.run(["ps", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout.splitlines()
+    for line in listed:
+        pid, _, command = line.strip().partition(" ")
+        if pid.isdigit() and int(pid) != os.getpid() and str(folder) + os.sep in command:
+            os.kill(int(pid), signal.SIGKILL)
+
+
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
     process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                start_new_session=True)
     try:
         out, _ = process.communicate(timeout=timeout)
-        return process.returncode, out.strip()
+        result = process.returncode, out.strip()
     except subprocess.TimeoutExpired:
         # the check's children share its session, so killing only bash would leave them running
         os.killpg(process.pid, signal.SIGKILL)
         process.communicate()
-        return None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
+        result = None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
+    if pathlib.Path(cwd).resolve().is_relative_to(pathlib.Path(tempfile.gettempdir()).resolve()):
+        end_strays(pathlib.Path(cwd).resolve())
+    return result
 
 
 def cell(text):
