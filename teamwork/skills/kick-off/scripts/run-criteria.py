@@ -14,8 +14,8 @@ A row is `pass` or `fail` by the output the criterion says it `prints`, or the s
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
 first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
-its first judged table. A `[check]` that passed on the same files (the folder's, or with `--base` the base's) is not run again by any session of the
-repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check and a live check always run. A `BLOCKED due: <name>` line follows
+its first judged table. A `[check]` that passed on the same files and the same commit, branch and index (or with `--base` the base's files) is not run again by any session of the
+repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check always runs, and a live check keeps its own saved transcript, below. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
@@ -208,6 +208,12 @@ class Memory:
 
     def report(self):
         return f"\ncached: {self.replayed} checks replayed from an earlier pass on the same files; --fresh runs them again" if self.replayed else ""
+
+
+def git_state(root):
+    """The commit, branch and index state of ROOT as text, since a check may read them and equal files do not make them equal."""
+    status = subprocess.run(["git", "status", "--porcelain=v1", "-z"], cwd=root, capture_output=True, text=True).stdout
+    return "\0".join([git_output("rev-parse", "HEAD", cwd=root), git_output("symbolic-ref", "-q", "HEAD", cwd=root), status])
 
 
 def tree_of_files(root):
@@ -487,7 +493,7 @@ def run_at_head(options, task, root, live):
     standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
     found += [("standing", criterion) for criterion in criteria(standing.read_text())] if standing.exists() else []
-    memory = Memory(root, tree_of_files(root), str(root), options.fresh)
+    memory = Memory(root, tree_of_files(root), f"{root}\0{git_state(root)}", options.fresh)
     rows = [(*row(label, *criterion, root, options.timeout, live, memory), fingerprint(criterion)) for label, criterion in found]
     print(f"{HEADER}{git_output('rev-parse', 'HEAD', cwd=root)}" + (" with uncommitted changes" if git_output("status", "--porcelain", cwd=root) else ""))
     print("\n| # | criterion | result | output | sha-256 |\n| --- | --- | --- | --- | --- |")

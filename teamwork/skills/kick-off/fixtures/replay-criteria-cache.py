@@ -5,6 +5,7 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `other-worktree-once`: the call from a second worktree of the same files, which has another path, runs the check again, since its output may hold the path;
 - `changed-file-runs`: a change to a file runs the check again;
 - `fresh-runs`: `--fresh` on the same files runs it again;
+- `git-state-runs`: the same files with another index, after a soft reset, run a check that reads `git status` again;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once.
 
@@ -63,6 +64,12 @@ def main(args):
     step("changed-file-runs", runs == 1 and "cached" not in out, (runs, out, error))
     out, error, runs = call(passing, "--fresh")
     step("fresh-runs", runs == 1, (runs, out, error))
+    clean = f"echo run >> {log}; test -z \"$(git status --porcelain)\" && echo ok"
+    git("commit", "-qam", "second")
+    call(clean)
+    git("reset", "-q", "--soft", "HEAD~1")
+    out, error, runs = call(clean)
+    step("git-state-runs", runs == 1 and "| fail |" in out, (runs, out, error))
     failing = f"echo run >> {log}; grep -q absent a.txt && echo ok"
     call(failing)
     out, error, runs = call(failing)
