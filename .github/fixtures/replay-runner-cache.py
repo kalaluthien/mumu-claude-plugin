@@ -10,6 +10,7 @@ or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any fa
 - `second-runner-runs`: a failing second runner of a plugin whose first runner passed is not hidden by it;
 - `fresh-runs`: `--fresh` runs every runner on the same files;
 - `no-git-runs`: a folder that is no git checkout runs every runner on every call and keeps no memory;
+- `locked-git-dir-runs`: a git dir the run cannot write still runs every runner and prints a summary with 0 failures;
 - `failure-runs`: a failing runner runs on every call, and its `fixture` line is printed each time.
 
 usage: replay-runner-cache.py"""
@@ -91,6 +92,11 @@ def main(args):
     out, ran = call()
     step("failure-runs", ran == ["beta"] and "fixture beta/fixtures/replay-one.py: exit 1" in out, (ran, out))
     (work / "beta" / "fail").unlink()
+    (work / "alpha" / "notes.txt").write_text("three\n")
+    subprocess.run(["chmod", "-R", "a-w", str(work / ".git")], check=True)
+    out, ran = call()
+    subprocess.run(["chmod", "-R", "u+w", str(work / ".git")], check=True)
+    step("locked-git-dir-runs", "0 failures" in out and "Traceback" not in out and ran == ["alpha", "alpha-two", "beta", "gamma", "github"], (ran, out))
     plain = work.parent / f"{work.name}-plain"
     shutil.copytree(work, plain, ignore=shutil.ignore_patterns(".git"))
     log.write_text("")

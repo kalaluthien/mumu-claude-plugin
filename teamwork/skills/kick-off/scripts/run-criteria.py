@@ -204,8 +204,11 @@ class Memory:
 
     def keep(self, detail, status, out):
         if self.prefix is not None:
-            self.folder.mkdir(parents=True, exist_ok=True)
-            self.entry(detail).write_text(json.dumps([status, out]))
+            try:
+                self.folder.mkdir(parents=True, exist_ok=True)
+                self.entry(detail).write_text(json.dumps([status, out]))
+            except OSError:
+                pass  # a git dir the run cannot write is no reason to lose the table
 
     def report(self):
         return f"\ncached: {self.replayed} checks replayed from an earlier pass on the same files; --fresh runs them again" if self.replayed else ""

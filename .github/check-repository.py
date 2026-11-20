@@ -315,8 +315,11 @@ def run_fixtures(root, files, failures, fresh):
             if done.returncode:
                 return "\n".join(["fixture {}: exit {}, {}".format(path, done.returncode, lines[-1][:200])] + faults)
             if marker:
-                folder.mkdir(parents=True, exist_ok=True)
-                marker.write_text(path + "\n")
+                try:
+                    folder.mkdir(parents=True, exist_ok=True)
+                    marker.write_text(path + "\n")
+                except OSError:
+                    pass  # a git dir the run cannot write is no reason to lose the verdict
             return None
 
         with concurrent.futures.ThreadPoolExecutor(4) as pool:
