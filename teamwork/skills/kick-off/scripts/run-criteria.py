@@ -360,7 +360,7 @@ def split_hunks(diff):
         file = re.search(r"^\+\+\+ b/(.+?)\t?$|^--- a/(.+?)\t?$", head, re.M)
         for hunk in hunks:
             old, new = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)", hunk).groups()
-            found.append((next(name for name in file.groups() if name).encode("latin-1").decode("utf-8", "replace"), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
+            found.append((next(name for name in file.groups() if name), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
     return found
 
 
@@ -388,7 +388,7 @@ def take_back(text, patches):
 
 def added_conditions(file, line, patch, text):
     """Byte spans of the tests of the `if` and `elif` statements a Python hunk adds in TEXT, its first added line being LINE."""
-    added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].split("\n")[1:] if each.startswith("+")))
+    added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
     except SyntaxError:
