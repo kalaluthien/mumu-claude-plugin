@@ -3,8 +3,7 @@
 prompt that hold nothing open, one with a process still running under its session id, as a check it detached with `( ... ) &` does, and one with none. Print `PASS` when
 only the worker with nothing running gets an `idle` line, else `FAIL`, and exit 1 on FAIL.
 
-usage: replay-idle-workers.py [--verbose]
-`--verbose` also prints what the heartbeat printed."""
+usage: replay-idle-workers.py"""
 import json
 import os
 import pathlib
@@ -26,7 +25,7 @@ SETTLE_SECONDS = 3  # the monitor goes on polling, so an `idle` line wrongly pri
 
 
 def main(args):
-    if args not in ([], ["--verbose"]):
+    if args:
         print(__doc__, file=sys.stderr)
         return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="idle-workers-"))
@@ -58,8 +57,6 @@ def main(args):
         detached.wait()
     saw = log.read_text()
     quiet, idle = "idle b-busy-worker" not in saw, "idle b-free-worker" in saw
-    if args:
-        print(saw)
     print("PASS" if quiet and idle else "FAIL")
     return 0 if quiet and idle else 1
 
