@@ -335,6 +335,15 @@ def scans_only(command):
     return True
 
 
+def without_scans(command):
+    """COMMAND as bash text that runs each text-scan program not reading a pipe as a command that does nothing and succeeds, so what remains decides the check; None when it starts a session."""
+    if starts_session(command):
+        return None
+    names = [name for name in SCANS if name not in ("echo", "printf", "true", "false", "test", "[")]  # a test judges a value the system printed
+    functions = "".join(f'{name}() {{ if builtin test -p /dev/stdin; then command {name} "$@"; else true; fi; }}; ' for name in names)
+    return "exec </dev/null; " + functions + command
+
+
 def runs_whole_check(command):
     """True when a simple command in COMMAND, or in a shell's `-c` text or inline code, runs `check-repository.py`; a mention inside another quoted word, such as a
     sample body, runs nothing."""

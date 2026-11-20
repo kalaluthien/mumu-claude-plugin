@@ -21,7 +21,7 @@ it has failed twice the same way.
 
 `--base` runs each `[check]` in an export of the base instead, `--ref` or else the first of `origin/HEAD`, `origin/main` and `main` that exists, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
-`unclear` when the quote is not one value; exit 1 on any `wrong base`; an `exits` or `more` check, a git check (the
+`text scan` when the quote matches only because a grep, `awk`, `sed` or another file read alone fails it, the rest of the command printing the passing output on base, `unclear` when the quote is not one value; exit 1 on any `wrong base` or `text scan`; an `exits` or `more` check, a git check (the
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
 A body file alone runs its criteria at the head.
 
@@ -77,6 +77,9 @@ CELL = 160
 LIVE_RUNS = 4
 FEW_HUNKS = 4  # a file with more hunks is reverted whole, then by halves
 UNWATCHED = {".git", "__pycache__", ".DS_Store"}
+TEXT_SCAN_FIX = """
+To fix a `text scan` row, make a stage that runs the system fail on base: put the grep after a fixture run's pipe, or
+drop it, since a rewrite that keeps its words would pass it."""
 WRONG_BASE_FIX = """
 To fix a `wrong base` row, quote after `on base` the output of running that exact line on the base, never a guess.
 Pin what varies or matches too much: `LC_ALL=C` before a sorted list, a stub for a GitHub read the check does not
@@ -261,6 +264,11 @@ def base_row(label, kind, name, detail, archive, timeout, live, memory):
     status, out = recalled(memory, detail, command, archive, timeout, live, lambda status, out: status is not None and out == quoted)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
+    if status is not None and out == quoted:
+        # what is left of the check once its file scans do nothing still prints the passing output on base, so a scan alone fails it there
+        bare = criteria_check.without_scans(command)
+        if bare and criteria_check.verdict(test, *run(bare, archive, timeout)) == "pass":
+            return label, name, "text scan", "a text scan alone fails it on base; the rest prints the passing output there"
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
 
@@ -525,8 +533,10 @@ def run_against_base(options, task, root, live):
         print(table_line(table_row))
     if any(table_row[2] == "wrong base" for table_row in rows):
         print(WRONG_BASE_FIX)
+    if any(table_row[2] == "text scan" for table_row in rows):
+        print(TEXT_SCAN_FIX)
     print(live.report() + memory.report(), end="")
-    return 1 if any(table_row[2] == "wrong base" for table_row in rows) else 0
+    return 1 if any(table_row[2] in ("wrong base", "text scan") for table_row in rows) else 0
 
 
 def run_at_head(options, task, root, live):
