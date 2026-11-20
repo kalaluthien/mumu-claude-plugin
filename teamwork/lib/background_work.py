@@ -1,5 +1,6 @@
 """The background work a session started and has not seen end: what its transcript shows, and what still runs under its session id."""
 import json
+import os
 import re
 import subprocess
 
@@ -40,9 +41,21 @@ def transcript_of(session_id):
     return next(iter((claude_config.folder() / "projects").glob(f"*/{session_id}.jsonl")), None) if session_id else None
 
 
+def seconds(elapsed):
+    """The seconds of a `ps` elapsed time, `[[dd-]hh:]mm:ss`."""
+    days, _, clock = elapsed.rpartition("-")
+    fields = [int(field) for field in clock.split(":")]
+    return int(days or 0) * 86400 + sum(field * 60 ** place for place, field in enumerate(reversed(fields)))
+
+
 def running_commands(session_id):
-    """Pids of the processes that carry SESSION_ID in their environment, such as a command the session detached from its shell with `( ... ) &` or a monitor's loop,
-    which no transcript record shows; the session's own heartbeat is no work."""
-    listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout
+    """Pids of the processes younger than TEAMWORK_BACKGROUND_SECONDS (12 hours) that carry SESSION_ID in their environment, such as a command the session detached
+    from its shell with `( ... ) &` or a monitor's loop, which no transcript record shows; the session's own heartbeat is no work, and a daemon older than the limit,
+    which a command left behind and which ends with nothing, holds no worker busy."""
+    if not session_id:
+        return []
+    limit = float(os.environ.get("TEAMWORK_BACKGROUND_SECONDS", 12 * 3600))
+    listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,etime=,command="], capture_output=True, text=True).stdout
     mark = f" CLAUDE_CODE_SESSION_ID={session_id}"
-    return [int(line.split()[0]) for line in listing.splitlines() if mark in line and "/monitors/print-team-gaps.py " not in line]
+    return [int(line.split()[0]) for line in listing.splitlines()
+            if mark in line and "/monitors/print-team-gaps.py " not in line and seconds(line.split()[1]) < limit]
