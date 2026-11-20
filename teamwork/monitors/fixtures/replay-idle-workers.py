@@ -21,7 +21,7 @@ import replay_probe  # noqa: E402
 FAKE_HERDR = ROOT / "skills" / "kick-off" / "fixtures" / "fake-herdr"
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
 BUSY, FREE = "sess-busy", "sess-free"
-LIMIT_SECONDS = 3600
+LIMIT_SECONDS = 4000  # above an hour and below an hour and a half, so a wrong weight of a day or an hour reads one of the old processes as young
 # old processes, in the days and the hours forms of the elapsed time of `ps`, which a stand-in `ps` lists beside the real ones
 OLD_PROCESSES = (f"9001 1-00:00:05 python3 left CLAUDE_CODE_SESSION_ID={FREE} HOME=/x\n"
                  f"9002 01:30:00 python3 left CLAUDE_CODE_SESSION_ID={FREE} HOME=/x\n")
