@@ -51,7 +51,8 @@ def seconds(elapsed):
 def running_commands(session_id):
     """Pids of the processes younger than TEAMWORK_BACKGROUND_SECONDS (12 hours) that carry SESSION_ID in their environment, such as a command the session detached
     from its shell with `( ... ) &` or a monitor's loop, which no transcript record shows; the session's own heartbeat is no work, and a daemon older than the limit,
-    which a command left behind and which ends with nothing, holds no worker busy."""
+    which a command left behind and which ends with nothing, holds no worker busy. `ps -E` shows no environment for a system binary such as `sleep`, so a detached
+    command of system binaries alone is not seen."""
     if not session_id:
         return []
     limit = float(os.environ.get("TEAMWORK_BACKGROUND_SECONDS", 12 * 3600))

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run the heartbeat `print-team-gaps.py` as a manager on a temporary repository with a git board and the fake herdr of the kick-off fixtures, over three workers at their
 prompt that hold nothing open: one with a process still running under its session id, as a check it detached with `( ... ) &` does; one whose only processes under its id
-are its own heartbeat and a daemon older than the limit a command left behind; and one whose session id is empty. Print `PASS` when only the first gets no `idle` line, else
-`FAIL`, and exit 1 on FAIL.
+are its own heartbeat and old processes a command left behind, which a stand-in `ps` adds to the real listing in each form of its elapsed time, older than the limit; and one
+whose session id is empty. Print `PASS` when only the first gets no `idle` line, else `FAIL`, and exit 1 on FAIL.
 
 usage: replay-idle-workers.py"""
 import json
@@ -21,7 +21,10 @@ import replay_probe  # noqa: E402
 FAKE_HERDR = ROOT / "skills" / "kick-off" / "fixtures" / "fake-herdr"
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
 BUSY, FREE = "sess-busy", "sess-free"
-LIMIT_SECONDS = 8
+LIMIT_SECONDS = 3600
+# old processes, in the days and the hours forms of the elapsed time of `ps`, which a stand-in `ps` lists beside the real ones
+OLD_PROCESSES = (f"9001 1-00:00:05 python3 left CLAUDE_CODE_SESSION_ID={FREE} HOME=/x\n"
+                 f"9002 01:30:00 python3 left CLAUDE_CODE_SESSION_ID={FREE} HOME=/x\n")
 WAIT_SECONDS = 30
 SETTLE_SECONDS = 3  # the monitor goes on polling, so an `idle` line wrongly printed later shows
 
@@ -33,9 +36,14 @@ def main(args):
     work = pathlib.Path(tempfile.mkdtemp(prefix="idle-workers-"))
     repository, state, log = work / "repo", work / "herdr.json", work / "monitor.log"
     repository.mkdir()
+    (work / "stand-in-ps").mkdir()
+    (work / "old-processes.txt").write_text(OLD_PROCESSES)
+    stand_in_ps = work / "stand-in-ps" / "ps"
+    stand_in_ps.write_text(f'#!/bin/sh\ncase "$*" in *etime=*) /bin/ps "$@"; cat "{work}/old-processes.txt";; *) exec /bin/ps "$@";; esac\n')
+    stand_in_ps.chmod(0o755)
     environment = {key: value for key, value in os.environ.items() if key != "CLAUDE_CODE_SESSION_ID"}
     environment.update(replay_probe.IDENTITY, CLAUDE_CONFIG_DIR=str(work / "claude"), GIT_CONFIG_GLOBAL=str(work / "gitconfig"), TEAMWORK_FAKE_HERDR_STATE=str(state),
-                       PATH=f"{FAKE_HERDR}:{os.environ['PATH']}", HERDR_PANE_ID="w1:p1", TEAMWORK_MONITOR_POLL="0.3", TEAMWORK_BACKGROUND_SECONDS=str(LIMIT_SECONDS))
+                       PATH=f"{stand_in_ps.parent}:{FAKE_HERDR}:{os.environ['PATH']}", HERDR_PANE_ID="w1:p1", TEAMWORK_MONITOR_POLL="0.3", TEAMWORK_BACKGROUND_SECONDS=str(LIMIT_SECONDS))
     replay_probe.write_git_config(work)
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repository, check=True, env=environment)
     subprocess.run(["git", "commit", "-q", "--allow-empty", "-m", "start"], cwd=repository, check=True, env=environment)
@@ -50,8 +58,6 @@ def main(args):
         started.append(subprocess.Popen([*sleeps, *words], env={**environment, "CLAUDE_CODE_SESSION_ID": session}, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                         stderr=subprocess.DEVNULL, start_new_session=True))
 
-    detach(FREE)
-    time.sleep(LIMIT_SECONDS + 1)  # the daemon is now older than the limit
     detach(BUSY)
     detach(FREE, str(MONITOR) + " ")  # a worker's own heartbeat
     try:
