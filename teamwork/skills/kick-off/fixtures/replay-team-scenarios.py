@@ -168,7 +168,9 @@ def send_failed():
 def monitor_restart():
     """The heartbeat stopped and started again names each gap it named before, none lost and none twice."""
     state = herdr(*TEAM)
-    first, second = (heartbeat(state, "w1:p1").splitlines() for _ in range(2))
+    project = pathlib.Path(tempfile.mkdtemp(prefix="monitor-restart-"))
+    subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+    first, second = (heartbeat(state, "w1:p1", cwd=project).splitlines() for _ in range(2))
     return bool(first) and sorted(first) == sorted(second) and len(set(first)) == len(first), "\n".join(first + ["-- restart --"] + second)
 
 
