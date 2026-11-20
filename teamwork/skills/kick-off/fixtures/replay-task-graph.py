@@ -6,6 +6,7 @@ exit 1 on any fail. The git board runs every case but the nodes'; nodes the hear
 - derive-waits, derive-released, derive-not-planned-holds, derive-parent-closes, derive-parent-stays, derive-stopped-part-holds-parent,
   derive-drop-closes-parent, derive-follow-up-reopens, derive-link-edit-keeps-ask (neither a `depend` nor a body edit's `DECIDED:` answers a `BLOCKED:`; a
   decision naming it by `--answers` does), derive-stop-closes-parts
+- read-second-parent: a part two bodies name reads the same parent from its record as from the parts list
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, 
   heartbeat-tree-unread: a failed tree read leaves the manager's read whole, with one `unread` link line
 - pane-nesting, pane-wait-line, pane-done-count: list-task-board.py's lines
@@ -199,6 +200,8 @@ def git_drift():
     store = board_git.STORE
     store.write(lambda: [board_records.save(store, number, depends=[other]) for number, other in ((first, second), (second, first))]
                 + [store.stage(f"{board_records.home(store, number)}/body.md", body(parts=[part], check=False)) for number in (one, two)])
+    store.refresh()
+    step("read-second-parent", board_records.record(store, part, comments=False)["parent"] == board_records.owners(store).get(part) is not None, (board_records.parent_of(store, part), board_records.owners(store).get(part)))
     use("label", first, "--label", "backlog")
     return board.tree(None)
 

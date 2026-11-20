@@ -176,7 +176,7 @@ def owners(store):
 
 def parent_of(store, number):
     """The task whose body names NUMBER as a part, else None."""
-    return next((owner for owner in numbers(store) if int(number) in task_links.parts(store.read(f"{home(store, owner)}/body.md"))), None)
+    return owners(store).get(int(number))
 
 
 def exists(store, number, comments=False):
