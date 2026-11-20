@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Run run-criteria.py `--hunks` on a temporary git repository whose change holds a 30-hunk file that every revert breaks, a
-3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a file deleted from a folder only it filled, a symlink, an executable added file, an added file, a file whose last line lost its newline and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
+3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a file deleted from a folder only it filled, a symlink that a check needs as it is, a symlink that it only needs as a link, an executable added file, an added file, a file whose last line lost its newline and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
 `FAIL`, and exit 1 on any failure:
 - `few-runs`: the check ran at most 3 times with the big file reverted in part or whole;
 - `names-unneeded`: the unneeded hunk's line and the unreached refusal's line are named, no line of the big file, the deleted file or the symlink is, and the call exits 1, with the folder of the deleted file, the symlink and the mode of the executable file as the head has them for every later revert;
 - `names-whole`: every hunk of the unread file is named, since reverting them together passes;
 - `names-half`: the first four hunks of the half-needed file are named and the line says four are not judged one by one;
 - `names-deletions`: the same for the file of deletions, whose hunks git apply would place wrongly in the order that suits a replacement;
-- `names-edges`: the added file and the file whose last line had no newline are named, since reverting each leaves a file no check tells from the base's;
+- `names-edges`: the added file, the file whose last line had no newline and the symlink that only has to be a link are named, since reverting each leaves a file no check tells from the base's;
 - `takes-back-bytes`: 400 random pairs of files, whose lines hold form feeds, carriage returns, trailing spaces and empty lines, with or without a final newline, are taken back by `take_back` to the base byte for byte;
 - `each-judges-all`: with `--each` the check ran once per hunk of the big file.
 
@@ -77,6 +77,7 @@ def main(args):
     (work / "d").mkdir()
     (work / "d" / "gone.txt").write_text("here\n")
     (work / "link").symlink_to("old-target")
+    (work / "link2").symlink_to("a-target")
     (work / "wide.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "half.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(8)))
     (work / "dels.txt").write_text("".join(f"gone {n} a\ngone {n} b\nkeep {n}\n" for n in range(8)))
@@ -90,6 +91,8 @@ def main(args):
     (work / "d" / "gone.txt").unlink()
     (work / "link").unlink()
     (work / "link").symlink_to("new-target")
+    (work / "link2").unlink()
+    (work / "link2").symlink_to("b-target")
     (work / "exe.sh").write_text("echo\n")
     (work / "exe.sh").chmod(0o755)
     (work / "wide.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(HUNKS)))
@@ -102,7 +105,7 @@ def main(args):
     git("commit", "-qm", "change")
     # a run that leaves a line in the log is one where the big file is not whole, so a reverted run; the unneeded hunk is the middle one of small.txt
     command = (f"test $(grep -c '^new' big.txt) = {HUNKS} || echo big >> {log}; "
-               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && test ! -d d && test \"$(readlink link)\" = new-target && test -x exe.sh && python3 c.py | grep -q new && echo ok")
+               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && (test ! -d d || touch d/stamp) && test ! -d d && test -L link2 && test \"$(readlink link)\" = new-target && test -x exe.sh && python3 c.py | grep -q new && echo ok")
     body = work.parent / f"{work.name}-body.md"
     body.write_text(BODY.format(command=command))
 
@@ -117,7 +120,7 @@ def main(args):
     step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
     step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
     step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))
-    step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out, (code, out, error))
+    step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out and "link2:1: unneeded hunk" in out, (code, out, error))
     code, out, error, runs = call("--each")
     step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
     wrong = take_back_bytes()

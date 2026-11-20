@@ -59,6 +59,7 @@ import pathlib
 import re
 import shlex
 import signal
+import shutil
 import stat
 import subprocess
 import sys
@@ -442,8 +443,8 @@ def run_per_hunk(options, task, root, live):
                     path.write_bytes(text.encode("latin-1"))
             still = {label for label, result in results(copy).items() if result == "pass"}
             path.unlink(missing_ok=True)
-            for folder in reversed(made):
-                folder.rmdir()
+            for folder in made[:1]:
+                shutil.rmtree(folder)
             if link is not None:
                 os.symlink(link, path)
             elif kept is not None:
