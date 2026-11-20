@@ -419,7 +419,9 @@ def run_per_hunk(options, task, root, live):
                 halves = [] if survives(group) else [group[:len(group) // 2], group[len(group) // 2:]]
                 passing = [half for half in halves if survives(half)]
                 alone = [hunk for half in passing for hunk in half] if halves else group
-                unjudged += [(file, len(half)) for half in halves if half not in passing]
+                failing = [half for half in halves if half not in passing]
+                if failing:
+                    unjudged.append((file, sum(len(half) for half in failing)))
             else:
                 alone = [hunk for hunk in group if survives([hunk])]
             unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone]

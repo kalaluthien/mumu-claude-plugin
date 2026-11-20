@@ -62,7 +62,7 @@ def main(args):
         return done.returncode, done.stdout, done.stderr, len(log.read_text().split())
 
     code, out, error, runs = call()
-    step("few-runs", runs <= 3, (runs, out, error))
+    step("few-runs", runs <= 3 and "big.txt: 30 hunks not judged one by one" in out, (runs, out, error))
     step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out, (code, out, error))
     code, out, error, runs = call("--each")
     step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
