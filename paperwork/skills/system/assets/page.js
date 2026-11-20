@@ -184,20 +184,25 @@
     return { box, w: outer.w, h: outer.h };
   }
 
-  function route(level, box, width, height) { // each edge the cheapest path of straight runs that passes under no node
-    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4;
+  function route(level, box, width, height, fit) { // each edge the cheapest path of straight runs that passes under no node, off area headers and a step clear of the runs drawn before it
+    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4, HEADER = 40, CLOSE = 3;
     const columns = Math.ceil(width / STEP) + 2 * OUT + 1, rows = Math.ceil(height / STEP) + 2 * OUT + 1;
     const x = c => (c - OUT) * STEP, y = r => (r - OUT) * STEP, column = at => Math.round(at / STEP) + OUT;
-    const blocked = new Uint8Array(columns * rows), used = new Uint8Array(columns * rows), dear = new Uint8Array(columns * rows);
-    const cover = (spot, grid, by) => {
+    const blocked = new Uint8Array(columns * rows), used = new Uint8Array(columns * rows), near = new Uint8Array(columns * rows), dear = new Uint8Array(columns * rows);
+    const cover = (spot, grid, by, value = 1) => {
       for (let r = Math.max(0, column(spot.y - by)); r < rows && y(r) < spot.y + spot.h + by; r++) if (y(r) > spot.y - by)
-        for (let c = Math.max(0, column(spot.x - by)); c < columns && x(c) < spot.x + spot.w + by; c++) if (x(c) > spot.x - by) grid[r * columns + c] = 1;
+        for (let c = Math.max(0, column(spot.x - by)); c < columns && x(c) < spot.x + spot.w + by; c++) if (x(c) > spot.x - by) grid[r * columns + c] = Math.max(grid[r * columns + c], value);
     };
     for (const node of level.nodes) cover(box[node.id], blocked, CLEAR);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < columns; c++) { // the margin, whose far side the window crops
+      const out = Math.max(-x(c), -y(r), x(c) - width, y(r) - height);
+      if (out > 2 * STEP) blocked[r * columns + c] = 1; else if (out > 0) dear[r * columns + c] = 1;
+    }
     for (const area of level.areas || []) if (box[area.id]) {
       const frame = box[area.id];
-      cover({ ...frame, h: 22 }, dear, 0);
-      for (const side of [{ ...frame, h: 0 }, { ...frame, y: frame.y + frame.h, h: 0 }, { ...frame, w: 0 }, { ...frame, x: frame.x + frame.w, w: 0 }]) cover(side, dear, 8);
+      cover({ ...frame, h: fit.head }, dear, 0, 4);
+      cover({ ...frame, w: heading(area, fit), h: fit.head }, dear, 8, HEADER); // a header's words, which a line through them makes hard to read
+      for (const side of [{ ...frame, h: 0 }, { ...frame, y: frame.y + frame.h, h: 0 }, { ...frame, w: 0 }, { ...frame, x: frame.x + frame.w, w: 0 }]) cover(side, dear, 8, 4);
     }
     const MOVES = [[1, 0], [-1, 0], [0, 1], [0, -1]];
     const ports = spot => {
@@ -245,8 +250,12 @@
           cells.unshift(one);
           const start = began.get(one), end = goals.get(state), points = [{ x: start.px, y: start.py }];
           cells.forEach((each, k) => {
-            const spot = each >> 2;
-            used[spot] |= (each & 3) < 2 ? 1 : 2;
+            const spot = each >> 2, flat = (each & 3) < 2;
+            used[spot] |= flat ? 1 : 2;
+            for (const [steps, mark] of [[1, 1], [2, 4]]) for (const side of flat ? [-columns, columns] : [-1, 1]) { // a run beside this one, a step or two off, reads as one thick line
+              const other = spot + side * steps;
+              if (other >= 0 && other < near.length) near[other] |= flat ? mark : mark * 2;
+            }
             if (k && (cells[k - 1] & 3) !== (each & 3)) { used[cells[k - 1] >> 2] |= 3; points.push({ x: x((cells[k - 1] >> 2) % columns), y: y(Math.floor((cells[k - 1] >> 2) / columns)) }); }
           });
           points.push({ x: end.px, y: end.py });
@@ -257,7 +266,7 @@
           const nc = c + MOVES[turn][0], nr = r + MOVES[turn][1], next = nr * columns + nc;
           if (nc < 0 || nr < 0 || nc >= columns || nr >= rows || blocked[next]) continue;
           const same = turn < 2 ? 1 : 2, goal = goals.get(next * 4 + turn);
-          const cost = far[state] + 1 + (turn !== way ? TURN : 0) + (used[next] & same ? 6 : 0) + (used[next] & (3 - same) ? 1.5 : 0) + dear[next] * 4 + (goal ? goal.off : 0);
+          const cost = far[state] + 1 + (turn !== way ? TURN : 0) + (used[next] & same ? 6 : 0) + (used[next] & (3 - same) ? 1.5 : 0) + dear[next] + (near[next] & same ? CLOSE : near[next] & same * 4 ? 2 : 0) + (goal ? goal.off : 0);
           if (cost < far[next * 4 + turn]) { far[next * 4 + turn] = cost; came[next * 4 + turn] = state; push(cost + guess(nc, nr), next * 4 + turn); }
         }
       }
@@ -325,7 +334,7 @@
   }
   function paint(level) {
     const stage = $("stage"), key = `${level.id} ${innerWidth} ${innerHeight}`; // a level is laid out once per window size, since a scenario comes back to it
-    if (!plans[key]) { const plan = arrange(level); plans[key] = { plan, lines: route(level, plan.box, plan.w, plan.h), seats: {} }; }
+    if (!plans[key]) { const plan = arrange(level); plans[key] = { plan, lines: route(level, plan.box, plan.w, plan.h, plan.fit), seats: {} }; }
     const plan = plans[key].plan;
     boxes = plan.box; curves = plans[key].lines;
     stage.replaceChildren();
