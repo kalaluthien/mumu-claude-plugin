@@ -363,6 +363,27 @@ def split_hunks(diff):
     return found
 
 
+def take_back(text, patches):
+    """TEXT of a file with the removed lines of each one-hunk PATCHES entry of `git diff -U0` put back where the hunk added or changed them, last hunk first so each keeps its line number, since git apply places a pure deletion by its position in a file with the hunks before it already undone."""
+    lines = re.findall(r"[^\n]*\n|[^\n]+", text)
+    spans = []
+    for patch in patches:
+        header, _, body = patch[re.search(r"(?m)^@@ ", patch).start():].partition("\n")
+        start, count = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))?", header).groups()
+        count = 1 if count is None else int(count)
+        first = int(start) if count == 0 else int(start) - 1
+        removed = []
+        for row in body.splitlines(keepends=True):
+            if row.startswith("-"):
+                removed.append(row[1:])
+            elif row.startswith("\\ No newline") and removed:
+                removed[-1] = removed[-1].removesuffix("\n")
+        spans.append((first, count, removed))
+    for first, count, removed in sorted(spans, key=lambda span: -span[0]):
+        lines[first:first + count] = removed
+    return "".join(lines)
+
+
 def added_conditions(file, line, patch, text):
     """Byte spans of the tests of the `if` and `elif` statements a Python hunk adds in TEXT, its first added line being LINE."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
@@ -406,8 +427,12 @@ def run_per_hunk(options, task, root, live):
             path = pathlib.Path(copy, group[0][0])
             kept = path.read_bytes() if path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
-            for file, line, patch in sorted(group, key=lambda hunk: -hunk[1]):  # from the last line up, so each keeps its line number
-                subprocess.run(["git", "apply", "-R", "--unidiff-zero", "--whitespace=nowarn", "-"], cwd=copy, input=patch, text=True, check=True)
+            text = take_back(kept.decode("utf-8", "surrogateescape") if kept is not None else "", [patch for _, _, patch in group])
+            if not text and "\nnew file mode " in group[0][2]:
+                path.unlink(missing_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(text.encode("utf-8", "surrogateescape"))
             still = {label for label, result in results(copy).items() if result == "pass"}
             if kept is None:
                 path.unlink(missing_ok=True)

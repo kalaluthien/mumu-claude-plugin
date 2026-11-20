@@ -6,6 +6,8 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `changed-file-runs`: a change to a file runs the check again;
 - `fresh-runs`: `--fresh` on the same files runs it again;
 - `git-state-runs`: the same files with another index, after a soft reset, run a check that reads `git status` again;
+- `other-check-runs`: another check on files where a check passed runs;
+- `staged-edit-runs`: a second edit staged after a first, with the same commit and status, runs the check again;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once;
 - `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
@@ -72,6 +74,15 @@ def main(args):
     out, error, runs = call(clean)
     step("git-state-runs", runs == 1 and "| fail |" in out, (runs, out, error))
     failing = f"echo run >> {log}; grep -q absent a.txt && echo ok"
+    call(passing)
+    out, error, runs = call(failing)
+    step("other-check-runs", runs == 1 and "| fail |" in out, (runs, out, error))
+    shown = f"echo run >> {log}; test -s a.txt && echo ok"
+    for text in ("alpha\n", "beta\n"):
+        (work / "a.txt").write_text(text)
+        git("add", "a.txt")
+        out, error, runs = call(shown)
+    step("staged-edit-runs", runs == 1 and "cached" not in out, (runs, out, error))
     call(failing)
     out, error, runs = call(failing)
     step("failure-runs", runs == 1 and "| fail |" in out, (runs, out, error))
