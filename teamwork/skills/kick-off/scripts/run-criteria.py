@@ -21,7 +21,7 @@ it has failed twice the same way.
 
 `--base` runs each `[check]` in an export of the base instead, `--ref` or else the first of `origin/HEAD`, `origin/main` and `main` that exists, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
-`text scan` when the quote matches only because a grep, `awk`, `sed` or another file read alone fails it, the rest of the command printing the passing output on base (a scan that reads a pipe, even one a scan feeds, or a file the check wrote is kept, so it is not named), `unclear` when the quote is not one value; exit 1 on any `wrong base` or `text scan`; an `exits` or `more` check, a git check (the
+`text scan` when the quote matches only because a grep, `awk`, `sed` or another file read alone fails it, the rest of the command printing the passing output on base (a scan that reads a pipe, even one a scan feeds, or a file the check wrote is kept, so it is not named), `unclear` when the quote is not one value; a check whose every output line says a file is missing that the export lacks, such as a fixture the change adds, reads as `FAIL` when `FAIL` is quoted; exit 1 on any `wrong base` or `text scan`; an `exits` or `more` check, a git check (the
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
 A body file alone runs its criteria at the head.
 
@@ -249,6 +249,17 @@ def recalled(memory, detail, command, cwd, timeout, live, passes):
     return status, out
 
 
+# only a program that runs the missing file says so: a read of it (`grep`, `cat`, `sed`) names its own program first
+MISSING_FILE = re.compile(r"can't open file '(?P<python>[^']+)': \[Errno 2\]|^(?:ba|z)?sh(?:: line \d+)?: (?P<shell>[^:]+): No such file or directory$")
+
+
+def absent_in_export(out, archive):
+    """Whether every line of OUT says a file is missing that the export ARCHIVE lacks, as a check's script does that the change adds."""
+    found = [MISSING_FILE.search(line) for line in out.splitlines()]
+    paths = [pathlib.Path(archive, hit["python"] or hit["shell"]) for hit in found if hit]
+    return bool(out) and all(found) and all(path.resolve().is_relative_to(pathlib.Path(archive).resolve()) and not path.exists() for path in paths)
+
+
 def base_row(label, kind, name, detail, archive, timeout, live, memory, exported):
     command, test = criteria_check.expectation(detail)
     quoted = criteria_check.base_quote(detail)
@@ -264,6 +275,8 @@ def base_row(label, kind, name, detail, archive, timeout, live, memory, exported
     status, out = recalled(memory, detail, command, archive, timeout, live, lambda status, out: status is not None and out == quoted)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
+    if status is not None and out != quoted and absent_in_export(out, archive):
+        out = "FAIL"  # a script the change adds is missing on base, which is the failure the criterion quotes
     if status is not None and out == quoted and criteria_check.verdict(test, status, out) != "pass":
         # what is left of the check once its file scans do nothing still prints the passing output on base, so a scan alone fails it there
         bare = criteria_check.without_scans(command, exported)
