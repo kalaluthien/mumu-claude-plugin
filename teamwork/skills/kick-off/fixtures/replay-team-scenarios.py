@@ -20,6 +20,7 @@ import usage_parser  # noqa: E402
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 SCRIPTS = HERE.parent / "scripts"
+GROUPS = []  # the process group of each run, which a scenario that starts a monitor checks is gone
 
 
 def agent(name, pane, status, workspace="w1"):
@@ -39,6 +40,7 @@ def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment
     environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state),
            "TEAMWORK_MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
     process = replay_probe.Group([str(argument) for argument in argv], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd)
+    GROUPS.append(process.pid)
     try:
         out, _ = process.communicate(event and json.dumps(event), timeout=seconds)
         code = process.returncode
@@ -165,13 +167,22 @@ def send_failed():
     return ok, out
 
 
+def group_runs(group):
+    try:
+        os.killpg(group, 0)
+        return True
+    except ProcessLookupError:
+        return False
+
+
 def monitor_restart():
     """The heartbeat stopped and started again names each gap it named before, none lost and none twice."""
     state = herdr(*TEAM)
     project = pathlib.Path(tempfile.mkdtemp(prefix="monitor-restart-"))
     subprocess.run(["git", "init", "-q"], cwd=project, check=True)
     first, second = (heartbeat(state, "w1:p1", cwd=project).splitlines() for _ in range(2))
-    return bool(first) and sorted(first) == sorted(second) and len(set(first)) == len(first), "\n".join(first + ["-- restart --"] + second)
+    left = [pid for pid in GROUPS if group_runs(pid)]
+    return bool(first) and sorted(first) == sorted(second) and len(set(first)) == len(first) and bool(GROUPS) and not left, "\n".join(first + ["-- restart --"] + second + [f"left running: {left}"] * bool(left))
 
 
 def two_managers():
