@@ -264,10 +264,10 @@ def base_row(label, kind, name, detail, archive, timeout, live, memory):
     status, out = recalled(memory, detail, command, archive, timeout, live, lambda status, out: status is not None and out == quoted)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
-    if status is not None and out == quoted:
+    if status is not None and out == quoted and criteria_check.verdict(test, status, out) != "pass":
         # what is left of the check once its file scans do nothing still prints the passing output on base, so a scan alone fails it there
         bare = criteria_check.without_scans(command)
-        if bare and criteria_check.verdict(test, *run(bare, archive, timeout)) == "pass":
+        if bare and criteria_check.verdict(test, *recalled(memory, detail + "\0no-scan", bare, archive, timeout, None, lambda status, out: status is not None)) == "pass":
             return label, name, "text scan", "a text scan alone fails it on base; the rest prints the passing output there"
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
 
