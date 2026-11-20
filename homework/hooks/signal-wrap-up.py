@@ -25,7 +25,7 @@ import memory as memory_file  # noqa: E402
 import memory_home  # noqa: E402
 import transcript  # noqa: E402
 
-FAILURE_POINTS = 4
+FAILURE_POINTS = 2
 CALLS_PER_POINT = 30
 START, UP, DOWN, LOWEST, HIGHEST = 8.0, 1.0, 0.125, 6.0, 12.0
 MEMORY_LIMIT = 8
