@@ -357,7 +357,7 @@ def split_hunks(diff):
     found = []
     for section in re.split(r"(?m)^(?=diff --git )", diff):
         head, *hunks = re.split(r"(?m)^(?=@@ )", section)
-        file = re.search(r"^\+\+\+ b/(.+)$|^--- a/(.+)$", head, re.M)
+        file = re.search(r"^\+\+\+ b/(.+?)\t?$|^--- a/(.+?)\t?$", head, re.M)
         for hunk in hunks:
             old, new = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)", hunk).groups()
             found.append((next(name for name in file.groups() if name).encode("latin-1").decode("utf-8", "replace"), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
@@ -441,6 +441,8 @@ def run_per_hunk(options, task, root, live):
                     os.symlink(text.rstrip("\n").encode("latin-1"), path)
                 else:
                     path.write_bytes(text.encode("latin-1"))
+                    if mode is not None:
+                        path.chmod(stat.S_IMODE(mode))
             still = {label for label, result in results(copy).items() if result == "pass"}
             path.unlink(missing_ok=True)
             for folder in made[:1]:

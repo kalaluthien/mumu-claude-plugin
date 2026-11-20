@@ -11,6 +11,8 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `staged-edit-runs`: a second edit staged after a first, with the same commit and status, runs the check again;
 - `status-runs`: the same files, commit and index tree with a different staged state run a check that reads `git diff --cached` again;
 - `base-fresh-runs`: `--base --fresh` runs the check again;
+- `head-runs`: an amended commit with equal files and status runs a check that reads `git log` again;
+- `branch-runs`: another branch on the same commit runs a check that reads the branch again;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once;
 - `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
@@ -114,6 +116,17 @@ def main(args):
     log.write_text("")
     moved = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True).stdout
     step("base-moves-runs", len(log.read_text().split()) == 1 and "cached" not in moved, (log.read_text(), moved))
+    git("commit", "-q", "--allow-empty", "-m", "first")
+    subject = f"echo run >> {log}; git log -1 --format=%s | grep -q first && echo ok"
+    call(subject)
+    git("commit", "-q", "--amend", "--allow-empty", "-m", "other")
+    out, error, runs = call(subject)
+    step("head-runs", runs == 1 and "| fail |" in out, (runs, out, error))
+    named = f"echo run >> {log}; git symbolic-ref --short HEAD | grep -q main && echo ok"
+    call(named)
+    git("checkout", "-q", "-b", "side")
+    out, error, runs = call(named)
+    step("branch-runs", runs == 1 and "| fail |" in out, (runs, out, error))
     print("PASS" if all(results.values()) else "FAIL")
     return 0 if all(results.values()) else 1
 
