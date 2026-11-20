@@ -249,7 +249,8 @@ def recalled(memory, detail, command, cwd, timeout, live, passes):
     return status, out
 
 
-MISSING_FILE = re.compile(r"can't open file '(?P<python>[^']+)': \[Errno 2\]|(?P<shell>[^\s:][^:]*): No such file or directory")
+# only a program that runs the missing file says so: a read of it (`grep`, `cat`, `sed`) names its own program first
+MISSING_FILE = re.compile(r"can't open file '(?P<python>[^']+)': \[Errno 2\]|^(?:ba|z)?sh(?:: line \d+)?: (?P<shell>[^:]+): No such file or directory$")
 
 
 def absent_in_export(out, archive):
@@ -274,7 +275,7 @@ def base_row(label, kind, name, detail, archive, timeout, live, memory, exported
     status, out = recalled(memory, detail, command, archive, timeout, live, lambda status, out: status is not None and out == quoted)
     if "not a git repository" in out:
         return label, name, "unclear", "git needs a checkout, which the export lacks"
-    if status is not None and absent_in_export(out, archive):
+    if status is not None and out != quoted and absent_in_export(out, archive):
         out = "FAIL"  # a script the change adds is missing on base, which is the failure the criterion quotes
     if status is not None and out == quoted and criteria_check.verdict(test, status, out) != "pass":
         # what is left of the check once its file scans do nothing still prints the passing output on base, so a scan alone fails it there

@@ -6,6 +6,8 @@
 - `piped`: the same when the run is piped to `tail -1`;
 - `present`: a fixture the base holds that prints another text is a `wrong base`;
 - `mixed`: a missing fixture beside other output is a `wrong base`;
+- `read`: a read of a missing file, which a text scan names no more than a run, is a `wrong base`;
+- `quoted-error`: a missing script whose own error is quoted reads `base ok`;
 - `outside`: a missing file outside the export, which no change adds, is a `wrong base`.
 
 usage: replay-base-rows.py"""
@@ -24,6 +26,8 @@ CASES = {"new-python": ("python3 new.py", "FAIL", "base ok"),
          "piped": ("python3 new.py | tail -1", "FAIL", "base ok"),
          "present": ("python3 old.py", "FAIL", "wrong base"),
          "mixed": ("python3 old.py; python3 new.py", "FAIL", "wrong base"),
+         "read": ("grep foo new.py | tail -1", "FAIL", "wrong base"),
+         "quoted-error": ("bash new.sh", "bash: new.sh: No such file or directory", "base ok"),
          "outside": ("python3 /nonexistent-folder/new.py", "FAIL", "wrong base")}
 
 
