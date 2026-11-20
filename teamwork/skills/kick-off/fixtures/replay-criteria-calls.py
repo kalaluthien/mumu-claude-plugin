@@ -54,7 +54,7 @@ def main(args):
     url = call("use-board.py", "file", "--title", "Print ok from the probe", "--body", quick)[1].strip()
     call("use-board.py", "file", "--title", "Print ok after a while", "--body", slow)
 
-    ran = [call("run-criteria.py", word) for word in ("1", "#1", url)]
+    ran = [call("run-criteria.py", "--fresh", word) for word in ("1", "#1", url)]
     linted = [call("check-criteria.py", *argv) for argv in (["1"], ["#1"], [url], ["--task", "1", quick], ["--task", url, quick])]
     step("task-words", url.endswith("/1") and ran[0][0] == 0 and "| pass | PASS |" in ran[0][1] and ran.count(ran[0]) == 3 and linted[0][0] == 0 and linted.count(linted[0]) == 5, ran + linted)
 
