@@ -14,6 +14,7 @@ import tempfile
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 import usage_parser  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -48,7 +49,8 @@ def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment
 
 
 def hook(state, pane, event, cwd=None, **environment):
-    code, out = run([ROOT / "hooks" / "route-event.py"], state, pane, event, cwd=cwd, **environment)
+    name = next((listed["name"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["pane_id"] == pane), "none")
+    code, out = run(replay_probe.as_claude([ROOT / "hooks" / "route-event.py"], ["--name", name], pathlib.Path(state).with_suffix(".stand-in")), state, pane, event, cwd=cwd, **environment)
     try:
         output = json.loads(out)
     except ValueError:

@@ -128,7 +128,7 @@ def setup():
 
 def hook_reason(stubs, worktree, command):
     event = {"hook_event_name": "PreToolUse", "cwd": str(worktree), "tool_input": {"command": command}}
-    hook = replay_probe.route_event(ROUTE, event, stubs).get("hookSpecificOutput", {})
+    hook = replay_probe.route_event(ROUTE, event, stubs, "t-worker").get("hookSpecificOutput", {})
     if hook.get("permissionDecision") == "allow" and hook.get("updatedInput"):  # the call ran rewritten, which reads as the command a refusal once offered
         return f"ran instead: `{hook['updatedInput']['command']}`"
     return hook.get("permissionDecision") == "deny" and hook.get("permissionDecisionReason", "")

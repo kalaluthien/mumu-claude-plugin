@@ -13,6 +13,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "lib"))
+import agent  # noqa: E402
 import background_work  # noqa: E402
 import board  # noqa: E402
 import install_line  # noqa: E402
@@ -560,7 +561,7 @@ def main(args):
     elif kind in ("SessionStart", "Stop") \
             or kind == "PreToolUse" and (board.command(command) or writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
-        role = team_names.role(me.get("name"))
+        role = team_names.role(me.get("name")) if agent.named(me.get("name"), event.get("transcript_path")) else None
         if out := role and route(kind, event, role, me, listed):
             print(json.dumps(out))
     return 0

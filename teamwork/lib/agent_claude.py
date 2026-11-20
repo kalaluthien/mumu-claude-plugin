@@ -1,6 +1,9 @@
 """Claude Code as the agent port's adapter."""
 import json
+import os
+import pathlib
 import re
+import subprocess
 
 KIND = "claude"
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
@@ -29,6 +32,34 @@ DIALOGS = [
 def command(name, plugin_folder, model, effort, off):
     return ["--name", name, "--plugin-dir", plugin_folder, "--model", model, "--effort", effort,
             "--settings", json.dumps(WORKER_SETTINGS if name.endswith("-worker") else SETTINGS), *(["--disallowedTools", ",".join(off)] if off else [])]
+
+
+def named(name, transcript):
+    """Whether the session running this process was started or renamed as NAME: the nearest `claude` above it was started with `--name NAME`,
+    or its TRANSCRIPT's last title is NAME, so a `claude -p` started in a named session's pane, which herdr then records as that pane's session, takes no name."""
+    return bool(name) and (started_name() == name or last_title(transcript) == name)
+
+
+def started_name():
+    """The `--name` of the nearest `claude` process above this one; None when there is none, or it was started without one."""
+    listed = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,command="], capture_output=True, text=True).stdout.splitlines()
+    processes = {int(pid): (int(ppid), words) for pid, ppid, *words in (line.split() for line in listed) if words}
+    at = os.getppid()
+    while at in processes and at > 1:
+        parent, words = processes[at]
+        if os.path.basename(words[0]) == KIND:
+            return next((value for option, value in zip(words, words[1:]) if option == "--name"), None)
+        at = parent
+    return None
+
+
+def last_title(transcript):
+    """The name Claude Code last recorded in TRANSCRIPT, by `--name` or `/rename`; None before the file exists, as at a session's start."""
+    try:
+        titles = [line for line in pathlib.Path(transcript or "").read_text(errors="replace").splitlines() if line.startswith('{"type":"custom-title"')]
+    except OSError:
+        return None
+    return titles and json.loads(titles[-1]).get("customTitle") or None
 
 
 def kickoff(args):
