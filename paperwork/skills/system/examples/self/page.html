@@ -136,7 +136,9 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
 .stage .named, .stage.playing .named { opacity: 1; }
 .node.named { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 28%, transparent), var(--shadow-md); }
-.area.named { border-color: var(--mark); }
+.area.named:not([data-band]) { border-color: var(--mark); }
+.area.named[data-band] { background-image: linear-gradient(color-mix(in oklab, var(--mark) 10%, transparent), color-mix(in oklab, var(--mark) 10%, transparent)); }
+.area.named[data-band] > header { color: color-mix(in oklab, var(--mark), var(--foreground) 20%); }
 .edge.named path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; } .edge.named path.head { fill: var(--mark); opacity: 1; }
 .label.named { color: var(--mark); background: var(--accent); z-index: 3; }
 
@@ -435,7 +437,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
   }
 
   function route(level, box, width, height, fit) { // each edge the cheapest path of straight runs that passes under no node, off area headers and a step clear of the runs drawn before it
-    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4, HEADER = 40, CLOSE = 3;
+    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4, HEADER = 40, CLOSE = 8;
     const columns = Math.ceil(width / STEP) + 2 * OUT + 1, rows = Math.ceil(height / STEP) + 2 * OUT + 1;
     const x = c => (c - OUT) * STEP, y = r => (r - OUT) * STEP, column = at => Math.round(at / STEP) + OUT;
     const blocked = new Uint8Array(columns * rows), used = new Uint8Array(columns * rows), near = new Uint8Array(columns * rows), dear = new Uint8Array(columns * rows);

@@ -185,7 +185,7 @@
   }
 
   function route(level, box, width, height, fit) { // each edge the cheapest path of straight runs that passes under no node, off area headers and a step clear of the runs drawn before it
-    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4, HEADER = 40, CLOSE = 3;
+    const STEP = 10, CLEAR = 5, OUT = 4, TURN = 4, HEADER = 40, CLOSE = 8;
     const columns = Math.ceil(width / STEP) + 2 * OUT + 1, rows = Math.ceil(height / STEP) + 2 * OUT + 1;
     const x = c => (c - OUT) * STEP, y = r => (r - OUT) * STEP, column = at => Math.round(at / STEP) + OUT;
     const blocked = new Uint8Array(columns * rows), used = new Uint8Array(columns * rows), near = new Uint8Array(columns * rows), dear = new Uint8Array(columns * rows);

@@ -29,7 +29,10 @@
 //            an oklch chroma of 0.015 to 0.045, a hue 45 degrees or more from the scenario mark's and an oklab distance
 //            of 0.02 or more from the canvas and from the band before it by position, a hue 45 degrees or more from the
 //            two bands before it, the fourth band of a level the
-//            tint of the first; it prints one line per outcome.
+//            tint of the first; on that copy a card chip naming a lane of its own level, under the pointer, marks the
+//            lane's name, at 4.5:1 or more on its fill, and the fill and draws no border round it, and one naming a region
+//            marks its border, in light and
+//            dark, printed as `named area: PASS` or `named area: FAIL, <reason>`; it prints one line per outcome.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
 //            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
 //            area's is its header), that scrolls nothing and counts the rows its later pages hold; it stays under
@@ -127,7 +130,9 @@
 //            within 1 px; scale, every margin, padding and gap of those parts 0, 2, 4, 8, 12, 16, 24 or 32 px and the two
 //            key-hint rows spaced alike; contrast, every text of those parts shown at 4.5:1 or more on its ground. It
 //            prints a line per principle, then the groups it measured, and fails unless it finds the fault it plants for
-//            each principle on a kept card.
+//            each principle on a kept card. Every level of page-changes at rest in light holds at most half of the
+//            crowded parallel pairs, two runs of different edges under 16 px apart beside each other for over 24 px, that
+//            3dd6783c drew, printed as `parallel room: PASS` or `parallel room: FAIL` with the count.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -398,10 +403,51 @@ async function shapes(browser) {
   const example = [...examples].sort((a, b) => most(b) - most(a))[0], flat = JSON.parse(fs.readFileSync(example.source, "utf8"));
   const counts = framed(example).reduce((count, area) => ({ ...count, [area.level]: (count[area.level] || 0) + 1 }), {}), fullest = Object.keys(counts).find((level) => counts[level] === most(example));
   for (const area of flat.areas) if (area.level === fullest && area.tag !== "region") { area.tag = "lane"; delete area.info; }
+  const band = flat.areas.find((area) => area.level === fullest && area.tag === "lane"), frame = flat.areas.find((area) => area.tag === "region");
+  const namers = new Map([band, frame].map((area) => [area, flat.nodes.find((node) => node.level === area.level)]));
+  for (const [area, namer] of namers) namer.purpose = `${namer.purpose} It works beside {${area.id}}.`; // a card chip that names a band, or a framed area, of its own level
   const copy = { name: example.name + "-lanes", source: path.join(scratch, example.name + "-lanes.json"), built: path.join(scratch, example.name + "-lanes.html") };
   fs.writeFileSync(copy.source, JSON.stringify(flat));
   make(copy);
   check(copy.contract.levels.some((level) => (level.areas || []).filter((area) => area.tag === "lane").length >= 4), `${copy.name} holds no level of four lanes`);
+  const named = [];
+  for (const scheme of ["light", "dark"]) for (const [area, namer] of namers) { // the pointer on a chip marks a band by its name and a tint, never by a border, and a framed area by its border
+    const page = await open(browser, copy, SIZES[1], { still: true, scheme, at: `#level=${area.level}&at=${namer.id}` }), where = `${copy.name} in ${scheme}`;
+    const looks = (id) => page.evaluate((id) => {
+      const area = document.querySelector(`#stage .area[data-id="${id}"]`), style = getComputedStyle(area), pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+      const seen = (color) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); return pen.getImageData(0, 0, 1, 1).data[3] > 0; };
+      return { on: area.classList.contains("named"), sides: ["Top", "Right", "Bottom", "Left"].filter((side) => style[`border${side}Style`] !== "none" && parseFloat(style[`border${side}Width`]) > 0 && seen(style[`border${side}Color`])), edge: style.borderTopColor, name: getComputedStyle(area.firstElementChild).color, tint: style.backgroundImage, spot: ((box) => ({ x: Math.round(box.left + 4), y: Math.round(box.bottom - 3) }))(area.firstElementChild.getBoundingClientRect()) };
+    }, id);
+    const legible = async (look) => { // the name's colour against the band's drawn pixel below its text, at 4.5:1 or more
+      const shot = (await page.screenshot({ clip: { x: look.spot.x, y: look.spot.y, width: 1, height: 1 } })).toString("base64");
+      return page.evaluate(async ({ shot, name }) => {
+        const image = new Image(), pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+        image.src = "data:image/png;base64," + shot;
+        await image.decode();
+        pen.drawImage(image, 0, 0);
+        const under = pen.getImageData(0, 0, 1, 1).data;
+        pen.clearRect(0, 0, 1, 1); pen.fillStyle = under[3] ? `rgb(${under[0]} ${under[1]} ${under[2]})` : "#fff"; pen.fillRect(0, 0, 1, 1); pen.fillStyle = name; pen.fillRect(0, 0, 1, 1);
+        const over = pen.getImageData(0, 0, 1, 1).data;
+        const light = (color) => { const [r, g, b] = [...color].slice(0, 3).map((value) => { value /= 255; return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+        return (Math.max(light(over), light(under)) + 0.05) / (Math.min(light(over), light(under)) + 0.05);
+      }, { shot, name: look.name });
+    };
+    const chip = page.locator(`#card .ref[data-ref="${area.id}"]`).first();
+    check(await chip.count(), `${where}: the card of ${namer.id} shows no chip for ${area.id}`);
+    const before = await looks(area.id);
+    await chip.hover();
+    await rest(page);
+    const after = await looks(area.id), what = `${where}: the chip for ${area.tag} ${area.id}`, ratio = area === band ? await legible(after) : 0;
+    if (!after.on) named.push(`${what} marks nothing`);
+    else if (area === band && after.sides.length) named.push(`${what} draws a border on its ${after.sides.join(", ").toLowerCase()} side`);
+    else if (area === band && (after.name === before.name || after.tint === before.tint)) named.push(`${what} leaves its ${after.name === before.name ? "name" : "fill"} as it was`);
+    else if (area === band && ratio < 4.5) named.push(`${what} shows its name at ${ratio.toFixed(2)}:1 on its tint, under 4.5:1`);
+    else if (area === frame && (after.sides.length < 4 || after.edge === before.edge)) named.push(`${what} leaves its border as it was`);
+    quiet(page, where);
+    await page.context().close();
+  }
+  console.log(`named area: ${named.length ? "FAIL, " + named[0] : "PASS, a card chip naming a lane band marks its name, legible at 4.5:1, and tint with no border, and one naming a region marks its border, in light and dark"}`);
+  check(!named.length, named[0]);
   const read = async (one, scheme) => {
     const page = await open(browser, one, SIZES[1], { still: true, scheme });
     for (const level of one.contract.levels) {
@@ -1985,6 +2031,28 @@ const principles = (page) => page.evaluate(() => {
   return { found, counts, groups: [...groups] };
 });
 
+const ROOM = { gap: 16, along: 24, base: 11 }; // two runs of different edges under GAP px apart beside each other for over ALONG px read as one thick line
+const crowded = (page) => page.evaluate(({ gap, along }) => { // the pairs of such runs the level shown draws, in window pixels
+  const stage = document.getElementById("stage"), scale = +stage.dataset.scale, x0 = +stage.dataset.x, y0 = +stage.dataset.y;
+  const runs = [...stage.querySelectorAll(".edge")].flatMap((edge) => {
+    const steps = [...edge.querySelector("path.line").getAttribute("d").matchAll(/([MLQ])([^MLQ]*)/g)].map(([, verb, numbers]) => [verb, numbers.trim().split(/[\s,]+/).map(Number)]), found = [];
+    let at = null;
+    for (const [verb, numbers] of steps) {
+      const end = numbers.slice(-2).map((value, i) => (i ? y0 : x0) + value * scale);
+      if (verb === "L" && at && Math.abs(end[0] - at[0]) + Math.abs(end[1] - at[1]) > 0) found.push({ edge: edge.dataset.id, flat: Math.abs(end[1] - at[1]) < 0.5, from: at, to: end });
+      at = end;
+    }
+    return found;
+  });
+  let pairs = 0;
+  runs.forEach((one, i) => runs.slice(i + 1).forEach((other) => {
+    if (one.edge === other.edge || one.flat !== other.flat) return;
+    const [a, b] = one.flat ? [0, 1] : [1, 0], span = (run) => [Math.min(run.from[a], run.to[a]), Math.max(run.from[a], run.to[a])];
+    const [low, high] = [span(one), span(other)], beside = Math.min(low[1], high[1]) - Math.max(low[0], high[0]);
+    if (Math.abs(one.from[b] - other.from[b]) < gap && beside > along) pairs += 1;
+  }));
+  return pairs;
+}, ROOM);
 async function layout(browser) {
   const tally = { found: Object.fromEntries(PRINCIPLES.map((name) => [name, []])), counts: Object.fromEntries(PRINCIPLES.map((name) => [name, 0])), groups: new Set(), views: 0 };
   const add = (seen, where) => {
@@ -2003,6 +2071,7 @@ async function layout(browser) {
     check(await page.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.classList.contains("kept") && card.dataset.for === id; }, target.id), `${example.name}: no card is kept on ${target.id}`);
   };
   const size = SIZES[1];
+  let pairs = 0;
   for (const example of examples) for (const scheme of ["light", "dark"]) {
     const page = await open(browser, example, size, { still: true, scheme });
     const where = `${example.name} ${scheme}`;
@@ -2011,6 +2080,7 @@ async function layout(browser) {
       await settled(page);
       await page.mouse.move(2, size[1] - 2);
       add(await principles(page), `${where} level ${level.id}`);
+      if (example.name === "page-changes" && scheme === "light") pairs += await crowded(page);
     }
     for (const target of targets(example)) {
       await keep(page, example, target, size).catch(() => keep(page, example, target, size));
@@ -2041,6 +2111,9 @@ async function layout(browser) {
     quiet(page, where);
     await page.context().close();
   }
+  const room = `${pairs} crowded parallel pairs (runs under ${ROOM.gap} px apart for over ${ROOM.along} px) on every level of page-changes at 1440, at most half of the ${ROOM.base} that 3dd6783c drew`;
+  console.log(`parallel room: ${pairs <= ROOM.base / 2 ? "PASS" : "FAIL"}, ${room}`);
+  check(pairs <= ROOM.base / 2, room);
   for (const group of GROUPS) check(tally.groups.has(group), `no view measured the group ${group}`);
   for (const name of PRINCIPLES) tally.found[name].slice(0, 12).forEach((line) => console.log(`${name}: ${line}`));
   for (const name of PRINCIPLES) check(!tally.found[name].length, `${name}: ${tally.found[name].length} faults, first ${tally.found[name][0]}`);
