@@ -335,12 +335,15 @@ def scans_only(command):
     return True
 
 
-def without_scans(command):
-    """COMMAND as bash text that runs each text-scan program not reading a pipe as a command that does nothing and succeeds, so what remains decides the check; None when it starts a session."""
+def without_scans(command, exported):
+    """COMMAND as bash text that runs each text-scan program as a command that does nothing and succeeds, so what remains decides the check; a scan that reads a pipe or a file missing from the file EXPORTED (a list of `./path` lines) stays real, since it judges what the system wrote; None when COMMAND starts a session."""
     if starts_session(command):
         return None
     names = [name for name in SCANS if name not in ("echo", "printf", "true", "false", "test", "[")]  # a test judges a value the system printed
-    functions = "".join(f'{name}() {{ if builtin test -p /dev/stdin; then command {name} "$@"; else true; fi; }}; ' for name in names)
+    body = ('real=; for word in "$@"; do if [ -f "$word" ] && case $word in /*) false;; *) true;; esac && ! command grep -qxF "./${word#./}" %s; then real=1; fi; done; '
+            'if builtin test -p /dev/stdin || [ -n "$real" ]; then command %s "$@"; else true; fi')
+    quoted = shlex.quote(str(exported))
+    functions = "".join(f"{name}() {{ {body % (quoted, name)}; }}; " for name in names)
     return "exec </dev/null; " + functions + command
 
 

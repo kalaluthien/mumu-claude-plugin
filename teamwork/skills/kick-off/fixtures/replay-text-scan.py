@@ -5,6 +5,7 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `pipe-kept`: a grep that reads what the system printed decides it, so the row is `base ok`;
 - `system-kept`: a run that fails on base beside a grep is `base ok`;
 - `value-kept`: a `test` of a value the system printed is `base ok`;
+- `written-kept`: a grep of a file the run wrote is `base ok`, since it judges the system;
 - `session-once`: a check that starts a session runs it once, with no second run to strip its scans.
 
 usage: replay-text-scan.py"""
@@ -57,6 +58,8 @@ def main(args):
     step("system-kept", code == 0 and "| base ok |" in out, (code, out, error))
     code, out, error, _ = call("a=$(python3 tool.py | grep -c zzzq); test \"$a\" = 1 && echo PASS || echo FAIL")
     step("value-kept", code == 0 and "| base ok |" in out, (code, out, error))
+    code, out, error, _ = call("python3 tool.py > made.txt; grep -q zzzq made.txt && echo PASS || echo FAIL")
+    step("written-kept", code == 0 and "| base ok |" in out, (code, out, error))
     code, out, error, sessions = call("claude -p hi >/dev/null; grep -q zzzq README.md && echo PASS || echo FAIL")
     step("session-once", code == 0 and "| base ok |" in out and sessions == 1, (code, sessions, out, error))
     print("PASS" if all(results.values()) else "FAIL")

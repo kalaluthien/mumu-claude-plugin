@@ -21,7 +21,7 @@ it has failed twice the same way.
 
 `--base` runs each `[check]` in an export of the base instead, `--ref` or else the first of `origin/HEAD`, `origin/main` and `main` that exists, and prints `base ok` when
 its output equals the text quoted after `on base` (or `on main`, in tasks filed before), `wrong base` when it differs,
-`text scan` when the quote matches only because a grep, `awk`, `sed` or another file read alone fails it, the rest of the command printing the passing output on base, `unclear` when the quote is not one value; exit 1 on any `wrong base` or `text scan`; an `exits` or `more` check, a git check (the
+`text scan` when the quote matches only because a grep, `awk`, `sed` or another file read alone fails it, the rest of the command printing the passing output on base (a scan that reads a pipe, even one a scan feeds, or a file the check wrote is kept, so it is not named), `unclear` when the quote is not one value; exit 1 on any `wrong base` or `text scan`; an `exits` or `more` check, a git check (the
 export has no `.git`) and a check with a placeholder are `unclear`. The output is compared whole. It never fetches: run `git fetch` first. A body file reads criteria before the task exists, so run it before the first judge.
 A body file alone runs its criteria at the head.
 
@@ -249,7 +249,7 @@ def recalled(memory, detail, command, cwd, timeout, live, passes):
     return status, out
 
 
-def base_row(label, kind, name, detail, archive, timeout, live, memory):
+def base_row(label, kind, name, detail, archive, timeout, live, memory, exported):
     command, test = criteria_check.expectation(detail)
     quoted = criteria_check.base_quote(detail)
     if kind != "check":
@@ -266,7 +266,7 @@ def base_row(label, kind, name, detail, archive, timeout, live, memory):
         return label, name, "unclear", "git needs a checkout, which the export lacks"
     if status is not None and out == quoted and criteria_check.verdict(test, status, out) != "pass":
         # what is left of the check once its file scans do nothing still prints the passing output on base, so a scan alone fails it there
-        bare = criteria_check.without_scans(command)
+        bare = criteria_check.without_scans(command, exported)
         if bare and criteria_check.verdict(test, *recalled(memory, detail + "\0no-scan", bare, archive, timeout, None, lambda status, out: status is not None)) == "pass":
             return label, name, "text scan", "a text scan alone fails it on base; the rest prints the passing output there"
     return label, name, "base ok" if status is not None and out == quoted else "wrong base", cell(out)
@@ -297,7 +297,11 @@ def run_on_base(root, ref, rows, timeout, live, memory):
         subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
         if exported.wait():
             sys.exit(f"run-criteria: could not export {ref}; fetch it first")
-        return [base_row(str(n), *criterion, copy, timeout, live, memory) for n, criterion in enumerate(rows, 1)]
+        # the list is made before any check runs, so a file a check writes is not taken for one the base holds
+        with tempfile.NamedTemporaryFile("w", prefix="run-criteria-files-") as exported_files:
+            exported_files.write("".join(f"./{path.relative_to(copy)}\n" for path in pathlib.Path(copy).rglob("*") if path.is_file()))
+            exported_files.flush()
+            return [base_row(str(n), *criterion, copy, timeout, live, memory, exported_files.name) for n, criterion in enumerate(rows, 1)]
 
 
 def run(command, cwd, timeout):
