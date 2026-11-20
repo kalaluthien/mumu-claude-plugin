@@ -7,6 +7,7 @@ usage: replay-answered-line.py"""
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 import tempfile
@@ -39,14 +40,17 @@ def main(args):
     state.write_text(json.dumps({"n": 20, "agents": agents, "tabs": [{"tab_id": each["tab_id"], "workspace_id": "w1", "label": each["name"]} for each in agents]}))
 
     def use(pane, *argv):
-        done = subprocess.run([str(USE_BOARD), *argv], cwd=repository, env={**environment, "HERDR_PANE_ID": pane}, capture_output=True, text=True)
+        pane_environment = {**environment, "HERDR_PANE_ID": pane}
+        done = subprocess.run(replay_probe.as_pane([USE_BOARD, *argv], pane, pane_environment, work / "stand-in"), cwd=repository, env=pane_environment, capture_output=True, text=True)
         return done.stdout.strip()
 
     def heartbeat():
         with (work / "monitor.log").open("w") as log:
-            live = subprocess.Popen([sys.executable, str(MONITOR)], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, stdout=log, stderr=subprocess.STDOUT)
+            pane_environment = {**environment, "HERDR_PANE_ID": "w1:p2"}
+            live = subprocess.Popen(replay_probe.as_pane([sys.executable, MONITOR], "w1:p2", pane_environment, work / "stand-in"), cwd=repository, env=pane_environment, stdout=log,
+                                    stderr=subprocess.STDOUT, start_new_session=True)
             time.sleep(QUIET_SECONDS)
-            live.kill()
+            os.killpg(live.pid, signal.SIGKILL)
             live.wait()
         return (work / "monitor.log").read_text()
 

@@ -1,5 +1,5 @@
 """What the scenario scripts of `skills/kick-off/fixtures/` and `hooks/fixtures/` share: a `gh` that logs and fails, a git
-identity, a fake herdr, a file written in a scratch folder, a script run in a repository, a stand-in `claude` above a command, the hook router fed one event,
+identity, a fake herdr, a file written in a scratch folder, a script run in a repository, a stand-in `claude` above a command, one named as a fake herdr's pane, the hook router fed one event,
 the failure line, and the run of every case when a scenario is called with no argument."""
 import json
 import os
@@ -79,6 +79,14 @@ def as_claude(argv, options, folder):
     if not stand_in.exists():
         stand_in.symlink_to("/bin/sh")
     return [str(stand_in), "-c", f'shift {len(options) - 1}; "$@"; exit $?', *options, *map(str, argv)]
+
+
+def as_pane(argv, pane, environment, folder):
+    """ARGV run under a stand-in `claude` started as the name the fake herdr of ENVIRONMENT lists for PANE, since a script takes its writer's name only from a session
+    started as that name; ARGV alone when the pane has none."""
+    state = json.loads(pathlib.Path(environment["TEAMWORK_FAKE_HERDR_STATE"]).read_text())
+    name = next((listed["name"] for listed in state["agents"] if listed.get("pane_id") == pane), None)
+    return as_claude(argv, ["--name", name], folder) if name else [str(word) for word in argv]
 
 
 def route_event(router, event, stubs, name):

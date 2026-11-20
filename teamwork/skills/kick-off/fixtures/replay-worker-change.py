@@ -7,6 +7,7 @@ usage: replay-worker-change.py"""
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 import tempfile
@@ -40,7 +41,8 @@ def main(args):
     state.write_text(json.dumps({"n": 20, "agents": agents, "tabs": [{"tab_id": each["tab_id"], "workspace_id": "w1", "label": each["name"]} for each in agents]}))
 
     def use(pane, *argv):
-        done = subprocess.run([str(USE_BOARD), *argv], cwd=repository, env={**environment, "HERDR_PANE_ID": pane}, capture_output=True, text=True)
+        pane_environment = {**environment, "HERDR_PANE_ID": pane}
+        done = subprocess.run(replay_probe.as_pane([USE_BOARD, *argv], pane, pane_environment, work / "stand-in"), cwd=repository, env=pane_environment, capture_output=True, text=True)
         return done.stdout.strip()
 
     def post(pane, verb, number, key, line, *options):
@@ -63,7 +65,9 @@ def main(args):
 
     number = use("w1:p1", "file", "--title", "Change a held task", "--body", str(replay_probe.write_text(work, "body.md", "Change a held task.\n")), "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
     post("w1:p1", "decide", number, "--decision", "c-worker holds this.", "--holders", "c-worker")
-    live = subprocess.Popen([sys.executable, str(MONITOR)], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
+    pane_environment = {**environment, "HERDR_PANE_ID": "w1:p2"}
+    live = subprocess.Popen(replay_probe.as_pane([sys.executable, MONITOR], "w1:p2", pane_environment, work / "stand-in"), cwd=repository, env=pane_environment, stdout=log.open("w"),
+                            stderr=subprocess.STDOUT, start_new_session=True)
     cases = {}
     try:
         time.sleep(QUIET_SECONDS)
@@ -79,7 +83,7 @@ def main(args):
         post("w1:p1", "decide", number, "--decision", "c-other holds this.", "--holders", "c-other")
         cases["lost"] = (wait_for(3) and wait_until("holds nothing"), log.read_text())  # the task is open and names another session
     finally:
-        live.kill()
+        os.killpg(live.pid, signal.SIGKILL)
         live.wait()
     for name, (passed, saw) in cases.items():
         print(f"ok {name}" if passed else f"fail {name}: {saw.strip()}", flush=True)

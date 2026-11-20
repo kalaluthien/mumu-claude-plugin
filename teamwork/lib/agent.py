@@ -6,6 +6,7 @@ Every adapter has these names:
 - `TRUST` the folder trust dialog's text and the keys that accept it; `TELL` how a session of this kind is told; `EXIT` the prompt that ends a session, and `DIALOGS`
   the text of each dialog it may show then, with the key that exits without saving anything
 - `named(name, transcript)` whether the session running this process was started or renamed as NAME, since a session started inside a named one's pane must take none of its names
+- `own_transcript()` the transcript file of the session running this process, or None
 - `draft(screen)` the text typed in the prompt box and not sent, from a styled screen: '' when the box is empty, None when the screen shows no box"""
 import importlib
 import os

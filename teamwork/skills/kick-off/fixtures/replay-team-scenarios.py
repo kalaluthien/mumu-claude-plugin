@@ -256,10 +256,14 @@ def manager_placement():
 def moved_me():
     """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
     state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
-    code, out = run([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], state, "w9:p1", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
+    project = pathlib.Path(tempfile.mkdtemp(prefix="moved-me-"))
+    (project / "teamwork").mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=project, check=True)
+    me = replay_probe.as_claude([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], ["--name", "teamwork-manager"], pathlib.Path(state).with_suffix(".stand-in"))
+    code, out = run(me, state, "w9:p1", cwd=project, CLAUDE_CODE_SESSION_ID="moved-id")
     # with no session id listed, as for an agent herdr gives none, the pane it started in still finds it
     unlisted = herdr(agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9"))
-    code_pane, out_pane = run([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], unlisted, "w4:p15", cwd=ROOT, CLAUDE_CODE_SESSION_ID="moved-id")
+    code_pane, out_pane = run(me, unlisted, "w4:p15", cwd=project, CLAUDE_CODE_SESSION_ID="moved-id")
     return code == code_pane == 0 and out.strip() == out_pane.strip() == "teamwork", out + out_pane
 
 

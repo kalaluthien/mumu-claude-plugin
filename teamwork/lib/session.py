@@ -10,12 +10,14 @@ Every adapter has these functions, by the same names:
 - `LOOK` the command that shows a pane by its `pane_id`, with or without a session in it, `EMPTY` what to say when no session is listed, and `NEEDS` the commands it runs
 A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""
+import agent as coding_agent  # not `agent`, which the host's `agent(name)` answers
 import session_herdr as adapter
 
 
 def own_name():
-    """This session's name; None when it is none of the live sessions."""
-    return adapter.sessions()[1].get("name")
+    """This session's name; None when it is none of the live sessions or was not started or renamed as that name, since herdr names the pane's session after the pane, so a `claude -p` run there would write as its worker."""
+    name = adapter.sessions()[1].get("name")
+    return name if coding_agent.named(name, coding_agent.own_transcript()) else None
 
 
 def __getattr__(name):

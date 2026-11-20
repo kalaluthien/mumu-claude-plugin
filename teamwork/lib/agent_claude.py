@@ -5,6 +5,8 @@ import pathlib
 import re
 import subprocess
 
+import claude_config
+
 KIND = "claude"
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
 SETTINGS = {"disableClaudeAiConnectors": True}
@@ -38,6 +40,15 @@ def named(name, transcript):
     """Whether the session running this process was started or renamed as NAME: the nearest `claude` above it was started with `--name NAME`,
     or its TRANSCRIPT's last title is NAME, so a `claude -p` started in a named session's pane, which herdr then records as that pane's session, takes no name."""
     return bool(name) and (started_name() == name or last_title(transcript) == name)
+
+
+def own_transcript():
+    """The transcript of the session running this process, found by its session id under the config folder; None when there is none."""
+    session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    try:
+        return next(iter(sorted(claude_config.folder().glob(f"projects/*/{session_id}.jsonl"))), None) if session_id else None
+    except OSError:
+        return None
 
 
 def started_name():
