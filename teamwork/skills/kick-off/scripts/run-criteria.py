@@ -204,8 +204,11 @@ class Memory:
 
     def keep(self, detail, status, out):
         if self.prefix is not None:
-            self.folder.mkdir(parents=True, exist_ok=True)
-            self.entry(detail).write_text(json.dumps([status, out]))
+            try:
+                self.folder.mkdir(parents=True, exist_ok=True)
+                self.entry(detail).write_text(json.dumps([status, out]))
+            except OSError:
+                pass  # a git dir the run cannot write is no reason to lose the table
 
     def report(self):
         return f"\ncached: {self.replayed} checks replayed from an earlier pass on the same files; --fresh runs them again" if self.replayed else ""
@@ -360,7 +363,7 @@ def split_hunks(diff):
         file = re.search(r"^\+\+\+ b/(.+?)\t?$|^--- a/(.+?)\t?$", head, re.M)
         for hunk in hunks:
             old, new = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)", hunk).groups()
-            found.append((next(name for name in file.groups() if name), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
+            found.append((next(name for name in file.groups() if name).encode("latin-1").decode("utf-8", "replace"), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
     return found
 
 
@@ -403,7 +406,7 @@ def added_conditions(file, line, patch, text):
 def run_per_hunk(options, task, root, live):
     """Names each hunk of the change whose revert alone turns no passing row into another result; exit 1 on one."""
     ref = base_ref(options.ref)
-    diff = subprocess.run(["git", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root, capture_output=True).stdout
+    diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root, capture_output=True).stdout
     hunks = split_hunks(diff.decode("latin-1"))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
 
@@ -431,7 +434,7 @@ def run_per_hunk(options, task, root, live):
             link = os.readlink(path) if path.is_symlink() else None
             kept = path.read_bytes() if link is None and path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
-            before = link.encode("latin-1") + b"\n" if link is not None else kept
+            before = os.fsencode(link) + b"\n" if link is not None else kept
             text = take_back(before.decode("latin-1") if before is not None else "", [patch for _, _, patch in group])
             made = [folder for folder in reversed(path.parents) if not folder.exists()]
             path.unlink(missing_ok=True)

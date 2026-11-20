@@ -14,6 +14,7 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `head-runs`: an amended commit with equal files and status runs a check that reads `git log` again;
 - `branch-runs`: another branch on the same commit runs a check that reads the branch again;
 - `no-git-runs`: a folder that is no git checkout runs the check on every call and keeps no memory;
+- `locked-git-dir-runs`: a git dir the run cannot write still prints the table, exits 0 and keeps no memory;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once;
 - `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
@@ -133,6 +134,18 @@ def main(args):
     (plain / "a.txt").write_text("one\n")
     runs = [call(passing, cwd=plain)[2] for _ in range(2)]
     step("no-git-runs", runs == [1, 1] and not list(plain.rglob("teamwork-passes")), runs)
+    locked = work.parent / f"{work.name}-locked"
+    locked.mkdir()
+    (locked / "a.txt").write_text("one\n")
+    git("init", "-q", "-b", "main", cwd=locked)
+    git("add", ".", cwd=locked)
+    git("commit", "-q", "-m", "base", cwd=locked)
+    subprocess.run(["chmod", "-R", "a-w", str(locked / ".git")], check=True)
+    body = work.parent / f"{work.name}-body.md"
+    body.write_text(BODY.format(command="grep -q one a.txt && echo ok"))
+    done = subprocess.run([sys.executable, str(SCRIPT), str(body)], cwd=locked, capture_output=True, text=True)
+    subprocess.run(["chmod", "-R", "u+w", str(locked / ".git")], check=True)
+    step("locked-git-dir-runs", done.returncode == 0 and "| pass | ok |" in done.stdout and "Traceback" not in done.stderr, (done.returncode, done.stdout, done.stderr))
     print("PASS" if all(results.values()) else "FAIL")
     return 0 if all(results.values()) else 1
 
