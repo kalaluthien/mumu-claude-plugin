@@ -333,15 +333,15 @@ def run(command, cwd, timeout):
                                start_new_session=True)
     try:
         out, _ = process.communicate(timeout=timeout)
-        result = process.returncode, out.strip()
+        return process.returncode, out.strip()
     except subprocess.TimeoutExpired:
         # the check's children share its session, so killing only bash would leave them running
         os.killpg(process.pid, signal.SIGKILL)
         process.communicate()
-        result = None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
-    if pathlib.Path(cwd).resolve().is_relative_to(pathlib.Path(tempfile.gettempdir()).resolve()):
-        end_strays(pathlib.Path(cwd).resolve())
-    return result
+        return None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
+    finally:
+        if pathlib.Path(cwd).resolve().is_relative_to(pathlib.Path(tempfile.gettempdir()).resolve()):
+            end_strays(pathlib.Path(cwd).resolve())
 
 
 def cell(text):
