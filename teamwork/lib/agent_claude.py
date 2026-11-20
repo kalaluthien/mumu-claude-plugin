@@ -51,17 +51,29 @@ def own_transcript():
         return None
 
 
-def started_name():
-    """The `--name` of the nearest `claude` process above this one; None when there is none, or it was started without one."""
+def nearest_claude():
+    """The words of the command line of the nearest `claude` process above this one; None when there is none."""
     listed = subprocess.run(["ps", "-A", "-o", "pid=,ppid=,command="], capture_output=True, text=True).stdout.splitlines()
     processes = {int(pid): (int(ppid), words) for pid, ppid, *words in (line.split() for line in listed) if words}
     at = os.getppid()
     while at in processes and at > 1:
         parent, words = processes[at]
         if os.path.basename(words[0]) == KIND:
-            return next((value for option, value in zip(words, words[1:]) if option == "--name"), None)
+            return words
         at = parent
     return None
+
+
+def started_name():
+    """The `--name` of the nearest `claude` process above this one; None when there is none, or it was started without one."""
+    words = nearest_claude() or []
+    return next((value for option, value in zip(words, words[1:]) if option == "--name"), None)
+
+
+def interactive():
+    """Whether the nearest `claude` process above this one is a session a person types into, not a `claude -p` run."""
+    words = nearest_claude()
+    return words is not None and not {"-p", "--print"} & set(words)
 
 
 def last_title(transcript):

@@ -15,7 +15,7 @@ def main(args):
     if args not in ([], ["--me"]):
         print(__doc__, file=sys.stderr)
         return 2
-    listed, me = session.sessions()
+    listed, me = session.own()
     if args == ["--me"]:
         return print(me.get("name", "")) if me.get("name") else None
     for agent in listed:

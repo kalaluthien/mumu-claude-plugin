@@ -4,6 +4,7 @@ the failure line, and the run of every case when a scenario is called with no ar
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 
@@ -87,6 +88,35 @@ def as_pane(argv, pane, environment, folder):
     state = json.loads(pathlib.Path(environment["TEAMWORK_FAKE_HERDR_STATE"]).read_text())
     name = next((listed["name"] for listed in state["agents"] if listed.get("pane_id") == pane), None)
     return as_claude(argv, ["--name", name], folder) if name else [str(word) for word in argv]
+
+
+class Group(subprocess.Popen):
+    """A process in a session of its own, whose `kill` ends all it started, since the stand-in `claude` that wraps a monitor would otherwise leave it polling."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, start_new_session=True, **kwargs)
+
+    def kill(self):
+        try:
+            os.killpg(self.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def start_as_pane(argv, pane, environment, folder, cwd, log):
+    """ARGV as `as_pane` runs it, started as a `Group` with its output in the file LOG, for a monitor that runs until killed."""
+    return Group(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT)
+
+
+def run_for(argv, pane, environment, folder, cwd, seconds):
+    """(None, what ARGV printed) after SECONDS of a run as `as_pane` runs it, which is then ended with all it started."""
+    process = Group(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        out, _ = process.communicate(timeout=seconds)
+        return process.returncode, out
+    except subprocess.TimeoutExpired:
+        process.kill()
+        return None, process.communicate()[0]
 
 
 def route_event(router, event, stubs, name):
