@@ -107,14 +107,15 @@
     { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 10, head: 24, dense: true },
     { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 8, head: 22, dense: true },
   ];
-  const pen = document.createElement("canvas").getContext("2d");
+  const pen = document.createElement("canvas").getContext("2d"), LID = 10;
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 22 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
     const need = node => text(node) + beside(node);
     const lines = node => need(node) <= most ? 1 : Math.ceil(text(node) * 1.15 / (most - beside(node))); // a label too long for the widest box goes on over more lines
     const widest = Math.min(most, Math.max(196, ...level.nodes.map(need))), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
-    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) } : { w: widest, h: tallest }]));
+    const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
+    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
@@ -326,16 +327,18 @@
     stage.dataset.w = plan.w; stage.dataset.h = plan.h;
     stage.classList.toggle("dense", !!plan.fit.dense);
     fit();
+    const bands = (level.areas || []).filter(area => (area.tag === "lane" || area.tag === "phase") && boxes[area.id])
+      .sort((a, b) => boxes[a.id].y - boxes[b.id].y || boxes[a.id].x - boxes[b.id].x).map(area => area.id); // a level's bands take three tints in turn, so neighbours differ
     for (const area of level.areas || []) {
-      const spot = boxes[area.id];
-      if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
+      const spot = boxes[area.id], band = bands.indexOf(area.id);
+      if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, ...(band < 0 ? {} : { "data-band": band % 3 }), style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
         make("header", {}, area.label, make("small", {}, tagName(area.tag)))));
     }
     const svg = draw("svg", { width: plan.w, height: plan.h });
     stage.append(svg);
     for (const node of level.nodes) {
       const spot = boxes[node.id];
-      const card = make("div", { class: "node", "data-id": node.id, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
+      const card = make("div", { class: "node", "data-id": node.id, "data-tag": node.tag, tabindex: 0, style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
         make("b", {}, node.label), make("small", {}, tagName(node.tag)));
       const region = (level.areas || []).find(area => area.id === node.area && area.tag === "region");
       if (region && region.info && region.info.initial === node.id) card.classList.add("first");

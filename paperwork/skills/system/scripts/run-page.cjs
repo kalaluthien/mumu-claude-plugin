@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
-// With no word it runs the twenty steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
+// With no word it runs the twenty-one steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -18,6 +18,18 @@
 //            whose every node label holds a code span, no crumb, scenario title, next-level
 //            hint, step or open button tooltip or card heading shows a backtick, printed as `<j> titles, tooltips and
 //            card headings read on a copy whose every label holds a code span, none with a backtick`.
+//   shapes   at 1440 by 900, on every level of each example, in the light scheme, each `state` node's corners are 12 px
+//            or more, each other node's 4 px or less but a `dataStore`'s, which curve its top and bottom across its
+//            width under a drawn lid rim its label starts below, no button inside a node is rounder than the node, each
+//            `region` and `trustZone` area has a dashed border and each other frame a solid one, and no text shows
+//            beside the diagram but the crumbs and the tools, so no legend; each scenario step on a `state` or a
+//            `dataStore`, each pick of one and the pointer resting on one mark its border, a data store's lid rim with it; in the light and the
+//            dark scheme, on each example and on a copy of one whose level of the most frames has them all made lanes, each
+//            `lane` and `phase` band shows no border and its name inside its top edge, and, read from its pixels, has
+//            an oklch chroma of 0.015 to 0.045, a hue 45 degrees or more from the scenario mark's and an oklab distance
+//            of 0.02 or more from the canvas and from the band before it by position, a hue 45 degrees or more from the
+//            two bands before it, the fourth band of a level the
+//            tint of the first; it prints one line per outcome.
 //   overlay  the pointer resting on a node, an edge and an area, and on one record per item form the examples hold,
 //            shows an overlay inside the window, over a third of it at most, off the element under the pointer (an
 //            area's is its header), that scrolls nothing and counts the rows its later pages hold; it stays under
@@ -116,7 +128,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
+const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
@@ -155,7 +167,7 @@ function make(example) { // the page of one contract file, and what its page dat
 const build = (wanted) => wanted.forEach(make);
 
 async function open(browser, example, size, options = {}) {
-  const context = await browser.newContext({ viewport: { width: size[0], height: size[1] }, reducedMotion: options.still ? "reduce" : "no-preference" });
+  const context = await browser.newContext({ viewport: { width: size[0], height: size[1] }, reducedMotion: options.still ? "reduce" : "no-preference", colorScheme: options.scheme || "light" });
   const page = await context.newPage();
   page.faults = [];
   page.asked = [];
@@ -207,7 +219,8 @@ const drawn = (page, level) => page.evaluate((level) => {
     if (!card) return `node ${node.id} has not one anchor`;
     const rect = box(card), style = getComputedStyle(card), name = card.querySelector("b");
     if (rect.width < 40 || rect.height < 20) return `node ${node.id} is not drawn`;
-    if (parseFloat(style.borderTopLeftRadius) > Math.min(card.offsetWidth, card.offsetHeight) / 4 || style.clipPath !== "none") return `node ${node.id} is not a rectangle`;
+    const corners = [style.borderTopLeftRadius, style.borderBottomRightRadius].map((value) => { const [across, down = across] = value.split(" "); return [across.endsWith("%") ? parseFloat(across) / 100 * card.offsetWidth : parseFloat(across), parseFloat(down)]; });
+    if (style.clipPath !== "none" || corners.some(([across, down]) => 2 * down >= card.offsetHeight || 2 * across > card.offsetWidth || (node.tag !== "dataStore" && 2 * across >= card.offsetWidth))) return `node ${node.id} is not a rectangle`; // its sides stay straight, and its top and bottom too but a data store's
     if (name.textContent !== node.label || name.scrollWidth > name.clientWidth || box(name).top < rect.top || box(card.querySelector("small")).bottom > rect.bottom) return `node ${node.id} does not show its whole label`;
     if (card.querySelector("small").textContent !== words(node.tag)) return `node ${node.id} does not show its tag`;
     if (!inside(rect, whole)) return `node ${node.id} is outside the window`;
@@ -334,6 +347,149 @@ async function spans(browser) { // a copy of the second example whose every node
   quiet(page, copy.name);
   await page.context().close();
   return read;
+}
+
+// ---- shapes ----
+const oklab = (rgb) => { // a pixel's sRGB as OKLab, so a tint's lightness, chroma and hue are read as a person sees them
+  const [r, g, b] = rgb.map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+};
+const chroma = ([, a, b]) => Math.hypot(a, b), hue = ([, a, b]) => (Math.atan2(b, a) * 180 / Math.PI + 360) % 360;
+const apart = (x, y) => Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]), turn = (x, y) => { const d = Math.abs(x - y) % 360; return Math.min(d, 360 - d); };
+const outlines = (page) => page.evaluate(() => { // each node's corners, lid and buttons and each area's border and fill, as the level shown draws them
+  const stage = document.getElementById("stage"), pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  pen.canvas.width = pen.canvas.height = 1;
+  const canvas = getComputedStyle(document.body).backgroundColor;
+  const pixel = (color, under = canvas) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = under; pen.fillRect(0, 0, 1, 1); pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); return [...pen.getImageData(0, 0, 1, 1).data]; };
+  const corner = (element, value) => { const [across, down = across] = value.split(" "), px = (one, length) => one.endsWith("%") ? parseFloat(one) / 100 * length : parseFloat(one); return [px(across, element.offsetWidth), px(down, element.offsetHeight)]; };
+  const corners = (element) => { const style = getComputedStyle(element); return [style.borderTopLeftRadius, style.borderTopRightRadius, style.borderBottomRightRadius, style.borderBottomLeftRadius].map((value) => corner(element, value)); };
+  const line = (style, side) => ({ style: style[`border${side}Style`], width: parseFloat(style[`border${side}Width`]), seen: pixel(style[`border${side}Color`], "transparent")[3] > 0 });
+  const top = (element) => element.getBoundingClientRect().top;
+  return {
+    canvas: pixel(canvas), mark: pixel(getComputedStyle(document.documentElement).getPropertyValue("--mark")),
+    nodes: [...stage.querySelectorAll(".node")].map((card) => {
+      const lid = getComputedStyle(card, "::after"), drawn = lid.content !== "none" && lid.display !== "none";
+      return { id: card.dataset.id, w: card.offsetWidth, h: card.offsetHeight, corners: corners(card), inner: [...card.querySelectorAll("button")].map((button) => Math.max(...corners(button).flat())),
+        lid: drawn ? { w: parseFloat(lid.width), h: parseFloat(lid.height), top: parseFloat(lid.top), round: lid.borderBottomLeftRadius, rim: line(lid, "Bottom") } : null, label: top(card.querySelector("b")) - top(card) };
+    }),
+    areas: [...stage.querySelectorAll(".area")].map((frame) => {
+      const style = getComputedStyle(frame), box = frame.getBoundingClientRect(), header = frame.firstElementChild.getBoundingClientRect();
+      return { id: frame.dataset.id, x: box.left, y: box.top, sides: ["Top", "Right", "Bottom", "Left"].map((side) => line(style, side)), fill: pixel(style.backgroundColor), name: frame.firstElementChild.textContent, head: [header.top - box.top, header.left - box.left] };
+    }),
+  };
+});
+async function shapes(browser) {
+  const tally = { states: 0, others: 0, stores: 0, dashed: 0, solid: 0, bands: 0, levels: 0, marks: 0 }, BANDS = ["lane", "phase"];
+  const framed = (one) => JSON.parse(fs.readFileSync(one.source, "utf8")).areas.filter((area) => area.tag !== "region"); // a region holds states, which no lane may
+  const most = (one) => Math.max(...Object.values(framed(one).reduce((count, area) => ({ ...count, [area.level]: (count[area.level] || 0) + 1 }), {})));
+  const example = [...examples].sort((a, b) => most(b) - most(a))[0], flat = JSON.parse(fs.readFileSync(example.source, "utf8"));
+  const counts = framed(example).reduce((count, area) => ({ ...count, [area.level]: (count[area.level] || 0) + 1 }), {}), fullest = Object.keys(counts).find((level) => counts[level] === most(example));
+  for (const area of flat.areas) if (area.level === fullest && area.tag !== "region") { area.tag = "lane"; delete area.info; }
+  const copy = { name: example.name + "-lanes", source: path.join(scratch, example.name + "-lanes.json"), built: path.join(scratch, example.name + "-lanes.html") };
+  fs.writeFileSync(copy.source, JSON.stringify(flat));
+  make(copy);
+  check(copy.contract.levels.some((level) => (level.areas || []).filter((area) => area.tag === "lane").length >= 4), `${copy.name} holds no level of four lanes`);
+  const read = async (one, scheme) => {
+    const page = await open(browser, one, SIZES[1], { still: true, scheme });
+    for (const level of one.contract.levels) {
+      await page.goto("file://" + one.built + "#level=" + level.id);
+      await rest(page);
+      const seen = await outlines(page), where = `${one.name} ${level.id} in ${scheme}`, tagOf = Object.fromEntries([...level.nodes, ...(level.areas || [])].map((record) => [record.id, record]));
+      const canvas = oklab(seen.canvas), mark = hue(oklab(seen.mark));
+      check((canvas[0] < 0.5) === (scheme === "dark"), `${where}: the canvas reads a lightness of ${canvas[0].toFixed(2)}`);
+      if (scheme === "light" && one !== copy) for (const node of seen.nodes) {
+        const tag = tagOf[node.id].tag, across = node.corners.map(([x]) => x), down = node.corners.map(([, y]) => y), least = Math.min(...across, ...down);
+        check(node.inner.every((radius) => radius <= least + 0.5), `${where}: node ${node.id} holds a button rounder than its ${least} px corner`);
+        if (tag === "dataStore") {
+          check(across.every((x) => x >= node.w / 2 - 1) && down.every((y) => y >= 4 && y <= 12), `${where}: data store ${node.id} has corners ${node.corners.map((pair) => pair.join(" by ")).join(", ")} px, not a top and bottom curved across its width`);
+          const lid = node.lid, depth = 2 * Math.max(...down);
+          check(lid && lid.rim.seen && lid.rim.style !== "none" && lid.rim.width > 0 && lid.round === "50%" && Math.abs(lid.w - node.w) <= 2 && Math.abs(lid.h - depth) <= 2 && lid.top <= 0, `${where}: data store ${node.id} draws no lid rim as wide as itself`);
+          check(node.label >= depth, `${where}: the label of data store ${node.id} starts ${node.label} px down, inside its ${depth} px lid`);
+          tally.stores += 1;
+        } else if (tag === "state") {
+          check(least >= 12, `${where}: state ${node.id} has a ${least} px corner`);
+          tally.states += 1;
+        } else {
+          check(Math.max(...across, ...down) <= 4, `${where}: ${tag} node ${node.id} has a ${Math.max(...across, ...down)} px corner`);
+          tally.others += 1;
+        }
+      }
+      if (scheme === "light" && one !== copy) {
+        const told = await page.evaluate(() => [...document.body.querySelectorAll("*")].filter((element) => element.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && element.children.length === 0 && element.textContent.trim() && !element.closest("#stage, #crumbs, #tools")).map((element) => element.textContent.trim()));
+        check(!told.length, `${where}: beside the diagram the page shows ${told[0]}`);
+        tally.levels += 1;
+      }
+      const bands = [];
+      for (const area of seen.areas) {
+        const tag = tagOf[area.id].tag, shown = area.sides.filter((side) => side.style !== "none" && side.width > 0 && side.seen);
+        if (BANDS.includes(tag)) { check(!shown.length, `${where}: ${tag} ${area.id} shows a border`); bands.push(area); continue; }
+        if (scheme !== "light" || one === copy) continue;
+        const dashed = tag === "region" || tag === "trustZone";
+        check(shown.length === 4 && shown.every((side) => side.style === (dashed ? "dashed" : "solid")), `${where}: ${tag} ${area.id} has a ${area.sides.map((side) => side.style).join(" ")} border, not ${dashed ? "dashed" : "solid"}`);
+        tally[dashed ? "dashed" : "solid"] += 1;
+      }
+      bands.sort((a, b) => a.y - b.y || a.x - b.x);
+      bands.forEach((band, i) => {
+        const tint = oklab(band.fill), name = `${where}: band ${band.id}`;
+        check(chroma(tint) >= 0.015 && chroma(tint) <= 0.045, `${name} has an oklch chroma of ${chroma(tint).toFixed(3)}`);
+        check(turn(hue(tint), mark) >= 45, `${name} has a hue ${turn(hue(tint), mark).toFixed(0)} degrees from the scenario mark's`);
+        check(apart(tint, canvas) >= 0.02, `${name} is ${apart(tint, canvas).toFixed(3)} from the canvas`);
+        if (i) check(apart(tint, oklab(bands[i - 1].fill)) >= 0.02, `${name} is ${apart(tint, oklab(bands[i - 1].fill)).toFixed(3)} from the band before it`);
+        for (const back of [1, 2]) if (i >= back) check(turn(hue(tint), hue(oklab(bands[i - back].fill))) >= 45, `${name} has a hue ${turn(hue(tint), hue(oklab(bands[i - back].fill))).toFixed(0)} degrees from the band ${back} before it`);
+        if (i >= 3) check(apart(tint, oklab(bands[i - 3].fill)) < 0.005, `${name} is not the tint of the band three before it`);
+        check(band.name.includes(tagOf[band.id].label) && band.head[0] >= 0 && band.head[0] <= 2 && band.head[1] >= 0 && band.head[1] <= 2, `${name} does not show its name inside its top edge`);
+        tally.bands += 1;
+      });
+    }
+    quiet(page, `${one.name} in ${scheme}`);
+    await page.context().close();
+  };
+  for (const scheme of ["light", "dark"]) await Promise.all([...examples, copy].map((one) => read(one, scheme)));
+  await Promise.all(examples.map(async (example) => { // a state or a data store a scenario steps on, or a reader picks, still shows its mark all round its shape
+    const page = await open(browser, example, SIZES[1], { still: true }), shaped = new Set(example.contract.levels.flatMap((level) => level.nodes.filter((node) => node.tag === "state" || node.tag === "dataStore").map((node) => node.id)));
+    const marked = async (id, mark) => { await page.waitForFunction((id) => { const card = document.querySelector(`#stage .node[data-id="${id}"]`), lid = getComputedStyle(card, "::after"); return card.getAnimations({ subtree: true }).every((one) => one.playState === "finished") && (lid.content === "none" || lid.borderBottomColor === getComputedStyle(card).borderTopColor); }, id, { timeout: 4000 }).catch(() => null); return page.evaluate(([id, mark]) => {
+      const card = document.querySelector(`#stage .node[data-id="${id}"]`), style = getComputedStyle(card), lid = getComputedStyle(card, "::after");
+      return { on: card.matches(mark === "hover" ? ":hover" : "." + mark), shadow: style.boxShadow, border: style.borderTopColor, rim: lid.content === "none" ? style.borderTopColor : lid.borderBottomColor, rest: (() => { const probe = document.body.appendChild(document.createElement("div")); probe.style.border = "1px solid var(--border)"; const color = getComputedStyle(probe).borderTopColor; probe.remove(); return color; })() }; // a node's border at rest
+    }, [id, mark]); };
+    const looks = (seen, mark, where) => check(seen.on && seen.border !== seen.rest && seen.rim === seen.border && (mark !== "step" || seen.shadow !== "none"), `${where}: its ${mark} mark shows ${JSON.stringify(seen)}`);
+    for (const scenario of example.contract.scenarios || []) for (const [i, step] of scenario.steps.entries()) if (shaped.has(step.at)) {
+      await page.goto("file://" + example.built + "#scenario=" + scenario.id + "&step=" + i + "&level=" + example.levelOf[step.at]);
+      await rest(page);
+      looks(await marked(step.at, "step"), "step", `${example.name} scenario ${scenario.id} step ${i + 1} on ${step.at}`);
+      tally.marks += 1;
+    }
+    for (const id of shaped) {
+      await page.goto("file://" + example.built + "#level=" + example.levelOf[id]);
+      await rest(page);
+      const free = () => page.evaluate((id) => { // a point of the node nothing else covers
+        const card = document.querySelector(`#stage .node[data-id="${id}"]`), box = card.getBoundingClientRect();
+        for (const y of [0.75, 0.5, 0.9, 0.3]) for (const x of [0.5, 0.25, 0.75, 0.1, 0.9]) { const spot = { x: box.left + box.width * x, y: box.top + box.height * y }; const top = document.elementFromPoint(spot.x, spot.y); if (top && card.contains(top) && !top.closest(".open")) return spot; }
+        return null;
+      }, id);
+      for (let tries = 0; tries < 5; tries += 1) { // a node the stage draws again under a still pointer is hovered only once the pointer moves again
+        const spot = await free();
+        check(spot, `${example.name} ${id}: no part of it is free for the pointer`);
+        await page.mouse.move(2, 2);
+        await page.mouse.move(spot.x, spot.y, { steps: 2 });
+        if (await page.evaluate((id) => document.querySelector(`#stage .node[data-id="${id}"]`).matches(":hover"), id)) break;
+      }
+      looks(await marked(id, "hover"), "hover", `${example.name} ${id} under the pointer`);
+      await page.mouse.move(2, 2);
+      await page.goto("file://" + example.built + "#level=" + example.levelOf[id] + "&at=" + id);
+      await rest(page);
+      looks(await marked(id, "pinned"), "pinned", `${example.name} ${id} picked`);
+      tally.marks += 2;
+    }
+    quiet(page, `${example.name} marks`);
+    await page.context().close();
+  }));
+  check(tally.states && tally.others && tally.stores && tally.dashed && tally.solid && tally.bands && tally.levels && tally.marks, `a shape went unread: ${JSON.stringify(tally)}`);
+  console.log(`${tally.states} state nodes rounded 12 px or more, ${tally.others} other nodes 4 px or less, none with an inner box rounder than itself`);
+  console.log(`${tally.stores} data stores drawn as cylinders, each label below the lid`);
+  console.log(`${tally.marks} scenario steps and picks on a state or a data store and the pointer resting on one show their mark round the whole shape`);
+  console.log(`${tally.dashed} region and trust zone areas dashed, ${tally.solid} module and deployment areas solid, ${tally.levels} levels with no legend`);
+  console.log(`${tally.bands} lane and phase bands read in light and dark, none framed, each a muted pastel apart from the canvas and its neighbours, three tints in turn, their hues 45 degrees apart`);
 }
 
 // ---- overlay ----
@@ -1616,7 +1772,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
+    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
