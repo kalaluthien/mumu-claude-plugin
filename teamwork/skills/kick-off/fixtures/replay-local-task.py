@@ -78,8 +78,8 @@ def case_whole(work, repository, origin, environment):
             for number, name in ((1, "probe-manager"), (2, "probe-worker"))]
     herdr.write_text(json.dumps({"n": 10, "agents": team, "tabs": [{"tab_id": agent["tab_id"], "workspace_id": "w1", "label": agent["name"]} for agent in team]}))
     log = work / "heartbeat.log"
-    live = subprocess.Popen([str(MONITORS / "print-team-gaps.py")], cwd=repository, stdout=log.open("w"), stderr=subprocess.STDOUT,
-                            env={**environment, "TEAMWORK_FAKE_HERDR_STATE": str(herdr), "HERDR_PANE_ID": "w1:p1", "TEAMWORK_MONITOR_POLL": "1"})
+    live = replay_probe.start_as_pane([MONITORS / "print-team-gaps.py"], "w1:p1", {**environment, "TEAMWORK_FAKE_HERDR_STATE": str(herdr), "HERDR_PANE_ID": "w1:p1", "TEAMWORK_MONITOR_POLL": "1"},
+                                      work / "stand-in", repository, log.open("w"))
     try:
         end = time.time() + 30
         while time.time() < end and "route #3" not in log.read_text():
@@ -87,7 +87,7 @@ def case_whole(work, repository, origin, environment):
         if "route #3" not in log.read_text():
             return replay_probe.fail(f"the heartbeat routed no unrouted task on the git board: {log.read_text()[-300:]}")
     finally:
-        live.kill()
+        replay_probe.stop(live)
     tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
     (tree / "b.txt").write_text("work\n")
     sh("git", "add", "-A", cwd=tree, environment=environment)

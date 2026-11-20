@@ -4,6 +4,7 @@ the failure line, and the run of every case when a scenario is called with no ar
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 
@@ -87,6 +88,28 @@ def as_pane(argv, pane, environment, folder):
     state = json.loads(pathlib.Path(environment["TEAMWORK_FAKE_HERDR_STATE"]).read_text())
     name = next((listed["name"] for listed in state["agents"] if listed.get("pane_id") == pane), None)
     return as_claude(argv, ["--name", name], folder) if name else [str(word) for word in argv]
+
+
+def start_as_pane(argv, pane, environment, folder, cwd, log):
+    """ARGV as `as_pane` runs it, started in its own process group with its output in the file LOG, for a monitor that runs until `stop` ends it."""
+    return subprocess.Popen(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
+
+
+def stop(process):
+    """End PROCESS and what it started, since the stand-in `claude` that wraps a monitor would otherwise leave it polling."""
+    os.killpg(process.pid, signal.SIGKILL)
+    process.wait()
+
+
+def run_for(argv, pane, environment, folder, cwd, seconds):
+    """(None, what ARGV printed) after SECONDS of a run as `as_pane` runs it, which is then ended with all it started."""
+    process = subprocess.Popen(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    try:
+        out, _ = process.communicate(timeout=seconds)
+        return process.returncode, out
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        return None, process.communicate()[0]
 
 
 def route_event(router, event, stubs, name):

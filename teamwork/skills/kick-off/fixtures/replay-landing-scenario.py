@@ -86,7 +86,8 @@ def heartbeat_env(pane, poll):
 
 
 def heartbeat(pane):
-    return run([ROOT / "monitors" / "print-team-gaps.py"], seconds=15, **heartbeat_env(pane, "1000"))[1]
+    environment = {**os.environ, **heartbeat_env(pane, "1000")}
+    return replay_probe.run_for([ROOT / "monitors" / "print-team-gaps.py"], pane, environment, work / "stand-in", repository, 15)[1]
 
 
 def printed(log, text, seconds=20):
@@ -137,8 +138,7 @@ def main(args):
 
     # the manager's heartbeat runs before the merge, so only its change check, not its first read, can bring the merged line
     log = work / "heartbeat.log"
-    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, **heartbeat_env("w1:p1", "1")},
-                            stdout=log.open("w"), stderr=subprocess.STDOUT)
+    live = replay_probe.start_as_pane([ROOT / "monitors" / "print-team-gaps.py"], "w1:p1", {**os.environ, **heartbeat_env("w1:p1", "1")}, work / "stand-in", repository, log.open("w"))
     first = printed(log, "idle landing-probe-worker")
     time.sleep(1.1)  # the records filed above carry this second, which must not count as the merge
     before, signal = iso_time.stamp(), team_signal.stamp()
@@ -152,7 +152,7 @@ def main(args):
     step("signal", team_signal.stamp() != signal and landing_git.changed_since(before), f"stamp {signal} -> {team_signal.stamp()}")
 
     step("heartbeat-merged", first and printed(log, "merged #1 by landing-probe-worker:"), log.read_text())
-    live.kill()
+    replay_probe.stop(live)
     beat = heartbeat("w1:p3")
     step("heartbeat-rebase", "rebase #2: it conflicts with its base" in beat, beat)
 

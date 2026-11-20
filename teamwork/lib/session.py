@@ -27,8 +27,9 @@ def own_interactive():
 
 
 def own_name():
-    """This session's name; None when it is none of the live sessions or was not started or renamed as that name."""
-    return own()[1].get("name")
+    """This session's name; None when it is none of the live sessions or was not started or renamed as that name, since herdr names the pane's session after the pane, so a `claude -p` run there would write as its worker."""
+    name = adapter.sessions()[1].get("name")
+    return name if coding_agent.named(name, coding_agent.own_transcript()) else None
 
 
 def __getattr__(name):

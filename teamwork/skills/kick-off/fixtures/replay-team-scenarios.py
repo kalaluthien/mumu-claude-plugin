@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import re
+import signal
 import subprocess
 import sys
 import tempfile
@@ -35,14 +36,17 @@ def herdr(*agents):
     return state
 
 
-def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment):
+def run(argv, state, pane=None, event=None, seconds=120, cwd=None, own_group=False, **environment):
     environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state),
            "TEAMWORK_MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
+    process = subprocess.Popen([str(argument) for argument in argv], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd,
+                               start_new_session=own_group)
     try:
-        process = subprocess.run([str(argument) for argument in argv], env=environment, input=event and json.dumps(event), capture_output=True, text=True, timeout=seconds, cwd=cwd)
-        out, code = process.stdout + process.stderr, process.returncode
-    except subprocess.TimeoutExpired as e:  # the heartbeat runs until killed
-        out, code = (e.stdout or b"").decode() + (e.stderr or b"").decode(), None
+        out, _ = process.communicate(event and json.dumps(event), timeout=seconds)
+        code = process.returncode
+    except subprocess.TimeoutExpired:  # the heartbeat runs until killed, with the stand-in `claude` that wraps it
+        os.killpg(process.pid, signal.SIGKILL) if own_group else process.kill()
+        out, code = process.communicate()[0], None
     if VERBOSE:
         print(f"$ {' '.join(map(str, argv))}\n{out}", file=sys.stderr)
     return code, out
@@ -60,7 +64,8 @@ def hook(state, pane, event, cwd=None, **environment):
 
 
 def heartbeat(state, pane, seconds=40, cwd=None, **environment):
-    return run([ROOT / "monitors" / "print-team-gaps.py"], state, pane, seconds=seconds, cwd=cwd, **environment)[1]
+    argv = replay_probe.as_pane([ROOT / "monitors" / "print-team-gaps.py"], pane, {"TEAMWORK_FAKE_HERDR_STATE": str(state)}, pathlib.Path(state).with_suffix(".stand-in"))
+    return run(argv, state, pane, seconds=seconds, cwd=cwd, **environment, own_group=True)[1]
 
 
 def tell(state, name, text="hi"):

@@ -67,7 +67,7 @@ def trial(monitor):
     cases = {}
     team(manager, agent("t-worker", 2))
     first = file("Tie a first task")
-    live = subprocess.Popen([sys.executable, str(monitor)], cwd=repository, env=environment, stdout=log.open("w"), stderr=subprocess.STDOUT)
+    live = replay_probe.start_as_pane([sys.executable, monitor], "w1:p1", environment, work / "stand-in", repository, log.open("w"))
     try:
         cases["start"] = (wait_for(first, RESUME_SECONDS), log.read_text())
         for cycle, others in ((1, []), (2, [agent("t-sentinel", 3)])):  # a sentinel is no worker, so it keeps the heartbeat off too
@@ -87,8 +87,7 @@ def trial(monitor):
             time.sleep(0.2)
         cases["off-last-feed"] = (f"feed #{first} " in log.read_text(), log.read_text())
     finally:
-        live.kill()
-        live.wait()
+        replay_probe.stop(live)
     return cases
 
 
