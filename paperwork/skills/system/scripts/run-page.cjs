@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables]
-// With no word it runs the twenty-one steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables] [layout]
+// With no word it runs the twenty-two steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -116,6 +116,15 @@
 //            breaks and indent, with no backtick shown.
 //   tables   on each example page a kept card's table draws no line on the table, its rows or its cells, and its header reads
 //            apart from its rows by a muted, heavier text.
+//   layout   each example at 1440 by 900, light and dark, each level at rest, a card kept on one record per item form,
+//            the search listing hits of two kinds or more and a scenario's bar, measured on the ink a reader sees:
+//            proximity, each group of the card (head, item, footer), the search (hit, kind, keys), the bars (tools,
+//            scenario bar), the nodes and each area's header with its nodes, its parts at most half as far apart as
+//            the group from the next; common region, no part past its frame; alignment, a column's parts on one edge
+//            within 1 px; scale, every margin, padding and gap of those parts 0, 2, 4, 8, 12, 16, 24 or 32 px and the two
+//            key-hint rows spaced alike; contrast, every text of those parts shown at 4.5:1 or more on its ground. It
+//            prints a line per principle, then the groups it measured, and fails unless it finds the fault it plants for
+//            each principle on a kept card.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -128,7 +137,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
+const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables", "layout"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
@@ -1762,6 +1771,260 @@ async function tables(browser) {
     await page.context().close();
   }));
 }
+// ---- layout ----
+const GROUPS = ["card head", "card item", "card footer", "search hit", "search kind", "search keys", "tools", "scenario bar", "node", "area header"];
+const PRINCIPLES = ["proximity", "common region", "alignment", "scale", "contrast"];
+const FAULTS = { // one fault per principle, as a rule added to a page with a card kept
+  proximity: "#card h2 { margin-bottom: 24px; }",
+  "common region": "#card h2 { position: relative; left: -32px; }",
+  alignment: "#card dt { margin-left: 4px; }",
+  scale: "#card dl { row-gap: 7px; }",
+  contrast: "#card dt { color: color-mix(in oklab, var(--popover) 80%, var(--foreground)); }",
+};
+// What the page shows breaks of each kept layout principle, measured on the ink a reader sees: each text's line boxes,
+// each icon, and each part drawn with its own fill or border.
+const principles = (page) => page.evaluate(() => {
+  const SCALE = [0, 2, 4, 8, 12, 16, 24, 32];
+  const found = { proximity: [], "common region": [], alignment: [], scale: [], contrast: [] }, counts = { proximity: 0, "common region": 0, alignment: 0, scale: 0, contrast: 0 }, groups = new Set();
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const shown = (element) => { const rect = element.getBoundingClientRect(), style = getComputedStyle(element); return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none"; };
+  const named = (element) => element.id ? "#" + element.id : (element.closest("[id]") ? "#" + element.closest("[id]").id + " " : "") + element.tagName.toLowerCase() + (element.classList.length ? "." + [...element.classList].join(".") : "");
+  const painted = (style) => style.backgroundColor !== "rgba(0, 0, 0, 0)" || ["Top", "Right", "Bottom", "Left"].some((side) => parseFloat(style[`border${side}Width`]) > 0 && style[`border${side}Style`] !== "none");
+  const meet = (a, b) => ({ left: Math.max(a.left, b.left), top: Math.max(a.top, b.top), right: Math.min(a.right, b.right), bottom: Math.min(a.bottom, b.bottom) });
+  const real = (box) => box.right - box.left > 0.5 && box.bottom - box.top > 0.5;
+  const plain = (rect) => ({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom });
+  const ink = (root) => { // the boxes a reader sees of ROOT, cut where an ellipsis or a scroll cuts them on purpose
+    const boxes = [];
+    const walk = (element, clip, top) => {
+      if (!shown(element)) return;
+      const style = getComputedStyle(element), rect = plain(element.getBoundingClientRect());
+      if (element.tagName === "INPUT") { const middle = (rect.top + rect.bottom) / 2, line = parseFloat(style.lineHeight) / 2; boxes.push({ left: rect.left + parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft), right: rect.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight), top: middle - line, bottom: middle + line }); return; }
+      if (element instanceof SVGElement || painted(style) || element.tagName === "TABLE") { const box = meet(rect, clip); if (real(box)) boxes.push(box); return; } // a table reads as one block, its cells held by its columns
+      const cuts = style.textOverflow === "ellipsis" || /auto|scroll/.test(style.overflowY + style.overflowX);
+      const inner = cuts ? meet(clip, rect) : clip;
+      for (const child of element.childNodes) {
+        if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+          const range = document.createRange();
+          range.selectNodeContents(child);
+          for (const line of range.getClientRects()) { const box = meet(plain(line), inner); if (real(box)) boxes.push(box); }
+        } else if (child.nodeType === Node.ELEMENT_NODE) walk(child, inner, false);
+      }
+    };
+    walk(root, { left: -1e6, top: -1e6, right: 1e6, bottom: 1e6 }, true);
+    return boxes;
+  };
+  const gap = (a, b) => Math.max(0, a.left - b.right, b.left - a.right, a.top - b.bottom, b.top - a.bottom);
+  const spread = (boxes) => { // the largest gap that still joins every box, the longest link of their shortest joining tree
+    if (boxes.length < 2) return 0;
+    const reach = boxes.map(() => Infinity), joined = boxes.map(() => false);
+    let most = 0;
+    reach[0] = 0;
+    for (let turn = 0; turn < boxes.length; turn++) {
+      let next = -1;
+      for (let i = 0; i < boxes.length; i++) if (!joined[i] && (next < 0 || reach[i] < reach[next])) next = i;
+      joined[next] = true;
+      most = Math.max(most, reach[next]);
+      for (let i = 0; i < boxes.length; i++) if (!joined[i]) reach[i] = Math.min(reach[i], gap(boxes[next], boxes[i]));
+    }
+    return most;
+  };
+  const apart = (a, b) => Math.min(...a.flatMap((one) => b.map((other) => gap(one, other))));
+  const near = (kind, where, sets) => { // each group's inner spread is at most half its gap to the nearest group of the same set
+    groups.add(kind);
+    const inked = sets.map((parts) => parts.filter(Boolean).flatMap(ink)).filter((boxes) => boxes.length);
+    inked.forEach((boxes, i) => {
+      counts.proximity += 1;
+      const inner = spread(boxes), outer = Math.min(Infinity, ...inked.filter((other, j) => j !== i).map((other) => apart(boxes, other)));
+      if (outer < Infinity && inner > outer / 2 + 0.5) found.proximity.push(`${where} ${kind} ${i + 1}: ${inner.toFixed(1)} px inside, ${outer.toFixed(1)} px to the next group`);
+    });
+  };
+  const framed = (frame, parts) => { // every part's ink inside its frame's border
+    const rect = frame.getBoundingClientRect(), style = getComputedStyle(frame);
+    const inside = { left: rect.left + parseFloat(style.borderLeftWidth) - 0.5, top: rect.top + parseFloat(style.borderTopWidth) - 0.5, right: rect.right - parseFloat(style.borderRightWidth) + 0.5, bottom: rect.bottom - parseFloat(style.borderBottomWidth) + 0.5 };
+    for (const part of parts.filter(Boolean)) for (const box of ink(part)) {
+      counts["common region"] += 1;
+      const past = Math.max(inside.left - box.left, inside.top - box.top, box.right - inside.right, box.bottom - inside.bottom);
+      if (past > 0) { found["common region"].push(`${named(part)} reaches ${past.toFixed(1)} px past ${named(frame)}`); return; }
+    }
+  };
+  const lined = (where, edge, parts) => { // the parts that open a column share its start (or end) edge
+    const at = parts.filter(Boolean).map((part) => ({ part, boxes: ink(part) })).filter((one) => one.boxes.length).map((one) => ({ part: one.part, x: edge === "start" ? Math.min(...one.boxes.map((box) => box.left)) : Math.max(...one.boxes.map((box) => box.right)) }));
+    if (at.length < 2) return;
+    counts.alignment += 1;
+    const low = Math.min(...at.map((one) => one.x)), high = Math.max(...at.map((one) => one.x));
+    if (high - low > 1) found.alignment.push(`${where}: ${at.map((one) => `${named(one.part)} at ${one.x.toFixed(1)}`).join(", ")} do not share one ${edge} edge`);
+  };
+  const SIDES = ["marginTop", "marginRight", "marginBottom", "marginLeft", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft", "rowGap", "columnGap"];
+  const stepped = (roots) => { // every space of these parts is a step of the scale
+    for (const element of roots.filter(Boolean).flatMap((root) => [root, ...$$("*", root)])) {
+      if (!shown(element) || element instanceof SVGElement) continue;
+      const style = getComputedStyle(element);
+      for (const side of SIDES) {
+        const value = parseFloat(style[side]);
+        if (Number.isNaN(value) || value < 0 || (side.startsWith("margin") && String(element.computedStyleMap().get(side.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase()))) === "auto")) continue; // an auto margin pushes a part to the far side, no space of the scale
+        counts.scale += 1;
+        if (!SCALE.some((step) => Math.abs(step - value) < 0.05)) found.scale.push(`${named(element)} ${side.replace(/[A-Z]/g, (letter) => "-" + letter.toLowerCase())} ${value} px`);
+      }
+    }
+  };
+  const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+  pen.canvas.width = pen.canvas.height = 1;
+  const rgba = (color) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = "#000"; pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); const [r, g, b, a] = pen.getImageData(0, 0, 1, 1).data; return [r, g, b, a / 255]; };
+  const over = (top, under) => top.slice(0, 3).map((value, i) => value * top[3] + under[i] * (1 - top[3])).concat(1);
+  const ground = (element) => { // the colour behind ELEMENT, its ancestors' fills laid over the page's
+    const fills = [];
+    for (let at = element; at; at = at.parentElement) fills.unshift(rgba(getComputedStyle(at).backgroundColor));
+    return fills.reduce((under, fill) => over(fill, under), [255, 255, 255, 1]);
+  };
+  const light = (color) => { const [r, g, b] = color.slice(0, 3).map((value) => { value /= 255; return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const legible = (roots) => { // every text of these parts shows, at 4.5:1 or more on its ground
+    for (const root of roots.filter(Boolean)) {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        const holder = text.parentElement;
+        if (!text.textContent.trim() || holder.closest(".label.tucked:not(.shown), [hidden], script, style, .sep, #run .pause, #run .start")) continue;
+        counts.contrast += 1;
+        let fade = 1;
+        for (let at = holder; at; at = at.parentElement) fade *= parseFloat(getComputedStyle(at).opacity);
+        if (fade < 0.99 || !shown(holder)) { found.contrast.push(`${named(holder)} "${text.textContent.trim().slice(0, 24)}" is hidden or faded`); continue; }
+        const under = ground(holder), ratio = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), value = ratio(light(over(rgba(getComputedStyle(holder).color), under)), light(under));
+        if (value < 4.5) found.contrast.push(`${named(holder)} "${text.textContent.trim().slice(0, 24)}" at ${value.toFixed(2)}:1`);
+      }
+    }
+  };
+  const card = document.getElementById("card"), palette = document.getElementById("palette"), play = document.getElementById("play");
+  if (card.classList.contains("show")) {
+    const items = $$("dl > div", card), foot = card.querySelector("footer");
+    near("card head", "card", [[card.querySelector("h2"), ...$$(".tag", card)], [card.querySelector("dl")]]); // the footer is parted by its rule, which common region reads
+    near("card item", "card", items.map((item) => [item]));
+    near("card footer", "card", [[foot.querySelector(".turn")], ...$$(".hints > span", foot).map((hint) => [hint])]);
+    if (!card.classList.contains("long")) framed(card, [...card.children]);
+    lined("card", "start", [card.querySelector("h2"), card.querySelector(".tag"), ...$$("dt", card), foot.querySelector(".turn")]);
+    stepped([card]); legible([card]);
+  }
+  if (palette.classList.contains("show")) {
+    const kinds = [];
+    for (const element of $$("#hits > *")) if (element.tagName === "H3" || !kinds.length) kinds.push([element]); else kinds[kinds.length - 1].push(element);
+    near("search kind", "search", kinds.map((kind) => kind.flatMap((element) => element.classList.contains("hit") ? [...element.children] : [element])));
+    near("search hit", "search", $$("#hits .hit").map((hit) => [...hit.children]));
+    near("search keys", "search", $$("#keys > span").map((key) => [key]));
+    framed(palette, [document.getElementById("query"), document.getElementById("keys")]);
+    for (const hit of $$("#hits .hit")) framed(hit, [...hit.children]);
+    lined("search", "start", [document.getElementById("query"), ...$$("#hits h3"), ...$$("#hits .hit .text > b")]);
+    lined("search", "end", [document.getElementById("regex"), document.querySelector("#keys > span:last-child")]);
+    stepped([palette]); legible([palette]);
+  }
+  near("tools", "bar", $$("#tools > .tool").map((tool) => [tool]));
+  for (const bar of [document.getElementById("tools"), document.getElementById("crumbs")]) { framed(bar, [...bar.children]); stepped([bar]); legible([bar]); }
+  if (Math.abs(document.getElementById("tools").getBoundingClientRect().top - document.getElementById("crumbs").getBoundingClientRect().top) > 1) found.alignment.push("the crumbs and the tools do not share one top edge");
+  counts.alignment += 1;
+  if (play.classList.contains("show")) {
+    near("scenario bar", "bar", [["prev", "run", "next"].map((id) => document.getElementById(id)), [play.querySelector(".count"), play.querySelector(".title")], [play.querySelector(".dots")], [document.getElementById("onto")], [document.getElementById("again"), document.getElementById("onward")], [document.getElementById("stop")]]);
+    framed(play, [...play.children]);
+    stepped([play, document.getElementById("chip")]); legible([play, document.getElementById("chip").classList.contains("show") ? document.getElementById("chip") : null]);
+  }
+  const stage = document.getElementById("stage"), nodes = $$(".node", stage);
+  if (nodes.length && !stage.querySelector(".dim") && !palette.classList.contains("show")) {
+    near("node", "level", nodes.map((node) => [node]));
+    for (const node of nodes) { framed(node, [...node.children]); lined(`node ${node.dataset.id}`, "start", [node.querySelector("b"), node.querySelector("small")]); }
+    for (const area of $$(".area", stage)) {
+      const box = area.getBoundingClientRect(), header = area.querySelector(":scope > header");
+      const held = nodes.filter((node) => { const rect = node.getBoundingClientRect(); return rect.left >= box.left && rect.right <= box.right && rect.top >= box.top && rect.bottom <= box.bottom; });
+      near("area header", `area ${area.dataset.id}`, [[header], ...held.map((node) => [node])]);
+      framed(area, [header]);
+      const first = held.filter((node) => Math.abs(node.getBoundingClientRect().left - Math.min(...held.map((one) => one.getBoundingClientRect().left))) < 0.5);
+      lined(`area ${area.dataset.id}`, "start", [header.firstChild && header, ...first.slice(0, 1)]);
+    }
+    stepped([...nodes, ...$$(".area > header", stage), ...$$(".label", stage)]);
+    legible([...nodes, ...$$(".area > header", stage), ...$$(".label", stage)]);
+  }
+  const roles = [["#card footer .hints", "#keys"], ["#card footer .hints > span", "#keys > span"]]; // one role drawn in two places
+  for (const [one, other] of roles) {
+    const a = document.querySelector(one), b = document.querySelector(other);
+    if (!a || !b) continue;
+    counts.scale += 1;
+    if (getComputedStyle(a).columnGap !== getComputedStyle(b).columnGap) found.scale.push(`${one} is spaced ${getComputedStyle(a).columnGap}, ${other} ${getComputedStyle(b).columnGap}`);
+  }
+  return { found, counts, groups: [...groups] };
+});
+
+async function layout(browser) {
+  const tally = { found: Object.fromEntries(PRINCIPLES.map((name) => [name, []])), counts: Object.fromEntries(PRINCIPLES.map((name) => [name, 0])), groups: new Set(), views: 0 };
+  const add = (seen, where) => {
+    tally.views += 1;
+    for (const name of PRINCIPLES) { tally.counts[name] += seen.counts[name]; tally.found[name].push(...seen.found[name].map((line) => `${where}: ${line}`)); }
+    seen.groups.forEach((group) => tally.groups.add(group));
+  };
+  const keep = async (page, example, target, size) => { // a card kept on TARGET, with the pointer off it
+    await page.goto("file://" + example.built + "#level=" + target.level);
+    await settled(page);
+    const spot = await rested(page, target, size, `${example.name} ${target.id}`);
+    await page.mouse.click(spot.x, spot.y);
+    await rest(page);
+    await page.mouse.move(2, size[1] - 2, { steps: 4 });
+    await page.clock.fastForward(450);
+    check(await page.evaluate((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.classList.contains("kept") && card.dataset.for === id; }, target.id), `${example.name}: no card is kept on ${target.id}`);
+  };
+  const size = SIZES[1];
+  for (const example of examples) for (const scheme of ["light", "dark"]) {
+    const page = await open(browser, example, size, { still: true, scheme });
+    const where = `${example.name} ${scheme}`;
+    for (const level of example.contract.levels) {
+      await page.goto("file://" + example.built + "#level=" + level.id);
+      await settled(page);
+      await page.mouse.move(2, size[1] - 2);
+      add(await principles(page), `${where} level ${level.id}`);
+    }
+    for (const target of targets(example)) {
+      await keep(page, example, target, size).catch(() => keep(page, example, target, size));
+      add(await principles(page), `${where} card of ${target.id}`);
+      await page.keyboard.press("Escape");
+      await rest(page);
+    }
+    const words = [...new Set(example.contract.levels.flatMap((level) => level.nodes.map((node) => node.label.split(/\s+/).pop().toLowerCase())))];
+    let kinds = 0;
+    for (const word of words) {
+      await page.goto("file://" + example.built);
+      await settled(page);
+      await searched(page, word.slice(0, 4));
+      await rest(page);
+      kinds = await page.evaluate(() => document.querySelectorAll("#hits h3").length);
+      if (kinds >= 2) break;
+    }
+    check(kinds >= 2, `${where}: no query lists hits of two kinds`);
+    add(await principles(page), `${where} search`);
+    await page.keyboard.press("Escape");
+    const scenario = (example.contract.scenarios || [])[0];
+    check(scenario, `${where}: no scenario to play`);
+    await page.goto("file://" + example.built + "#scenario=" + scenario.id + "&step=1&level=" + example.levelOf[scenario.steps[1] ? scenario.steps[1].at : scenario.steps[0].at]);
+    await settled(page);
+    await page.mouse.move(2, 2);
+    check(await page.evaluate(() => document.getElementById("play").classList.contains("show")), `${where}: the scenario's bar did not show`);
+    add(await principles(page), `${where} scenario ${scenario.id}`);
+    quiet(page, where);
+    await page.context().close();
+  }
+  for (const group of GROUPS) check(tally.groups.has(group), `no view measured the group ${group}`);
+  for (const name of PRINCIPLES) tally.found[name].slice(0, 12).forEach((line) => console.log(`${name}: ${line}`));
+  for (const name of PRINCIPLES) check(!tally.found[name].length, `${name}: ${tally.found[name].length} faults, first ${tally.found[name][0]}`);
+  // each principle finds the fault planted for it, so a measure that reads nothing cannot pass
+  const example = examples[0], target = targets(example).find((one) => one.kind === "node");
+  const page = await open(browser, example, size, { still: true });
+  for (const name of PRINCIPLES) {
+    await keep(page, example, target, size).catch(() => keep(page, example, target, size));
+    const style = await page.addStyleTag({ content: FAULTS[name] });
+    await rest(page); // a planted colour fades in under reduced motion, so it is read once its transition ends
+    const seen = await principles(page);
+    check(seen.found[name].length, `${name} misses the planted fault ${FAULTS[name]}`);
+    await style.evaluate((element) => element.remove());
+    await page.keyboard.press("Escape");
+    await rest(page);
+  }
+  await page.context().close();
+  for (const name of PRINCIPLES) console.log(`${name}: ${tally.counts[name]} measured over ${tally.views} views, light and dark, none off, and the planted fault found`);
+  console.log(`groups measured: ${GROUPS.join(", ")}`);
+}
+
 async function main() {
   if (browsers.missing()) {
     console.log(`FAIL setup: ${browsers.missing()}`);
@@ -1772,7 +2035,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables };
+    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables, layout };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");

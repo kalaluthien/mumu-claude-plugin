@@ -102,21 +102,27 @@
   const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   const ROOM = { side: 40, top: 76, bottom: 76 };
   const FITS = [ // a level's drawings from roomy to dense; inner and outer hold the gap along a flow down, along a flow across, then beside each
-    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 16, head: 30, labels: true },
-    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 16, head: 30 },
-    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 10, head: 24, dense: true },
-    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 8, head: 22, dense: true },
+    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 17, head: 32, labels: true },
+    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 17, head: 32 },
+    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 9, head: 26, dense: true },
+    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: 26, dense: true },
   ];
   const pen = document.createElement("canvas").getContext("2d"), LID = 10;
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
-    const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 22 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
+    const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
     const need = node => text(node) + beside(node);
     const lines = node => need(node) <= most ? 1 : Math.ceil(text(node) * 1.15 / (most - beside(node))); // a label too long for the widest box goes on over more lines
     const widest = Math.min(most, Math.max(196, ...level.nodes.map(need))), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
     const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
     return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
+  const heading = (area, fit) => { // an area as wide as its header's label and tag, so neither reaches past its frame
+    pen.font = `500 12px ${FONT}`;
+    const label = pen.measureText(area.label).width;
+    pen.font = `400 12px ${FONT}`;
+    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width) + 2 * fit.pad;
+  };
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
   const fill = plan => Math.min(across() / plan.w, down() / plan.h);
@@ -161,7 +167,7 @@
       group.nodes.forEach(node => (groupOf[node.id] = group.id));
       const inner = edges.filter(edge => groupOf[edge.from] === group.id && group.nodes.some(node => node.id === edge.to));
       group.inside = layered(group.nodes.map(node => ({ id: node.id, ...sizes[node.id] })), inner.map(edge => [edge.from, edge.to]), ...gaps(fit.inner, innerDown, inner), innerDown);
-      group.w = group.inside.w + (group.area ? 2 * fit.pad : 0);
+      group.w = Math.max(group.inside.w + (group.area ? 2 * fit.pad : 0), group.area ? heading(group.area, fit) : 0);
       group.h = group.inside.h + (group.area ? fit.pad + fit.head : 0);
     }
     const between = edges.filter(edge => groupOf[edge.from] !== groupOf[edge.to]);
@@ -1050,7 +1056,7 @@
         const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
         const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
         if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
-        const row = option(entry, make("div", { class: "text" }, ...text), make("small", {}, entry.note));
+        const row = option(entry, make("div", { class: "text" }, text[0], make("small", {}, entry.note), ...text.slice(1)));
         row.dataset.hit = entry.id;
         row.addEventListener("click", () => pick(entry));
         box.append(row);

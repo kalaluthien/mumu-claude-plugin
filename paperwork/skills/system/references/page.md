@@ -23,5 +23,6 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 ## Rules
 
 - **Code draws**: a change of look, layout or motion goes into [../assets/page.css](../assets/page.css) or [../assets/page.js](../assets/page.js), and a change of content into the contract; no page is edited by hand.
+- **Layout**: each space in `page.css` is 0, 2, 4, 8, 12, 16, 24 or 32 px; a group's parts sit at most half as far apart as the group sits from the next, a part stays inside its frame, a column's parts share one edge, and text reads at 4.5:1 or more; `run-page.cjs layout` measures each.
 - **After a change to the page's code**: build each example's page again, then run `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/run-page.cjs`, which must print `PASS`.
 - **Before judging the look**: `node ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/capture-page.cjs <folder>` writes pictures and measures of each example page; judge from those, as **Evaluation** in `AGENTS.md` says.
