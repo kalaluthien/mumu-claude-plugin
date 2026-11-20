@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Run the heartbeat `print-team-gaps.py` as a manager on a temporary repository with a git board and the fake herdr of the kick-off fixtures, over two workers at their
-prompt that hold nothing open, one with a process still running under its session id, as a check it detached with `( ... ) &` does, and one with none. Print `ok <case>` or
-`fail <case>: <what the heartbeat printed>` per case, then `PASS` when only the worker with nothing running gets an `idle` line, else `FAIL`, and exit 1 on FAIL:
-- `quiet-busy`: no `idle` line for the worker whose detached process still runs;
-- `idle-free`: the `idle` line for the worker with nothing running.
+prompt that hold nothing open, one with a process still running under its session id, as a check it detached with `( ... ) &` does, and one with none. Print `PASS` when
+only the worker with nothing running gets an `idle` line, else `FAIL`, and exit 1 on FAIL.
 
-usage: replay-idle-workers.py"""
+usage: replay-idle-workers.py [--verbose]
+`--verbose` also prints what the heartbeat printed."""
 import json
 import os
 import pathlib
@@ -27,7 +26,7 @@ SETTLE_SECONDS = 3  # the monitor goes on polling, so an `idle` line wrongly pri
 
 
 def main(args):
-    if args:
+    if args not in ([], ["--verbose"]):
         print(__doc__, file=sys.stderr)
         return 2
     work = pathlib.Path(tempfile.mkdtemp(prefix="idle-workers-"))
@@ -59,8 +58,8 @@ def main(args):
         detached.wait()
     saw = log.read_text()
     quiet, idle = "idle b-busy-worker" not in saw, "idle b-free-worker" in saw
-    print("ok quiet-busy" if quiet else f"fail quiet-busy: {' '.join(saw.split())[:600]}")
-    print("ok idle-free" if idle else f"fail idle-free: {' '.join(saw.split())[:600]}")
+    if args:
+        print(saw)
     print("PASS" if quiet and idle else "FAIL")
     return 0 if quiet and idle else 1
 
