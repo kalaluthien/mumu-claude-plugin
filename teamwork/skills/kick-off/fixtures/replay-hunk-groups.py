@@ -55,8 +55,7 @@ def take_back_bytes():
         (work / "old" / "f").write_bytes(base.encode("latin-1"))
         (work / "new" / "f").write_bytes(head.encode("latin-1"))
         diff = subprocess.run(["git", "diff", "--no-index", "-U0", "--src-prefix=a/", "--dst-prefix=b/", "old/f", "new/f"], cwd=work, capture_output=True).stdout
-        if module.take_back(head, [patch for _, _, patch in module.split_hunks(diff.decode("latin-1"))]) != base:
-            wrong.append((base, head))
+        wrong += [(base, head)] * (module.take_back(head, [patch for _, _, patch in module.split_hunks(diff.decode("latin-1"))]) != base)
     return wrong
 
 
