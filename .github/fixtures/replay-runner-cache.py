@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Run `.github/check-repository.py` on a temporary git repository of two plugins whose fixture runners log each run. Print `ok <case>`
+"""Run `.github/check-repository.py` on a temporary git repository of three plugins whose fixture runners log each run, one of them naming `.github`. Print `ok <case>`
 or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `same-files-once`: a second run on the same files runs no runner and its summary counts both replayed;
-- `one-plugin-runs`: a change to one plugin's file runs only that plugin's runner;
-- `github-runs-all`: a change under `.github/` runs both runners;
-- `fresh-runs`: `--fresh` runs both on the same files;
+- `one-plugin-runs`: a change to one plugin's file runs that plugin's runner and the runner that names `.github`, no other;
+- `root-file-runs`: a change to a file at the root runs every runner;
+- `github-runs-all`: a change under `.github/` runs every runner;
+- `fresh-runs`: `--fresh` runs every runner on the same files;
 - `failure-runs`: a failing runner runs on every call, and its `fixture` line is printed each time.
 
 usage: replay-runner-cache.py"""
@@ -33,9 +34,9 @@ def main(args):
     log = work.parent / f"{work.name}-runs.log"
     os.environ.update(HOME=str(work), RUNNERS_LOG=str(log), GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com",
                       GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
-    for name in ("alpha", "beta"):
+    for name in ("alpha", "beta", "gamma"):
         (work / name / "fixtures").mkdir(parents=True)
-        (work / name / "fixtures" / "replay-one.py").write_text(RUNNER.format(name=name))
+        (work / name / "fixtures" / "replay-one.py").write_text(RUNNER.format(name=name) + ("# reads .github and every plugin\n" if name == "gamma" else ""))
         (work / name / "notes.txt").write_text("one\n")
     (work / ".github").mkdir()
     (work / ".github" / "notes.txt").write_text("one\n")
@@ -49,15 +50,19 @@ def main(args):
 
     call()
     out, ran = call()
-    step("same-files-once", ran == [] and "2 replayed" in out, (ran, out))
+    step("same-files-once", ran == [] and "3 replayed" in out, (ran, out))
     (work / "alpha" / "notes.txt").write_text("two\n")
     out, ran = call()
-    step("one-plugin-runs", ran == ["alpha"], (ran, out))
+    step("one-plugin-runs", ran == ["alpha", "gamma"], (ran, out))
+    (work / "notes.txt").write_text("one\n")
+    subprocess.run(["git", "add", "."], cwd=work, check=True)
+    out, ran = call()
+    step("root-file-runs", ran == ["alpha", "beta", "gamma"], (ran, out))
     (work / ".github" / "notes.txt").write_text("two\n")
     out, ran = call()
-    step("github-runs-all", ran == ["alpha", "beta"], (ran, out))
+    step("github-runs-all", ran == ["alpha", "beta", "gamma"], (ran, out))
     out, ran = call("--fresh")
-    step("fresh-runs", ran == ["alpha", "beta"], (ran, out))
+    step("fresh-runs", ran == ["alpha", "beta", "gamma"], (ran, out))
     (work / "beta" / "fail").write_text("")
     subprocess.run(["git", "add", "."], cwd=work, check=True)
     call()

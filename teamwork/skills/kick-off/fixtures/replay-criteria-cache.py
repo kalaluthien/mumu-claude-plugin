@@ -7,7 +7,8 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `fresh-runs`: `--fresh` on the same files runs it again;
 - `git-state-runs`: the same files with another index, after a soft reset, run a check that reads `git status` again;
 - `failure-runs`: a check that fails runs on every call;
-- `base-once`: `--base` twice runs the check once.
+- `base-once`: `--base` twice runs the check once;
+- `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
 
 usage: replay-criteria-cache.py"""
 import os
@@ -80,6 +81,10 @@ def main(args):
     log.write_text("")
     again = [subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True).stdout for _ in range(2)]
     step("base-once", len(log.read_text().split()) == 1 and "cached: 1 checks replayed" in again[1] and "cached" not in again[0], (log.read_text(), again))
+    git("commit", "-qam", "moved")
+    log.write_text("")
+    moved = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True).stdout
+    step("base-moves-runs", len(log.read_text().split()) == 1 and "cached" not in moved, (log.read_text(), moved))
     print("PASS" if all(results.values()) else "FAIL")
     return 0 if all(results.values()) else 1
 

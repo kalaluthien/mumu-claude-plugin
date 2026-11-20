@@ -4,7 +4,7 @@
 usage: check-repository.py [--skip-fixtures] [--fresh] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner even when it passed on the same files)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
-list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. A fixture runner that passed on the same files, its plugin's folder and `.github/` (every file for one in `.github/`), is not run again by any session of the repository, which the summary counts as replayed; a failed runner always runs. Standard library only, Python 3.9.
+list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. A fixture runner that passed on the same files, its plugin's folder, `.github/`, `.claude-plugin/` and the root files (every file for one in `.github/` or whose source names `.github`), is not run again by any session of the repository, which the summary counts as replayed; a failed runner always runs. Standard library only, Python 3.9.
 """
 
 import concurrent.futures
@@ -247,11 +247,11 @@ def check_scripts(root, files, failures):
     return len(scripts)
 
 
-def files_digest(root, files, folders):
-    """A sha-256 of the path and bytes of each file of FILES under one of FOLDERS, in order."""
+def files_digest(root, files, folders, with_root_files):
+    """A sha-256 of the path and bytes of each file of FILES under one of FOLDERS, or at the root of ROOT when WITH_ROOT_FILES, in order."""
     digest = hashlib.sha256()
     for path in files:
-        if any(path.startswith(folder) for folder in folders):
+        if any(path.startswith(folder) for folder in folders) or (with_root_files and "/" not in path):
             try:
                 with open(os.path.join(root, path), "rb") as handle:
                     digest.update(path.encode() + b"\0" + handle.read() + b"\0")
@@ -267,9 +267,11 @@ def passes_folder(root):
 
 
 def runner_marker(root, files, folder, path, argv):
-    """The marker file of a pass of runner PATH on its files: those of its plugin's folder and `.github/`, or all of them for a runner of `.github/`, with the interpreter."""
-    folders = ("",) if path.startswith(".github/") else (path.split("/")[0] + "/", ".github/")
-    digest = hashlib.sha256("\0".join([root, sys.version, files_digest(root, files, folders), *argv]).encode()).hexdigest()[:32]
+    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins, with the interpreter."""
+    with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
+        wide = path.startswith(".github/") or ".github" in handle.read()
+    folders = ("",) if wide else (path.split("/")[0] + "/", ".github/", ".claude-plugin/")
+    digest = hashlib.sha256("\0".join([root, sys.version, files_digest(root, files, folders, not wide), *argv]).encode()).hexdigest()[:32]
     return folder / digest
 
 
