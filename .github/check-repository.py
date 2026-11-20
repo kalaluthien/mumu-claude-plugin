@@ -295,10 +295,13 @@ def run_fixtures(root, files, failures, fresh):
 
         folder = passes_folder(root)
         replayed = []
+        # a runner reads the folder as it is, so a file not yet added counts
+        untracked = subprocess.run(["git", "-C", root, "ls-files", "-z", "--others", "--exclude-standard"], capture_output=True, text=True).stdout.split("\0")
+        readable = sorted({*files, *(path for path in untracked if path)})
 
         def run(call):
             path, argv = call
-            marker = runner_marker(root, files, folder, path, argv) if folder else None
+            marker = runner_marker(root, readable, folder, path, argv) if folder else None
             if marker and not fresh and marker.exists():
                 replayed.append(path)
                 return None

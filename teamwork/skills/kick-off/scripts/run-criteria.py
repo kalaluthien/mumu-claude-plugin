@@ -15,7 +15,7 @@ script cannot decide it, such as a `<placeholder>`, two commands or an expected 
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
 first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
 its first judged table. A `[check]` that passed on the same files and the same commit, branch and index (or with `--base` the base's files) is not run again by any session of the
-repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check always runs, and a live check keeps its own saved transcript, below. A `BLOCKED due: <name>` line follows
+repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check always runs. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
 
@@ -192,7 +192,7 @@ class Memory:
 
     def recall(self, detail):
         """(status, output) of the check's earlier pass on these files, or None."""
-        if self.prefix is None or self.fresh or criteria_check.live_stage(detail):
+        if self.prefix is None or self.fresh:
             return None
         try:
             status, out = json.loads(self.entry(detail).read_text())
@@ -202,7 +202,7 @@ class Memory:
         return status, out
 
     def keep(self, detail, status, out):
-        if self.prefix is not None and not criteria_check.live_stage(detail):
+        if self.prefix is not None:
             self.folder.mkdir(parents=True, exist_ok=True)
             self.entry(detail).write_text(json.dumps([status, out]))
 
@@ -352,19 +352,19 @@ def earlier_fails(task):
 
 
 def split_hunks(diff):
-    """[(file, line, patch)] of each hunk of a `git diff -U0` text: the file's header lines and the one hunk, which `git apply` takes alone."""
+    """[(file, line, patch)] of each hunk of a `git diff -U0` text read as latin-1, so each byte stays one character: the file's header lines and the one hunk."""
     found = []
     for section in re.split(r"(?m)^(?=diff --git )", diff):
         head, *hunks = re.split(r"(?m)^(?=@@ )", section)
         file = re.search(r"^\+\+\+ b/(.+)$|^--- a/(.+)$", head, re.M)
         for hunk in hunks:
             old, new = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)", hunk).groups()
-            found.append((next(name for name in file.groups() if name), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
+            found.append((next(name for name in file.groups() if name).encode("latin-1").decode("utf-8", "replace"), int(new) or int(old), head + hunk.rstrip("\n") + "\n"))
     return found
 
 
 def take_back(text, patches):
-    """TEXT of a file with the removed lines of each one-hunk PATCHES entry of `git diff -U0` put back where the hunk added or changed them, last hunk first so each keeps its line number, since git apply places a pure deletion by its position in a file with the hunks before it already undone."""
+    """TEXT of a file read as latin-1 with the removed lines of each one-hunk PATCHES entry put back where the hunk added or changed them, last hunk first so each keeps its line number; lines end at `\\n` only, since a file may hold other line breaks."""
     lines = re.findall(r"[^\n]*\n|[^\n]+", text)
     spans = []
     for patch in patches:
@@ -372,12 +372,13 @@ def take_back(text, patches):
         start, count = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))?", header).groups()
         count = 1 if count is None else int(count)
         first = int(start) if count == 0 else int(start) - 1
-        removed = []
-        for row in body.splitlines(keepends=True):
-            if row.startswith("-"):
+        removed, before = [], ""
+        for row in re.findall(r"[^\n]*\n|[^\n]+", body):
+            if row[0] == "-":
                 removed.append(row[1:])
-            elif row.startswith("\\ No newline") and removed:
+            elif row[0] == "\\" and before == "-":
                 removed[-1] = removed[-1].removesuffix("\n")
+            before = row[0]
         spans.append((first, count, removed))
     for first, count, removed in sorted(spans, key=lambda span: -span[0]):
         lines[first:first + count] = removed
@@ -386,7 +387,7 @@ def take_back(text, patches):
 
 def added_conditions(file, line, patch, text):
     """Byte spans of the tests of the `if` and `elif` statements a Python hunk adds in TEXT, its first added line being LINE."""
-    added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
+    added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].split("\n")[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
     except SyntaxError:
@@ -401,7 +402,8 @@ def added_conditions(file, line, patch, text):
 def run_per_hunk(options, task, root, live):
     """Names each hunk of the change whose revert alone turns no passing row into another result; exit 1 on one."""
     ref = base_ref(options.ref)
-    hunks = split_hunks(git_output("diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD", cwd=root))
+    diff = subprocess.run(["git", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root, capture_output=True).stdout
+    hunks = split_hunks(diff.decode("latin-1"))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
 
     def results(copy):
@@ -427,12 +429,12 @@ def run_per_hunk(options, task, root, live):
             path = pathlib.Path(copy, group[0][0])
             kept = path.read_bytes() if path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
-            text = take_back(kept.decode("utf-8", "surrogateescape") if kept is not None else "", [patch for _, _, patch in group])
+            text = take_back(kept.decode("latin-1") if kept is not None else "", [patch for _, _, patch in group])
             if not text and "\nnew file mode " in group[0][2]:
                 path.unlink(missing_ok=True)
             else:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(text.encode("utf-8", "surrogateescape"))
+                path.write_bytes(text.encode("latin-1"))
             still = {label for label, result in results(copy).items() if result == "pass"}
             if kept is None:
                 path.unlink(missing_ok=True)

@@ -3,6 +3,7 @@
 per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `same-files-once`: the call twice on the same files runs the check once, and the second table says one check was replayed;
 - `other-worktree-once`: the call from a second worktree of the same files, which has another path, runs the check again, since its output may hold the path;
+- `detached-worktrees-run`: two detached worktrees on one commit, with equal files, each run the check, since the output may hold the path;
 - `changed-file-runs`: a change to a file runs the check again;
 - `fresh-runs`: `--fresh` on the same files runs it again;
 - `git-state-runs`: the same files with another index, after a soft reset, run a check that reads `git status` again;
@@ -62,6 +63,10 @@ def main(args):
     git("worktree", "add", "-q", str(second), "-b", "second")
     out, error, runs = call(passing, cwd=second)
     step("other-worktree-once", runs == 1, (runs, out, error))
+    for name in ("first", "second"):
+        git("worktree", "add", "-q", "--detach", str(work.parent / f"{work.name}-{name}-detached"))
+    runs = [call(passing, cwd=work.parent / f"{work.name}-{name}-detached")[2] for name in ("first", "second")]
+    step("detached-worktrees-run", runs == [1, 1], runs)
     (work / "a.txt").write_text("one two\n")
     out, error, runs = call(passing)
     step("changed-file-runs", runs == 1 and "cached" not in out, (runs, out, error))

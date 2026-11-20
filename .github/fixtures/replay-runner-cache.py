@@ -5,6 +5,9 @@ or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any fa
 - `one-plugin-runs`: a change to one plugin's file runs that plugin's runner and the runner that names `.github`, no other;
 - `root-file-runs`: a change to a file at the root runs every runner;
 - `github-runs-all`: a change under `.github/` runs every runner;
+- `untracked-file-runs`: a file not yet added to git runs the runners of its plugin and the one naming `.github`;
+- `claude-plugin-file-runs`: a change under `.claude-plugin/` runs every runner;
+- `second-runner-runs`: a failing second runner of a plugin whose first runner passed is not hidden by it;
 - `fresh-runs`: `--fresh` runs every runner on the same files;
 - `failure-runs`: a failing runner runs on every call, and its `fixture` line is printed each time.
 
@@ -17,7 +20,7 @@ import tempfile
 
 CHECK = pathlib.Path(__file__).resolve().parents[1] / "check-repository.py"
 RUNNER = ("import os, pathlib, sys\nopen(os.environ['RUNNERS_LOG'], 'a').write('{name}\\n')\n"
-          "sys.exit(1 if pathlib.Path('{name}', 'fail').exists() else 0)\n")
+          "sys.exit(1 if pathlib.Path('{name}', '{fail}').exists() else 0)\n")
 results = {}
 
 
@@ -36,8 +39,9 @@ def main(args):
                       GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
     for name in ("alpha", "beta", "gamma"):
         (work / name / "fixtures").mkdir(parents=True)
-        (work / name / "fixtures" / "replay-one.py").write_text(RUNNER.format(name=name) + ("# reads .github and every plugin\n" if name == "gamma" else ""))
+        (work / name / "fixtures" / "replay-one.py").write_text(RUNNER.format(name=name, fail="fail") + ("# reads .github and every plugin\n" if name == "gamma" else ""))
         (work / name / "notes.txt").write_text("one\n")
+    (work / "alpha" / "fixtures" / "replay-two.py").write_text(RUNNER.format(name="alpha", fail="fail-two").replace("'alpha\\n'", "'alpha-two\\n'"))
     (work / ".github").mkdir()
     (work / ".github" / "notes.txt").write_text("one\n")
     subprocess.run(["git", "init", "-q", "-b", "main"], cwd=work, check=True)
@@ -50,19 +54,33 @@ def main(args):
 
     call()
     out, ran = call()
-    step("same-files-once", ran == [] and "3 replayed" in out, (ran, out))
+    step("same-files-once", ran == [] and "4 replayed" in out, (ran, out))
     (work / "alpha" / "notes.txt").write_text("two\n")
     out, ran = call()
-    step("one-plugin-runs", ran == ["alpha", "gamma"], (ran, out))
+    step("one-plugin-runs", ran == ["alpha", "alpha-two", "gamma"], (ran, out))
     (work / "notes.txt").write_text("one\n")
     subprocess.run(["git", "add", "."], cwd=work, check=True)
     out, ran = call()
-    step("root-file-runs", ran == ["alpha", "beta", "gamma"], (ran, out))
+    step("root-file-runs", ran == ["alpha", "alpha-two", "beta", "gamma"], (ran, out))
     (work / ".github" / "notes.txt").write_text("two\n")
     out, ran = call()
-    step("github-runs-all", ran == ["alpha", "beta", "gamma"], (ran, out))
+    step("github-runs-all", ran == ["alpha", "alpha-two", "beta", "gamma"], (ran, out))
+    (work / "alpha" / "new.txt").write_text("one\n")
+    out, ran = call()
+    step("untracked-file-runs", ran == ["alpha", "alpha-two", "gamma"], (ran, out))
+    (work / ".claude-plugin").mkdir()
+    (work / ".claude-plugin" / "notes.txt").write_text("one\n")
+    subprocess.run(["git", "add", "."], cwd=work, check=True)
+    out, ran = call()
+    step("claude-plugin-file-runs", ran == ["alpha", "alpha-two", "beta", "gamma"], (ran, out))
+    (work / "alpha" / "fail-two").write_text("")
+    subprocess.run(["git", "add", "."], cwd=work, check=True)
+    call()
+    out, ran = call()
+    step("second-runner-runs", "fixture alpha/fixtures/replay-two.py: exit 1" in out and ran == ["alpha-two"], (ran, out))
+    (work / "alpha" / "fail-two").unlink()
     out, ran = call("--fresh")
-    step("fresh-runs", ran == ["alpha", "beta", "gamma"], (ran, out))
+    step("fresh-runs", ran == ["alpha", "alpha-two", "beta", "gamma"], (ran, out))
     (work / "beta" / "fail").write_text("")
     subprocess.run(["git", "add", "."], cwd=work, check=True)
     call()
