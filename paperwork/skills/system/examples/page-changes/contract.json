@@ -111,6 +111,7 @@
   },
   {
    "term": "ack",
+   "aliases": ["수신 확인"],
    "meaning": "{session}'s POST that moves changes from pending to applied",
    "coined": false
   },
@@ -631,6 +632,7 @@
   {
    "id": "server",
    "label": "Server",
+   "aliases": ["서버", "backend"],
    "tag": "service",
    "level": "whole",
    "area": "skill-folder",
@@ -1101,6 +1103,7 @@
   {
    "id": "change-queue",
    "label": "Change queue",
+   "aliases": ["대기열", "변경 큐"],
    "tag": "queue",
    "level": "whole",
    "area": "page-folder",
@@ -1156,6 +1159,7 @@
   {
    "id": "browser",
    "label": "Browser",
+   "aliases": ["브라우저", "웹 브라우저"],
    "tag": "host",
    "level": "whole",
    "area": "local-machine",
@@ -2041,6 +2045,7 @@
   {
    "id": "panel",
    "label": "Thread panel",
+   "aliases": ["댓글 창", "comment sidebar"],
    "tag": "endpoint",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2120,6 +2125,7 @@
   {
    "id": "status-bar",
    "label": "Status bar",
+   "aliases": ["상태 표시줄"],
    "tag": "endpoint",
    "level": "runtime-parts",
    "area": "runtime-screen",
@@ -2571,6 +2577,7 @@
   {
    "id": "watcher",
    "label": "File watcher",
+   "aliases": ["파일 감시"],
    "tag": "job",
    "level": "server-parts",
    "area": "server-loops",

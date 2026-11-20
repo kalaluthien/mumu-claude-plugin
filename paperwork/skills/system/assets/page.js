@@ -847,10 +847,11 @@
       shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text: flat(text) })) });
     const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
     const details = info => Object.entries(info || {});
+    const aliased = record => (record.aliases || []).map(alias => [alias, 0]), said = record => (record.aliases || []).map(alias => ["matched alias:", alias]); // an alias weighs as the record's name
     for (const level of contract.levels) {
       add(level.id, "level", words(level.title), "level", [[words(level.title), 0], [level.id, 1], [level.about && words(level.about), 3]], [["id", level.id], ["about", level.about]]);
-      for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 0], [node.id, 1], [node.tag, 2], [node.purpose && words(node.purpose), 3], [texts(node.info), 4]], [["id", node.id], ["tag", tagName(node.tag)], ["purpose", node.purpose], ...details(node.info)]);
-      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 0], [area.id, 1], [area.tag, 2], [texts(area.info), 4]], [["id", area.id], ["tag", tagName(area.tag)], ...details(area.info)]);
+      for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 0], ...aliased(node), [node.id, 1], [node.tag, 2], [node.purpose && words(node.purpose), 3], [texts(node.info), 4]], [...said(node), ["id", node.id], ["tag", tagName(node.tag)], ["purpose", node.purpose], ...details(node.info)]);
+      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 0], ...aliased(area), [area.id, 1], [area.tag, 2], [texts(area.info), 4]], [...said(area), ["id", area.id], ["tag", tagName(area.tag)], ...details(area.info)]);
       for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 0], [edge.id, 1], [edge.tag, 2], [sentence(edge), 3], [texts(edge.info), 4]], [["id", edge.id], ["tag", tagName(edge.tag)], ...details(edge.info)]);
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
@@ -892,7 +893,11 @@
     return least <= most ? 4 + least : -1;
   }
   const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
-  const forms = query => [plain(query), plain(typed(query))];
+  const termed = query => (contract.terms || []).flatMap(term => (term.aliases || []).filter(alias => ` ${query} `.includes(` ${plain(alias)} `)).map(alias => [alias, term.term])); // the term aliases a query holds whole, each with its term
+  const forms = query => { // a query read as typed and as the keys of a Korean layout, then each with its term aliases read as their terms
+    const read = [plain(query), plain(typed(query))];
+    return read.concat(read.filter(form => termed(form).length).map(form => termed(form).reduce((done, [alias, term]) => ` ${done} `.replace(` ${plain(alias)} `, ` ${plain(term)} `).trim(), form)));
+  };
   const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
   const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
   function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
@@ -1011,7 +1016,7 @@
     const query = $("query").value.trim(), box = $("hits"), input = $("query");
     box.replaceChildren();
     const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
-    const asked = regular && query ? sought() : {};
+    const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
     const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
     const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
     const before = scope ? [] : recalled().filter(text => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(text => ({ recent: text }));
@@ -1040,7 +1045,8 @@
         const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
         const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
         const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
-        if (part) text.push(make("span", { class: "where" }, make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])));
+        const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
+        if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
         const row = option(entry, make("div", { class: "text" }, ...text), make("small", {}, entry.note));
         row.dataset.hit = entry.id;
         row.addEventListener("click", () => pick(entry));

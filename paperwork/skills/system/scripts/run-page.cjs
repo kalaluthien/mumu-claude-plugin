@@ -48,7 +48,8 @@
 //            keys, each step on the level that now holds its record, the renamed node under its new label.
 //   search   each query of fixtures/search-queries.json typed into its example's page: the wanted record is the
 //            first hit for 17 in 20 and among the first three for 19 in 20, and first for 3 in 4 of the misspelt
-//            queries and of those typed with the Korean layout left on.
+//            queries and of those typed with the Korean layout left on; an alias query, a word its contract holds only in
+//            an alias, a Korean one among them, finds its record first, which names the field `matched alias`.
 //   titles   on each example's page the Properties list shows each property by its title, and a click on the first
 //            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
@@ -117,7 +118,7 @@ const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-b
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
 const STEPS = ["diagram", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
-const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout"];
+const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
   console.error("usage: run-page.cjs " + STEPS.map((word) => `[${word}]`).join(" "));
@@ -903,18 +904,23 @@ async function search(browser) {
     const page = pages[query.example];
     const holder = examples.find((example) => example.name === query.example);
     check(page && (holder.levelOf[query.wants] !== undefined || JSON.stringify(holder.contract).includes(`"id":"${query.wants}"`)), `the query ${query.query} wants ${query.wants}, which ${query.example} does not hold`);
+    if (query.kind === "alias") { // a word the contract says nowhere but in an alias
+      const unaliased = JSON.stringify(holder.contract, (key, value) => key === "aliases" ? undefined : value).toLowerCase();
+      check(!unaliased.includes(query.query.toLowerCase()), `the alias query ${query.query} is a word ${query.example} holds outside its aliases`);
+    }
     const hits = await searched(page, query.query);
+    const where = await page.evaluate(() => ((document.querySelector("#hits [data-hit]") || document).querySelector(".where") || {}).textContent || "");
     await page.keyboard.press("Escape");
-    const place = hits.indexOf(query.wants);
-    count("first", place === 0); count("three", place >= 0 && place < 3); count(query.kind, place === 0);
-    if (place !== 0) missed.push(`${query.query} (${query.kind}) wants ${query.wants}, got ${hits.slice(0, 3).join(",") || "nothing"}`);
+    const place = hits.indexOf(query.wants), told = query.kind !== "alias" || place === 0 && where.startsWith("matched alias: ");
+    count("first", place === 0); count("three", place >= 0 && place < 3); count(query.kind, place === 0 && told);
+    if (place !== 0 || !told) missed.push(`${query.query} (${query.kind}) wants ${query.wants}, got ${hits.slice(0, 3).join(",") || "nothing"}${told ? "" : ", its first hit naming no matched alias"}`);
   }
   for (const page of Object.values(pages)) await page.context().close();
   const share = (name) => tally[name].hit / tally[name].of;
-  const line = `first ${tally.first.hit}/${tally.first.of}, in three ${tally.three.hit}/${tally.three.of}, misspelt ${tally.misspelt.hit}/${tally.misspelt.of}, korean-layout ${tally["korean-layout"].hit}/${tally["korean-layout"].of}`;
+  const line = `first ${tally.first.hit}/${tally.first.of}, in three ${tally.three.hit}/${tally.three.of}, misspelt ${tally.misspelt.hit}/${tally.misspelt.of}, korean-layout ${tally["korean-layout"].hit}/${tally["korean-layout"].of}, alias ${tally.alias.hit}/${tally.alias.of}`;
   console.log(line);
   for (const miss of missed) console.log("  " + miss);
-  check(share("first") >= 17 / 20 && share("three") >= 19 / 20 && share("misspelt") >= 3 / 4 && share("korean-layout") >= 3 / 4, line);
+  check(share("first") >= 17 / 20 && share("three") >= 19 / 20 && share("misspelt") >= 3 / 4 && share("korean-layout") >= 3 / 4 && share("alias") === 1, line);
 }
 
 // ---- titles ----

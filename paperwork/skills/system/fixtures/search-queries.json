@@ -334,5 +334,47 @@
   "example": "page-changes",
   "kind": "korean-layout",
   "typed": "half"
+ },
+ {
+  "query": "검사기",
+  "wants": "checker",
+  "example": "self",
+  "kind": "alias",
+  "typed": "whole"
+ },
+ {
+  "query": "valid",
+  "wants": "checker",
+  "example": "self",
+  "kind": "alias",
+  "typed": "half"
+ },
+ {
+  "query": "브라우저",
+  "wants": "browser",
+  "example": "page-changes",
+  "kind": "alias",
+  "typed": "whole"
+ },
+ {
+  "query": "backend",
+  "wants": "server",
+  "example": "page-changes",
+  "kind": "alias",
+  "typed": "whole"
+ },
+ {
+  "query": "대기",
+  "wants": "change-queue",
+  "example": "page-changes",
+  "kind": "alias",
+  "typed": "half"
+ },
+ {
+  "query": "누락",
+  "wants": "sentence-truth",
+  "example": "self",
+  "kind": "alias",
+  "typed": "whole"
  }
 ]

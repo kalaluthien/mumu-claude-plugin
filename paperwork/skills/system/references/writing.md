@@ -8,15 +8,17 @@ Word every text of a contract so that a reader takes each level's point from its
 - **description**: every other text: a `purpose`, an `about`, a `meaning`, an item's text, a step's `note`, a `statement`, a question's `asks`. It is English, or Korean when the reader asks for Korean, one language through the contract.
 - **lead**: the description a reader meets before what sits under it. The contract's `purpose` leads the levels, a level's `about` its areas, an area's `purpose` item, or its `why` where its tag has no `purpose`, its nodes, a node's `purpose` its items, a scenario's `purpose` its steps.
 - **other word**: a second word for the concept a term names. A term lists them in `avoid`, and the checker refuses each in every text.
+- **alias**: a word a reader may type to find a record that its name and texts lack. A node, an area or a term lists them in `aliases`, which no text shows, so an alias may be Korean.
 - **settled word**: a Korean word that 표준국어대사전 (`https://stdict.korean.go.kr`) holds in the sense meant, or that the subject's own Korean documents use more than its transliteration.
 
 ## Steps
 
 1. List the terms: each word of the subject's business, technique, theory, profession or guideline that a reader must take in one sense becomes a `term` with its `meaning`, and its `avoid` lists the other words the sources, a translation or habit would say for it.
 2. Write the names, then the leads from the top down.
-3. Write what sits under each lead: the items, the notes, the statements.
-4. Read from the top: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py outline <contract> [level]` prints each lead with its parts. The first line must raise the question each level's lead answers; then hold each level against the rules under Structure, and rewrite until none breaks.
-5. Check: the `check` call refuses what its `rules` call lists; every other rule here is the writer's to keep.
+3. List the aliases: for each record a reader would look for by another word, add its Korean name, its abbreviation or the expansion of one, and a common other name, such as `아마존` and `Amazon Web Services` for `AWS`; a word of a term's `avoid` may be its alias, since a reader types the word they know.
+4. Write what sits under each lead: the items, the notes, the statements.
+5. Read from the top: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py outline <contract> [level]` prints each lead with its parts. The first line must raise the question each level's lead answers; then hold each level against the rules under Structure, and rewrite until none breaks.
+6. Check: the `check` call refuses what its `rules` call lists; every other rule here is the writer's to keep.
 
 ## Rules
 

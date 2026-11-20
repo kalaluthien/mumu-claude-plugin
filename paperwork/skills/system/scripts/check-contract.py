@@ -69,6 +69,7 @@ RULES = {
     "name-form": "a node's and an area's label opens with a capital, or with the subject's own name such as a file name, and with no article `A`, `An` or `The`, so it reads as a title on the page; a level's, a scenario's and a property's title is a slug, lowercase words and digits joined by `-`",
     "korean-text": "a description that holds Korean keeps three forms: after a record's name `{id}` a particle of two forms is written as both, `은(는)`, `이(가)`, `을(를)`, `과(와)` or `(으)로`, since a new label may end in another sound; a sentence that closes with a full stop closes in `니다`; and no space stands before a particle after a name, a quote in backticks or an English word",
     "term-words": "a term's `avoid` lists the other words for its concept, and no text, label or title says one of them outside backticks: one concept keeps one word; an English word counts in any case and with a plural `s` or `es`, a Korean word alone or with a particle after it, and a word inside a longer word does not count; no word is both a term and a word to avoid",
+    "alias-words": "a node's, an area's or a term's `aliases` holds the other words a reader may search it by, such as a Korean name, an abbreviation or its expansion: each is a word, said once, and no id, label, term or alias of any record, its own included, whatever its case or spacing, so one search word leads to one record",
     "text-plain": "a text names another record as `{id}`, which must exist, no text but a name, a source's words, an item of the code form and a quote in backticks spells the label of a node or an area: it names the record, so a rename reaches it; a label holds no other label and no space at either end, and a node's or an area's closes with no full stop and names no record; and a text holds no markup and no drawing value: outside backticks no `<` opens a word, a slash, `!` or `?`, whatever the word, and there is no hex colour, colour function, length in `px`, `x=` or `y=` number, or style declaration such as `left: 4`; an item of the code form is quoted as it is",
     "formula": f"a formula in a text, inline as `$...$` or display as `$$...$$`, is written in the subset the page draws: {SUBSET}; the contract's title, an area's or a node's label and a term hold none, since the page draws them as words",
 }
@@ -205,7 +206,7 @@ def fits(value, form):
 
 OPTIONAL = {"avoid": list, "area": str, "opens": str, "purpose": str, "about": str, "note": str, "authority": str, "strength": str, "status": str, "fault": str,
             "many": bool, "principle": bool, "coined": bool, "on": list, "paths": list, "sources": list, "terms": list, "scenarios": list,
-            "properties": list, "areas": list, "edges": list, "questions": list, "answers": list, "gap": str, "files": list}
+            "properties": list, "areas": list, "edges": list, "questions": list, "answers": list, "gap": str, "files": list, "aliases": list}
 
 
 def form_breaks(contract):
@@ -235,6 +236,8 @@ def form_breaks(contract):
             found.append((where, "form", "`on` must be a list of ids"))
         if isinstance(holder.get("avoid"), list) and not all(isinstance(word, str) and word.strip() for word in holder["avoid"]):
             found.append((where, "form", "`avoid` must be a list of words"))
+        if isinstance(holder.get("aliases"), list) and not all(isinstance(word, str) for word in holder["aliases"]):
+            found.append((where, "form", "`aliases` must be a list of strings"))
         if "info" in holder and not isinstance(holder["info"], dict):
             found.append((where, "form", "`info` must be an object"))
         if "evidence" in holder and not (isinstance(holder["evidence"], list) and all(isinstance(entry, str) for entry in holder["evidence"])):
@@ -249,11 +252,11 @@ def form_breaks(contract):
     for i, source in each("sources", contract.get("sources", [])):
         need(f"sources[{i}]", source, {"id": str, "path": str, "says": str}, ("authority",))
     for i, term in each("terms", contract.get("terms", [])):
-        need(f"terms[{i}]", term, {"term": str, "meaning": str}, ("coined", "avoid"))
+        need(f"terms[{i}]", term, {"term": str, "meaning": str}, ("coined", "avoid", "aliases"))
     levels = [level.get("id") for i, level in each("levels", contract.get("levels"), True) if need(f"levels[{i}]", level, {"id": str, "title": str}, ("about",))]
     shown = set()
-    for kind, fields, optional in (("areas", {"id": str, "label": str, "tag": str, "level": str}, proof),
-                                   ("nodes", {"id": str, "label": str, "tag": str, "level": str}, ("area", "opens", "purpose", "files") + proof),
+    for kind, fields, optional in (("areas", {"id": str, "label": str, "tag": str, "level": str}, ("aliases",) + proof),
+                                   ("nodes", {"id": str, "label": str, "tag": str, "level": str}, ("area", "opens", "purpose", "files", "aliases") + proof),
                                    ("edges", {"id": str, "from": str, "to": str, "label": str, "tag": str}, ("many",) + proof)):
         for k, element in each(kind, contract.get(kind, [])):
             if need(f"{kind}[{k}]", element, fields, optional) and kind != "edges" and isinstance(element.get("level"), str):
@@ -498,6 +501,7 @@ def breaks(contract, root=None):
             rest, count = re.subn(spelling(word), " ", rest, flags=re.IGNORECASE)
             if count and word.casefold() not in terms:
                 found.append((where, "term-words", f"`{text[:40]}` says `{word}` for the term `{term}`; one concept keeps one word, so write `{term}`, or quote the subject's own word between backticks"))
+    found += alias_breaks(contract)
     all_edges = {edge['id']: edge for edge in edges(contract)}
     for item in contract.get("properties", []):
         where = f"property {item['id']}"
@@ -536,6 +540,36 @@ def breaks(contract, root=None):
             found.append((where, "question-answered", "no record in `answers` carries `evidence`, so the answer has no source"))
         elif gap and stated.get(gap, {}).get("kind") != "gap":
             found.append((where, "question-answered", f"`gap` names `{gap}`, which is no gap property"))
+    return found
+
+def alias_breaks(contract):
+    """Breaks of the `alias-words` rule: an alias that is empty, said twice, or the id, label, term or alias of a record."""
+    said = lambda word: " ".join(word.casefold().split())
+    holders = [(element["id"], element) for element in elements(contract) if "from" not in element] + [(f"term {entry['term']}", entry) for entry in contract.get("terms", [])]
+    names = {}
+    for kind, one in (("levels", "level"), ("sources", "source"), ("scenarios", "scenario"), ("properties", "property"), ("questions", "question")):
+        for item in contract.get(kind, []):
+            names.setdefault(said(item["id"]), []).append(f"{one} {item['id']}")
+    for element in elements(contract):
+        names.setdefault(said(element["id"]), []).append(element["id"])
+    for where, holder in holders:
+        names.setdefault(said(holder.get("label", holder.get("term", ""))), []).append(where)
+    for where, holder in holders:
+        for word in holder.get("aliases", []):
+            names.setdefault(said(word), []).append(f"{where} alias")
+    found = []
+    for where, holder in holders:
+        kept = set()
+        for word in holder.get("aliases", []):
+            if not word.strip():
+                found.append((where, "alias-words", "an alias is empty; write the word a reader would search by, or take it out"))
+            elif said(word) in kept:
+                found.append((where, "alias-words", f"the alias `{word}` is said twice; keep one"))
+            else:
+                kept.add(said(word))
+                others = [other for other in names[said(word)] if other != f"{where} alias"]
+                if others:
+                    found.append((where, "alias-words", f"the alias `{word}` is also {', '.join(sorted(set(others)))}; an alias leads a search to one record, so write a word no other name holds, or take it out"))
     return found
 
 

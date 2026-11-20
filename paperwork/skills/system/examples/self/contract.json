@@ -51,6 +51,7 @@
   },
   {
    "term": "gap",
+   "aliases": ["빈틈", "누락"],
    "meaning": "what {contract} lacks, forbids wrongly, says twice or says with two meanings",
    "coined": false
   }
@@ -152,6 +153,7 @@
   {
    "id": "session",
    "label": "Claude Code session",
+   "aliases": ["세션", "에이전트"],
    "tag": "host",
    "level": "skill",
    "area": "outside",
@@ -172,6 +174,7 @@
   {
    "id": "reader",
    "label": "Reader",
+   "aliases": ["독자"],
    "tag": "actor",
    "level": "skill",
    "area": "outside",
@@ -186,6 +189,7 @@
   {
    "id": "extract",
    "label": "Extraction run",
+   "aliases": ["추출"],
    "tag": "job",
    "level": "skill",
    "area": "work",
@@ -259,6 +263,7 @@
   {
    "id": "checker",
    "label": "Checker",
+   "aliases": ["검사기", "validator", "linter"],
    "tag": "job",
    "level": "skill",
    "area": "work",
@@ -299,6 +304,7 @@
   {
    "id": "catalogue",
    "label": "Tag catalogue",
+   "aliases": ["태그 목록"],
    "tag": "artifact",
    "level": "skill",
    "area": "kept",
@@ -322,6 +328,7 @@
   {
    "id": "contract",
    "label": "Contract",
+   "aliases": ["계약서", "명세서"],
    "tag": "dataStore",
    "level": "skill",
    "area": "kept",

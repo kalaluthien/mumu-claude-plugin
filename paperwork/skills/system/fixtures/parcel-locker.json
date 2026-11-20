@@ -11,7 +11,8 @@
  "terms": [
   {
    "term": "code",
-   "meaning": "six digits sent to the receiver"
+   "meaning": "six digits sent to the receiver",
+   "aliases": ["PIN code", "인증번호"]
   }
  ],
  "levels": [
@@ -52,6 +53,7 @@
   {
    "id": "door",
    "label": "Door",
+   "aliases": ["locker door", "보관함"],
    "tag": "service",
    "level": "locker",
    "area": "box",
