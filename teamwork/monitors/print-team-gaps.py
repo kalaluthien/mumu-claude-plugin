@@ -37,7 +37,7 @@ def main(args):
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
     awake = False  # whether the last poll watched, so the poll the team empties in still reads once
     while True:
-        listed, me = session.sessions()
+        listed, me = session.own()
         watching = team_names.watching(me, listed)
         manager = team_names.role(me.get("name")) == "manager"
         if not watching and not (awake and manager):

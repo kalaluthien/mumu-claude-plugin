@@ -47,7 +47,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     name = args[0]
-    _, me = session.sessions()
+    _, me = session.own_interactive()
     if not me:
         print(f"not renamed to {name}: no herdr session owns this pane")
         return 1

@@ -1,7 +1,7 @@
 """The session port: where a team's sessions run, done by the herdr adapter.
 
 Every adapter has these functions, by the same names:
-- reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), which the port's `own_name()` reads, `agent(name)` one by name or None,
+- reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), as the pane's record says, which `own()` and `own_interactive()` narrow to a session started or renamed as its name, or a person types into, and `own_name()` reads, `agent(name)` one by name or None,
   `screen(pane, styled=False)` the text a pane shows, with its color codes when `styled`, `tabs(workspace)` a workspace's tabs, each with its `label`
 - writes: `open_tab(workspace, cwd, label)` and `open_workspace(cwd, label)` each a new place,
   `rename(place, name)` its tab and pane, `start(name, pane, kind, argv, timeout)` an agent in a pane, `prompt(pane, text)` None once taken, else why not,
@@ -14,10 +14,21 @@ import agent as coding_agent  # not `agent`, which the host's `agent(name)` answ
 import session_herdr as adapter
 
 
+def own():
+    """(the live sessions, this one's own) as `sessions()` gives them, with the own {} unless this session was started or renamed as its recorded name, since herdr names the pane's session after the pane, so a `claude -p` run there would act as its worker."""
+    listed, me = adapter.sessions()
+    return listed, me if coding_agent.named(me.get("name"), coding_agent.own_transcript()) else {}
+
+
+def own_interactive():
+    """(the live sessions, this one's own) as `sessions()` gives them, with the own {} unless a person types into this session, for a script that renames it."""
+    listed, me = adapter.sessions()
+    return listed, me if coding_agent.interactive() else {}
+
+
 def own_name():
-    """This session's name; None when it is none of the live sessions or was not started or renamed as that name, since herdr names the pane's session after the pane, so a `claude -p` run there would write as its worker."""
-    name = adapter.sessions()[1].get("name")
-    return name if coding_agent.named(name, coding_agent.own_transcript()) else None
+    """This session's name; None when it is none of the live sessions or was not started or renamed as that name."""
+    return own()[1].get("name")
 
 
 def __getattr__(name):
