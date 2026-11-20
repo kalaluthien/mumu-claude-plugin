@@ -1,8 +1,9 @@
 """What the scenario scripts of `skills/kick-off/fixtures/` and `hooks/fixtures/` share: a `gh` that logs and fails, a git
-identity, a fake herdr, a file written in a scratch folder, a script run in a repository, the hook router fed one event,
+identity, a fake herdr, a file written in a scratch folder, a script run in a repository, a stand-in `claude` above a command, the hook router fed one event,
 the failure line, and the run of every case when a scenario is called with no argument."""
 import json
 import os
+import pathlib
 import subprocess
 import sys
 
@@ -70,8 +71,19 @@ def fake_herdr(work, agents):
     return folder
 
 
-def route_event(router, event, stubs):
-    """The hook router's decoded answer to EVENT, run as the pane `p1` with the folder STUBS first on `PATH`."""
+def as_claude(argv, options, folder):
+    """ARGV run under a stand-in `claude` in FOLDER started with OPTIONS, such as `--name t-worker` or `-p probe`, since a hook takes its session's
+    name from the nearest `claude` above it."""
+    stand_in = pathlib.Path(folder) / "claude"
+    stand_in.parent.mkdir(exist_ok=True)
+    if not stand_in.exists():
+        stand_in.symlink_to("/bin/sh")
+    return [str(stand_in), "-c", f'shift {len(options) - 1}; "$@"; exit $?', *options, *map(str, argv)]
+
+
+def route_event(router, event, stubs, name):
+    """The hook router's decoded answer to EVENT, run as the pane `p1` started as NAME, with the folder STUBS first on `PATH`."""
     environment = {**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}
-    out = subprocess.run([str(router)], input=json.dumps(event), capture_output=True, text=True, env=environment).stdout
+    argv = as_claude([router], ["--name", name], pathlib.Path(stubs).parent / "stand-in")
+    out = subprocess.run(argv, input=json.dumps(event), capture_output=True, text=True, env=environment).stdout
     return json.loads(out) if out.strip() else {}
