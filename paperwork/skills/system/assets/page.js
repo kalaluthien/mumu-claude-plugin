@@ -919,12 +919,12 @@
   const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
   const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
   function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
-    let field = 0, quality = 0, covered = 0;
+    let field = 0, quality = 0, covered = 0, telling = 0;
     for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
       let place = 5, grade = 7, size = 0;
       for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
       if (grade === 7 && !partial) return null;
-      covered += grade < 7 ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
+      covered += grade < 7 ? 1 : 0; telling += grade < 7 && !STOP.has(token) ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
     }
     field /= tokens.length; quality /= tokens.length;
     if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
@@ -933,8 +933,9 @@
       const count = entry.terms.filter(word => word === term).length;
       bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
     }
-    return { entry, covered, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
+    return { entry, covered, telling, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
   }
+  const STOP = new Set("a an and are as at be by for from has have how in is it its of on or that the this to was what when where which who why will with".split(" ")); // words nearly every text holds, so alone they tell no record apart
   let lengths = 1;
   function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
     const scored = new Map();
@@ -943,8 +944,9 @@
       const tokens = form.split(" ").filter(Boolean);
       if (!tokens.length) continue;
       const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
+      const told = tokens.some(token => !STOP.has(token));
       const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
-        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => row.covered || row.bm25 < 0);
+        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => told ? row.telling : row.covered || row.bm25 < 0);
       const score = new Map(pool.map(row => [row.entry, 0]));
       for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
         const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
@@ -1020,8 +1022,8 @@
   }
   let chosen = 0, listed = [], scope = null, regular = false, memory = null;
   const shelf = () => `paperwork-system-recent ${contract.title} ${location.pathname}`; // every file:// page shares one storage
-  const recalled = () => { // the last queries a pick was made from, the tab's own once the storage throws
-    if (!memory) try { return JSON.parse(localStorage.getItem(shelf()) || "[]"); } catch { memory = []; }
+  const recalled = () => { // the last queries a pick was made from, each with its mode, the tab's own once the storage throws
+    if (!memory) try { return JSON.parse(localStorage.getItem(shelf()) || "[]").map(one => typeof one === "string" ? { text: one, regex: false } : one); } catch { memory = []; }
     return memory;
   };
   const remember = queries => {
@@ -1037,7 +1039,7 @@
     const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
     const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
     const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
-    const before = scope ? [] : recalled().filter(text => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(text => ({ recent: text }));
+    const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
     const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
       : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
     listed = groups.flatMap(group => group[1]);
@@ -1055,7 +1057,7 @@
             make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
           row.dataset.recent = item.recent;
           row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
-          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item.recent) : recall(item.recent));
+          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item) : recall(item));
           box.append(row);
           continue;
         }
@@ -1077,8 +1079,9 @@
     const current = box.querySelector('[aria-selected="true"]');
     if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
   }
-  function recall(text) { $("query").value = text; chosen = -1; $("query").focus(); list(); }
-  function forget(text) { remember(recalled().filter(one => one !== text)); $("query").focus(); list(); }
+  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase() && one.regex === item.regex;
+  function recall(item) { $("query").value = item.recent; regex(item.regex); }
+  function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
   function regex(on) {
     regular = on; chosen = -1;
     $("regex").setAttribute("aria-pressed", String(on));
@@ -1100,8 +1103,8 @@
   }
   function pick(entry) {
     const query = $("query").value.trim();
-    if (entry.recent) return recall(entry.recent);
-    if (query && document.body.dataset.palette) remember([query, ...recalled().filter(one => one.toLowerCase() !== query.toLowerCase())].slice(0, 8));
+    if (entry.recent) return recall(entry);
+    if (query && document.body.dataset.palette) remember([{ text: query, regex: regular }, ...recalled().filter(one => !same(one, { recent: query, regex: regular }))].slice(0, 8));
     shut();
     if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
       const question = contract.questions.find(one => one.id === entry.id);

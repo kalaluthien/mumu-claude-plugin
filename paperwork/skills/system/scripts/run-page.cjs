@@ -61,7 +61,10 @@
 //   search   each query of fixtures/search-queries.json typed into its example's page: the wanted record is the
 //            first hit for 17 in 20 and among the first three for 19 in 20, and first for 3 in 4 of the misspelt
 //            queries and of those typed with the Korean layout left on; an alias query, a word its contract holds only in
-//            an alias, a Korean one among them, finds its record first, which names the field `matched alias`.
+//            an alias, a Korean one among them, finds its record first, which names the field `matched alias`. On
+//            page-changes `the zzqxv wobbly` shows the no-result state and `the zzqxv watcher` lists watcher first,
+//            printed as `stop word: PASS`; a query picked in the regular expression mode comes back from the recent
+//            queries after a reload with the mode on, and one kept as bare text with it off, printed as `regex recall: PASS`.
 //   titles   on each example's page the Properties list shows each property by its title, and a click on the first
 //            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
@@ -1085,7 +1088,41 @@ async function search(browser) {
   const line = `first ${tally.first.hit}/${tally.first.of}, in three ${tally.three.hit}/${tally.three.of}, misspelt ${tally.misspelt.hit}/${tally.misspelt.of}, korean-layout ${tally["korean-layout"].hit}/${tally["korean-layout"].of}, alias ${tally.alias.hit}/${tally.alias.of}`;
   console.log(line);
   for (const miss of missed) console.log("  " + miss);
+  const failed = [];
+  for (const [name, scenario] of [["stop word", stopWord], ["regex recall", regexRecall]]) {
+    const outcome = await scenario(browser).then((detail) => `PASS ${detail}`, (error) => { failed.push(name); return `FAIL ${error.message.split("\n")[0]}`; });
+    console.log(`${name}: ${outcome}`);
+  }
   check(share("first") >= 17 / 20 && share("three") >= 19 / 20 && share("misspelt") >= 3 / 4 && share("korean-layout") >= 3 / 4 && share("alias") === 1, line);
+  check(!failed.length, `${failed.join(" and ")} failed`);
+}
+async function stopWord(browser) { // a long query's stop word alone finds nothing, and the query's other words still rank
+  const page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
+  await page.keyboard.press("/");
+  const stray = await typed(page, "the zzqxv wobbly"), none = await said(page);
+  check(!stray.length && none && none.title.includes("the zzqxv wobbly"), `the zzqxv wobbly lists ${stray.length} records (${stray.slice(0, 3).map((hit) => hit.id).join(",")}), not the no-result state`);
+  const kept = await typed(page, "the zzqxv watcher");
+  check(kept.length && kept[0].id === "watcher", `the zzqxv watcher lists ${kept.map((hit) => hit.id).slice(0, 3).join(",") || "nothing"}, not watcher first`);
+  quiet(page, "page-changes");
+  await page.context().close();
+  return "the zzqxv wobbly shows no results; the zzqxv watcher lists watcher first";
+}
+async function regexRecall(browser) { // a recent query comes back in the mode it was picked in, after a reload too, and one an earlier page kept as bare text comes back plain
+  const page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
+  const pressed = () => page.evaluate(() => document.getElementById("regex").getAttribute("aria-pressed"));
+  const pickRecent = async (text) => { await page.keyboard.press("/"); await page.fill("#query", ""); await page.clock.fastForward(30); await page.click(`#hits [data-recent="${text}"] .text`); await page.clock.fastForward(30); };
+  await page.keyboard.press("/"); await page.click("#regex"); await typed(page, "watcher|flush"); await page.keyboard.press("Enter"); await rest(page);
+  await page.evaluate(() => { const shelf = Object.keys(localStorage).find((key) => key.startsWith("paperwork-system-recent ")); localStorage.setItem(shelf, JSON.stringify([...JSON.parse(localStorage.getItem(shelf)), "the flush"])); });
+  await page.reload(); await rest(page);
+  await pickRecent("watcher|flush");
+  const strict = await page.evaluate(() => [...document.querySelectorAll("#hits [data-hit]")].length);
+  check(await pressed() === "true" && (await page.inputValue("#query")) === "watcher|flush" && strict && !(await said(page)), `watcher|flush picked from recent queries after a reload comes back with the toggle ${await pressed() === "true" ? "on" : "off"}, ${strict} hits`);
+  await page.keyboard.press("Escape");
+  await pickRecent("the flush");
+  check(await pressed() === "false" && (await page.inputValue("#query")) === "the flush", `the flush, kept as bare text, picked from recent queries in the regular expression mode comes back with the toggle ${await pressed() === "true" ? "on" : "off"}`);
+  quiet(page, "page-changes");
+  await page.context().close();
+  return "watcher|flush comes back with the toggle on after a reload; the flush, kept as bare text, comes back with it off";
 }
 
 // ---- titles ----
