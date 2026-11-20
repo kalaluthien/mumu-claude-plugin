@@ -18,13 +18,12 @@ import tempfile
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `{command}` prints `ok`; on base nothing.\n")
-failed = []
+results = {}
 
 
 def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    if not ok:
-        failed.append(name)
+    results[name] = ok
 
 
 def main(args):
@@ -75,8 +74,8 @@ def main(args):
     for _ in range(2):
         subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
     step("base-once", len(log.read_text().split()) == 1, log.read_text())
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    print("PASS" if all(results.values()) else "FAIL")
+    return 0 if all(results.values()) else 1
 
 
 if __name__ == "__main__":

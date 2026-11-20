@@ -58,7 +58,6 @@ import os
 import pathlib
 import re
 import shlex
-import shutil
 import signal
 import stat
 import subprocess
@@ -214,11 +213,7 @@ class Memory:
 def tree_of_files(root):
     """The git tree of every file in ROOT not ignored, as a sha, so equal files give an equal tree whoever wrote them; empty when git cannot say."""
     with tempfile.TemporaryDirectory(prefix="run-criteria-index-") as folder:
-        index = pathlib.Path(folder, "index")
-        current = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-path", "index", cwd=root) or folder)
-        if current.is_file():
-            shutil.copy(current, index)
-        environment = {**os.environ, "GIT_INDEX_FILE": str(index)}
+        environment = {**os.environ, "GIT_INDEX_FILE": str(pathlib.Path(folder, "index"))}
         added = subprocess.run(["git", "add", "-A"], cwd=root, env=environment, capture_output=True)
         written = subprocess.run(["git", "write-tree"], cwd=root, env=environment, capture_output=True, text=True)
         return written.stdout.strip() if not added.returncode and not written.returncode else ""
@@ -406,9 +401,7 @@ def run_per_hunk(options, task, root, live):
             kept = path.read_bytes() if path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
             for file, line, patch in sorted(group, key=lambda hunk: -hunk[1]):  # from the last line up, so each keeps its line number
-                reverted = subprocess.run(["git", "apply", "-R", "--unidiff-zero", "--whitespace=nowarn", "-"], cwd=copy, input=patch, text=True, capture_output=True)
-                if reverted.returncode:
-                    sys.exit(f"run-criteria: could not revert the hunk at {file}:{line}: {reverted.stderr.strip()}")
+                subprocess.run(["git", "apply", "-R", "--unidiff-zero", "--whitespace=nowarn", "-"], cwd=copy, input=patch, text=True, check=True)
             still = {label for label, result in results(copy).items() if result == "pass"}
             if kept is None:
                 path.unlink(missing_ok=True)

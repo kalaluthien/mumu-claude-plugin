@@ -17,13 +17,12 @@ import tempfile
 CHECK = pathlib.Path(__file__).resolve().parents[1] / "check-repository.py"
 RUNNER = ("import os, pathlib, sys\nopen(os.environ['RUNNERS_LOG'], 'a').write('{name}\\n')\n"
           "sys.exit(1 if pathlib.Path('{name}', 'fail').exists() else 0)\n")
-failed = []
+results = {}
 
 
 def step(name, ok, detail=""):
     print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    if not ok:
-        failed.append(name)
+    results[name] = ok
 
 
 def main(args):
@@ -64,8 +63,8 @@ def main(args):
     call()
     out, ran = call()
     step("failure-runs", ran == ["beta"] and "fixture beta/fixtures/replay-one.py: exit 1" in out, (ran, out))
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    print("PASS" if all(results.values()) else "FAIL")
+    return 0 if all(results.values()) else 1
 
 
 if __name__ == "__main__":
