@@ -19,6 +19,7 @@ usage: replay-heartbeat-lines.py [--verbose] [--verdict | --cited]
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 import tempfile
@@ -84,7 +85,8 @@ def herdr(*agents):
 
 
 def use(*args, pane="w1:p1"):
-    process = subprocess.run([str(SCRIPTS / "use-board.py"), *map(str, args)], cwd=repository, capture_output=True, text=True, env={**os.environ, "HERDR_PANE_ID": pane})
+    pane_environment = {**os.environ, "HERDR_PANE_ID": pane}
+    process = subprocess.run(replay_probe.as_pane([SCRIPTS / "use-board.py", *args], pane, pane_environment, work / "stand-in"), cwd=repository, capture_output=True, text=True, env=pane_environment)
     if VERBOSE:
         print(f"$ use-board.py {' '.join(map(str, args))}\n{process.stdout}{process.stderr}", file=sys.stderr)
     return process.stdout.strip()
@@ -115,12 +117,14 @@ def about(output, name):
 
 def run_monitor(until):
     log = work / "monitor.log"
-    live = subprocess.Popen([str(ROOT / "monitors" / "print-team-gaps.py")], cwd=repository, env={**os.environ, "TEAMWORK_MONITOR_POLL": "0.3"}, stdout=log.open("w"), stderr=subprocess.STDOUT)
+    pane_environment = {**os.environ, "TEAMWORK_MONITOR_POLL": "0.3"}
+    live = subprocess.Popen(replay_probe.as_pane([ROOT / "monitors" / "print-team-gaps.py"], pane_environment["HERDR_PANE_ID"], pane_environment, work / "stand-in"), cwd=repository,
+                            env=pane_environment, stdout=log.open("w"), stderr=subprocess.STDOUT, start_new_session=True)
     deadline = time.time() + 30
     while time.time() < deadline and not until(log.read_text()):
         time.sleep(0.2)
     time.sleep(3)  # the monitor goes on polling, so a line wrongly printed again shows
-    live.kill()
+    os.killpg(live.pid, signal.SIGKILL)
     live.wait()
     return log.read_text().splitlines()
 

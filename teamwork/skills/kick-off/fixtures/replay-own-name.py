@@ -14,7 +14,7 @@ import tempfile
 LIB = pathlib.Path(__file__).resolve().parents[3] / "lib"
 sys.path.insert(0, str(LIB))
 import agent  # noqa: E402
-import replay_probe  # noqa: E402
+import replay_probe  # noqa: E402  # fake herdr and the stand-in `claude`
 
 NAME = "t-worker"
 SESSION = "00000000-0000-4000-8000-000000000002"
@@ -47,10 +47,8 @@ def main(args):
     with tempfile.TemporaryDirectory() as folder:
         wrong = [f"{case} got {got!r}, not {expected!r}" for case, (options, titled, expected) in CASES.items()
                  if (got := named(pathlib.Path(folder), options, titled)) != expected]
-    if wrong:
-        return replay_probe.fail("; ".join(wrong))
-    print("PASS")
-    return 0
+    print("PASS" if not wrong else f"FAIL: {'; '.join(wrong)}")
+    return 1 if wrong else 0
 
 
 if __name__ == "__main__":
