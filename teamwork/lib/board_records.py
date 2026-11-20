@@ -1,5 +1,5 @@
 """A local board's records, whatever store keeps them: each task is a folder `<scope>/<n>/` (`<n>/` at the repository root) holding `task.json`
-(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, a comment written before that schema a `comments/<k>.md` of text alone, where `<scope>` is the folder of the repository the task belongs to; `commentTimes` in `task.json`, when a copy set it, holds the first comments' times. A board written before the rename names that file `issue.json`: the readers take `task.json`, else `issue.json`, and every write moves each `issue.json` to `task.json`, removing the old name, so the first write after the rename leaves none. Every record is trusted, since only local users write the store.
+(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, where `<scope>` is the folder of the repository the task belongs to; `commentTimes` in `task.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `homes()` says the folder of each task number (a store may cache it),
@@ -18,7 +18,7 @@ import task_links
 import team_signal
 
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|hold|depend|edit|title|resolve|reopen|label)\b")
-RECORD, OLD_RECORD = "task.json", "issue.json"
+RECORD = "task.json"
 FLOOR = "floor"  # a file at the board's top holding the number a copied board's newest task or pull request had, so no new task reuses one
 trusted = lambda record: True
 
@@ -48,7 +48,7 @@ class Store:
             for name in self.names(folder):
                 path = f"{folder}/{name}" if folder else name
                 if name.isdigit():
-                    if {RECORD, OLD_RECORD} & set(self.names(path)):
+                    if RECORD in self.names(path):
                         found.setdefault(int(name), folder)
                 else:
                     walk(path)
@@ -72,18 +72,9 @@ class Store:
         """CHANGE's result, its staged files kept at once; a change made inside another, as resolve's comment, joins it."""
         if self.pending is not None:
             return change()
-        result = self.keep(lambda: (change(), self.move())[0])
+        result = self.keep(change)
         team_signal.touch()  # the task pane rereads on it
         return result
-
-    def move(self):
-        """Stages, for each record still holding `issue.json`, its text as `task.json` unless one exists, and the removal of `issue.json`."""
-        for number, folder in self.homes().items():
-            path = f"{folder}/{number}" if folder else str(number)
-            if OLD_RECORD in self.names(path):
-                if RECORD not in self.names(path) and f"{path}/{RECORD}" not in self.pending:
-                    self.stage(f"{path}/{RECORD}", self.load(f"{path}/{OLD_RECORD}"))
-                self.stage(f"{path}/{OLD_RECORD}", None)
 
     def view(self):
         """Refreshes before a read, except inside a change, which reads the state it started from."""
@@ -113,11 +104,7 @@ def next_number(store):
 
 
 def meta(store, number):
-    folder = home(store, number)
-    try:
-        return json.loads(store.read(f"{folder}/{RECORD}"))
-    except FileNotFoundError:
-        return json.loads(store.read(f"{folder}/{OLD_RECORD}"))
+    return json.loads(store.read(f"{home(store, number)}/{RECORD}"))
 
 
 def save(store, number, **change):
@@ -128,13 +115,11 @@ def save(store, number, **change):
 
 def comment_paths(store, number):
     folder = f"{home(store, number)}/comments"
-    return [f"{folder}/{name}" for name in store.children(folder) if name.endswith((".md", ".json"))]
+    return [f"{folder}/{name}" for name in store.children(folder) if name.endswith(".json")]
 
 
 def note(store, path):
-    """{body, fields} of the comment at PATH; one written as text alone has no stored fields."""
-    if path.endswith(".md"):
-        return {"body": store.read(path)}
+    """{body, fields} of the comment at PATH."""
     stored = json.loads(store.read(path))
     return {"body": stored.pop("text"), "fields": stored}
 

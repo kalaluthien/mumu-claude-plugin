@@ -9,8 +9,6 @@ exit 1 on any fail. The git board runs every case but the nodes'; nodes the hear
 - heartbeat-cycle, heartbeat-second-parent, heartbeat-backlog-label, 
   heartbeat-tree-unread: a failed tree read leaves the manager's read whole, with one `unread` link line
 - pane-nesting, pane-wait-line, pane-done-count: list-task-board.py's lines
-- older-depends, on the git board: a body written straight to the board with a `depends on` line in a `teamwork` fence still makes its task wait;
-  the nodes' heartbeat-cycle reads the same fence
 
 usage: replay-task-graph.py [--board <git|nodes>]   (no argument: both in turn)"""
 import json
@@ -205,28 +203,6 @@ def git_drift():
     return board.tree(None)
 
 
-def older(*depends):
-    """A body filed before `depend`, whose `teamwork` fence names the tasks it waits on, which a board that holds one still reads."""
-    return body() + f"\n```teamwork\ndepends on: {' '.join(f'#{n}' for n in depends)}\n```\n"
-
-
-def older_depends():
-    """Writes, behind the write path, a task as one filed before `depend` was: no `depends` in its record, the link in its body's fence."""
-    target, waiting = file("Probe an older target", body()), file("Probe an older waiting task", body())
-    import board_git
-    import board_records
-    store = board_git.STORE
-
-    def change():
-        kept = board_records.meta(store, waiting)
-        kept.pop("depends")
-        store.stage(f"{board_records.home(store, waiting)}/task.json", json.dumps(kept))
-        store.stage(f"{board_records.home(store, waiting)}/body.md", older(target))
-    store.write(change)
-    read = use("read", waiting).stdout
-    step("older-depends", board.blockers(waiting) == [target] and f"depends: #{target}\n" in read and f"blocked by #{target}" in read, f"{board.blockers(waiting)} {read[:200]}")
-
-
 def node(number, text, labels=(), state="OPEN", reason=None, depends=None):
     return {**({} if depends is None else {"depends": depends}), "number": number, "title": f"Probe {number}", "url": f"https://github.com/o/r/issues/{number}", "body": text, "authorAssociation": "OWNER",
             "state": state, "stateReason": reason, "parent": None, "labels": {"nodes": [{"name": name} for name in labels]},
@@ -240,7 +216,7 @@ def pane_nodes():
 
 
 def drift_nodes():
-    return [node(1, older(2), labels=["backlog"]), node(2, older(1)),
+    return [node(1, body(), labels=["backlog"], depends=[2]), node(2, body(), depends=[1]),
             node(3, body()), node(4, body(parts=[3], check=False)), node(5, body(parts=[3], check=False))]
 
 
@@ -279,7 +255,6 @@ def main(args):
     derive_cases()
     heartbeat_cases(git_drift())
     heartbeat_unread()
-    older_depends()
     first, second, closed_part = file("Probe a first target", body()), file("Probe a second target", body()), file("Probe a done part", body())
     waiting = file("Probe a part that waits", body(), [first, second])
     root = file("Probe a pane root", body(parts=[closed_part, waiting], check=False))

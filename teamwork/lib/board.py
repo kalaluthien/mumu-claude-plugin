@@ -7,7 +7,7 @@
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body, depends)` raises LookupError naming why NUMBER cannot have BODY and wait on DEPENDS
 - `trusted(record)`, whether a record's author may write records; `command(text)`, the board write a shell command runs
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted`,
-`depends` (the numbers of the tasks it waits on) and `comments`, each comment with `body`, `trusted` and, unless it was written as text alone, `fields`."""
+`depends` (the numbers of the tasks it waits on) and `comments`, each comment with `body`, `trusted` and `fields`."""
 import hashlib
 
 import board_git

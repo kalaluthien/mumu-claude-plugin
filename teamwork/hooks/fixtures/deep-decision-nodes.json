@@ -16,43 +16,78 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "pane-worker"
+      ]
+     }
     },
     {
      "body": "DECIDED: the pane shows tasks and decisions together\n\n> show me tasks and decisions in one pane\n\n```decision\ndecision: the pane shows tasks and decisions together\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-1001",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z"
+     "createdAt": "2026-11-06T01:00:00Z",
+     "fields": {
+      "decision": "the pane shows tasks and decisions together",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: no external service\n\n> keep it all on GitHub\n\n```decision\ndecision: no external service\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-1002",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T02:00:00Z"
+     "createdAt": "2026-11-06T02:00:00Z",
+     "fields": {
+      "decision": "no external service",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: draw at 24 columns too\n\n> it must fit my narrow pane\n\n```decision\ndecision: draw at 24 columns too\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-1003",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T03:00:00Z"
+     "createdAt": "2026-11-06T03:00:00Z",
+     "fields": {
+      "decision": "draw at 24 columns too",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: the owner answers questions from the pane\n\n> I want to answer from the pane\n\n```decision\ndecision: the owner answers questions from the pane\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-1004",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T04:00:00Z"
+     "createdAt": "2026-11-06T04:00:00Z",
+     "fields": {
+      "decision": "the owner answers questions from the pane",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: start from the board\n\n> start from the board\n\n```decision\ndecision: start from the board\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-900",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T00:30:00Z"
+     "createdAt": "2026-11-06T00:30:00Z",
+     "fields": {
+      "decision": "start from the board",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: keep the old lister\n\n> keep the old lister\n\n```decision\ndecision: keep the old lister\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/10#issuecomment-901",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:30:00Z"
+     "createdAt": "2026-11-06T01:30:00Z",
+     "fields": {
+      "decision": "keep the old lister",
+      "by": "owner",
+      "one_way": true
+     }
     }
    ]
   }
@@ -74,7 +109,12 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "graph-worker"
+      ]
+     }
     }
    ]
   }
@@ -94,7 +134,10 @@
      "body": "BLOCKED: may the sync run on every open task\n\n```teamwork\nasks: owner\n```\n",
      "url": "https://github.com/o/r/issues/12#issuecomment-1201",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z"
+     "createdAt": "2026-11-06T01:00:00Z",
+     "fields": {
+      "asks": "owner"
+     }
     }
    ]
   }
@@ -127,13 +170,23 @@
      "body": "DECIDED: probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe\n\n> only the sandbox\n\n```decision\ndecision: probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/14#issuecomment-1401",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z"
+     "createdAt": "2026-11-06T01:00:00Z",
+     "fields": {
+      "decision": "probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: probe the team's board\n\n> probe ours\n\n```decision\ndecision: probe the team's board\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/14#issuecomment-1402",
      "authorAssociation": "NONE",
-     "createdAt": "2026-11-06T02:00:00Z"
+     "createdAt": "2026-11-06T02:00:00Z",
+     "fields": {
+      "decision": "probe the team's board",
+      "by": "owner",
+      "one_way": true
+     }
     }
    ]
   }
@@ -168,31 +221,56 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "pane-worker"
+      ]
+     }
     },
     {
      "body": "BLOCKED: which widths count\n\n```teamwork\nasks: owner\n```\n",
      "url": "https://github.com/o/r/issues/16#issuecomment-1601",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z"
+     "createdAt": "2026-11-06T01:00:00Z",
+     "fields": {
+      "asks": "owner"
+     }
     },
     {
      "body": "DECIDED: widths 24 to 80 count\n\n> 24 to 80\n\n```decision\ndecision: widths 24 to 80 count\ndecided by: owner\ndoor: one-way\nanswers: https://github.com/o/r/issues/16#issuecomment-1601\n```\n",
      "url": "https://github.com/o/r/issues/16#issuecomment-1602",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T02:00:00Z"
+     "createdAt": "2026-11-06T02:00:00Z",
+     "fields": {
+      "decision": "widths 24 to 80 count",
+      "by": "owner",
+      "one_way": true,
+      "answers": "https://github.com/o/r/issues/16#issuecomment-1601"
+     }
     },
     {
      "body": "DECIDED: the pane draws at 40 columns\n\n> 40 is enough\n\n```decision\ndecision: the pane draws at 40 columns\ndecided by: owner\ndoor: one-way\n```\n",
      "url": "https://github.com/o/r/issues/16#issuecomment-1603",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T03:00:00Z"
+     "createdAt": "2026-11-06T03:00:00Z",
+     "fields": {
+      "decision": "the pane draws at 40 columns",
+      "by": "owner",
+      "one_way": true
+     }
     },
     {
      "body": "DECIDED: the pane draws at any width it gets\n\n> any width\n\n```decision\ndecision: the pane draws at any width it gets\ndecided by: owner\ndoor: one-way\nsupersedes: https://github.com/o/r/issues/16#issuecomment-1603\n```\n",
      "url": "https://github.com/o/r/issues/16#issuecomment-1604",
      "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T04:00:00Z"
+     "createdAt": "2026-11-06T04:00:00Z",
+     "fields": {
+      "decision": "the pane draws at any width it gets",
+      "by": "owner",
+      "one_way": true,
+      "supersedes": "https://github.com/o/r/issues/16#issuecomment-1603"
+     }
     }
    ]
   }

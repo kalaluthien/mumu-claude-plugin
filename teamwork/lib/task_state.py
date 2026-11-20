@@ -4,7 +4,6 @@ import json
 import pathlib
 import re
 
-import legacy_records
 
 SKILL = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off"
 GRAMMAR = SKILL / "references" / "task-grammar.md"
@@ -56,6 +55,9 @@ class Refused(LookupError):
 
 def invalid(value, schema=SCHEMA, name="the record"):
     """Why VALUE breaks SCHEMA, read for its type, enum, pattern, minimum, items, properties, required and additionalProperties; None when it keeps it."""
+    if "anyOf" in schema:
+        refusals = [invalid(value, {"description": schema.get("description"), **choice}, name) for choice in schema["anyOf"]]
+        return refusals[0] if all(refusals) else None
     kind = schema.get("type")
     wrong = "enum" in schema and value not in schema["enum"] or kind and (not isinstance(value, TYPES[kind]) or isinstance(value, bool)) \
         or "pattern" in schema and not re.search(schema["pattern"], value) or "minimum" in schema and value < schema["minimum"]
@@ -189,20 +191,19 @@ def title(item):
 
 
 def fields(comment):
-    """A comment's fields, as board-record-schema.json names them: those `use-board.py` stored, else the ones an older text holds."""
-    stored = comment.get("fields")
-    return stored if stored is not None else legacy_records.fields(comment.get("body"))
+    """A comment's fields, as board-record-schema.json names them and `use-board.py` stored them."""
+    return comment.get("fields") or {}
 
 
 def records(task):
-    """The body, then each comment, as (keyword, fields, comment), oldest first; the body has no keyword and only an older one holds fields, and an
+    """The body, then each comment, as (keyword, fields, comment), oldest first; the body has no keyword and no fields, and an
     untrusted author's text records nothing."""
-    return [(None, legacy_records.fields(task.get("body")) if trusted(task) else {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in task.get("comments", []) if trusted(comment)]
+    return [(None, {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in task.get("comments", []) if trusted(comment)]
 
 
 def event(found):
-    """Whether a `DECIDED:` with the fields FOUND is an event, which binds and answers nothing: it holds no decision."""
-    return "decision" not in found and not found.get("untyped")
+    """Whether a `DECIDED:` with the fields FOUND is an event, which binds nothing and answers only the questions its `answers` names: it holds no decision."""
+    return "decision" not in found
 
 
 def role(decider):
@@ -217,21 +218,21 @@ def place(url):
 
 def questions(task):
     """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
-    a later decision settles the question whose url it names and each earlier open ask with the same first line, since an ask
-    posted again is one question, a question to the owner only when the decider is the owner; one that names none settles each open question its decider may answer: the owner any, a manager any
-    not asked of the owner, a worker none, and a `DECIDED:` from before decisions were typed any."""
+    a later decision settles each question whose url it names and each earlier open ask with the same first line, since an ask
+    posted again is one question, a question to the owner only when the decider is the owner or it is an event, which `decide` never writes; one that names none settles each open question its decider may answer: the owner any, a manager any
+    not asked of the owner, a worker none."""
     found = []
     for word, held, comment in records(task)[1:]:
         if word == ASK:
             found.append({"ask": comment, "fields": held, "answer": None})
-        elif word == ANSWER and not event(held):
-            named, decider = held.get("answers", ""), role(held.get("by", ""))
-            said = {first_line(question["ask"]["body"]) for question in found if place(question["ask"]["url"]) == place(named)}
-            older = (comment.get("createdAt") or "") < legacy_records.TYPED_SINCE
+        elif word == ANSWER and (not event(held) or "answers" in held):
+            named, decider = held.get("answers", []), role(held.get("by", ""))
+            named = {place(url) for url in ([named] if isinstance(named, str) else named)}
+            said = {first_line(question["ask"]["body"]) for question in found if place(question["ask"]["url"]) in named}
             for question in found:
-                allowed = older or decider == "owner" or question["fields"].get("asks") != "owner"
-                general = allowed and (older or decider != "worker")
-                if question["answer"] is None and (general if not named else allowed and (place(question["ask"]["url"]) == place(named) or first_line(question["ask"]["body"]) in said)):
+                allowed = event(held) or decider == "owner" or question["fields"].get("asks") != "owner"
+                general = allowed and decider != "worker"
+                if question["answer"] is None and (general if not named else allowed and (place(question["ask"]["url"]) in named or first_line(question["ask"]["body"]) in said)):
                     question["answer"] = comment
     return found
 

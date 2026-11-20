@@ -16,7 +16,12 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "pane-worker"
+      ]
+     }
     }
    ]
   }
@@ -38,7 +43,12 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "graph-worker"
+      ]
+     }
     }
    ]
   }
@@ -112,7 +122,12 @@
      "author": {
       "login": "o"
      },
-     "trusted": true
+     "trusted": true,
+     "fields": {
+      "holders": [
+       "pane-worker"
+      ]
+     }
     }
    ]
   }

@@ -9,11 +9,9 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
   authority-owner-question, authority-owner-answers: only a decision `--by owner` answers a question to the owner, one written or stored by another leaving it open
 - binding-ancestors, binding-stopped-root, binding-answered, binding-event-keeps-question, binding-one-way-waits,
   binding-one-way-supersedes, binding-successor: a task's binding set and open questions
-- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line,
-  heartbeat-answer-first-line (an older decision, a text written straight to the board whose first line opens with `answers:`, closes the question, as the heartbeat reads it):
+- heartbeat-open-question, heartbeat-twice-superseded, heartbeat-one-way, heartbeat-one-way-superseded, heartbeat-answer-line:
   the manager's heartbeat lines
-- older-records: comments written straight to the board as text alone, their data in `teamwork` and `decision` fences, still set the holders, the live runs cap,
-  a question to the owner and the decision that answers it
+- event-answers: a `DECIDED:` holding no decision whose `answers` lists questions, one to the owner among them, settles them all and binds nothing, and the schema takes that list but refuses one holding a value that is no comment url
 - route-own-depends, route-parts-blocked, route-after-close: no `route` line for a task that waits on an open task,
   or whose open parts all do, until that task closes
 - pane-question, pane-every-decision, pane-cut, pane-untrusted, pane-question-next-line: list-task-board.py's `?` and `◆` lines; pane-linear, on nodes
@@ -35,6 +33,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
+import task_state  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
@@ -86,15 +85,15 @@ def ask(number, question, owner=False):
     return post(number, "--blocked", question, *(["--asks", "owner", "--option", "yes", "--option", "no"] if owner else []))
 
 
-def older(number, text):
-    """The url of TEXT written straight to the board as NUMBER's next comment, a text alone, as a comment posted before `use-board.py` took its data as options is kept."""
+def stored(number, record):
+    """The url of RECORD, a comment's `{"text", ...fields}`, written straight to the board as NUMBER's next comment, past every check `use-board.py` makes."""
     import board_git
     import board_records
     store = board_git.STORE
 
     def change():
         position = len(board_records.comment_paths(store, number)) + 1
-        store.stage(f"{board_records.home(store, number)}/comments/{position:04d}.md", text)
+        store.stage(f"{board_records.home(store, number)}/comments/{position:04d}.json", json.dumps(record))
         return f"{store.url(board_records.home(store, number))}#comment-{position}"
     return store.write(change)
 
@@ -164,7 +163,7 @@ def authority_cases():
     asking = file("Probe a question to the owner")
     question = ask(asking, "may the sync run", owner=True)
     refused("authority-owner-question", asking, lambda: decide(asking, "the sync may run", answers=question), question, "asks the owner")
-    older(asking, f"DECIDED: the sync may run\n\n```decision\ndecision: the sync may run\ndecided by: probe-manager\nanswers: {question}\n```\n")
+    stored(asking, {"text": "DECIDED: the sync may run\n", "decision": "the sync may run", "by": "probe-manager", "answers": question})
     kept = asked(asking) == [question]
     answer = decide(asking, "the sync may run", by="owner", answers=question, quote="yes, run it")
     step("authority-owner-answers", kept and isinstance(answer, str) and asked(asking) == [], index(asking))
@@ -253,22 +252,16 @@ def heartbeat_cases():
     asked_url = ask(asker, "which cache")
     answer_line = next((line for line in heartbeat({asker}) if line.startswith(f"answer #{asker}:")), "")
     step("heartbeat-answer-line", "`decide`" in answer_line and f"--answers {asked_url}" in answer_line, heartbeat({asker}))
-    older(asker, f"DECIDED: answers: {asked_url}\n\nuse the shared cache\n\n```decision\ndecision: use the shared cache\ndecided by: probe-manager\ndoor: two-way\n```\n")
-    step("heartbeat-answer-first-line", not any(line.startswith(f"answer #{asker}:") for line in heartbeat({asker})), heartbeat({asker}))
     step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
 
 
-def older_cases():
-    import task_state
-    task = file("Probe an older task")
-    older(task, "DECIDED: probe-worker holds this.\n\n```teamwork\nholders: probe-worker\nlive runs: 3\n```\n")
-    question = older(task, "BLOCKED: may the sync run\n\n```teamwork\nasks: owner\n```\n")
-    waiting = use("read", task).stdout
-    rule = older(task, f"DECIDED: the sync may run\n\n> run it\n\n```decision\ndecision: the sync runs nightly\ndecided by: owner\ndoor: one-way\nanswers: {question}\n```\n")
+def event_cases():
+    task = file("Probe an event that answers")
+    questions = [ask(task, "may the sync run", owner=True), ask(task, "which cache")]
+    stored(task, {"text": "DECIDED: both settled\n", "answers": questions})
     settled = use("read", task).stdout
-    step("older-records", "\nholders: probe-worker\n" in waiting and ", waits on the owner\n" in waiting and f"- #{task} to the owner: may the sync run ({question})" in waiting
-         and task_state.live_runs(board.fresh(task)) == 3 and f"- #{task} owner, one-way: the sync runs nightly ({rule}); answers {question}" in settled
-         and "open questions: 0" in settled and ", held\n" in settled, [waiting, settled])
+    shapes = [task_state.invalid({"text": "DECIDED: x\n", "answers": value}) for value in (questions, ["x"])]
+    step("event-answers", "open questions: 0" in settled and "binding decisions: 0" in settled and shapes[0] is None and shapes[1], [settled, shapes])
 
 
 def block(lines, number, strip=True):
@@ -300,7 +293,7 @@ def board_pane():
     asker, decider, cutter, untrusted = file("Probe an asking task"), file("Probe a deciding task"), file("Probe a long rule"), file("Probe an outsider")
     ask(asker, "may the sync run", owner=True)
     later = file("Probe a question on its second line")
-    older(later, "BLOCKED:\nwhich width counts\n")
+    stored(later, {"text": "BLOCKED:\nwhich width counts\n"})
     for word in ("one", "two", "three", "four"):
         decide(decider, f"rule {word}", by="owner", door="one-way", quote=f"rule {word}")
     decide(cutter, LONG, by="owner", door="one-way", quote="only the sandbox")
@@ -323,16 +316,16 @@ def node(number, comments=()):
             "blockedBy": {"nodes": []}, "comments": {"nodes": list(comments)}}
 
 
-def comment(number, k, text, association="OWNER"):
-    return {"body": text, "url": f"https://github.com/o/r/issues/{number}#issuecomment-{number}0{k}", "authorAssociation": association, "createdAt": f"2026-11-06T0{k}:00:00Z"}
+def comment(number, k, text, association="OWNER", **fields):
+    return {"body": text, "fields": fields, "url": f"https://github.com/o/r/issues/{number}#issuecomment-{number}0{k}", "authorAssociation": association, "createdAt": f"2026-11-06T0{k}:00:00Z"}
 
 
 def owner_decision(number, k, decision, association="OWNER"):
-    return comment(number, k, f"DECIDED: {decision}\n\n> {decision}\n\n```decision\ndecision: {decision}\ndecided by: owner\ndoor: one-way\n```\n", association)
+    return comment(number, k, f"DECIDED: {decision}\n\n> {decision}\n", association, decision=decision, by="owner", one_way=True)
 
 
 def nodes_pane():
-    nodes = [node(1, [comment(1, 1, "BLOCKED: may the sync run\n\n```teamwork\nasks: owner\n```\n")]),
+    nodes = [node(1, [comment(1, 1, "BLOCKED: may the sync run\n", asks="owner")]),
              node(2, [owner_decision(2, k, f"rule {word}") for k, word in enumerate(("one", "two", "three", "four"), 1)]),
              node(3, [owner_decision(3, 1, LONG)]), node(4, [owner_decision(4, 1, "probe the team's board", association="NONE")])]
     path = work / "nodes.json"
@@ -360,7 +353,7 @@ def nodes_pane():
         task_state.records = original
     step("pane-linear", large <= 2.5 * small, f"{small} parses for 40 tasks, {large} for 80")
     later = work / "deferred.json"
-    later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\n```teamwork\nholders:\ndeferred: waits on the probe\n```\n")])]))
+    later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\ndeferred: waits on the probe\n", holders=[])])]))
     drawn = subprocess.run([sys.executable, str(LIST), "--nodes", str(later)], capture_output=True, text=True).stdout.splitlines()
     step("row-no-deferral", any(line.startswith("#1 ") for line in drawn) and not any("deferred" in line or "no holder" in line for line in drawn), drawn)
     finished = [node(n, [comment(n, 1, text)] if text else []) for n, text in ((1, "REPORTED: batch landed; next step: probe the pane"), (2, ""))]
@@ -400,7 +393,7 @@ def main(args):
     authority_cases()
     binding_cases()
     heartbeat_cases()
-    older_cases()
+    event_cases()
     route_cases()
     board_pane()
     return 1 if failures else 0

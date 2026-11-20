@@ -14,7 +14,7 @@ A comment's first line opens with one, which the verb that posts it writes from 
 
 ## Fields
 
-A comment is kept as its text and the fields [board-record-schema.json](../assets/board-record-schema.json) names, which every write is checked against; a task keeps the tasks it waits on beside its title. A text never carries data: a write refuses, posting nothing, a text that holds a `teamwork` or `decision` fence, which only records older than the fields hold and [legacy_records.py](../../../lib/legacy_records.py) still reads.
+A comment is kept as its text and the fields [board-record-schema.json](../assets/board-record-schema.json) names, which every write is checked against; a task keeps the tasks it waits on beside its title. A text never carries data: a write refuses, posting nothing, a text that holds a `teamwork` or `decision` fence.
 
 | field | set by | meaning |
 | --- | --- | --- |

@@ -9,10 +9,9 @@ waits on another, asks the owner a question with options, the manager answers it
 - `prose-lines`: a text whose lines open `depends on:`, `holders:` or `asks:` posts as prose and changes no holder and no wait;
 - `unread`: a verb given a word that is neither a task's number nor its url prints the usage and exits 2, with no traceback;
 - `refused`: a `--text` that carries a `teamwork` or `decision` fence posts nothing and names the option to use, so does an empty or two-line `--blocked`, `--reported`, `--decision` or `--summary`, a `--text` that opens with a keyword, an empty body on `file`, an empty title, an `edit` that leaves the body empty or whose `--reason` opens `DECIDED:` or holds two lines, or a field the schema refuses;
-- `older`: a comment written as text with fences, as records before the fields were, still gives its holder and its decision;
 - `pane`: the task pane's listing draws the round's holder and its decisions;
 - `cost`: the round takes fewer calls and fewer written characters than MAIN_ROUND, the same round written as fences and read with `list-decisions.py`;
-- `one-reader`: `list-decisions.py` is gone, only `legacy_records.py` holds a data fence's pattern, and no playbook names a fence, a decision key or that script.
+- `no-fence-reader`: `list-decisions.py` and `legacy_records.py` are gone, and no code or playbook names a data fence or a decision key.
 
 usage: replay-task-round.py"""
 import json
@@ -27,7 +26,6 @@ USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 SCHEMA = json.loads((ROOT / "skills" / "kick-off" / "assets" / "board-record-schema.json").read_text())
 BODY = ("{summary}## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
-OLDER = "DECIDED: older-worker holds this.\n\n```decision\ndecision: keep the older record readable\ndecided by: owner\ndoor: two-way\n```\n\n```teamwork\nholders: older-worker\n```\n"
 # the same round at main's 7d2370dd: fences typed into each text, and `list-decisions.py` after each `read`
 MAIN_ROUND = {"calls": 15, "written": 1490}
 OLD_WORDS = ("```teamwork", "```decision", "decided by:", "door:", "list-decisions")
@@ -128,20 +126,11 @@ def main(args):
     step("refused", all(code == 2 and not out and "option" in err for code, out, err in fenced) and all(code == 2 and not out for code, out, _ in bare)
          and git("rev-parse", "refs/teamwork-blackboard") == before, fenced + bare)
 
-    sys.path.insert(0, str(ROOT / "lib"))
-    import decisions
-    import task_state
-    older = {"number": 9, "body": "A body.\n\n```teamwork\ndepends on: #2\n```\n", "trusted": True, "parent": None, "state": "OPEN",
-             "comments": [{"body": OLDER, "url": "x#comment-1", "createdAt": "2026-11-06T00:00:00Z", "trusted": True}]}
-    import task_links
-    found = decisions.typed(9, older)
-    step("older", task_state.compose(older)["holders"] == ["older-worker"] and [decision["decision"] for decision in found] == ["keep the older record readable"]
-         and found[0]["role"] == "owner" and task_links.depends(older) == [2], [task_state.compose(older), found])
-
-    code = [path for folder in ("lib", "hooks", "monitors", "skills/kick-off/scripts") for path in (ROOT / folder).glob("*.py") if path.name != "legacy_records.py"]
+    code = [path for folder in ("lib", "hooks", "monitors", "skills/kick-off/scripts") for path in (ROOT / folder).glob("*.py")]
     pages = [*(ROOT / "skills" / "kick-off").glob("*.md"), *(ROOT / "skills" / "kick-off" / "references").rglob("*.md")]
-    named = [f"{path.name}: {word}" for path in code + pages for word in OLD_WORDS if word in path.read_text() and not (word == "```decision" and path.name == "task_state.py")]
-    step("one-reader", not named and not (ROOT / "skills" / "kick-off" / "scripts" / "list-decisions.py").exists(), named)
+    named = [f"{path.name}: {word}" for path in code + pages for word in OLD_WORDS if word in path.read_text()]
+    gone = [path.name for path in (ROOT / "skills" / "kick-off" / "scripts" / "list-decisions.py", ROOT / "lib" / "legacy_records.py") if path.exists()]
+    step("no-fence-reader", not named and not gone, named + gone)
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 

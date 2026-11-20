@@ -58,7 +58,7 @@ class Ref(board_records.Store):
         places = {}
         for path in files:
             *folder, number, name = ["", *path.split("/")]
-            if name in (board_records.RECORD, board_records.OLD_RECORD) and number.isdigit():
+            if name == board_records.RECORD and number.isdigit():
                 places[int(number)] = "/".join(folder[1:])
         self.tip, self.files, self.folders, self.places = tip, files, folders, places
 

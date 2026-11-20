@@ -4,7 +4,6 @@ looked for over both kinds together."""
 import re
 
 import task_state
-import legacy_records
 
 PART = re.compile(r"^\s*(?:\d+\.|[-*])\s+\[task\]\s+#(\d+)\b", re.M)
 DONE = ("COMPLETED", None, "")
@@ -16,9 +15,8 @@ def parts(body):
 
 
 def depends(record):
-    """The numbers of the tasks RECORD waits on, each once: its `depends`, else those an older body names."""
-    stored = record.get("depends")
-    return list(dict.fromkeys(stored)) if stored is not None else legacy_records.depends(record.get("body"))
+    """The numbers of the tasks RECORD waits on, each once."""
+    return list(dict.fromkeys(record.get("depends") or []))
 
 
 def criteria(body):
