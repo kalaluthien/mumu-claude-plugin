@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run run-criteria.py `--base` on a temporary git repository whose check starts a process in a session of its own from a file of the export, and print `PASS` when that
+"""Run run-criteria.py `--base` on a temporary git repository whose check starts a process in a session of its own from a file of the export, and print `PASS` when the run read the check's row and that
 process is gone once the check ends, else `FAIL`, since an export of the head or of a hunk's revert may leave a monitor polling for ever. Exit 1 on FAIL.
 
 usage: replay-export-strays.py"""
@@ -28,12 +28,13 @@ def main(args):
         subprocess.run(["git", *argv], cwd=work, check=True, capture_output=True)
     body = work.parent / f"{work.name}-body.md"
     body.write_text(BODY)
-    subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
+    done = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
     strays = [line.split()[0] for line in subprocess.run(["ps", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout.splitlines() if LINGERING in line]
     for pid in strays:
         os.kill(int(pid), signal.SIGKILL)
-    print("FAIL" if strays else "PASS")
-    return 1 if strays else 0
+    ended = "| base ok |" in done.stdout and not strays
+    print("PASS" if ended else "FAIL")
+    return 0 if ended else 1
 
 
 if __name__ == "__main__":
