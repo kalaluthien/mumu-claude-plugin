@@ -14,7 +14,7 @@ A row is `pass` or `fail` by the output the criterion says it `prints`, or the s
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
 first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
-its first judged table. A `[check]` that passed on the same files and the same commit, branch and index (or with `--base` the base's files) is not run again by any session of the
+its first judged table. A `[check]` that passed on the same files, not counting ignored ones, and the same commit, branch and index (or with `--base` the base's files) is not run again by any session of the
 repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check always runs. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
@@ -425,20 +425,28 @@ def run_per_hunk(options, task, root, live):
         unneeded, conditions, unjudged = [], 0, []
 
         def survives(group):
-            """True when no passing row changes with every hunk of GROUP, all of one file, reverted together."""
+            """True when no passing row changes with every hunk of GROUP, all of one file or link, reverted together."""
             path = pathlib.Path(copy, group[0][0])
-            kept = path.read_bytes() if path.is_file() else None
+            link = os.readlink(path) if path.is_symlink() else None
+            kept = path.read_bytes() if link is None and path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
-            text = take_back(kept.decode("latin-1") if kept is not None else "", [patch for _, _, patch in group])
-            if not text and "\nnew file mode " in group[0][2]:
-                path.unlink(missing_ok=True)
-            else:
+            before = link.encode("latin-1") + b"\n" if link is not None else kept
+            text = take_back(before.decode("latin-1") if before is not None else "", [patch for _, _, patch in group])
+            made = [folder for folder in reversed(path.parents) if not folder.exists()]
+            path.unlink(missing_ok=True)
+            if text or "\nnew file mode " not in group[0][2]:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(text.encode("latin-1"))
+                if "120000" in group[0][2].split("\n@@", 1)[0]:
+                    os.symlink(text.rstrip("\n").encode("latin-1"), path)
+                else:
+                    path.write_bytes(text.encode("latin-1"))
             still = {label for label, result in results(copy).items() if result == "pass"}
-            if kept is None:
-                path.unlink(missing_ok=True)
-            else:
+            path.unlink(missing_ok=True)
+            for folder in reversed(made):
+                folder.rmdir()
+            if link is not None:
+                os.symlink(link, path)
+            elif kept is not None:
                 path.write_bytes(kept)
                 path.chmod(stat.S_IMODE(mode))
             return held <= still

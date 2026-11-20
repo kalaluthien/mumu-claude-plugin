@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Run run-criteria.py `--hunks` on a temporary git repository whose change holds a 30-hunk file that every revert breaks, a
-3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a deleted file, an added file, a file whose last line lost its newline and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
+3-hunk file with an unneeded hunk beside two needed ones, a 30-hunk file no check reads, an 8-hunk file whose second half is needed, an 8-hunk file of multi-line deletions whose second half is needed, a file deleted from a folder only it filled, a symlink, an executable added file, an added file, a file whose last line lost its newline and a Python file whose added refusal no check reaches. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or
 `FAIL`, and exit 1 on any failure:
 - `few-runs`: the check ran at most 3 times with the big file reverted in part or whole;
-- `names-unneeded`: the unneeded hunk's line and the unreached refusal's line are named, no line of the big file or the deleted file is, and the call exits 1;
+- `names-unneeded`: the unneeded hunk's line and the unreached refusal's line are named, no line of the big file, the deleted file or the symlink is, and the call exits 1, with the folder of the deleted file, the symlink and the mode of the executable file as the head has them for every later revert;
 - `names-whole`: every hunk of the unread file is named, since reverting them together passes;
 - `names-half`: the first four hunks of the half-needed file are named and the line says four are not judged one by one;
 - `names-deletions`: the same for the file of deletions, whose hunks git apply would place wrongly in the order that suits a replacement;
@@ -74,7 +74,9 @@ def main(args):
     git("init", "-q", "-b", "main")
     (work / "big.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "small.txt").write_text("a old\nkeep\nb old\nkeep\nc old\n")
-    (work / "gone.txt").write_text("here\n")
+    (work / "d").mkdir()
+    (work / "d" / "gone.txt").write_text("here\n")
+    (work / "link").symlink_to("old-target")
     (work / "wide.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "half.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(8)))
     (work / "dels.txt").write_text("".join(f"gone {n} a\ngone {n} b\nkeep {n}\n" for n in range(8)))
@@ -85,7 +87,11 @@ def main(args):
     git("checkout", "-q", "-b", "change")
     (work / "big.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "small.txt").write_text("a new\nkeep\nb new\nkeep\nc new\n")
-    (work / "gone.txt").unlink()
+    (work / "d" / "gone.txt").unlink()
+    (work / "link").unlink()
+    (work / "link").symlink_to("new-target")
+    (work / "exe.sh").write_text("echo\n")
+    (work / "exe.sh").chmod(0o755)
     (work / "wide.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(HUNKS)))
     (work / "half.txt").write_text("".join(f"new {n}\nkeep {n}\n" for n in range(8)))
     (work / "dels.txt").write_text("".join(f"keep {n}\n" for n in range(8)))
@@ -96,7 +102,7 @@ def main(args):
     git("commit", "-qm", "change")
     # a run that leaves a line in the log is one where the big file is not whole, so a reverted run; the unneeded hunk is the middle one of small.txt
     command = (f"test $(grep -c '^new' big.txt) = {HUNKS} || echo big >> {log}; "
-               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && test ! -e gone.txt && python3 c.py | grep -q new && echo ok")
+               f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && test ! -d d && test \"$(readlink link)\" = new-target && test -x exe.sh && python3 c.py | grep -q new && echo ok")
     body = work.parent / f"{work.name}-body.md"
     body.write_text(BODY.format(command=command))
 
@@ -107,7 +113,7 @@ def main(args):
 
     code, out, error, runs = call()
     step("few-runs", runs <= 3 and "big.txt: 30 hunks not judged one by one" in out, (runs, out, error))
-    step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out, (code, out, error))
+    step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out and "link:" not in out, (code, out, error))
     step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
     step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
     step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))

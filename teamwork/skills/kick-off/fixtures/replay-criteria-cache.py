@@ -9,6 +9,8 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `git-state-runs`: the same files with another index, after a soft reset, run a check that reads `git status` again;
 - `other-check-runs`: another check on files where a check passed runs;
 - `staged-edit-runs`: a second edit staged after a first, with the same commit and status, runs the check again;
+- `status-runs`: the same files, commit and index tree with a different staged state run a check that reads `git diff --cached` again;
+- `base-fresh-runs`: `--base --fresh` runs the check again;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once;
 - `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
@@ -78,6 +80,14 @@ def main(args):
     git("reset", "-q", "--soft", "HEAD~1")
     out, error, runs = call(clean)
     step("git-state-runs", runs == 1 and "| fail |" in out, (runs, out, error))
+    unstaged = f"echo run >> {log}; test -z \"$(git diff --cached --name-only)\" && echo ok"
+    git("reset", "-q")
+    (work / "a.txt").write_text("changed\n")
+    call(unstaged)
+    git("add", "a.txt")
+    out, error, runs = call(unstaged)
+    step("status-runs", runs == 1 and "| fail |" in out, (runs, out, error))
+    git("reset", "-q")
     failing = f"echo run >> {log}; grep -q absent a.txt && echo ok"
     call(passing)
     out, error, runs = call(failing)
@@ -97,6 +107,9 @@ def main(args):
     log.write_text("")
     again = [subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True).stdout for _ in range(2)]
     step("base-once", len(log.read_text().split()) == 1 and "cached: 1 checks replayed" in again[1] and "cached" not in again[0], (log.read_text(), again))
+    log.write_text("")
+    subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", "--fresh", str(body)], cwd=work, capture_output=True, text=True)
+    step("base-fresh-runs", len(log.read_text().split()) == 1, log.read_text())
     git("commit", "-qam", "moved")
     log.write_text("")
     moved = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True).stdout
