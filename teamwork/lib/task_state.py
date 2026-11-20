@@ -4,6 +4,8 @@ import json
 import pathlib
 import re
 
+import team_names
+
 
 SKILL = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off"
 GRAMMAR = SKILL / "references" / "task-grammar.md"
@@ -208,7 +210,7 @@ def event(found):
 
 def role(decider):
     """`owner`; `manager` for a session named `<project>-manager`, or `<project>-manager-next`, the name Succession gives; else `worker`."""
-    return "owner" if decider == "owner" else "manager" if decider == "manager" or decider.removesuffix("-next").endswith("-manager") else "worker"
+    return "owner" if decider == "owner" else "manager" if decider == "manager" or team_names.role(decider.removesuffix("-next")) == "manager" else "worker"
 
 
 def place(url):
