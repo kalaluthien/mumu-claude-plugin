@@ -4,7 +4,10 @@ import re
 
 KIND = "claude"
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
-SETTINGS = json.dumps({"disableClaudeAiConnectors": True})
+SETTINGS = {"disableClaudeAiConnectors": True}
+# every call re-reads the whole context, which Claude Code lets grow far before it compacts; a worker's window compacts sooner,
+# so its history stays shorter on every call
+WORKER_SETTINGS = {**SETTINGS, "autoCompactWindow": 145000}
 # Each tool off is a choice, since each description costs ~2-11k tokens every turn; subagents get only their session's tools (code.claude.com/docs/en/sub-agents):
 # - manager: Artifact off, it publishes nothing; Workflow off, it orchestrates by hand
 # - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a root task that publishes a page
@@ -25,7 +28,7 @@ DIALOGS = [
 
 def command(name, plugin_folder, model, effort, off):
     return ["--name", name, "--plugin-dir", plugin_folder, "--model", model, "--effort", effort,
-            "--settings", SETTINGS, *(["--disallowedTools", ",".join(off)] if off else [])]
+            "--settings", json.dumps(WORKER_SETTINGS if name.endswith("-worker") else SETTINGS), *(["--disallowedTools", ",".join(off)] if off else [])]
 
 
 def kickoff(args):
