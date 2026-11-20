@@ -64,8 +64,9 @@ def stalled(task, open_tasks, blockers):
 
 def background(agent):
     """Whether a session has a subagent or a command running in the background, which it waits on while its status reads idle."""
-    transcript = background_work.transcript_of((agent.get("agent_session") or {}).get("value"))
-    return bool(transcript and background_work.running_work(transcript))
+    session_id = (agent.get("agent_session") or {}).get("value")
+    transcript = background_work.transcript_of(session_id)
+    return bool(transcript and background_work.running_work(transcript)) or bool(background_work.running_commands(session_id))
 
 
 def feed_read(name, since):

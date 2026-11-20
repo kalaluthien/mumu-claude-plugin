@@ -1,6 +1,7 @@
-"""The background work a session's transcript started and has not seen end."""
+"""The background work a session started and has not seen end: what its transcript shows, and what still runs under its session id."""
 import json
 import re
+import subprocess
 
 import claude_config
 
@@ -37,3 +38,13 @@ def running_work(transcript):
 def transcript_of(session_id):
     """The path of a session's transcript, which Claude Code files under the project folder of the folder it started in; None when there is none."""
     return next(iter((claude_config.folder() / "projects").glob(f"*/{session_id}.jsonl")), None) if session_id else None
+
+
+def running_commands(session_id):
+    """Pids of the processes that carry SESSION_ID in their environment, such as a command the session detached from its shell with `( ... ) &` or a monitor's loop,
+    which no transcript record shows; the session's own heartbeat is no work."""
+    if not session_id:
+        return []
+    listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout
+    mark = f" CLAUDE_CODE_SESSION_ID={session_id}"
+    return [int(line.split()[0]) for line in listing.splitlines() if mark in line and "/monitors/print-team-gaps.py " not in line]
