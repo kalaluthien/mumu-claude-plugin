@@ -267,11 +267,11 @@ def passes_folder(root):
 
 
 def runner_marker(root, files, folder, path, argv):
-    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins, with the interpreter."""
+    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins."""
     with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
         wide = path.startswith(".github/") or ".github" in handle.read()
     folders = ("",) if wide else (path.split("/")[0] + "/", ".github/", ".claude-plugin/")
-    digest = hashlib.sha256("\0".join([root, sys.version, files_digest(root, files, folders, not wide), *argv]).encode()).hexdigest()[:32]
+    digest = hashlib.sha256("\0".join([files_digest(root, files, folders, not wide), *argv]).encode()).hexdigest()[:32]
     return folder / digest
 
 

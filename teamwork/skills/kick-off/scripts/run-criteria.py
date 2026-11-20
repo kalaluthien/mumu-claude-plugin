@@ -183,7 +183,7 @@ class Memory:
     """The `pass` of each check on one tree of files, kept in the git common dir's `teamwork-passes/`, so a check whose files did not change runs once for every session of the repository."""
 
     def __init__(self, root, tree, scope, fresh):
-        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root) or tempfile.gettempdir(), "teamwork-passes")
+        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-passes")
         self.prefix = f"{tree}\0{scope}\0" if tree else None  # no tree, no memory
         self.fresh = fresh
         self.replayed = 0
