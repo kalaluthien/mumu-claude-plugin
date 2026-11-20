@@ -1,7 +1,7 @@
 """The session port: where a team's sessions run, done by the herdr adapter.
 
 Every adapter has these functions, by the same names:
-- reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), `agent(name)` one by name or None,
+- reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), which the port's `own_name()` reads, `agent(name)` one by name or None,
   `screen(pane, styled=False)` the text a pane shows, with its color codes when `styled`, `tabs(workspace)` a workspace's tabs, each with its `label`
 - writes: `open_tab(workspace, cwd, label)` and `open_workspace(cwd, label)` each a new place,
   `rename(place, name)` its tab and pane, `start(name, pane, kind, argv, timeout)` an agent in a pane, `prompt(pane, text)` None once taken, else why not,
@@ -11,6 +11,11 @@ Every adapter has these functions, by the same names:
 A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""
 import session_herdr as adapter
+
+
+def own_name():
+    """This session's name; None when it is none of the live sessions."""
+    return adapter.sessions()[1].get("name")
 
 
 def __getattr__(name):

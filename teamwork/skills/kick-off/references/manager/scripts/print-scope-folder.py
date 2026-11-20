@@ -18,7 +18,7 @@ def main(args):
     if len(args) != 1:
         print(__doc__, file=sys.stderr)
         return 2
-    name = session.sessions()[1].get("name", "") if args == ["--me"] else args[0]
+    name = session.own_name() or "" if args == ["--me"] else args[0]
     project = team_names.project(name)
     if team_names.role(name) != "manager" or not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", project) or len(project) > 22:
         print(__doc__, file=sys.stderr)

@@ -9,6 +9,7 @@ import threading
 import time
 
 import board_records
+import data_folder
 
 REF = "refs/teamwork-blackboard"
 TRIES = 100  # 40 writers racing gc on one task needed at most 34 in the probes
@@ -26,10 +27,10 @@ class Ref(board_records.Store):
 
     def git(self, *args, data=None, env=None, check=True):
         if self.common is None:
-            found = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-            if found.returncode or not found.stdout.strip():
+            found = data_folder.common_folder()
+            if found is None:
                 raise LookupError("the git board needs a git repository: run this inside a project's checkout")
-            self.common = found.stdout.strip()
+            self.common = str(found)
         run = subprocess.run(["git", f"--git-dir={self.common}", *args], capture_output=True, input=data, env={**os.environ, **(env or {})})
         if check and run.returncode:
             raise GitFailed(f"git {args[0]}: {run.stderr.decode(errors='replace').strip()}")

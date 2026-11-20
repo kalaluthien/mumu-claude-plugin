@@ -38,7 +38,7 @@ LINE_OPTIONS = {task_state.ASK: "--blocked", task_state.INFORM: "--reported", ta
 
 
 def my_name():
-    return session.sessions()[1].get("name")
+    return session.own_name()
 
 
 def keep_own(url, text):

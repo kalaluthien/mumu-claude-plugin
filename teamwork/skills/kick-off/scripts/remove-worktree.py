@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import data_folder  # noqa: E402
 import landing  # noqa: E402
 import team_names  # noqa: E402
 
@@ -85,10 +86,10 @@ def main(args):
     if not args or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
-    common = git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=".").stdout.strip()
-    if not common:
+    common = data_folder.common_folder()
+    if common is None:
         sys.exit("remove-worktree.py: run it inside the checkout.")
-    root = pathlib.Path(common).parent  # the main checkout, wherever in it this runs
+    root = common.parent  # the main checkout, wherever in it this runs
     os.chdir(root)  # a worker removing its own worktree would otherwise read the landing from a deleted folder and keep its merged branch
     for name in args:
         print(remove(name, root))

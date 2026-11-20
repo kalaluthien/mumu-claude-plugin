@@ -1,9 +1,9 @@
 """Past task durations: one row per closed task that holds no parts, read from the board or from a fixture file."""
 import os
-import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
 import board
+import data_folder
 import landing
 import task_links
 from session_gaps import parse_time
@@ -13,10 +13,10 @@ CRITERION = ("[check]", "[score]")
 
 def own_repository():
     """The git directory of the repository this folder is in, the repository the board reads, as a board url names it."""
-    found = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-    if found.returncode or not found.stdout.strip():
+    found = data_folder.common_folder()
+    if found is None:
         raise RuntimeError("task_history: the board needs a git repository: run this inside a project's checkout")
-    return os.path.realpath(found.stdout.strip())
+    return os.path.realpath(found)
 
 
 def first_commit(repo, number):

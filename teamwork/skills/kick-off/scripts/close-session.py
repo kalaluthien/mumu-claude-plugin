@@ -47,7 +47,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     name = args[0]
-    own = session.sessions()[1].get("name") == name
+    own = session.own_name() == name
     if own and not os.environ.get("TEAMWORK_CLOSE_SESSION_DETACHED"):  # detached, so it outlives the Bash call that asked for it
         subprocess.Popen([sys.executable, __file__, name], env={**os.environ, "TEAMWORK_CLOSE_SESSION_DETACHED": "1"},
                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)

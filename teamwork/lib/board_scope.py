@@ -35,7 +35,7 @@ def check(folder):
 
 def default():
     """The folder a record is filed in when the caller names none: a manager's own project folder, else the root."""
-    name = session.sessions()[1].get("name")
+    name = session.own_name()
     return folder_of(team_names.project(name)) if team_names.role(name) == "manager" else ""
 
 
