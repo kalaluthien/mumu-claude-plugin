@@ -9,6 +9,7 @@
 - `names-deletions`: the same for the file of deletions, whose hunks git apply would place wrongly in the order that suits a replacement;
 - `names-edges`: the added file, the file whose last line had no newline and the symlink that only has to be a link are named, since reverting each leaves a file no check tells from the base's;
 - `takes-back-bytes`: 400 random pairs of files, whose lines hold form feeds, carriage returns, trailing spaces and empty lines, with or without a final newline, are taken back by `take_back` to the base byte for byte;
+- `names-korean`: the file and the symlink with a Korean name or target, which a check needs, are named by no line, and no line names a mojibake path;
 - `each-judges-all`: with `--each` the check ran once per hunk of the big file.
 
 usage: replay-hunk-groups.py"""
@@ -129,11 +130,13 @@ def main(args):
 
     code, out, error, runs = call()
     step("few-runs", runs <= 3 and "big.txt: 30 hunks not judged one by one" in out, (runs, out, error))
-    step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out and "ln:" not in out and all(line.split(":")[0].isascii() for line in out.splitlines() if "unneeded" in line) and "link:" not in out and "a b.txt" not in out, (code, out, error))
+    step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out and "link:" not in out and "a b.txt" not in out, (code, out, error))
     step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
     step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
     step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))
     step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out and "link2:1: unneeded hunk" in out and "run.sh:2: unneeded hunk" in out and "crlf.txt:2: unneeded hunk" in out, (code, out, error))
+    changed = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--name-only", "main...HEAD"], cwd=work, capture_output=True, text=True).stdout.split("\n")
+    step("names-korean", {"한글.txt", "ln"} <= set(changed) and "ln:" not in out and all(line.split(":")[0].isascii() for line in out.splitlines() if "unneeded" in line), (code, out, error))
     code, out, error, runs = call("--each")
     step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
     wrong = take_back_bytes()
