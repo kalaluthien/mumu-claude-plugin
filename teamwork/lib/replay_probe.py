@@ -90,25 +90,32 @@ def as_pane(argv, pane, environment, folder):
     return as_claude(argv, ["--name", name], folder) if name else [str(word) for word in argv]
 
 
+class Group(subprocess.Popen):
+    """A process in a session of its own, whose `kill` ends all it started, since the stand-in `claude` that wraps a monitor would otherwise leave it polling."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, start_new_session=True, **kwargs)
+
+    def kill(self):
+        try:
+            os.killpg(self.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
 def start_as_pane(argv, pane, environment, folder, cwd, log):
-    """ARGV as `as_pane` runs it, started in its own process group with its output in the file LOG, for a monitor that runs until `stop` ends it."""
-    return subprocess.Popen(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
-
-
-def stop(process):
-    """End PROCESS and what it started, since the stand-in `claude` that wraps a monitor would otherwise leave it polling."""
-    os.killpg(process.pid, signal.SIGKILL)
-    process.wait()
+    """ARGV as `as_pane` runs it, started as a `Group` with its output in the file LOG, for a monitor that runs until killed."""
+    return Group(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=log, stderr=subprocess.STDOUT)
 
 
 def run_for(argv, pane, environment, folder, cwd, seconds):
     """(None, what ARGV printed) after SECONDS of a run as `as_pane` runs it, which is then ended with all it started."""
-    process = subprocess.Popen(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    process = Group(as_pane(argv, pane, environment, folder), cwd=cwd, env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     try:
         out, _ = process.communicate(timeout=seconds)
         return process.returncode, out
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL)
+        process.kill()
         return None, process.communicate()[0]
 
 

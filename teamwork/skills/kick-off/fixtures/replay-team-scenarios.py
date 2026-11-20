@@ -8,7 +8,6 @@ import json
 import os
 import pathlib
 import re
-import signal
 import subprocess
 import sys
 import tempfile
@@ -36,16 +35,15 @@ def herdr(*agents):
     return state
 
 
-def run(argv, state, pane=None, event=None, seconds=120, cwd=None, own_group=False, **environment):
+def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment):
     environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state),
            "TEAMWORK_MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
-    process = subprocess.Popen([str(argument) for argument in argv], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd,
-                               start_new_session=own_group)
+    process = replay_probe.Group([str(argument) for argument in argv], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd)
     try:
         out, _ = process.communicate(event and json.dumps(event), timeout=seconds)
         code = process.returncode
     except subprocess.TimeoutExpired:  # the heartbeat runs until killed, with the stand-in `claude` that wraps it
-        os.killpg(process.pid, signal.SIGKILL) if own_group else process.kill()
+        process.kill()
         out, code = process.communicate()[0], None
     if VERBOSE:
         print(f"$ {' '.join(map(str, argv))}\n{out}", file=sys.stderr)
@@ -65,7 +63,7 @@ def hook(state, pane, event, cwd=None, **environment):
 
 def heartbeat(state, pane, seconds=40, cwd=None, **environment):
     argv = replay_probe.as_pane([ROOT / "monitors" / "print-team-gaps.py"], pane, {"TEAMWORK_FAKE_HERDR_STATE": str(state)}, pathlib.Path(state).with_suffix(".stand-in"))
-    return run(argv, state, pane, seconds=seconds, cwd=cwd, **environment, own_group=True)[1]
+    return run(argv, state, pane, seconds=seconds, cwd=cwd, **environment)[1]
 
 
 def tell(state, name, text="hi"):

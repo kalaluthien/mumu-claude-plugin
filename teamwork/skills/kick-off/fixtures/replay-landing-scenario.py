@@ -152,7 +152,7 @@ def main(args):
     step("signal", team_signal.stamp() != signal and landing_git.changed_since(before), f"stamp {signal} -> {team_signal.stamp()}")
 
     step("heartbeat-merged", first and printed(log, "merged #1 by landing-probe-worker:"), log.read_text())
-    replay_probe.stop(live)
+    live.kill()
     beat = heartbeat("w1:p3")
     step("heartbeat-rebase", "rebase #2: it conflicts with its base" in beat, beat)
 

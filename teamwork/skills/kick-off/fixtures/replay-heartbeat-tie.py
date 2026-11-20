@@ -87,7 +87,8 @@ def trial(monitor):
             time.sleep(0.2)
         cases["off-last-feed"] = (f"feed #{first} " in log.read_text(), log.read_text())
     finally:
-        replay_probe.stop(live)
+        live.kill()
+        live.wait()
     return cases
 
 

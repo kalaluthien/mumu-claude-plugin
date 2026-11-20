@@ -87,7 +87,7 @@ def case_whole(work, repository, origin, environment):
         if "route #3" not in log.read_text():
             return replay_probe.fail(f"the heartbeat routed no unrouted task on the git board: {log.read_text()[-300:]}")
     finally:
-        replay_probe.stop(live)
+        live.kill()
     tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
     (tree / "b.txt").write_text("work\n")
     sh("git", "add", "-A", cwd=tree, environment=environment)
