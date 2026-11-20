@@ -67,7 +67,8 @@
 //            an alias, a Korean one among them, finds its record first, which names the field `matched alias`. On
 //            page-changes `the zzqxv wobbly` shows the no-result state and `the zzqxv watcher` lists watcher first,
 //            printed as `stop word: PASS`; a query picked in the regular expression mode comes back from the recent
-//            queries after a reload with the mode on, and one kept as bare text with it off, printed as `regex recall: PASS`.
+//            queries after a reload with the mode on, and one kept as bare text with it off, printed as `regex recall: PASS`; a
+//            text picked from plain, then from regex, leaves one recent row that comes back in regex mode, printed as `recent set: PASS`.
 //   titles   on each example's page the Properties list shows each property by its title, and a click on the first
 //            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
@@ -1135,7 +1136,7 @@ async function search(browser) {
   console.log(line);
   for (const miss of missed) console.log("  " + miss);
   const failed = [];
-  for (const [name, scenario] of [["stop word", stopWord], ["regex recall", regexRecall]]) {
+  for (const [name, scenario] of [["stop word", stopWord], ["regex recall", regexRecall], ["recent set", recentSet]]) {
     const outcome = await scenario(browser).then((detail) => `PASS ${detail}`, (error) => { failed.push(name); return `FAIL ${error.message.split("\n")[0]}`; });
     console.log(`${name}: ${outcome}`);
   }
@@ -1169,6 +1170,19 @@ async function regexRecall(browser) { // a recent query comes back in the mode i
   quiet(page, "page-changes");
   await page.context().close();
   return "watcher|flush comes back with the toggle on after a reload; the flush, kept as bare text, comes back with it off";
+}
+
+async function recentSet(browser) { // one text run in both modes is one recent row, in the mode it last ran in
+  const page = await open(browser, examples.find((example) => example.name === "page-changes"), SIZES[1], { still: true });
+  for (const toggle of [false, true]) { await page.keyboard.press("/"); if (toggle) await page.click("#regex"); await typed(page, "flush"); await page.keyboard.press("Enter"); await rest(page); }
+  await page.reload(); await rest(page); await page.keyboard.press("/");
+  const rows = (await typed(page, "")).filter((hit) => hit.recent === "flush").length;
+  await page.click('#hits [data-recent="flush"] .text'); await page.clock.fastForward(30);
+  const mode = await page.evaluate(() => document.getElementById("regex").getAttribute("aria-pressed"));
+  check(rows === 1 && mode === "true", `flush run plain, then as regex, shows ${rows} recent rows and comes back with the toggle ${mode === "true" ? "on" : "off"}`);
+  quiet(page, "page-changes");
+  await page.context().close();
+  return "flush run plain, then as regex, shows one recent row that comes back with the toggle on";
 }
 
 // ---- titles ----

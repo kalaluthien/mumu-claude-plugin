@@ -1331,7 +1331,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     const current = box.querySelector('[aria-selected="true"]');
     if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
   }
-  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase() && one.regex === item.regex;
+  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase(); // one row per text, kept in the mode it last ran in
   function recall(item) { $("query").value = item.recent; regex(item.regex); }
   function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
   function regex(on) {
