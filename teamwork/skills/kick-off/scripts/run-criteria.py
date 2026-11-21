@@ -42,8 +42,11 @@ halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<
 printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer is. A hunk no check can
 see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
-for each whose branch no criterion reaches, exit 1 too, since a refusal no check reaches hides inside a hunk a check needs. It runs
-the checks once per reverted group and per such line, so give a long check time with `--timeout`; it never fetches.
+for each whose branch no criterion reaches; each other comparison it adds is then negated alone, and each number made 0, or 1 when it is 0, and
+`<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound or a weight no check
+reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
+gets no mutant, since it is the check, not the change. It runs
+the checks once per reverted group and per such mutant, so give a long check time with `--timeout`; it never fetches.
 
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
@@ -453,18 +456,33 @@ def take_back(text, patches):
     return "".join(lines)
 
 
-def added_conditions(file, line, patch, text):
-    """Byte spans of the tests of the `if` and `elif` statements a Python hunk adds in TEXT, its first added line being LINE."""
+def added_mutants(line, patch, text):
+    """(line, start, end, replacement, kind) of each mutant of the lines a Python hunk adds in TEXT, its first added line being LINE, as byte spans:
+    each `if` or `elif` test made `False`, each other comparison negated, and each number made 0, or 1 when it is 0."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return []
     starts = [0]
-    for each in text.encode().splitlines(keepends=True):
+    data = text.encode()
+    for each in data.splitlines(keepends=True):
         starts.append(starts[-1] + len(each))
-    return sorted((node.lineno, starts[node.test.lineno - 1] + node.test.col_offset, starts[node.test.end_lineno - 1] + node.test.end_col_offset)
-                  for node in ast.walk(tree) if isinstance(node, ast.If) and node.lineno in added)
+
+    def span(node):
+        return starts[node.lineno - 1] + node.col_offset, starts[node.end_lineno - 1] + node.end_col_offset
+
+    tests = {id(node.test) for node in ast.walk(tree) if isinstance(node, ast.If)}
+    found = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.If) and node.lineno in added:
+            found.append((node.lineno, *span(node.test), b"False", "condition"))
+        elif isinstance(node, ast.Compare) and node.lineno in added and id(node) not in tests:
+            start, end = span(node)
+            found.append((node.lineno, start, end, b"(not (" + data[start:end] + b"))", "comparison"))
+        elif isinstance(node, ast.Constant) and type(node.value) in (int, float) and node.lineno in added:
+            found.append((node.lineno, *span(node), b"1" if node.value == 0 else b"0", "number"))
+    return sorted(found)
 
 
 def run_per_hunk(options, task, root, live):
@@ -490,7 +508,7 @@ def run_per_hunk(options, task, root, live):
             print(live.report(), end="")
             return 1
         held = {label for label, result in at_head.items() if result == "pass"}
-        unneeded, conditions, unjudged = [], 0, []
+        unneeded, conditions, mutants, unjudged = [], 0, 0, []
 
         def survives(group):
             """True when no passing row changes with every hunk of GROUP, all of one file or link, reverted together."""
@@ -537,17 +555,22 @@ def run_per_hunk(options, task, root, live):
                 alone = [hunk for hunk in group if survives([hunk])]
             unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone]
             path = pathlib.Path(copy, file)
-            text = path.read_text() if file.endswith(".py") and path.is_file() else ""
+            text = path.read_text() if file.endswith(".py") and path.is_file() and "fixtures" not in pathlib.PurePosixPath(file).parts else ""
             for _, line, patch in (hunk for hunk in group if hunk not in alone):
-                for number, start, end in added_conditions(file, line, patch, text):
+                for number, start, end, replacement, kind in added_mutants(line, patch, text):
                     data = text.encode()
-                    path.write_bytes(data[:start] + b"False" + data[end:])
+                    path.write_bytes(data[:start] + replacement + data[end:])
                     still = {label for label, result in results(copy).items() if result == "pass"}
                     path.write_text(text)
-                    conditions += 1
-                    if held <= still:
+                    if kind == "condition":
+                        conditions += 1
+                    else:
+                        mutants += 1
+                    if held <= still and kind == "condition":
                         unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
-    print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {len(unneeded)} unneeded")
+                    elif held <= still:
+                        unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode()}`, so make a criterion fail on it or drop it")
+    print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded")
     print(*unneeded, sep="\n")
     print(*[f"{file}: {count} hunks not judged one by one, since reverting them together fails a criterion; --each judges each" for file, count in unjudged], sep="\n")
     print(live.report(), end="")
