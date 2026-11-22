@@ -5,6 +5,7 @@ then `PASS` or `FAIL`, and exit 1 on any failure:
 - `never`: with no agent in the pane the start exits 1, says the session is not live and got no kick-off, and sends no prompt;
 - `unsent`: a live session whose kick-off was refused is called live with no kick-off, and the answer holds the kick-off to send;
 - `untaken`: a live session that took the text but never started on it is called live with its kick-off typed;
+- `busy`: a live session that never reads ready but whose pane shows its kick-off, or which is working, is not called one that got no kick-off, and the answer offers no kick-off to resend;
 - `lookup`: the pane lookup each failed start names exits 0;
 - `limit`: every `herdr agent start` carries a `--timeout` herdr takes, above 3000 ms and at most 300000 ms;
 - `subfolder`: `.github/plan-release.py`, when the repository has one, names the same tags from a plugin's folder as from the top.
@@ -74,6 +75,9 @@ def main(args):
     done, calls, agents = start("unseen-worker")
     lookups.append(looked(done))
     step("untaken", done.returncode == 1 and "unseen-worker is live and its kick-off was typed" in done.stderr and "start no second one" in done.stderr, done)
+    done, calls, agents = start("busy-worker")
+    step("busy", done.returncode == 1 and "got no kick-off" not in done.stderr and "send it:" not in done.stderr
+         and "busy-worker is live and its pane shows its kick-off" in done.stderr and "start no second one" in done.stderr, done)
     step("lookup", lookups == [True, True, True], lookups)
 
     plan = ROOT.parent / ".github" / "plan-release.py"

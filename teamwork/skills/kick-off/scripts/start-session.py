@@ -136,6 +136,8 @@ def main(args):
             state = f"{options.name} is not live and got no kick-off; " + (f"look at its pane with `{look(options.name, pane)}` before starting it again" if pane else "no pane was opened for it")
         elif sent:
             state = f"{options.name} is live and its kick-off was typed, but it did not start on it; look at its pane with `{look(options.name, pane)}`, and start no second one"
+        elif text[:40] in session.screen(options.name) or (session.agent(options.name) or {}).get("agent_status") == "working":  # it may run its kick-off already
+            state = f"{options.name} is live and its pane shows its kick-off, or it is working; read its pane with `{look(options.name, pane)}` before you send anything, and start no second one"
         else:
             state = f"{options.name} is live and got no kick-off; start no second one, look at its pane with `{look(options.name, pane)}` and send it: {text}"
         sys.exit(f"start-session.py: {e}. {state}.")

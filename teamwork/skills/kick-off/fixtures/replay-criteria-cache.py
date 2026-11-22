@@ -17,7 +17,8 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `locked-git-dir-runs`: a git dir the run cannot write still prints the table, exits 0 and keeps no memory;
 - `failure-runs`: a check that fails runs on every call;
 - `base-once`: `--base` twice runs the check once;
-- `base-moves-runs`: after a commit on the base ref, `--base` runs the check again.
+- `base-moves-runs`: after a commit on the base ref, `--base` runs the check again;
+- `outside-file-runs`: a check that reads a file outside the repository by its absolute path runs again once that file changed, and is replayed while it did not.
 
 usage: replay-criteria-cache.py"""
 import os
@@ -129,6 +130,14 @@ def main(args):
     git("checkout", "-q", "-b", "side")
     out, error, runs = call(named)
     step("branch-runs", runs == 1 and "| fail |" in out, (runs, out, error))
+    outside = work.parent / f"{work.name}-outside.txt"
+    outside.write_text("one\n")
+    reader = f"echo run >> {log}; grep -q one {outside} && echo ok"
+    call(reader)
+    same = call(reader)[2]
+    outside.write_text("one two\n")
+    out, error, runs = call(reader)
+    step("outside-file-runs", same == 0 and runs == 1 and "cached" not in out, (same, runs, out, error))
     plain = work.parent / f"{work.name}-plain"
     plain.mkdir()
     (plain / "a.txt").write_text("one\n")

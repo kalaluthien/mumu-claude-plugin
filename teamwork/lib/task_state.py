@@ -253,10 +253,19 @@ def live_runs(task):
     return next((held["live_runs"] for _, held, _ in reversed(records(task)) if "live_runs" in held), None)
 
 
+def live_names():
+    """The live sessions' names, or None when the session host gave no list, so a reader outside it keeps the recorded holders."""
+    import session  # here, since the session port loads the agent adapter, which a board reader outside a host never needs
+    return session.live_names()
+
+
 def compose(task, blockers=()):
-    """{'holders': the latest names, or None when no record ever set them; 'waits': its wait line, in the grammar's order;
+    """{'holders': the latest names that are live sessions, every recorded one when the host gives no list, or None when no record ever set them;
+    'was': the recorded names no longer live; 'waits': its wait line, in the grammar's order;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
-    holders = (holder_values(task) or [None])[-1]
+    recorded, live = (holder_values(task) or [None])[-1], live_names()
+    holders = recorded if recorded is None or live is None else [name for name in recorded if name in live]
+    was = [name for name in recorded or [] if name not in holders]
     if any(question["fields"].get("asks") == "owner" for question in open_questions(task)):
         waits = OWNER_WAIT
     elif blockers:
@@ -268,4 +277,4 @@ def compose(task, blockers=()):
     done = [dict(zip(("box", "kind", "name", "detail"), CRITERION.match(item).groups())) for item in ITEM.findall(current.get("done", ""))]
     done = [{"met": criterion["box"] and criterion["box"] != " ", "kind": criterion["kind"] or "", "name": criterion["name"] or criterion["detail"], "detail": criterion["detail"] if criterion["name"] else ""}
             for criterion in done]
-    return {"holders": holders, "waits": waits, "done": done}
+    return {"holders": holders, "was": was, "waits": waits, "done": done}

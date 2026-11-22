@@ -1,12 +1,12 @@
 """The session port: where a team's sessions run, done by the herdr adapter.
 
 Every adapter has these functions, by the same names:
-- reads: `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), as the pane's record says, which `own()` and `own_interactive()` narrow to a session started or renamed as its name, or a person types into, and `own_name()` reads, `agent(name)` one by name or None,
+- reads: `live_names()` the live sessions' names, None when the host gave no list, `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), as the pane's record says, which `own()` and `own_interactive()` narrow to a session started or renamed as its name, or a person types into, and `own_name()` reads, `agent(name)` one by name or None,
   `screen(pane, styled=False)` the text a pane shows, with its color codes when `styled`, `tabs(workspace)` a workspace's tabs, each with its `label`
 - writes: `open_tab(workspace, cwd, label)` and `open_workspace(cwd, label)` each a new place,
   `rename(place, name)` its tab and pane, `start(name, pane, kind, argv, timeout)` an agent in a pane, `prompt(pane, text)` None once taken, else why not,
   `send_keys(pane, *keys)`, `answer(pane, choice)` a tool prompt's choice by its number, `wait_idle(name, timeout)` until a session is `idle` or `done`, True when it is,
-  `close(session)` its tab, or its workspace when that tab is the last, returning which
+  `close(session)` its pane while another pane shares its tab, else its tab, or its workspace when that tab is the last, returning which
 - `LOOK` the command that shows a pane by its `pane_id`, with or without a session in it, `EMPTY` what to say when no session is listed, and `NEEDS` the commands it runs
 A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `pane_id`, `tab_id`, `workspace_id` and `agent_status` (`idle`, `working`, `blocked` or `done`), and `interactive_ready`;
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""

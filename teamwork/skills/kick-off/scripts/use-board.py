@@ -2,7 +2,7 @@
 """Do one board operation through the board port, so a session writes the same way on any board.
 
 usage: use-board.py read <task> [--as worker|judge] [--full] [--body]
-usage: use-board.py comment <task> (--blocked <question> | --reported <line>) [--text <file>] [--asks owner] [--option <answer>]...
+usage: use-board.py comment <task> (--blocked [<question>] | --reported [<line>]) [--text <file>] [--asks owner] [--option <answer>]...
 usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
 usage: use-board.py hold <task> --holders <names>
 usage: use-board.py depend <task> --depends <numbers>
@@ -13,8 +13,8 @@ usage: use-board.py resolve <task> --summary <line> [--text <file>] [--not-plann
 usage: use-board.py reopen <task>
 usage: use-board.py label <task> --label <name> [--remove]
 
-`<task>` is a number or url. The script writes the keyword line, so `--text` holds what follows it; `<names>` and `<numbers>`
-split by spaces, `""` for none. A write prints its url; a refused one posts nothing, exits 2 and names the fix. Meanings:
+`<task>` is a number or url. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
+takes that line from the first line of `--text`. `<names>` and `<numbers>` split by spaces, `""` for none. A write prints its url; a refused one posts nothing, exits 2 and names the fix. Meanings:
 references/task-grammar.md; `--scope`: references/adapters/board.md."""
 import difflib
 import pathlib
@@ -51,11 +51,15 @@ def read_text(path):
     return pathlib.Path(path).read_text()
 
 
-def composed(verb, keyword, line, option, path):
+def composed(verb, keyword, line, option, path, bare=False):
     """The comment `KEYWORD: LINE`, then the text of PATH when one is given; refused, naming the option, when LINE is not one line
-    or the text opens with a keyword, since the script writes the keyword line and a text holds only what follows it."""
-    found = [] if line.strip() and "\n" not in line.strip() else [f"`{option}` takes one line that is not empty, as `{option} '<one line>'`; put the rest in `--text <file>`"]
+    or the text opens with a keyword, since the script writes the keyword line and a text holds only what follows it. With BARE and an
+    empty LINE, the text's first line is LINE, minus KEYWORD when it opens with it."""
     rest = read_text(path) if path else ""
+    if bare and not line.strip() and rest.strip() and task_state.keyword(rest.lstrip("\n")) in (None, keyword):
+        first, _, rest = rest.lstrip("\n").partition("\n")
+        line = first.split(":", 1)[1] if task_state.keyword(first) else first
+    found = [] if line.strip() and "\n" not in line.strip() else [f"`{option}` takes one line that is not empty, as `{option} '<one line>'`, or bare with its line first in `--text <file>`; put the rest in `--text <file>`"]
     if task_state.keyword(rest):
         found.append(f"{path} opens `{task_state.keyword(rest)}:`, a keyword line the script writes itself; pass that line's words as "
                      f"`{LINE_OPTIONS[task_state.keyword(rest)] if verb == 'comment' else option} '<line>'` and keep only what follows it in the file")
@@ -94,7 +98,7 @@ def read_task(options):
     tasks = decisions.read(options.task, board.fresh)
     task = tasks[options.task]
     state = task_state.compose(task, board.blockers(task["number"]))
-    print(f"#{task['number']} {task_state.title(task)}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'OPEN' else ''}\nholders: {' '.join(state['holders'] or [])}\n"
+    print(f"#{task['number']} {task_state.title(task)}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'OPEN' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
           f"{'scope: ' + (task['scope'] or '(repository root)') + chr(10) if 'scope' in task else ''}labels: {', '.join(task['labels'])}\nparent: {task['parent']}\n"
           f"depends: {' '.join(f'#{number}' for number in task['depends'])}\nbody sha: {board.body_sha(task['body'])}\n\n{task['body']}\n")
     print("\n".join(decisions.lines(task["number"], tasks, questions=role != "judge")))
@@ -112,7 +116,7 @@ def read_task(options):
 
 def post_comment(options):
     keyword, line, option = (task_state.ASK, options.blocked, "--blocked") if options.blocked is not None else (task_state.INFORM, options.reported, "--reported")
-    text = composed("comment", keyword, line, option, options.text)
+    text = composed("comment", keyword, line, option, options.text, bare=True)
     offered = options.option
     if options.asks not in (None, "owner"):
         refuse("comment", ["write `--asks owner` or drop `--asks`, since a question without it goes to the manager"])
@@ -244,7 +248,7 @@ def label_task(options):
 TEXT = ("--text", {"metavar": "FILE"})
 # verb -> (what it does, whether it names a task by place, its options as (flag, argparse keywords)); a flag with no keywords takes one value
 VERBS = {"read": (read_task, True, [("--as", {"dest": "as_role", "choices": ("worker", "judge")}), ("--full", {"action": "store_true"}), ("--body", {"action": "store_true"})]),
-         "comment": (post_comment, True, [("--blocked", {"group": "line"}), ("--reported", {"group": "line"}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []})]),
+         "comment": (post_comment, True, [("--blocked", {"group": "line", "nargs": "?", "const": ""}), ("--reported", {"group": "line", "nargs": "?", "const": ""}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []})]),
          "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--one-way", {"action": "store_true"}), ("--supersedes", {}),
                                         ("--answers", {}), ("--holders", {}), ("--live-runs", {})]),
          "hold": (hold_task, True, [("--holders", {"required": True})]),
@@ -283,6 +287,10 @@ def parser():
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        # the usage is the help, so a call asking for it learns that rather than which argument it lacks
+        print(f"use-board: `{'--help' if '--help' in args else '-h'}` is no option; the usage follows", file=sys.stderr)
+        usage_parser.refuse(__doc__)
     options = parser().parse_args(args)
     try:
         if getattr(options, "task", None) is not None:

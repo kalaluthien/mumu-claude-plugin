@@ -30,7 +30,8 @@ def tasks(scope=None, state="open"):
 
 
 def holds(task, name):
-    return name in (task_state.compose(task)["holders"] or [])
+    """Whether NAME's record holds TASK, as recorded, since it asks of a live session, for which the recorded and the live holders agree."""
+    return name in ((task_state.holder_values(task) or [[]])[-1])
 
 
 def asking(task):

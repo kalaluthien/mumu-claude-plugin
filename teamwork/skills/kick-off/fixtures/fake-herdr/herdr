@@ -6,7 +6,7 @@ and a `blocked` agent with a `screen` the exit dialog of background work; each c
 A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent refuses its first prompt so, and an `unseen` agent
 takes a prompt but never shows it, a `late` agent's start is refused `timeout` and it comes up unnamed in its pane two lists later, a `never` agent's start is refused `timeout` and nothing comes up, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
 agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list, or at every `period`th (`"flip": "blocked"` swaps blocked and working), and an agent with `move`, or one started with `moving` in its
-name, moves to that pane after the `move_after`th list that shows it (default the first). A target no agent has is refused
+name, moves to that pane after the `move_after`th list that shows it (default the first). `pane list` lists each agent's pane, and a pane, tab or workspace close shuts every agent in it. A target no agent has is refused
 `agent_not_found`; with TEAMWORK_FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
 Claude Code does. TEAMWORK_FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
@@ -75,6 +75,8 @@ elif head == ["agent", "start"]:
     state["agents"].append({"name": None if late else argv[2], "hidden": 3 if late else 0, "pane_id": pane, "tab_id": pane.replace(":p", ":t"), "workspace_id": pane.split(":")[0],
                         "agent": "claude", "agent_status": "idle", "interactive_ready": "trust" not in argv[2],
                         "screen": "Yes, I trust this folder" if "trust" in argv[2] else "", **({"move": "w99:p99"} if "moving" in argv[2] else {})})
+    if "busy" in argv[2]:  # a pane that took its kick-off by another way and works, never reading ready
+        state["agents"][-1].update(interactive_ready=False, agent_status="working", screen="Run the teamwork:kick-off skill with these arguments: worker " + argv[2])
     if not late:
         ok()
 elif head == ["agent", "read"] and by_pane(argv[2]) or head == ["pane", "read"]:
@@ -135,6 +137,12 @@ elif head == ["agent", "wait"]:
         code = 1
 elif head == ["tab", "list"]:
     ok({"tabs": [tab for tab in state["tabs"] if tab["workspace_id"] == option("--workspace")]})
+elif head == ["pane", "list"]:
+    ok({"panes": [{key: agent[key] for key in ("pane_id", "tab_id", "workspace_id")} for agent in state["agents"] if not agent.get("hidden")]})
+elif head[1:] == ["close"] and head[0] in ("pane", "tab", "workspace"):  # a close shuts every agent in that place
+    state["agents"] = [agent for agent in state["agents"] if agent[f"{head[0]}_id"] != argv[2]]
+    state["tabs"] = [tab for tab in state["tabs"] if head[0] == "pane" or tab[f"{head[0]}_id"] != argv[2]]
+    ok()
 else:  # renames, keys, closes
     ok()
 temporary = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once

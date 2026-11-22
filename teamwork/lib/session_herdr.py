@@ -14,10 +14,15 @@ POLL = 1.0
 START_WAIT = (3.001, 300)
 
 
+# the latest names herdr listed, which `live_names` reuses for LIVE_SECONDS, since a reader composes every task of a board in one pass
+LIVE_SECONDS = 2.0
+_latest = {"at": None, "names": None}
+
+
 def sessions(session_id=None):
     """Every live agent, and this session's own: the one herdr lists with its session id, since herdr may move a pane and the shell's
     HERDR_PANE_ID stays as it started; else its pane's, unless the pane runs another session, as a worker's child does."""
-    listed = (run("herdr", "agent", "list") or {}).get("result", {}).get("agents", [])
+    listed = remember(run("herdr", "agent", "list"))
     session_id = session_id or os.environ.get("CLAUDE_CODE_SESSION_ID")
     by_id = next((live for live in listed if session_id and (live.get("agent_session") or {}).get("value") == session_id), None)
     if by_id:
@@ -25,6 +30,22 @@ def sessions(session_id=None):
     me = next((live for live in listed if live.get("pane_id") == os.environ.get("HERDR_PANE_ID")), {})
     own = not session_id or (me.get("agent_session") or {}).get("value") in (None, "", session_id)
     return listed, me if own else {}
+
+
+def remember(out):
+    """The agents of a `herdr agent list` output, its names kept as the latest when herdr gave a list."""
+    listed = (out or {}).get("result", {}).get("agents", [])
+    if out is not None:
+        _latest.update(at=time.monotonic(), names={live["name"] for live in listed if live.get("name")})
+    return listed
+
+
+def live_names():
+    """The names of the live agents, from a list at most LIVE_SECONDS old, or None when herdr gave no list, such as outside herdr."""
+    if _latest["at"] is None or time.monotonic() - _latest["at"] > LIVE_SECONDS:
+        out = run("herdr", "agent", "list")
+        remember(out) if out is not None else _latest.update(at=time.monotonic(), names=None)
+    return _latest["names"]
 
 
 def agent(name):
@@ -110,6 +131,13 @@ def wait_idle(name, timeout):
 
 
 def close(session):
+    """Only the session's pane while another pane shares its tab, or herdr lists no panes, since a tab close shuts every pane in it;
+    else its tab, or its workspace when that tab is the last."""
+    out = run("herdr", "pane", "list")
+    panes = None if out is None else out.get("result", {}).get("panes", [])
+    if panes is None or any(pane.get("tab_id") == session["tab_id"] and pane.get("pane_id") != session["pane_id"] for pane in panes):
+        run("herdr", "pane", "close", session["pane_id"])
+        return "pane"
     last = len(tabs(session["workspace_id"])) <= 1
     run("herdr", *(("workspace", "close", session["workspace_id"]) if last else ("tab", "close", session["tab_id"])))
     return "workspace" if last else "tab"

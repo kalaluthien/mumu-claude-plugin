@@ -122,8 +122,8 @@ def git_team():
 
 
 def git_board():
-    """The protocol on a git board: a task filed, made a part, made to wait, held, asked, answered, edited, resolved and reopened reads back as written."""
-    code, out = run([HERE / "replay-board-scenario.py"], herdr(*TEAM))
+    """The protocol on a git board: a task filed, made a part, made to wait, held by a live worker, asked, answered, edited, resolved and reopened reads back as written."""
+    code, out = run([HERE / "replay-board-scenario.py"], herdr(*TEAM, agent("probe-worker", 4, "idle")))
     steps = dict(re.findall(r"^step (\S+)\n((?:(?!step ).*\n?)*)", out, re.M))
     ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=root" in steps.get("part", "") \
         and "waits=blocked by #task" in steps.get("order", "") and "task: CLOSED" in steps.get("resolve-task", "") \

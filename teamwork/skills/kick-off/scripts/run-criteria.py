@@ -14,7 +14,7 @@ A row is `pass` or `fail` by the output the criterion says it `prints`, or the s
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
 judge runs; `judged` for a `[score]`. A timeout is a `fail`. Exit 1 on any `fail`. Each row's `sha-256` is the
 first 16 hex digits of the hash of the criterion's kind, name and details, so a judge sees a criterion reworded after
-its first judged table. A `[check]` that passed on the same files, not counting ignored ones, and the same commit, branch and index (or with `--base` the base's files) is not run again by any session of the
+its first judged table. A `[check]` that passed on the same files, not counting ignored ones, and the same commit, branch and index (or with `--base` the base's files), and on the same files outside the repository that it names by an absolute or `~/` path (it always runs when it names such a folder), is not run again by any session of the
 repository: its row is its earlier output, and `cached: <n> checks replayed` follows the table. `--fresh` runs every check again; a failed check always runs. A `BLOCKED due: <name>` line follows
 when a criterion fails with the output it had in an earlier table on the task: ask your manager by `BLOCKED:`, since
 it has failed twice the same way.
@@ -123,6 +123,29 @@ def runnable(task):
     return task
 
 
+PATH_WORD = r"""(~?/[^\s'"`;|&<>()$]+)"""
+OUTSIDE_PATH = re.compile(r"(?<![\w.~/-])" + PATH_WORD)
+WRITTEN_PATH = re.compile(r">>?\s*" + PATH_WORD)
+
+
+def outside_files(command, root):
+    """A sha-256 of every file outside ROOT that COMMAND names by an absolute or `~/` path, so a remembered pass holds only while they did not change;
+    None when it names a folder outside ROOT, whose files are not read."""
+    digest = hashlib.sha256()
+    written = set(WRITTEN_PATH.findall(command))  # a file the check writes is its output, not its input
+    for word in sorted(set(OUTSIDE_PATH.findall(command)) - written):
+        path = pathlib.Path(os.path.expanduser(word))
+        try:
+            if path.resolve().is_relative_to(pathlib.Path(root).resolve()) or not path.exists():
+                continue
+            if path.is_dir():
+                return None
+            digest.update(str(path).encode() + b"\0" + path.read_bytes())
+        except OSError:
+            return None
+    return digest.hexdigest()[:16]
+
+
 def content_key(first, paths, cwd):
     """A sha-256 of the first stage and every file under PATHS in CWD, so a saved transcript holds only while neither changed."""
     digest = hashlib.sha256(first.encode())
@@ -187,6 +210,7 @@ class Memory:
     """The `pass` of each check on one tree of files, kept in the git common dir's `teamwork-passes/`, so a check whose files did not change runs once for every session of the repository."""
 
     def __init__(self, root, tree, scope, fresh):
+        self.root = root
         self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-passes")
         self.prefix = f"{tree}\0{scope}\0" if tree else None  # no tree, no memory
         self.fresh = fresh
@@ -241,12 +265,14 @@ def execute(command, detail, cwd, timeout, live):
 
 def recalled(memory, detail, command, cwd, timeout, live, passes):
     """(status, output) of a check from MEMORY when it passed on these files, else from running it, kept when PASSES(status, output) holds."""
-    found = memory.recall(detail) if memory else None
+    outside = outside_files(command, memory.root) if memory else None  # read before the run, which may write a file it names
+    key = f"{detail}\0{outside}"
+    found = memory.recall(key) if memory and outside else None
     if found:
         return found
     status, out = execute(command, detail, cwd, timeout, live)
-    if memory and passes(status, out):
-        memory.keep(detail, status, out)
+    if memory and outside and passes(status, out):
+        memory.keep(key, status, out)
     return status, out
 
 

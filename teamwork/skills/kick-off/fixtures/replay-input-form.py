@@ -5,11 +5,12 @@ the message names a fix and the board is unchanged; an `unstored-` case when eve
 an `accept-` case when every write exits 0 and the board changed. Cases:
 - `fence-*`: a `teamwork` or a `decision` fence at a line's start in a filed body, a comment, a decision, a summary or an edited body;
 - `option-*`: an `--asks` that names no owner, `--asks owner` with fewer than two `--option`, an option on a `REPORTED:`, a `--live-runs` that is no count;
-- `keyword-*`: a `--blocked` or `--reported` line that is empty or holds two lines, a `--text` file that opens with a keyword of the verb or of another verb;
+- `keyword-*`: a `--blocked` or `--reported` line that is empty or holds two lines, a `--text` file that opens with a keyword of the verb or of another verb,
+  a bare `--reported` with no `--text` or with one that opens with another keyword;
 - `heading-*`: a section heading misspelt or repeated;
 - `edit-*`: a new body or `--reason` `use-board.py edit` is given;
 - `unstored-*`: a holder's or a decider's name that board-record-schema.json refuses;
-- `accept-*`: text and options that must still post, and `accept-scenarios`, the output of replay-team-scenarios.py holding only `ok` lines;
+- `accept-*`: text and options that must still post, a bare `--blocked` or `--reported` taking its line from `--text`, and `accept-scenarios`, the output of replay-team-scenarios.py holding only `ok` lines;
 - `stored-decision`: a `decide` with `--one-way`, `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` whose keys the schema all names, and `read` shows each;
 - `stored-question`: a `comment --asks owner` with two `--option` keeps them as `options`, and `read` numbers them and says the task waits on the owner;
 - `url-names-task`: `read` and `comment` take the url `file` printed as they take the number.
@@ -53,6 +54,8 @@ REFUSED = {
     "keyword-bare": ([("call", "comment", None, "--blocked", "which one?\nand which other?")], "one line"),
     "keyword-bold": ([("call", "comment", None, "--reported", "  ")], "not empty"),
     "keyword-later-line": ([("call", "comment", "BLOCKED: which one?\n", "--blocked", "which one?")], "keyword line"),
+    "keyword-bare-no-text": ([("call", "comment", None, "--reported")], "not empty"),
+    "keyword-bare-other": ([("call", "comment", "BLOCKED: which one?\n", "--reported")], "keyword line"),
     "keyword-other-verb": ([("call", "comment", "DECIDED: ship the probe today\n", "--reported", "probe findings"), ("call", "decide", "BLOCKED: which one?\n", "--decision", "ship it", *BY),
                             ("call", "resolve", "DECIDED: closing it\n", "--summary", "closing it")], "keyword line"),
     "heading-misspelt": ([("file", BASE.replace("## Goal", "## goal")), ("file", BASE.replace("## Definition of done", "## Definition Of Done"))], "write exactly"),
@@ -79,6 +82,7 @@ ACCEPTED = {
                             ("hold", None, "a-worker", "b-worker"), ("hold", None), ("depend", None, "1"), ("depend", None, "#1")],
     "accept-keyword-spaced": [("call", "comment", "\n more probe findings\n", "--reported", "probe findings"), ("call", "decide", "\n more on it\n", "--decision", "ship the probe today", *BY),
                               ("call", "resolve", "\n more on it\n", "--summary", "done")],
+    "accept-bare-line": [("call", "comment", "probe findings\n\nMore.\n", "--reported"), ("call", "comment", "BLOCKED: which one?\n", "--blocked")],
     "accept-keyword-put-first": [("decide", "ship the probe today\n", *BY), ("resolve", "the probe landed\n")],
 }
 failed = []
