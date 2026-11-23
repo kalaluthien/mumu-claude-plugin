@@ -131,13 +131,24 @@ def wait_idle(name, timeout):
 
 
 def close(session):
-    """Only the session's pane while another pane shares its tab, or herdr lists no panes, since a tab close shuts every pane in it;
-    else its tab, or its workspace when that tab is the last."""
+    """The session's pane as one fresh `pane list` shows it, found by its name, which the pane keeps after its agent exits: None, closing
+    nothing, when no pane bears that name, since another close of the same session already shut it and the ids read before the wait
+    would then shut a neighbour, such as the workspace of a manager whose tab is the last one left.
+    Only that pane while another pane shares its tab, or herdr lists no panes, since a tab close shuts every pane in it;
+    else its tab, or its workspace when no other tab has a pane, judged from that same list."""
     out = run("herdr", "pane", "list")
-    panes = None if out is None else out.get("result", {}).get("panes", [])
-    if panes is None or any(pane.get("tab_id") == session["tab_id"] and pane.get("pane_id") != session["pane_id"] for pane in panes):
-        run("herdr", "pane", "close", session["pane_id"])
+    if out is None:
+        run("herdr", "pane", "close", session["pane_id"])  # pane ids are never reused, so a stale one shuts nothing else
         return "pane"
-    last = len(tabs(session["workspace_id"])) <= 1
-    run("herdr", *(("workspace", "close", session["workspace_id"]) if last else ("tab", "close", session["tab_id"])))
+    panes = out.get("result", {}).get("panes", [])
+    named = [pane for pane in panes if pane.get("label") == session.get("name")]
+    target = next((pane for pane in named if pane.get("pane_id") == session["pane_id"]), named[0] if named else None)
+    if target is None:
+        return None
+    others = [pane for pane in panes if pane.get("workspace_id") == target["workspace_id"] and pane.get("pane_id") != target["pane_id"]]
+    if any(pane.get("tab_id") == target["tab_id"] for pane in others):
+        run("herdr", "pane", "close", target["pane_id"])
+        return "pane"
+    last = not others
+    run("herdr", *(("workspace", "close", target["workspace_id"]) if last else ("tab", "close", target["tab_id"])))
     return "workspace" if last else "tab"

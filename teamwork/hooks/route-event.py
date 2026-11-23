@@ -517,6 +517,15 @@ def reminder(call, role, session_id=None):
     return found and "\n".join([f"Reminder: the playbook rules this `{call['called']}` must keep:", *found])
 
 
+def missing_script(command, cwd):
+    """The first script of this plugin the command names by a path that does not exist, with the plugin's files of that name, since a remembered path goes stale."""
+    for word in re.findall(r"[^\s'\"=]+\.py\b", command):
+        path = pathlib.Path(cwd or ".") / word
+        if f"/{ROOT.name}/" in word and not path.exists():
+            return word, sorted(str(found) for found in ROOT.rglob(path.name) if "fixtures" not in found.parts)
+    return None
+
+
 def command_of(event):
     return (event.get("tool_input") or {}).get("command", "")
 
@@ -555,6 +564,11 @@ def main(args):
     event = json.load(sys.stdin)
     kind = event.get("hook_event_name")
     command = command_of(event)
+    if kind == "PreToolUse" and (missing := missing_script(command, event.get("cwd"))):  # any session, since the stale path is the caller's, not its role's
+        found = " or ".join(f"`{path}`" for path in missing[1]) or "nothing; find it in the playbook that names it"
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
+                          f"{missing[0]} does not exist, so nothing in this command ran; this plugin has that script at {found}."}}))
+        return 0
     # without its host's command no session has a name, so no role matches and the role's SessionStart text never comes to say why
     if kind == "SessionStart" and (missing := next(filter(None, map(install_line.missing, session.NEEDS)), None)):
         print(json.dumps({"systemMessage": missing}))

@@ -42,7 +42,8 @@ def close(name):
         time.sleep(POLL)
     if session.agent(name):
         sys.exit(f"close-session.py: {name} is still live after {TIMEOUT:g}s; its tab stays open.")
-    print(f"{name} exited and its {session.close(listed)} closed.")
+    closed = session.close(listed)
+    print(f"{name} exited and its {closed} closed." if closed else f"{name} exited; its pane was already closed, so nothing more closed.")
 
 
 def waiting(name):
