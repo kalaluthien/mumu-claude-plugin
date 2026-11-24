@@ -21,7 +21,7 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
-BODY = "The probe prints ok.\n\n## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n" + "".join(f"Line {n} of the goal.\n" for n in range(1, 30)) + "\nLast line."
+BODY = "The probe prints ok.\n\n## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n" + "".join(f"Line {n} of the goal.\n" for n in range(1, 30)) + "\n## Definition of done\n\nLast line."
 failed = []
 
 
