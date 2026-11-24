@@ -682,7 +682,7 @@
     for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
     return best; // `tied` is what the spot still covers of the record and of what is tied to it
   }
-  let leaf = 0, parked = null; // the page of rows the card shows; where the pointer clicked a chip, which raises no card until it moves
+  let leaf = 0, parked = null, pointer = null; // the page of rows the card shows; where the pointer stood when the card left from under it, which raises no card until it moves; where the pointer last moved
   function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
     const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
     if (box.dataset.for !== id) leaf = 0;
@@ -771,7 +771,9 @@
     halt();
     unGloss();
     light(null);
-    $("card").classList.remove("show"); $("card").dataset.for = "";
+    const box = $("card"), spot = box.getBoundingClientRect();
+    if (pointer && box.classList.contains("show") && pointer[0] >= spot.left && pointer[0] <= spot.right && pointer[1] >= spot.top && pointer[1] <= spot.bottom) parked = pointer; // what the card uncovers is not what the pointer came to
+    box.classList.remove("show"); box.dataset.for = "";
   }
   function hover(id) {
     halt();
@@ -1138,7 +1140,7 @@
   // ---- wiring ----
   function wire() {
     const stage = $("stage");
-    addEventListener("pointermove", event => { if (parked && Math.hypot(event.clientX - parked[0], event.clientY - parked[1]) > 2) parked = null; approach(event); });
+    addEventListener("pointermove", event => { pointer = [event.clientX, event.clientY]; if (parked && Math.hypot(event.clientX - parked[0], event.clientY - parked[1]) > 2) parked = null; approach(event); });
     stage.addEventListener("pointerover", event => { if (parked) return; const id = hit(event.target); approach(event); if (id) hover(id); }); // the card a chip opened moved off a pointer that has not moved
     stage.addEventListener("pointerout", event => { approach(event); if (hit(event.target)) unhover(); });
     stage.addEventListener("click", event => { const id = hit(event.target); if (id && event.detail < 2) go({ at: view.at === id ? null : id }); }); // a double click's second click would undo its first
