@@ -1883,9 +1883,9 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
     for (let i = 0; i < wanted.length; i++) {
       await page.mouse.move(2, SIZES[1][1] - 2);
       const box = await badges.nth(i).boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); // straight onto the badge, since a card a path raises on the way may cover it
       await page.clock.fastForward(450);
-      await page.waitForFunction(CARDED, id, { timeout: 8000 }).catch(() => { throw new Error(`the pointer on the ${i + 1}. badge of ${id} raised no card for it`); });
+      await page.waitForFunction(CARDED, id, { timeout: 8000 }).catch(async () => { const [x, y] = [box.x + box.width / 2, box.y + box.height / 2], under = await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return `${one && one.className} of ${one && (one.closest("[data-id], [data-edge]") || {}).dataset && JSON.stringify((one.closest("[data-id], [data-edge]") || {}).dataset)}, card ${document.getElementById("card").dataset.for}`; }, [x, y]); throw new Error(`the pointer on the ${i + 1}. badge of ${id} raised no card for it; under it ${under}`); });
       const rows = await listed(page);
       for (const [name, list] of wanted) check(same(rows[name], list), `the card under the ${i + 1}. badge of ${id} lists [${rows[name]}] under ${name}, not [${list}]`);
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
