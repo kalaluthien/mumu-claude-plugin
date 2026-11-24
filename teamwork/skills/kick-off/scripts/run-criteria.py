@@ -34,6 +34,8 @@ missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
 
 A check run in an export of `--base` or `--hunks` has every process still running a file of that export killed when it ends, since a monitor it starts in a session of its own would poll for ever.
+`--hunks` holds beside the `[check]`s each fixture runner the change adds or edits, a `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, run to exit 0,
+so a task of `[score]`s alone is swept too; a runner that fails at the head is not held.
 `--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
 runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
@@ -80,6 +82,7 @@ HEADER = "REPORTED: criteria at "
 CELL = 160
 LIVE_RUNS = 4
 FEW_HUNKS = 4  # a file with more hunks is reverted whole, then by halves
+RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 UNWATCHED = {".git", "__pycache__", ".DS_Store"}
 TEXT_SCAN_FIX = """
 To fix a `text scan` row, make a stage that runs the system fail on base: put the grep after a fixture run's pipe, or
@@ -491,6 +494,8 @@ def run_per_hunk(options, task, root, live):
     diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root, capture_output=True).stdout
     hunks = split_hunks(diff.decode("latin-1"))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
+    runners = sorted({file for file, _, _ in hunks if RUNNER.search(file)})
+    found += [(file, ("check", file, f"`{'bun' if file.endswith('.ts') else 'python3'} {file}` exits 0")) for file in runners]
 
     def results(copy):
         """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
@@ -502,7 +507,7 @@ def run_per_hunk(options, task, root, live):
         if exported.wait():
             sys.exit("run-criteria: could not export HEAD")
         at_head = results(copy)
-        failing = [label for label, result in at_head.items() if result == "fail"]
+        failing = [label for label, result in at_head.items() if result == "fail" and label not in runners]
         if failing:
             print(*[f"{label}: fails at the head: make it pass first, since a hunk cannot be judged by a criterion that does not" for label in failing], sep="\n")
             print(live.report(), end="")
