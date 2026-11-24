@@ -9,6 +9,7 @@ or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any fa
 - `claude-plugin-file-runs`: a change under `.claude-plugin/` runs every runner;
 - `second-runner-runs`: a failing second runner of a plugin whose first runner passed is not hidden by it;
 - `fresh-runs`: `--fresh` runs every runner on the same files;
+- `fresh-named-runs`: `--fresh <runner>` runs only the runner named on the same files, and a name no runner has fails;
 - `no-git-runs`: a folder that is no git checkout runs every runner on every call and keeps no memory;
 - `locked-git-dir-runs`: a git dir the run cannot write still runs every runner and prints a summary with 0 failures;
 - `failure-runs`: a failing runner runs on every call, and its `fixture` line is printed each time.
@@ -86,6 +87,10 @@ def main(args):
     (work / "alpha" / "fail-two").unlink()
     out, ran = call("--fresh")
     step("fresh-runs", ran == ["alpha", "alpha-two", "beta", "gamma", "github"], (ran, out))
+    out, ran = call("--fresh", "beta/fixtures/replay-one.py")
+    step("fresh-named-runs", ran == ["beta"], (ran, out))
+    out, ran = call("--fresh", "nope/replay-one.py")
+    step("fresh-unknown-fails", ran == [] and "fixture nope/replay-one.py: no such runner" in out, (ran, out))
     (work / "beta" / "fail").write_text("")
     subprocess.run(["git", "add", "."], cwd=work, check=True)
     call()

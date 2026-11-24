@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, and each `scripts/` script whose usage lists a `fixtures` call, run with it.
 
-usage: check-repository.py [--skip-fixtures] [--fresh] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner even when it passed on the same files)
+usage: check-repository.py [--skip-fixtures] [--fresh [runner]...] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner named, or every runner when none is named, even when it passed on the same files; a runner is its path from root as a `fixture` line prints it)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
 list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. A fixture runner that passed on the same files, its plugin's folder, `.github/`, `.claude-plugin/` and the root files (every file for one in `.github/` or whose source names `.github`), is not run again by any session of the repository, which the summary counts as replayed; a failed runner always runs. Standard library only, Python 3.9.
@@ -277,7 +277,7 @@ def runner_marker(root, files, folder, path, argv):
 
 def run_fixtures(root, files, failures, fresh):
     """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
-    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH; returns (how many, how many replayed)."""
+    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path, a path no runner has failing; returns (how many, how many replayed)."""
     calls = []
     for path in files:
         if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
@@ -286,6 +286,7 @@ def run_fixtures(root, files, failures, fresh):
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 if FIXTURES_CALL.search(handle.read()):
                     calls.append((path, [sys.executable, path, "fixtures"]))
+    failures += ["fixture {}: no such runner".format(path) for path in sorted(set() if fresh is True else fresh - {path for path, _ in calls})]
     with tempfile.TemporaryDirectory() as stand_ins:
         for name in ("claude", "herdr"):
             with open(os.path.join(stand_ins, name), "w") as handle:
@@ -302,7 +303,7 @@ def run_fixtures(root, files, failures, fresh):
         def run(call):
             path, argv = call
             marker = runner_marker(root, readable, folder, path, argv) if folder else None
-            if marker and not fresh and marker.exists():
+            if marker and not (fresh is True or path in fresh) and marker.exists():
                 replayed.append(path)
                 return None
             try:
@@ -328,10 +329,15 @@ def run_fixtures(root, files, failures, fresh):
 
 
 def main(args):
-    skip_fixtures = fresh = False
+    skip_fixtures, fresh, named = False, set(), False
     while args[:1] in (["--skip-fixtures"], ["--fresh"]):
-        skip_fixtures, fresh = skip_fixtures or args[0] == "--skip-fixtures", fresh or args[0] == "--fresh"
+        skip_fixtures, named = skip_fixtures or args[0] == "--skip-fixtures", named or args[0] == "--fresh"
         args = args[1:]
+        while named and args and not args[0].startswith("-") and not os.path.isdir(args[0]):
+            fresh.add(args[0])
+            args = args[1:]
+    if named and not fresh:
+        fresh = True
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__, file=sys.stderr)
         return 2
