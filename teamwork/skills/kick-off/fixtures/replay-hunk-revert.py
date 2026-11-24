@@ -18,8 +18,10 @@
 - `first-break-stops`: of two checks, one that needs the first hunk, listed first, and one that counts its runs and prints an extra line when the second
   hunk is reverted, the second runs at the head and on the second revert only, and that revert counts as needed;
 - `score-held-by-runner`: a task of one score, over a change to a Python file and the Python runner that replays it, to a text file and a new
-  TypeScript runner that reads it, to a second text file, and adding a runner that fails, makes `--hunks` hold the two passing runners, so it names
-  the second text file's hunk and the failing runner's as unneeded, not a failure at the head, makes two mutants that the runner kills, and exits 1.
+  TypeScript runner that reads it, to a second text file, and adding a runner that fails and three Python files that pass but are no runner, a
+  script, a helper under `fixtures/` and a `replay-` file in a `replay-` folder below it, makes `--hunks` hold the two passing runners, so it names the second
+  text file's hunk, the failing runner's and each of the three files' as unneeded, not a failure at the head, makes two mutants that the runner kills,
+  and exits 1.
 
 usage: replay-hunk-revert.py"""
 import os
@@ -131,12 +133,16 @@ def main(args):
     (work / "p" / "other.txt").write_text("new\n")
     (work / "p" / "fixtures" / "replay-notes.ts").write_text("import { readFileSync } from \"fs\";\nprocess.exit(readFileSync(new URL(\"../notes.txt\", import.meta.url), \"utf8\") === \"new\\n\" ? 0 : 1);\n")
     (work / "p" / "fixtures" / "replay-broken.py").write_text("import sys\nsys.exit(1)\n")
+    (work / "p" / "fixtures" / "replay-deep").mkdir()
+    for file in ("lib.py", "fixtures/helper.py", "fixtures/replay-deep/replay-deep.py"):
+        (work / "p" / file).write_text("print('here')\n")
     git("add", "-A")
     git("commit", "-qm", "scored")
     body.write_text(BODY.split("1. [check]")[0] + "1. [score] **The probe reads well**: sample: p/tool.py; rubric: yes 2, no 0.\n")
     done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "scored~1", str(body)], cwd=work, capture_output=True, text=True)
     step("score-held-by-runner", done.returncode == 1 and "p/other.txt:1: unneeded hunk" in done.stdout and "p/fixtures/replay-broken.py:1: unneeded hunk" in done.stdout
-         and "p/tool.py" not in done.stdout and "notes" not in done.stdout and "fails at the head" not in done.stdout and "2 mutants made, 2 unneeded" in done.stdout, (done.returncode, done.stdout, done.stderr))
+         and all(f"p/{file}:1: unneeded hunk" in done.stdout for file in ("lib.py", "fixtures/helper.py", "fixtures/replay-deep/replay-deep.py"))
+         and "p/tool.py" not in done.stdout and "notes" not in done.stdout and "fails at the head" not in done.stdout and "2 mutants made, 5 unneeded" in done.stdout, (done.returncode, done.stdout, done.stderr))
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 
