@@ -13,12 +13,13 @@ Word every text of a contract so that a reader takes each level's point from its
 
 ## Steps
 
-1. List the terms: each word of the subject's business, technique, theory, profession or guideline that a reader must take in one sense becomes a `term` with its `meaning`, and its `avoid` lists the other words the sources, a translation or habit would say for it.
+1. List the terms: each word of the subject's business, technique, theory, profession or guideline that a reader must take in one sense becomes a `term` with its `meaning`, and its `avoid` lists the other words the sources, a translation or habit would say for it; in a Korean contract that includes the literal Korean coinage a writer reaches for, such as `출입구` for `endpoint` or `증표` for `token`, since an empty `avoid` lets the checker pass any of them.
 2. Write the names, then the leads from the top down.
 3. List the aliases: for each record a reader would look for by another word, add its Korean name, its abbreviation or the expansion of one, and a common other name, such as `아마존` and `Amazon Web Services` for `AWS`; a word of a term's `avoid` may be its alias, since a reader types the word they know.
 4. Write what sits under each lead: the items, the notes, the statements.
-5. Read from the top: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py outline <contract> [level]` prints each lead with its parts. The first line must raise the question each level's lead answers; then hold each level against the rules under Structure, and rewrite until none breaks.
-6. Check: the `check` call refuses what its `rules` call lists; every other rule here is the writer's to keep.
+5. Sweep the words of each Korean description against **Settled word first**: list every technical noun and phrase, mark each settled Sino-Korean word, transliteration or English word, and replace each one that is neither, a literal translation or a word coined for the occasion, such as `해독` for decoding or `걸리는 시간이 늘 같은` for constant-time; add the replaced word to the term's `avoid` when a term names that concept.
+6. Read from the top: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py outline <contract> [level]` prints each lead with its parts. The first line must raise the question each level's lead answers; then hold each level against the rules under Structure, and rewrite until none breaks.
+7. Check: the `check` call refuses what its `rules` call lists; every other rule here is the writer's to keep.
 
 ## Rules
 
