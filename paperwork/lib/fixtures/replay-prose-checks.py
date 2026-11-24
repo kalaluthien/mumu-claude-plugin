@@ -5,14 +5,18 @@ usage: replay-prose-checks.py
 
 prose checks: a stand-in contract of actors and calls gets one fault per check written into a copy, each in one call's note or label or one
 actor's name; the module must return one break of the rule system names it by, at that text's place, whose message quotes the text and names
-what in it broke the rule, and none for the contract as written.
+what in it broke the rule, and none for the contract as written or with a blank name.
 system reach: system's checker must print, line for line, what it printed before lib held its prose checks for each fault
-`system-prose-breaks.json` plants in the self example; and on a copy of the plugin whose module drops one check, the Korean sentence
+`system-prose-breaks.json` plants in the self example, and lines of the digest `system-prose-fuzz.json` keeps for each contract its seed
+draws from the self example, the planted texts and a few pieces; and on a copy of the plugin whose module drops one check, the Korean sentence
 ending or the drawing value, it must accept a purpose that breaks it, which it refuses on this checkout. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import concurrent.futures
 import copy
+import hashlib
 import json
+import os
 import pathlib
+import random
 import shutil
 import subprocess
 import sys
@@ -25,6 +29,10 @@ from contract_prose import text_breaks, wording_breaks  # noqa: E402
 PLUGIN = LIB.parent
 HERE = pathlib.Path(__file__).resolve().parent
 SELF = PLUGIN / "skills" / "system" / "examples" / "self" / "contract.json"
+CHECKER = PLUGIN / "skills" / "system" / "scripts" / "check-contract.py"
+PIECES = ["{checker}", "{nobody}", "the Checker", "Tag catalogue", "`", "```", "<b>", "</b>", "#f00", "12px", "color: red", "$x$", "$\\foo y$",
+          "는", " 를", "은(는)", "을", ".", "니다.", "다.", "계약", "명세", "box", "boxes", "validator", "-", ",", "\n", "ㅋ"]
+AVOIDED = ["box", "validator", "명세", "contract", "Region", "buy order", "키 API", "edit-2"]
 CONTRACT = {
     "title": "Order lookup",
     "actors": [{"id": "shop", "name": "Shop front"}, {"id": "store", "name": "Order store"}],
@@ -77,6 +85,8 @@ def written(contract, where, text):
 def prose_checks():
     """Each reason the module misses a fault or breaks the contract as written."""
     found = [f"the contract as written breaks {rule} at {where}" for where, rule, _ in breaks(CONTRACT)]
+    blank = breaks(written(written(CONTRACT, "actors/shop/name", "  "), "calls/ask/note", "sends the (short) number to {store}"))
+    found += [f"a blank name gave {[(place, kind) for place, kind, _ in blank]}, expected no break"] if blank else []
     for where, text, rule, *said in FAULTS:
         got = breaks(written(CONTRACT, where, text))
         if [(place, kind) for place, kind, _ in got] != [(where, rule)]:
@@ -103,12 +113,34 @@ def planted(contract, sets):
     return changed
 
 
-def checked(contract, scratch):
-    """The lines system's checker on this checkout prints for CONTRACT, its path written as `CONTRACT`."""
+def fuzzed(contract, records, seed, count):
+    """COUNT plantings, each a list of (path, value), that SEED draws: one to three text places of CONTRACT given one to three pieces of the
+    texts RECORDS plant and of PIECES, and now and then a term given a word to avoid."""
+    draw = random.Random(seed)
+    pool = sorted({value for record in records for _, value in record["set"] if isinstance(value, str)}) + PIECES
+    places = [["purpose"], ["title"]] + [["levels", level["id"], "about"] for level in contract["levels"]]
+    places += [["nodes", node["id"], field] for node in contract["nodes"][:12] for field in ("label", "purpose")]
+    places += [["terms", k, field] for k in range(len(contract["terms"])) for field in ("term", "meaning")]
+    plantings = []
+    for _ in range(count):
+        sets = [[path, draw.choice(["", " "]).join(draw.choice(pool) for _ in range(draw.randint(1, 3)))] for path in draw.sample(places, draw.randint(1, 3))]
+        if draw.random() < .3:
+            sets.append([["terms", draw.randrange(len(contract["terms"])), "avoid"], draw.sample(AVOIDED, draw.randint(1, 2))])
+        plantings.append(sets)
+    return plantings
+
+
+def digest(lines):
+    """A short sha-256 of the LINES a checker printed."""
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()[:16]
+
+
+def checked(contract, scratch, checker=CHECKER):
+    """The lines CHECKER prints for CONTRACT, its path written as `CONTRACT`, with Python's hash order fixed so a set prints alike each run."""
     target = pathlib.Path(scratch) / f"{id(contract)}.json"
     target.write_text(json.dumps(contract, ensure_ascii=False))
-    lines = subprocess.run([sys.executable, str(PLUGIN / "skills" / "system" / "scripts" / "check-contract.py"), "check", str(target)],
-                           capture_output=True, text=True).stdout.splitlines()
+    lines = subprocess.run([sys.executable, str(checker), "check", str(target)], capture_output=True, text=True,
+                           env=os.environ | {"PYTHONHASHSEED": "0"}).stdout.splitlines()
     return [line.replace(str(target), "CONTRACT") for line in lines]
 
 
@@ -117,7 +149,12 @@ def system_reach():
     records, contract = json.loads((HERE / "system-prose-breaks.json").read_text()), json.loads(SELF.read_text())
     with tempfile.TemporaryDirectory() as scratch, concurrent.futures.ThreadPoolExecutor(4) as pool:
         got = list(pool.map(lambda record: checked(planted(contract, record["set"]), scratch), records))
+        fuzz = json.loads((HERE / "system-prose-fuzz.json").read_text())
+        plantings = fuzzed(contract, records, fuzz["seed"], len(fuzz["digests"]))
+        drawn = list(pool.map(lambda sets: digest(checked(planted(contract, sets), scratch)), plantings))
     found = [f"{record['fault']} gave {lines}, before {record['lines']}" for record, lines in zip(records, got) if lines != record["lines"]]
+    found += [f"fuzzed contract {n} of seed {fuzz['seed']}, planting {sets}, printed lines of digest {mine}, before {theirs}"
+              for n, (sets, mine, theirs) in enumerate(zip(plantings, drawn, fuzz["digests"])) if mine != theirs]
     for purpose, check, dropped in REACHED:
         contract = json.loads(SELF.read_text())
         contract["purpose"] = purpose
