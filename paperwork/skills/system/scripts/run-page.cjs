@@ -126,7 +126,8 @@
 //            kind, and a click on each chip shows that property's card headed by its title, still so once the pointer has rested
 //            where it clicked, printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
 //   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
-//            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, and no edge label shows a border.
+//            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, no edge label shows a border, and
+//            no count outside the badges, such as the play bar's, takes a badge's ring or rounding.
 //   formulas the example that holds formulas draws an inline one as MathML on its sentence's line and a display one centered on
 //            its own line, with no TeX left; on a copy of the first example, the planted formulas draw a fraction, a root, a sum,
 //            each script, Greek letters and relations; check-contract.py refuses a copy whose formula holds `\foo`.
@@ -1934,6 +1935,7 @@ async function note(browser) { // each step's note: a bar in the scenario mark's
         const mark = pixel(getComputedStyle(probe).color), head = chip.firstElementChild;
         probe.remove();
         return { shown: chip.classList.contains("show"), bar: parseFloat(style.borderLeftWidth), color: pixel(style.borderLeftColor), mark, head: head ? head.textContent : "", ink: head ? pixel(getComputedStyle(head).color) : null,
+          styled: [...document.querySelectorAll(".count")].filter((one) => !one.closest(".counts") && (getComputedStyle(one).boxShadow !== "none" || getComputedStyle(one).borderRadius !== "0px")).map((one) => one.parentElement.id || one.parentElement.className),
           bordered: [...document.querySelectorAll("#stage .label")].filter((label) => ["Top", "Right", "Bottom", "Left"].some((side) => parseFloat(getComputedStyle(label)[`border${side}Width`]) > 0)).map((label) => label.dataset.edge) };
       });
       const mark = hue(oklab(seen.mark));
@@ -1941,6 +1943,7 @@ async function note(browser) { // each step's note: a bar in the scenario mark's
       check(seen.bar >= 3 && chroma(oklab(seen.color)) >= 0.1 && turn(hue(oklab(seen.color)), mark) <= 20, `${where}: the note's left bar is ${seen.bar} px at chroma ${chroma(oklab(seen.color)).toFixed(3)}, hue ${hue(oklab(seen.color)).toFixed(0)} against the mark's ${mark.toFixed(0)}`);
       check(seen.head === `Step ${i + 1}` && seen.ink && turn(hue(oklab(seen.ink)), mark) <= 20 && chroma(oklab(seen.ink)) >= 0.1, `${where}: the note opens with ${JSON.stringify(seen.head)}, not Step ${i + 1} in the mark's hue`);
       check(!seen.bordered.length, `${where}: the labels of ${seen.bordered.join(", ")} show a border`);
+      check(!seen.styled.length, `${where}: a count outside the badges, in ${seen.styled.join(", ")}, takes a badge's ring or rounding`);
       read += 1;
     }
     quiet(page, `${example.name} at ${size.join("x")}`);

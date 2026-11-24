@@ -632,7 +632,7 @@
     if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind]) add(name, "list", counted[id][kind].map(one => `{${one}}`));
+    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind] && /^(node|edge)$/.test(records[id].kind)) add(name, "list", counted[id][kind].map(one => `{${one}}`));
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);

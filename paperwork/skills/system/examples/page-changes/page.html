@@ -82,11 +82,11 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .stage.dense .node .counts { bottom: 4px; }
 .stage.dense .node .open ~ .counts { right: 32px; }
 .label .counts { margin-left: 4px; }
-.count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.count[data-count="holds"] { background: oklch(.5 .13 150); }
-.count[data-count="unknown"] { background: oklch(.5 0 0); }
-.count[data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
-.count[data-count="gap"] { background: oklch(.53 .21 27); }
+.counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.counts > [data-count="holds"] { background: oklch(.5 .13 150); }
+.counts > [data-count="unknown"] { background: oklch(.5 0 0); }
+.counts > [data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
+.counts > [data-count="gap"] { background: oklch(.53 .21 27); }
 .stage .dim .counts { opacity: .5; }
 
 .stage .edge.dim { opacity: .38; }
@@ -897,7 +897,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind]) add(name, "list", counted[id][kind].map(one => `{${one}}`));
+    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind] && /^(node|edge)$/.test(records[id].kind)) add(name, "list", counted[id][kind].map(one => `{${one}}`));
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
