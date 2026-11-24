@@ -121,8 +121,8 @@
 //            label's badges still shown, and a record with none shows none; a node's badges sit inside it, clear of its name,
 //            tag and open button, and an edge's within 16 px of its label; each fill is green, grey, orange or red by its oklch
 //            hue and chroma, each pair 0.08 or more apart in oklab, its text at 4.5:1 or more, printed as `count badges: PASS`
-//            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of one whose label is
-//            tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
+//            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of each one whose label
+//            is tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
 //            kind, and a click on each chip shows that property's card headed by its title, still so once the pointer has rested
 //            where it clicked, printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
 //   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
@@ -1874,7 +1874,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   const names = { holds: "holds", unknown: "unknown", broken: "broken", gap: "gaps" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
   const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
   await shown.context().close();
-  const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, tucked[0]];
+  const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, ...tucked]; // every tucked label's badges, since a lit label moves to a free place
   check(tucked.length, `no edge whose label is tucked holds a badge at ${SIZES[1].join("x")}, so the pointer on a tucked label's badge is untested`);
   for (const id of targets) {
     const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), wanted = Object.entries(copy.want[id]).map(([kind, list]) => [names[kind], list]);

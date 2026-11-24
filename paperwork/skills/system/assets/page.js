@@ -343,6 +343,8 @@
       const face = faces[id], best = shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first), point = seen ? best.point : face.point;
       face.text.classList.toggle("shown", seen);
       face.text.style.left = point.x + "px"; face.text.style.top = point.y + "px";
+      const badges = face.text.querySelector(".counts");
+      if (badges) badges.style.transform = point === face.point ? "" : `translate(${face.point.x - point.x}px, ${face.point.y - point.y}px)`; // a badge stays where the pointer found it while its label moves
       if (seen) taken.push(best.spot);
     }
   }
