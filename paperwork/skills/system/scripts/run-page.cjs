@@ -2085,7 +2085,7 @@ async function wrap(browser) {
     await rest(page);
     for (let i = 0; i < NOTES.length; i++) {
       if (i) { await page.keyboard.press("ArrowRight"); await rest(page); }
-      const [chip] = await page.evaluate(spread, ["#chip.show"]);
+      const [chip] = await page.evaluate(spread, ["#chip.show > span", "#chip"]); // the note under its step heading
       check(chip && chip.text === NOTES[i], `${where} step ${i + 1}: the note shows ${chip ? chip.text.length + " of " + NOTES[i].length + " characters" : "nothing"}`);
       check(chip.lines >= 2 && chip.inside, `${where} step ${i + 1}: the note takes ${chip.lines} line${chip.lines === 1 ? "" : "s"}${chip.inside ? "" : " and reaches past the window"}`);
       unbroken([chip], `${where} step ${i + 1}'s note`);
