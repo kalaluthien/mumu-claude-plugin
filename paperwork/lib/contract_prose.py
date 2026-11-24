@@ -61,7 +61,7 @@ def wording_breaks(said, names, named, terms):
     """Breaks of `text-plain`, `formula`, `name-english`, `korean-text` and `term-words` in the words a contract chose: SAID, each (where, text),
     the texts that say something of the subject, a title or label among them placed at a `/title` or `/label` end; NAMES, each (where, name), the
     names drawn as words, such as a title or a node's label; NAMED, each (id, label), the records whose label no other text spells; TERMS, the
-    contract's terms, each a `term` with the words it `avoid`s."""
+    contract's terms, each (where, entry), an entry being a `term` with the words it `avoid`s."""
     found = []
     # a label is spelt after `the` in any case, or as written when it holds two words; one word as written opens many a sentence
     spelt = sorted(((re.compile(whole(label, prefix=r"the\s+"), re.IGNORECASE), re.compile(whole(label) if len(label.split()) > 1 else "(?!)"), name)
@@ -77,15 +77,15 @@ def wording_breaks(said, names, named, terms):
             rest, more = written.subn(" ", rest)
             if count or more:
                 found.append((where, "text-plain", f"`{text[:40]}` spells the label of `{name}`; name it as `{{{name}}}`, so a new name reaches this text"))
-    kept = {entry["term"].casefold(): entry["term"] for entry in terms}
-    termed = [(f"terms/{k + 1}/term", entry["term"]) for k, entry in enumerate(terms)]
+    kept = {entry["term"].casefold(): entry["term"] for _, entry in terms}
+    termed = [(where, entry["term"]) for where, entry in terms]
     for where, name in names + termed:
         if formulas(name):
             found.append((where, "formula", f"`{name[:40]}` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"))
     for where, name in names + termed + [pair for pair in said if pair[0].endswith(("/title", "/label"))]:
         if KOREAN.search(name):
             found.append((where, "name-english", f"`{name[:40]}` holds Korean; a title, a label and a term stay English, and only a description may be Korean"))
-    avoided = sorted(((word, entry["term"]) for entry in terms for word in entry.get("avoid", [])), key=lambda pair: -len(pair[0]))
+    avoided = sorted(((word, entry["term"]) for _, entry in terms for word in entry.get("avoid", [])), key=lambda pair: -len(pair[0]))
     for word, term in avoided:
         if word.casefold() in kept:
             found.append((f"term {term}", "term-words", f"`{word}` is the term `{kept[word.casefold()]}` and a word to avoid for `{term}`; one word names one concept"))
