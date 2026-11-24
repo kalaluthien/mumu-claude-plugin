@@ -863,6 +863,757 @@
   ]
  },
  {
+  "fault": "the edge case: an id holding a digit that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {nobody2}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody2}` in `Rebuild a system for {nobody2}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a hyphen that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {no-body}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{no-body}` in `Rebuild a system for {no-body}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id that names nothing, quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for `{nobody}`."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for `{nobody}`.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word after a hyphen",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the pre-validator reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word before a hyphen",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the validator-run reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word inside a word",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the prevalidators read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word holding a hyphen and a digit, as an id",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "edit-2"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from {edit-2}."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word holding a hyphen and a digit",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "edit-2"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from edit-2 runs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from edit-2 runs.` says `edit-2` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two scripts, plural",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "키 API"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from 키 APIs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from 키 APIs.` says `키 API` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two scripts",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "API 키"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "API 키를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `API 키를 읽습니다.` says `API 키` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two words across a line",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "buy order"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one buy\norder."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one buy",
+   "order.` says `buy order` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word quoted",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the `validator` reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a comma",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{contract} 를, 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{contract} 를, 다시 만듭니다.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a full stop",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "다시 만드는 것은 {contract} 를."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `다시 만드는 것은 {contract} 를.` closes a sentence outside `니다`; a Korean description is in the formal polite form",
+   "purpose: korean-text: `다시 만드는 것은 {contract} 를.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{contract} 를다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a bracket",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는(은) 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a Korean letter",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}이라는 독자가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a full stop inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약을 읽는다.다음에 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: two sentences, the second plain",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약을 읽습니다. 시스템을 만든다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `계약을 읽습니다. 시스템을 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "the edge case: a title over 40 letters holding Korean",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system skill that rebuilds any system 스킬"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `The system skill that rebuilds any syste` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "the edge case: a text over 40 letters with markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one long contract with <b>bold</b>."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<b>` in `Rebuild a system from one long contract ` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup over 30 letters",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <div class=\"a-very-long-class-name-here\"> shows."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<div class=\"a-very-long-class-na` in `Rebuild a system as <div class=\"a-very-l` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup of exactly 31 letters",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <abcdefghijklmnopqrstuvwxyz12345> shows."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<abcdefghijklmnopqrstuvwxyz12345>` in `Rebuild a system as <abcdefghijklmnopqrs` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a closing tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as </b> ends."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `</b>` in `Rebuild a system as </b> ends.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a comment tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <!-- note --> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<!-- note -->` in `Rebuild a system as <!-- note --> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a processing tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <?xml?> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<?xml?>` in `Rebuild a system as <?xml?> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a tag after a space",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as < b> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `< b>` in `Rebuild a system as < b> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a less-than sign",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system when a < 3."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as `<b>` shows."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a colour quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in `#ff0000`."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as issue #123 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of five hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #abcde says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of seven hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #abcdef1 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of three digits and a letter",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #12a says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#12a` in `Rebuild a system as #12a says.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a size inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as 12pxs says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a position without digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system where x = y."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS word without a colon",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system of one colour and one border."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label opening the text",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "The Checker rebuilds a system."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `The Checker rebuilds a system.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the in capitals",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system THE CHECKER reads."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system THE CHECKER reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the across a line",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the\nChecker reads."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the",
+   "Checker reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a one-word label without the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label as an id beside the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the {checker} reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Checkers read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after a hyphen",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the pre-Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system $x$ skill"
+   ]
+  ],
+  "lines": [
+   "title: formula: `The system $x$ skill` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in a display",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at $$\\foo x$$ per run."
+   ]
+  ],
+  "lines": [
+   "purpose: formula: `\\foo x` in `Rebuild a system at $$\\foo x$$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at `$\\foo x$` per run."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
   "fault": "an avoided Korean word before `이라는`",
   "set": [
    [
