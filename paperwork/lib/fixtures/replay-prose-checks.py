@@ -6,8 +6,10 @@ usage: replay-prose-checks.py
 prose checks: a stand-in contract of actors and calls gets one fault per check written into a copy, each in one call's note or label or one
 actor's name; the module must return one break of the rule system names it by, at that text's place, whose message quotes the text and names
 what in it broke the rule, and none for the contract as written.
-system reach: on a copy of the plugin whose module drops one check, the Korean sentence ending or the drawing value, system's checker must
-accept a purpose that breaks it, which it refuses on this checkout. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
+system reach: system's checker must print, line for line, what it printed before lib held its prose checks for each fault
+`system-prose-breaks.json` plants in the self example; and on a copy of the plugin whose module drops one check, the Korean sentence
+ending or the drawing value, it must accept a purpose that breaks it, which it refuses on this checkout. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
+import concurrent.futures
 import copy
 import json
 import pathlib
@@ -21,6 +23,8 @@ sys.path.insert(0, str(LIB))
 from contract_prose import text_breaks, wording_breaks  # noqa: E402
 
 PLUGIN = LIB.parent
+HERE = pathlib.Path(__file__).resolve().parent
+SELF = PLUGIN / "skills" / "system" / "examples" / "self" / "contract.json"
 CONTRACT = {
     "title": "Order lookup",
     "actors": [{"id": "shop", "name": "Shop front"}, {"id": "store", "name": "Order store"}],
@@ -87,11 +91,34 @@ REACHED = [  # a purpose system's checker refuses, the module text that makes th
 ]
 
 
+def planted(contract, sets):
+    """A copy of CONTRACT with each value of SETS, a (path, value) pair, at its path, a string key in a list naming the item of that id."""
+    changed = copy.deepcopy(contract)
+    for path, value in sets:
+        place = changed
+        for key in path[:-1]:
+            place = next(one for one in place if one["id"] == key) if isinstance(key, str) and isinstance(place, list) else place[key]
+        place[path[-1]] = value
+    return changed
+
+
+def checked(contract, scratch):
+    """The lines system's checker on this checkout prints for CONTRACT, its path written as `CONTRACT`."""
+    target = pathlib.Path(scratch) / f"{id(contract)}.json"
+    target.write_text(json.dumps(contract, ensure_ascii=False))
+    lines = subprocess.run([sys.executable, str(PLUGIN / "skills" / "system" / "scripts" / "check-contract.py"), "check", str(target)],
+                           capture_output=True, text=True).stdout.splitlines()
+    return [line.replace(str(target), "CONTRACT") for line in lines]
+
+
 def system_reach():
-    """Each reason system's checker does not take a text check or a wording check from the module."""
-    found = []
+    """Each reason system's checker does not print what it printed before lib held its prose checks, or does not take them from lib."""
+    records, contract = json.loads((HERE / "system-prose-breaks.json").read_text()), json.loads(SELF.read_text())
+    with tempfile.TemporaryDirectory() as scratch, concurrent.futures.ThreadPoolExecutor(4) as pool:
+        got = list(pool.map(lambda record: checked(planted(contract, record["set"]), scratch), records))
+    found = [f"{record['fault']} gave {lines}, before {record['lines']}" for record, lines in zip(records, got) if lines != record["lines"]]
     for purpose, check, dropped in REACHED:
-        contract = json.loads((PLUGIN / "skills" / "system" / "examples" / "self" / "contract.json").read_text())
+        contract = json.loads(SELF.read_text())
         contract["purpose"] = purpose
         with tempfile.TemporaryDirectory() as scratch:
             copied = pathlib.Path(scratch) / "paperwork"

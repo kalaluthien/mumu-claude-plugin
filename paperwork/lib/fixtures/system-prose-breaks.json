@@ -1,0 +1,395 @@
+[
+ {
+  "fault": "written as is",
+  "set": [],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a formula in a node's label",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "label"
+    ],
+    "Checker $x$"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/label: formula: `Checker $x$` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "a formula in a term",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "term"
+    ],
+    "contract $x$"
+   ]
+  ],
+  "lines": [
+   "terms/1/term: formula: `contract $x$` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "a formula outside the drawn subset",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at $\\foo x$ per run."
+   ]
+  ],
+  "lines": [
+   "purpose: formula: `\\foo x` in `Rebuild a system at $\\foo x$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "Korean in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "시스템 스킬"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `시스템 스킬` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "Korean in a node's label",
+  "set": [
+   [
+    [
+     "nodes",
+     "catalogue",
+     "label"
+    ],
+    "태그 목록"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/catalogue/label: name-form: the label `태그 목록` opens in lower case or with an article; a node's or an area's label opens with a capital and no article, such as `Checker` or `Three jobs`",
+   "levels/skill/nodes/catalogue/label: name-english: `태그 목록` holds Korean; a title, a label and a term stay English, and only a description may be Korean",
+   "catalogue: alias-words: the alias `태그 목록` is also catalogue; an alias leads a search to one record, so write a word no other name holds, or take it out"
+  ]
+ },
+ {
+  "fault": "Korean in a term",
+  "set": [
+   [
+    [
+     "terms",
+     1,
+     "term"
+    ],
+    "영역"
+   ]
+  ],
+  "lines": [
+   "terms/2/term: name-english: `영역` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "a particle of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는 계약으로 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}는 계약으로 시스템을 다시 만듭니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a sentence closing outside 니다",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약으로 시스템을 다시 만든다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `계약으로 시스템을 다시 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "a space before a particle",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a Korean code quote closing in a full stop",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`끝. 다음`을 그대로 씁니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "an avoided word that is a term but for case",
+  "set": [
+   [
+    [
+     "terms",
+     1,
+     "term"
+    ],
+    "Region"
+   ],
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "region"
+    ]
+   ]
+  ],
+  "lines": [
+   "term contract: term-words: `region` is the term `Region` and a word to avoid for `contract`; one word names one concept"
+  ]
+ },
+ {
+  "fault": "an avoided word in a description",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "specification"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one specification."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one specification.` says `specification` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word and a label in a code item",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "specification"
+    ]
+   ],
+   [
+    [
+     "nodes",
+     "extract",
+     "info",
+     "schedule"
+    ],
+    "run the Checker on each specification"
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a label after the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Checker accepts."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Checker accepts.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a two-word label written bare",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system Tag catalogue lists."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system Tag catalogue lists.` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label spelling another label",
+  "set": [
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Run of the Checker"
+   ]
+  ],
+  "lines": [
+   "write: text-plain: the label of `write` spells the label of `checker`, so a new name for `checker` would leave it stale; give it words of its own"
+  ]
+ },
+ {
+  "fault": "two labels in one text",
+  "set": [
+   [
+    [
+     "nodes",
+     "extract",
+     "label"
+    ],
+    "Reconciliation"
+   ],
+   [
+    [
+     "nodes",
+     "catalogue",
+     "label"
+    ],
+    "Tag list"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Reconciliation and the Tag list feed."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Reconciliation and ` spells the label of `extract`; name it as `{extract}`, so a new name reaches this text",
+   "purpose: text-plain: `Rebuild a system the Reconciliation and ` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "an open backtick",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one `contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system from one `contract.` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "an id that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {nobody}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for {nobody}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, as markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for <{nobody}>."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for <{nobody}>.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a <b>system</b> from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<b>` in `Rebuild a <b>system</b> from one contrac` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a label shown as markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <{checker}> does."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<Checker>` in `Rebuild a system as <{checker}> does.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in #ff0000 from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#ff0000` in `Rebuild a system in #ff0000 from one con` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ }
+]
