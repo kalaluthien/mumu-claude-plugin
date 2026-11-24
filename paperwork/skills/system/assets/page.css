@@ -68,7 +68,19 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .edge[data-tag="dependsOn"] path.line, .edge[data-tag="governs"] path.line { stroke-dasharray: 4 4; }
 .label { position: absolute; transform: translate(-50%, -50%); padding: 0 4px; border-radius: 6px; background: var(--canvas); color: var(--muted-foreground); font-size: calc(12px * var(--grow, 1)); line-height: 16px; white-space: nowrap; cursor: default; transition: opacity .25s var(--ease), color .2s var(--ease), background-color .2s var(--ease); }
 .label.on { color: var(--foreground); background: var(--accent); z-index: 3; }
-.label.tucked:not(.shown) { opacity: 0 !important; pointer-events: none; }
+.label.tucked:not(.shown) { visibility: hidden; pointer-events: none; }
+.label.tucked:not(.shown) .counts { visibility: visible; pointer-events: auto; } /* a label shown only while lit keeps its counts in sight at rest */
+.counts { display: inline-flex; gap: 2px; vertical-align: top; }
+.node .counts { position: absolute; right: 8px; bottom: 8px; }
+.stage.dense .node .counts { bottom: 4px; }
+.stage.dense .node .open ~ .counts { right: 32px; }
+.label .counts { margin-left: 4px; }
+.count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count[data-count="holds"] { background: oklch(.5 .13 150); }
+.count[data-count="unknown"] { background: oklch(.5 0 0); }
+.count[data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
+.count[data-count="gap"] { background: oklch(.53 .21 27); }
+.stage .dim .counts { opacity: .5; }
 
 .stage .edge.dim { opacity: .38; }
 .stage.playing .edge.dim { opacity: .62; }
@@ -153,9 +165,10 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 #play .dots button.now::before { width: 14px; background: var(--mark); }
 #play .dots button.now { width: 22px; }
 #play .dots button:focus-visible { outline: none; } #play .dots button:focus-visible::before { box-shadow: var(--focus); }
-#chip { position: fixed; z-index: 25; max-width: 360px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow-md); font-size: 12px; line-height: 16px; pointer-events: none; opacity: 0; transform: translateY(4px) scale(.96); transition: opacity .2s var(--ease), transform .3s var(--spring); }
+#chip { position: fixed; z-index: 25; max-width: 360px; padding: 4px 12px; border: 1px solid var(--border); border-left: 3px solid var(--mark); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow-md); font-size: 12px; line-height: 16px; pointer-events: none; opacity: 0; transform: translateY(4px) scale(.96); transition: opacity .2s var(--ease), transform .3s var(--spring); }
 #chip.show { opacity: 1; transform: none; }
 #chip code { font-size: 12px; }
+#chip small { display: block; color: var(--mark); font-size: 11px; line-height: 16px; font-weight: 600; }
 .node.past { border-color: color-mix(in oklab, var(--mark) 45%, var(--border)); }
 .node.next { border-color: var(--mark); border-style: dashed; }
 .node.step { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 30%, transparent), var(--shadow-lg); transform: translateY(-2px); }

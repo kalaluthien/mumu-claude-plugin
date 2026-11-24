@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables] [layout] [wrap]
-// With no word it runs the twenty-three steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [counts] [note] [formulas] [code] [tables] [layout] [wrap]
+// With no word it runs the twenty-five steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -115,6 +115,18 @@
 //            note marks no term, chip or guess, as no crumb or scenario title, a slug, can.
 //   badges   on a copy of the first example, a text holding `(guess)` and a property whose status is unknown or broken each show
 //            a badge naming that state, and a property that holds shows none.
+//   counts   on a copy of the first example whose first level's first node holds two properties that hold, one unknown and
+//            one gap, and each edge of that level but the last one broken property, at each size in light and dark, each node
+//            and edge of the level shows one badge per kind its properties hold, `✓`, `?`, `✗` or `!` and their count, a tucked
+//            label's badges still shown, and a record with none shows none; a node's badges sit inside it, clear of its name,
+//            tag and open button, and an edge's within 16 px of its label; each fill is green, grey, orange or red by its oklch
+//            hue and chroma, each pair 0.08 or more apart in oklab, its text at 4.5:1 or more, printed as `count badges: PASS`
+//            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of one whose label is
+//            tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
+//            kind, and a click on each chip shows that property's card headed by its title, still so once the pointer has rested
+//            where it clicked, printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
+//   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
+//            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, and no edge label shows a border.
 //   formulas the example that holds formulas draws an inline one as MathML on its sentence's line and a display one centered on
 //            its own line, with no TeX left; on a copy of the first example, the planted formulas draw a fraction, a root, a sum,
 //            each script, Greek letters and relations; check-contract.py refuses a copy whose formula holds `\foo`.
@@ -150,7 +162,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables", "layout", "wrap"];
+const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
@@ -261,7 +273,8 @@ const drawn = (page, level) => page.evaluate((level) => {
     if (!drawn) return `edge ${edge.id} has not one anchor`;
     if (!inside(box(drawn.querySelector("path.line")), whole, 2)) return `edge ${edge.id} leaves the window`;
     const label = stage.querySelector(`.label[data-edge="${edge.id}"]`);
-    if (!label || label.textContent !== edge.shown) return `edge ${edge.id} has no label`;
+    const said = label && [...label.childNodes].filter((part) => !(part.classList && part.classList.contains("counts"))).map((part) => part.textContent).join(""); // the label's words, its badges apart
+    if (!label || said !== edge.shown) return `edge ${edge.id} has no label`;
     if (!label.classList.contains("tucked") && !inside(box(label), whole)) return `the label of edge ${edge.id} is outside the window`;
   }
   return "";
@@ -556,8 +569,9 @@ async function shapes(browser) {
 }
 
 // ---- overlay ----
-function rowsOf(record, kind) {
-  return (kind === "edge" ? 1 : 0) + (record.purpose ? 1 : 0) + Object.keys(record.info || {}).length + (record.opens ? 1 : 0) + (record.evidence ? 1 : 0);
+function rowsOf(record, kind, properties = []) { // a record's card rows: its sentence, purpose, items, opens and evidence, and one row per kind of property its badges count
+  const counted = new Set(properties.filter((one) => (one.on || []).includes(record.id)).map((one) => (one.kind === "gap" ? "gap" : one.status || "holds")));
+  return (kind === "edge" ? 1 : 0) + (record.purpose ? 1 : 0) + Object.keys(record.info || {}).length + (record.opens ? 1 : 0) + (record.evidence ? 1 : 0) + counted.size;
 }
 const formOf = (kind, record, name) => { const items = ((tags[kind] || {})[record.tag] || { items: [] }).items.concat((tags.common || {})[kind] || []); const item = items.find((one) => one.name === name); return item ? item.form : null; };
 function targets(example) { // a node, an edge and an area, then one record per item form
@@ -567,7 +581,7 @@ function targets(example) { // a node, an edge and an area, then one record per 
     const first = !picked.some((one) => one.kind === kind);
     if (!first && !held.length) continue;
     held.forEach((form) => forms.add(form));
-    picked.push({ kind, id: record.id, level: level.id, rows: rowsOf(record, kind), forms: Object.keys(record.info || {}).map((name) => formOf(kind, record, name)).filter(Boolean) });
+    picked.push({ kind, id: record.id, level: level.id, rows: rowsOf(record, kind, example.contract.properties), forms: Object.keys(record.info || {}).map((name) => formOf(kind, record, name)).filter(Boolean) });
   }
   return picked;
 }
@@ -865,7 +879,7 @@ async function notes(browser, example, size, tally) { // each step of each scena
       const seen = await page.evaluate(() => {
         const box = (element) => element.getBoundingClientRect(), chip = document.getElementById("chip"), hint = document.getElementById("onto");
         const laps = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
-        const shown = (element) => +getComputedStyle(element).opacity > 0.05;
+        const shown = (element) => element.checkVisibility({ visibilityProperty: true }) && +getComputedStyle(element).opacity > 0.05;
         const covered = !chip.classList.contains("show") ? [] : [...document.querySelectorAll("#stage .area > header")].map((header) => ["lane header", header.parentElement.dataset.id, header])
           .concat([...document.querySelectorAll("#stage .label")].filter(shown).map((label) => ["edge label", label.dataset.edge, label])).filter(([, , element]) => laps(box(chip), box(element))).map(([what, id]) => `${what} ${id}`);
         return { noted: +chip.classList.contains("show"), covered, hint: hint && !hint.hidden && box(hint).width > 0 ? hint.textContent : "" };
@@ -1779,6 +1793,159 @@ async function badges(browser) {
   const settled = await badged(copy.holds, homeOf(copy, properties[copy.holds]));
   check(!settled.length, `a property that holds shows the badges [${settled}]`);
 }
+const COUNTED = { holds: ["✓", 150, 30, 0.08], unknown: ["?", null, 0, 0], broken: ["✗", 65, 30, 0.08], gap: ["!", 27, 25, 0.1] }; // each kind's symbol, the hue its fill keeps within a turn of, and the least chroma; unknown's fill is grey
+function tallied() { // a copy of the first example whose first level's first node holds two properties that hold, one unknown and one gap, and each of its edges but the last one broken property
+  const flat = JSON.parse(fs.readFileSync(examples[0].source, "utf8")), first = flat.levels[0].id, nodes = flat.nodes.filter((node) => node.level === first), edges = flat.edges.filter((edge) => nodes.some((node) => node.id === edge.from));
+  check(nodes.length >= 2 && edges.length >= 2, `${examples[0].name}'s first level holds under two nodes or two edges`);
+  const planted = (id, kind, status, on) => ({ id, title: id, kind, status, statement: "Each planted record keeps its count.", on, ...(kind === "gap" ? { fault: "missing" } : {}) });
+  flat.properties = (flat.properties || []).concat([planted("planted-holds-one", "invariant", "holds", [nodes[0].id]), planted("planted-holds-two", "convention", "holds", [nodes[0].id]),
+    planted("planted-unknown", "invariant", "unknown", [nodes[0].id]), planted("planted-gap", "gap", "unknown", [nodes[0].id]), planted("planted-broken", "constraint", "broken", edges.slice(0, -1).map((edge) => edge.id))]);
+  const source = path.join(scratch, "tallied.json");
+  fs.writeFileSync(source, JSON.stringify(flat));
+  const example = make({ name: "tallied", source, built: path.join(scratch, "tallied.html") }), want = {};
+  for (const property of example.contract.properties) for (const id of property.on || []) ((want[id] = want[id] || {})[property.kind === "gap" ? "gap" : property.status || "holds"] = (want[id][property.kind === "gap" ? "gap" : property.status || "holds"] || []).concat(property.id));
+  return { example, level: first, node: nodes[0].id, want, titles: Object.fromEntries(example.contract.properties.map((one) => [one.id, one.title])) };
+}
+const badgesOf = (page) => page.evaluate(() => { // each node's and edge's badges as drawn: text, fill, ink, whether a reader sees them, and what they cover or stray from
+  const box = (rect) => ({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }), meets = (one, other) => one.left < other.right - 0.5 && other.left < one.right - 0.5 && one.top < other.bottom - 0.5 && other.top < one.bottom - 0.5;
+  const words = (element) => [...element.childNodes].filter((part) => part.nodeType === 3 && part.textContent.trim()).map((part) => { const range = document.createRange(); range.selectNodeContents(part); return box(range.getBoundingClientRect()); });
+  const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true }), canvas = getComputedStyle(document.body).backgroundColor;
+  pen.canvas.width = pen.canvas.height = 1;
+  const pixel = (color, under) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = under; pen.fillRect(0, 0, 1, 1); pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); return [...pen.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+  const out = {};
+  for (const holder of document.querySelectorAll("#stage .node[data-id], #stage .label[data-edge]")) {
+    const id = holder.dataset.id || holder.dataset.edge, tucked = holder.classList.contains("tucked"), node = holder.classList.contains("node");
+    const frame = box((node ? holder : document.querySelector(`#stage .label[data-edge="${CSS.escape(id)}"]`)).getBoundingClientRect()), reach = node ? 0.5 : 16;
+    const covered = node ? [...holder.querySelectorAll(":scope > b, :scope > small")].flatMap(words).concat([...holder.querySelectorAll(":scope > .open")].map((one) => box(one.getBoundingClientRect()))) : [];
+    for (const one of holder.querySelectorAll(":scope > .counts > .count")) {
+      const style = getComputedStyle(one), fill = pixel(style.backgroundColor, canvas), rect = one.getBoundingClientRect();
+      const strays = node ? rect.left < frame.left - reach || rect.right > frame.right + reach || rect.top < frame.top - reach || rect.bottom > frame.bottom + reach : Math.max(frame.left - rect.right, rect.left - frame.right) > reach || Math.max(frame.top - rect.bottom, rect.top - frame.bottom) > reach; // a node holds its badges, a label's sit within reach of it
+      (out[id] = out[id] || []).push({ kind: one.dataset.count, text: one.textContent, fill, ink: pixel(style.color, `rgb(${fill.join(",")})`), seen: one.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && rect.width > 0, tucked, strays: strays && `${[rect.left, rect.top, rect.right, rect.bottom].map(Math.round)} against ${Object.values(frame).map(Math.round)}`, covers: covered.some((part) => meets(box(rect), part)) });
+    }
+  }
+  return out;
+});
+const lit = (rgb) => { const [r, g, b] = rgb.map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+async function countBadges(browser, copy) { // each node's and edge's badges say what the properties on it hold, in their own colours, a tucked label's included
+  let tucked = 0, bare = { node: 0, edge: 0 };
+  const level = copy.example.contract.levels.find((one) => one.id === copy.level);
+  for (const scheme of ["light", "dark"]) for (const size of SIZES) {
+    const page = await open(browser, copy.example, size, { scheme, at: `#level=${copy.level}` }), where = `${scheme} at ${size.join("x")}`, seen = await badgesOf(page), fills = {};
+    for (const [kind, group] of [["node", level.nodes], ["edge", level.edges || []]]) for (const record of group) {
+      const want = Object.keys(COUNTED).filter((one) => copy.want[record.id] && copy.want[record.id][one]).map((one) => COUNTED[one][0] + copy.want[record.id][one].length), drawn = (seen[record.id] || []).map((badge) => badge.text);
+      check(same(want, drawn), `${where}: ${kind} ${record.id} shows the badges [${drawn}], not [${want}]`);
+      if (!want.length) bare[kind] += 1;
+      for (const badge of seen[record.id] || []) {
+        check(badge.seen, `${where}: the ${badge.text} badge of ${kind} ${record.id} is hidden${badge.tucked ? " with its tucked label" : ""}`);
+        if (badge.tucked) tucked += 1;
+        check(!badge.strays, `${where}: the ${badge.text} badge of ${kind} ${record.id} sits ${kind === "node" ? "outside its node" : "more than 16 px from its label's place"}: ${badge.strays}`);
+        check(!badge.covers, `${where}: the ${badge.text} badge of node ${record.id} covers its name, its tag or its open button`);
+        const fill = oklab(badge.fill), [, at, by, least] = COUNTED[badge.kind], ratio = (Math.max(lit(badge.fill), lit(badge.ink)) + 0.05) / (Math.min(lit(badge.fill), lit(badge.ink)) + 0.05);
+        check(at === null ? chroma(fill) <= 0.02 : chroma(fill) >= least && turn(hue(fill), at) <= by, `${where}: the ${badge.text} badge of ${record.id} is filled at chroma ${chroma(fill).toFixed(3)} and hue ${hue(fill).toFixed(0)}, not ${badge.kind}'s colour`);
+        check(ratio >= 4.5, `${where}: the ${badge.text} badge of ${record.id} shows its text at ${ratio.toFixed(2)}:1 on its fill`);
+        fills[badge.kind] = fill;
+      }
+    }
+    const kinds = Object.keys(fills);
+    check(kinds.length === 4, `${where}: the level shows badges of only ${kinds.join(", ")}`);
+    for (const [i, one] of kinds.entries()) for (const other of kinds.slice(i + 1)) check(apart(fills[one], fills[other]) >= 0.08, `${where}: the ${one} and ${other} badges' fills are ${apart(fills[one], fills[other]).toFixed(3)} apart in oklab`);
+    quiet(page, where);
+    await page.context().close();
+  }
+  check(bare.node && bare.edge, `the copy's first level shows no node or no edge without properties, so a bare record's lack of badges is untested`);
+  check(tucked, `no edge whose label is tucked held a badge at any size, so a tucked label's badges are untested`);
+}
+async function countLists(browser, copy) { // the pointer on each badge, and a click on it, shows its record's card listing what it counts, each chip opening its property
+  const listed = (page) => page.evaluate(() => {
+    const card = document.getElementById("card"), rows = {};
+    for (let leaf = 0; leaf < 12; leaf++) {
+      for (const row of card.querySelectorAll("dl > div")) rows[row.querySelector("dt").textContent] = [...row.querySelectorAll(".ref")].map((chip) => chip.dataset.ref);
+      const turn = card.querySelector("footer .turn");
+      if (!turn) break;
+      turn.click();
+      if (/^1–/.test(card.querySelector("footer .turn").textContent)) break;
+    }
+    return rows;
+  });
+  const names = { holds: "holds", unknown: "unknown", broken: "broken", gap: "gaps" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
+  const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
+  await shown.context().close();
+  const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, tucked[0]];
+  check(tucked.length, `no edge whose label is tucked holds a badge at ${SIZES[1].join("x")}, so the pointer on a tucked label's badge is untested`);
+  for (const id of targets) {
+    const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), wanted = Object.entries(copy.want[id]).map(([kind, list]) => [names[kind], list]);
+    const badges = page.locator(`#stage [data-id="${id}"] .count, #stage [data-edge="${id}"] .count`);
+    check(await badges.count() === wanted.length, `${id} shows ${await badges.count()} badges, not ${wanted.length}`);
+    for (let i = 0; i < wanted.length; i++) {
+      await page.mouse.move(2, SIZES[1][1] - 2);
+      const box = await badges.nth(i).boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+      await page.clock.fastForward(450);
+      await page.waitForFunction(CARDED, id, { timeout: 8000 }).catch(() => { throw new Error(`the pointer on the ${i + 1}. badge of ${id} raised no card for it`); });
+      const rows = await listed(page);
+      for (const [name, list] of wanted) check(same(rows[name], list), `the card under the ${i + 1}. badge of ${id} lists [${rows[name]}] under ${name}, not [${list}]`);
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await rest(page);
+      check(await page.evaluate((id) => location.hash.includes("at=" + encodeURIComponent(id)) && document.getElementById("card").classList.contains("kept"), id), `a click on the ${i + 1}. badge of ${id} keeps no card for it`);
+      await page.keyboard.press("Escape");
+      await rest(page);
+    }
+    for (const [, list] of wanted) for (const property of list) {
+      await page.goto("file://" + copy.example.built + `#level=${copy.level}&at=${id}`);
+      await settled(page);
+      const chip = page.locator(`#card .ref[data-ref="${property}"]`);
+      for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.locator("#card footer .turn").click();
+      check(await chip.count(), `the kept card of ${id} shows no chip for ${property}`);
+      await chip.first().click();
+      await settled(page);
+      await page.waitForTimeout(200); // the pointer that clicked rests over the diagram the card left, long enough for a hover to raise a card
+      await page.clock.fastForward(900);
+      await settled(page);
+      const head = await page.evaluate((property) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === property ? card.querySelector("h2").textContent : null; }, property);
+      check(head === copy.titles[property], `a click on the chip for ${property} in the card of ${id} shows the card ${head}, not one headed ${copy.titles[property]}`);
+    }
+    quiet(page, `the badges of ${id}`);
+    await page.context().close();
+  }
+}
+async function counts(browser) {
+  const copy = tallied(), lines = [];
+  for (const [name, work] of [["count badges", countBadges], ["count lists", countLists]]) lines.push(await work(browser, copy).then(() => `${name}: PASS`, (error) => `${name}: FAIL, ${error.message.split("\n")[0]}`));
+  lines.forEach((line) => console.log(line));
+  check(lines.every((line) => line.endsWith(": PASS")), lines.find((line) => !line.endsWith(": PASS")));
+}
+async function note(browser) { // each step's note: a bar in the scenario mark's hue and a `Step <n>` heading, where no edge label has a border
+  let read = 0;
+  await each(examples.flatMap((example) => SIZES.map((size) => [example, size])), async ([example, size]) => {
+    const page = await open(browser, example, size);
+    for (const scenario of example.contract.scenarios || []) for (const [i, step] of scenario.steps.entries()) if (step.note) {
+      await page.goto("file://" + example.built + "#scenario=" + scenario.id + "&step=" + i + "&level=" + example.levelOf[step.at]);
+      await rest(page);
+      const where = `${example.name} ${scenario.id} step ${i + 1} at ${size.join("x")}`;
+      const seen = await page.evaluate(() => {
+        const pen = document.createElement("canvas").getContext("2d", { willReadFrequently: true }), canvas = getComputedStyle(document.body).backgroundColor;
+        pen.canvas.width = pen.canvas.height = 1;
+        const pixel = (color) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = canvas; pen.fillRect(0, 0, 1, 1); pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); return [...pen.getImageData(0, 0, 1, 1).data].slice(0, 3); };
+        const chip = document.getElementById("chip"), style = getComputedStyle(chip), probe = document.body.appendChild(document.createElement("div"));
+        probe.style.color = "var(--mark)";
+        const mark = pixel(getComputedStyle(probe).color), head = chip.firstElementChild;
+        probe.remove();
+        return { shown: chip.classList.contains("show"), bar: parseFloat(style.borderLeftWidth), color: pixel(style.borderLeftColor), mark, head: head ? head.textContent : "", ink: head ? pixel(getComputedStyle(head).color) : null,
+          bordered: [...document.querySelectorAll("#stage .label")].filter((label) => ["Top", "Right", "Bottom", "Left"].some((side) => parseFloat(getComputedStyle(label)[`border${side}Width`]) > 0)).map((label) => label.dataset.edge) };
+      });
+      const mark = hue(oklab(seen.mark));
+      check(seen.shown, `${where}: the note is not shown`);
+      check(seen.bar >= 3 && chroma(oklab(seen.color)) >= 0.1 && turn(hue(oklab(seen.color)), mark) <= 20, `${where}: the note's left bar is ${seen.bar} px at chroma ${chroma(oklab(seen.color)).toFixed(3)}, hue ${hue(oklab(seen.color)).toFixed(0)} against the mark's ${mark.toFixed(0)}`);
+      check(seen.head === `Step ${i + 1}` && seen.ink && turn(hue(oklab(seen.ink)), mark) <= 20 && chroma(oklab(seen.ink)) >= 0.1, `${where}: the note opens with ${JSON.stringify(seen.head)}, not Step ${i + 1} in the mark's hue`);
+      check(!seen.bordered.length, `${where}: the labels of ${seen.bordered.join(", ")} show a border`);
+      read += 1;
+    }
+    quiet(page, `${example.name} at ${size.join("x")}`);
+    await page.context().close();
+  });
+  check(read, "no example step holds a note");
+  console.log(`${read} step notes at three sizes show a bar and a step heading in the mark's hue`);
+}
 async function formulas(browser) {
   const self = examples.find((example) => JSON.stringify(example.contract).includes("$$")), copy = planted();
   check(self, "no example holds a display formula");
@@ -2238,7 +2405,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables, layout, wrap };
+    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, counts, note, formulas, code, tables, layout, wrap };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
