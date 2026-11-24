@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run run-criteria.py `--hunks` on a temporary git repository whose change has two hunks. Print `ok <case>` or
 `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
-- `one-needed`: a sole check that needs only the first hunk makes `--hunks` name the second hunk's file and line and exit 1;
+- `one-needed`: a sole check that needs only the first hunk, beside a score, makes `--hunks` name the second hunk's file and line and exit 1;
 - `both-needed`: a check that needs both hunks makes it name none and exit 0;
 - `table-same`: the call without `--hunks` prints the criteria table alone, its five columns and no hunk line;
 - `line-in-needed-hunk`: a later commit deletes a Python file the check needs gone, adds a Python template that does not
@@ -10,12 +10,13 @@
   `if` line, valid Python, the check needs only to exist, and `--hunks` against the commit before names the refusal's line as an unneeded
   condition, not the hunk, the old condition, the string's line, the text file's line or the template, and exits 1;
 - `condition-needed`: a check that runs through that refusal makes it name none, one mutant made, the refusal's number, not its test again, and exit 0;
-- `mutant-survives`: a later commit adds to a Python file with a number of its own a line whose comparison and two numbers set a bound, printed with a
+- `mutant-survives`: a later commit adds to a Python file with a comparison and numbers of its own a line whose comparison and two numbers, one a float, set a bound, printed with a
   `True` flag, and an exit with 0, and a runner under `fixtures/` with an unused number that tries only a value far above the bound makes `--hunks` name
-  each number of the bound as a surviving mutant and the 0 as made 1, not the comparison, the flag, the old number or the runner's number, and exit 1;
+  each number of the bound as a surviving mutant and the 0 as made 1, not the comparison, the flag, the old line or the runner's number, and exit 1;
 - `mutant-killed`: a check that also tries a value just below the bound and needs the exit makes it name none, five mutants made, the index of the
   argument among them, and exit 0;
-- `first-break-stops`: of two checks, one that every revert breaks, listed first, and one that counts its runs, the second runs only at the head.
+- `first-break-stops`: of two checks, one that needs the first hunk, listed first, and one that counts its runs and prints an extra line when the second
+  hunk is reverted, the second runs at the head and on the second revert only, and that revert counts as needed.
 
 usage: replay-hunk-revert.py"""
 import os
@@ -57,13 +58,13 @@ def main(args):
     (work / "b.txt").write_text("one\nnew\n")
     git("commit", "-qam", "change")
 
-    def call(command, *options):
+    def call(command, *options, more=""):
         body = work.parent / f"{work.name}-body.md"
-        body.write_text(BODY.format(command=command))
+        body.write_text(BODY.format(command=command) + more)
         done = subprocess.run([sys.executable, str(SCRIPT), *options, str(body)], cwd=work, capture_output=True, text=True)
         return done.returncode, done.stdout, done.stderr
 
-    code, out, error = call("grep -q new a.txt && echo ok", "--hunks", "--ref", "main")
+    code, out, error = call("grep -q new a.txt && echo ok", "--hunks", "--ref", "main", more="2. [score] **The probe reads well**: sample: a.txt; rubric: yes 2, no 0.\n")
     step("one-needed", code == 1 and "b.txt:2: unneeded hunk" in out and "a.txt" not in out.replace("hunks:", ""), (code, out, error))
     code, out, error = call("grep -q new a.txt && grep -q new b.txt && echo ok", "--hunks", "--ref", "main")
     step("both-needed", code == 0 and "0 unneeded" in out and ": unneeded hunk" not in out, (code, out, error))
@@ -87,10 +88,10 @@ def main(args):
     code, out, error = call("python3 c.py | grep -q new && test -s d.txt && test -s g.py && test ! -e e.py && python3 c.py x 2>&1 | grep -q refused && echo ok", "--hunks", "--ref", "lines~1")
     step("condition-needed", code == 0 and "0 unneeded" in out and "1 conditions made False, 1 mutants made" in out, (code, out, error))
     git("checkout", "-q", "-b", "bound")
-    (work / "h.py").write_text("import sys\nLIMIT = 7\n")
+    (work / "h.py").write_text("import sys\nLIMIT = 7 if len(sys.argv) > 0 else 8\n")
     git("add", "h.py")
     git("commit", "-qm", "limit")
-    (work / "h.py").write_text("import sys\nLIMIT = 7\nprint('big' if int(sys.argv[1]) > 10 * 2 else 'small', flush=True)\nsys.exit(0)\n")
+    (work / "h.py").write_text("import sys\nLIMIT = 7 if len(sys.argv) > 0 else 8\nprint('big' if int(sys.argv[1]) > 10 * 2.0 else 'small', flush=True)\nsys.exit(0)\n")
     (work / "fixtures").mkdir()
     (work / "fixtures" / "check-h.py").write_text("import subprocess, sys\nTRIES = 3\n"
                                                   "out = subprocess.run([sys.executable, 'h.py', sys.argv[1]], capture_output=True, text=True).stdout\n"
@@ -99,18 +100,18 @@ def main(args):
     git("commit", "-qm", "bound")
     code, out, error = call("python3 fixtures/check-h.py 30 && echo ok", "--hunks", "--ref", "bound~1")
     step("mutant-survives", code == 1 and "h.py:3: surviving mutant: no criterion fails when the number `10` becomes `0`" in out
-         and "the number `2` becomes `0`" in out and "h.py:4: surviving mutant: no criterion fails when the number `0` becomes `1`" in out
+         and "the number `2.0` becomes `0`" in out and "h.py:4: surviving mutant: no criterion fails when the number `0` becomes `1`" in out
          and "comparison" not in out and "fixtures/" not in out and "h.py:2" not in out and "5 mutants made" in out, (code, out, error))
     code, out, error = call("python3 fixtures/check-h.py 30 && python3 h.py 15 > out.txt && grep -qx small out.txt && echo ok", "--hunks", "--ref", "bound~1")
     step("mutant-killed", code == 0 and "0 unneeded" in out and "5 mutants made" in out, (code, out, error))
     git("checkout", "-q", "change")
     runs = work.parent / f"{work.name}-runs"
     body = work.parent / f"{work.name}-two.md"
-    body.write_text(BODY.format(command="grep -q new a.txt && grep -q new b.txt && echo ok")
-                    + f"2. [check] **The probe counts its runs**: `echo run >> {runs} && echo ok` prints `ok`; on base nothing.\n")
+    body.write_text(BODY.format(command="grep -q new a.txt && echo ok")
+                    + f"2. [check] **The probe counts its runs**: `echo run >> {runs} && {{ grep -q new b.txt || echo old; }} && echo ok` prints `ok`; on base nothing.\n")
     done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
     count = runs.read_text().count("run") if runs.exists() else 0
-    step("first-break-stops", done.returncode == 0 and count == 1, (done.returncode, count, done.stdout, done.stderr))
+    step("first-break-stops", done.returncode == 0 and "0 unneeded" in done.stdout and count == 2, (done.returncode, count, done.stdout, done.stderr))
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 
