@@ -16,7 +16,12 @@
 - `mutant-killed`: a check that also tries a value just below the bound and needs the exit makes it name none, five mutants made, the index of the
   argument among them, and exit 0;
 - `first-break-stops`: of two checks, one that needs the first hunk, listed first, and one that counts its runs and prints an extra line when the second
-  hunk is reverted, the second runs at the head and on the second revert only, and that revert counts as needed.
+  hunk is reverted, the second runs at the head and on the second revert only, and that revert counts as needed;
+- `score-held-by-runner`: a task of one score, over a change to a Python file and the Python runner that replays it, to a text file and a new
+  TypeScript runner that reads it, to a second text file, and adding a runner that fails and three Python files that pass but are no runner, a
+  script, a helper under `fixtures/` and a `replay-` file in a `replay-` folder below it, makes `--hunks` hold the two passing runners, so it names the second
+  text file's hunk, the failing runner's and each of the three files' as unneeded, not a failure at the head, makes two mutants that the runner kills,
+  and exits 1.
 
 usage: replay-hunk-revert.py"""
 import os
@@ -112,6 +117,32 @@ def main(args):
     done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
     count = runs.read_text().count("run") if runs.exists() else 0
     step("first-break-stops", done.returncode == 0 and "0 unneeded" in done.stdout and count == 2, (done.returncode, count, done.stdout, done.stderr))
+    git("checkout", "-q", "main")
+    (work / "p" / "fixtures").mkdir(parents=True)
+    replay = "import pathlib, subprocess, sys\nout = subprocess.run([sys.executable, str(pathlib.Path(__file__).parents[1] / 'tool.py')], capture_output=True, text=True).stdout\nsys.exit(0 if out == '{}\\n' else 1)\n"
+    (work / "p" / "tool.py").write_text("import sys\nprint('old')\n")
+    (work / "p" / "fixtures" / "replay-tool.py").write_text(replay.format("old"))
+    (work / "p" / "notes.txt").write_text("old\n")
+    (work / "p" / "other.txt").write_text("old\n")
+    git("add", "-A")
+    git("commit", "-qm", "tool")
+    git("checkout", "-q", "-b", "scored")
+    (work / "p" / "tool.py").write_text("import sys\nprint('new' if len(sys.argv) > 0 else 'none')\n")
+    (work / "p" / "fixtures" / "replay-tool.py").write_text(replay.format("new"))
+    (work / "p" / "notes.txt").write_text("new\n")
+    (work / "p" / "other.txt").write_text("new\n")
+    (work / "p" / "fixtures" / "replay-notes.ts").write_text("import { readFileSync } from \"fs\";\nprocess.exit(readFileSync(new URL(\"../notes.txt\", import.meta.url), \"utf8\") === \"new\\n\" ? 0 : 1);\n")
+    (work / "p" / "fixtures" / "replay-broken.py").write_text("import sys\nsys.exit(1)\n")
+    (work / "p" / "fixtures" / "replay-deep").mkdir()
+    for file in ("lib.py", "fixtures/helper.py", "fixtures/replay-deep/replay-deep.py"):
+        (work / "p" / file).write_text("print('here')\n")
+    git("add", "-A")
+    git("commit", "-qm", "scored")
+    body.write_text(BODY.split("1. [check]")[0] + "1. [score] **The probe reads well**: sample: p/tool.py; rubric: yes 2, no 0.\n")
+    done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "scored~1", str(body)], cwd=work, capture_output=True, text=True)
+    step("score-held-by-runner", done.returncode == 1 and "p/other.txt:1: unneeded hunk" in done.stdout and "p/fixtures/replay-broken.py:1: unneeded hunk" in done.stdout
+         and all(f"p/{file}:1: unneeded hunk" in done.stdout for file in ("lib.py", "fixtures/helper.py", "fixtures/replay-deep/replay-deep.py"))
+         and "p/tool.py" not in done.stdout and "notes" not in done.stdout and "fails at the head" not in done.stdout and "2 mutants made, 5 unneeded" in done.stdout, (done.returncode, done.stdout, done.stderr))
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 
