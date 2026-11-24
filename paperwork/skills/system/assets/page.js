@@ -16,8 +16,15 @@
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let terms = [], contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
+  const recordCard = paperworkCard({ make, formulas: FORMULAS, record: id => records[id], terms: () => contract.terms, sources: () => contract.sources,
+    counted: () => counted, rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow });
+  const { words, bare, tagName, label, counts, prose } = recordCard;
+  const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
+    kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" },
+    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]],
+    shelf: () => `paperwork-system-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
 
   // ---- the contract's records ----
   function load(data) {
@@ -36,26 +43,11 @@
       const kind = property.kind === "gap" ? "gap" : property.status || "holds";
       for (const one of new Set(property.on || [])) ((counted[one] = counted[one] || {})[kind] = counted[one][kind] || []).push(property.id);
     }
-    terms = (contract.terms || []).map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
-      + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
     entries = index();
   }
-  const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
-  // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
-  const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
-  const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && records[id] ? label(id) : whole));
-  const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
-  const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
     ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
     : `${label(edge.from)} ${words(edge.label)} ${label(edge.to)}.`;
-  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["broken", "✗", "broken"], ["gap", "!", "gaps"]]; // each kind a badge counts: its symbol, so it reads without its colour, and its card row's name
-  const counts = id => { // the badges of a record the properties on it earn, one per kind it holds
-    const held = counted[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
-    if (!shown.length) return null;
-    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
-      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
-  };
   const home = id => { // the level a record is seen on
     const found = records[id];
     if (!found) return null;
@@ -123,7 +115,7 @@
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const tally = node => COUNTS.filter(([kind]) => counted[node.id] && counted[node.id][kind]).length * 28; // the badges share the tag's line
+    const tally = node => recordCard.countRows(node.id).length * 28; // the badges share the tag's line
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tagName(node.tag).length * 7 + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
     const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
@@ -574,67 +566,15 @@
       element.classList.toggle("dim", !!(focus || scenario) && !lit.has(id) && !tone[id] && !held.has(id));
     }
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
-    if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
+    if (hovered) recordCard.show(hovered); else if (view.at) recordCard.show(view.at); else hide();
   }
-  const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
-  let glossed = new Set(); // the terms the card has marked, each at its first match only
-  const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
-    const guess = piece.search(/\(guess\)/i);
-    let first = null;
-    for (const one of terms) if (!glossed.has(one.entry.term)) { const found = one.pattern.exec(piece); if (found && (!first || found.index < first.found.index)) first = { one, found }; }
-    if (guess >= 0 && (!first || guess < first.found.index)) return [...spoken(piece.slice(0, guess)), make("span", { class: "badge guess" }, "guess"), ...spoken(piece.slice(guess + 7))];
-    if (!first) return piece ? [piece] : [];
-    glossed.add(first.one.entry.term);
-    const { index } = first.found, text = first.found[0];
-    return [...spoken(piece.slice(0, index)), make("dfn", { class: "term", tabindex: "0", "data-term": first.one.entry.term, "data-meaning": first.one.entry.meaning }, text), ...spoken(piece.slice(index + text.length))];
-  };
-  const literal = quote => { // a fence as a block that keeps its lines, its first line's language word left out; a span as inline code, broken after each slash
-    if (quote.startsWith("```")) return make("pre", { class: "fence" }, make("code", {}, quote.slice(3, -3).replace(/^[\w+-]*\n/, "").replace(/\n$/, "")));
-    return make("code", {}, ...quote.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece]));
-  };
-  const formula = (tex, display) => { // the MathML make-page.py drew, or the TeX as code where it drew none
-    const markup = FORMULAS[(display ? "$$" : "$") + tex];
-    if (!markup) return make("code", {}, tex);
-    const holder = document.createElement("template");
-    holder.innerHTML = markup;
-    return holder.content.firstChild;
-  };
-  const prose = (text, plain = false) => { // a text with its quotes, formulas, named records, terms and guesses drawn; PLAIN, for a text outside a card's rows, draws names as words and marks no term or guess
-    const all = String(text), out = [];
-    let last = 0;
-    for (const found of all.matchAll(MARKS)) {
-      const [whole, quote, block, inline, id] = found;
-      if (id && !records[id]) continue;
-      out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
-      last = found.index + whole.length;
-      if (quote) out.push(literal(quote));
-      else if (id && plain) out.push(label(id));
-      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, label(id)));
-      else out.push(formula(block || inline, !!block));
-    }
-    return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
-  };
-  const value = (form, data) => {
-    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
-    if (form === "table" && data && data.columns) {
-      const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
-      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
-      return [table];
-    }
-    if (form === "tree" && Array.isArray(data)) {
-      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, ...quoted(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
-      return [branch(data)];
-    }
-    if (form === "code") return [make("pre", {}, make("code", {}, ...quoted(data)))];
-    return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
-  };
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
     if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
     if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind] && /^(node|edge)$/.test(records[id].kind)) add(name, "list", counted[id][kind].map(one => `{${one}}`));
+    if (/^(node|edge)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) add(name, form, data);
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
@@ -682,63 +622,7 @@
     for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
     return best; // `tied` is what the spot still covers of the record and of what is tied to it
   }
-  let leaf = 0, parked = null, pointer = null; // the page of rows the card shows; where the pointer stood when the card left from under it, which raises no card until it moves; where the pointer last moved
-  function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
-    const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
-    if (box.dataset.for !== id) leaf = 0;
-    const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
-    for (const extra of [record.basis, record.strength, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
-    if (record.status && record.status !== "holds") tags.append(make("span", { class: `tag badge ${record.status}` }, record.status)); // a settled statement needs no mark
-    if (record.evidence) tags.append(make("button", { class: "tag cite", type: "button", "aria-label": "Sources" }, `${record.evidence.length} ${record.evidence.length === 1 ? "source" : "sources"}`));
-    const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
-    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id, true)), tags, list, foot);
-    box.dataset.for = id;
-    box.classList.toggle("kept", kept);
-    const limit = Math.floor(Math.min(innerHeight * .46, 400));
-    const lay = (from, most, cap) => { // the rows from FROM on that CAP pixels of the card hold, MOST at most, and the row after them
-      box.classList.remove("long");
-      box.style.maxHeight = "none";
-      list.replaceChildren();
-      glossed = new Set();
-      let to = from;
-      for (; to < all.length && to - from < most; to++) {
-        const [name, form, data] = all[to];
-        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data))));
-        if (to > from && box.offsetHeight > cap) { list.lastChild.remove(); break; }
-      }
-      return to;
-    };
-    const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
-    const fill = (most, page) => { // the card with MOST rows a page at most on its PAGE-th page, placed by its first page, its later pages growing up from the same foot, a row taller than the room above scrolling under its fixed foot
-      const sign = (from, to, paged, next) => {
-        const turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${from + 1}–${to} of ${all.length} ›`);
-        turn.addEventListener("click", () => { leaf = next; card(id); });
-        foot.replaceChildren(...(paged ? [turn] : []), make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
-      };
-      const firstEnd = lay(0, most, limit);
-      sign(0, firstEnd, firstEnd < all.length, 0);
-      const first = Math.min(box.offsetHeight, limit), place = beside(id, box.offsetWidth, first), bottom = place.top + first, cap = Math.min(limit, bottom - 8);
-      const starts = [0];
-      for (let to = firstEnd; to < all.length; to = lay(to, most, cap)) starts.push(to);
-      const shown = Math.min(page, starts.length - 1);
-      sign(starts[shown], lay(starts[shown], most, shown ? cap : limit), starts.length > 1, (shown + 1) % starts.length);
-      const height = shown ? cap : limit;
-      box.style.maxHeight = height + "px";
-      box.classList.toggle("long", box.scrollHeight > height + 1);
-      return { ...place, bottom, most, page: shown };
-    };
-    let at = fill(Infinity, 0);
-    for (let most = list.children.length - 1, tried = at; tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows a page until one does
-      tried = fill(most, 0);
-      if ((tried.tied > 0) < (at.tied > 0) || (tried.tied > 0) === (at.tied > 0) && tried.cost < at.cost) at = tried;
-    }
-    at = fill(at.most, leaf);
-    leaf = at.page;
-    box.style.left = at.left + "px";
-    box.style.top = "auto";
-    box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
-    box.classList.add("show");
-  }
+  let parked = null, pointer = null; // where the pointer stood when the card left from under it, which raises no card until it moves; where the pointer last moved
   const toward = id => { // ID when the shown level holds it, else the node of the shown level that opens the levels down to ID's level, or nothing
     if (!records[id] || !["node", "edge", "area", "level"].includes(records[id].kind)) return null;
     let one = id;
@@ -753,27 +637,18 @@
     stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
     if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
   }
-  function gloss(anchor, ...children) { // a note over the card, above what it explains or else below it
-    const box = $("gloss"), at = anchor.getBoundingClientRect();
-    box.replaceChildren(...children);
-    box.classList.add("show");
-    const w = box.offsetWidth, h = box.offsetHeight;
-    box.style.left = Math.min(Math.max(8, at.left), innerWidth - w - 8) + "px";
-    box.style.top = (at.top - h - 6 >= 8 ? at.top - h - 6 : Math.min(at.bottom + 6, innerHeight - h - 8)) + "px";
+  function follow(id, event) { // a chip that names a property opens that property's card, which waits for the pointer to move
+    if (records[id].kind !== "property") return false;
+    parked = [event.clientX, event.clientY];
+    go({ level: home(id), at: id });
+    return true;
   }
-  const unGloss = () => { $("gloss").classList.remove("show"); $("gloss").replaceChildren(); };
-  const sources = record => record.evidence.map(entry => { // each source a record cites, by its path and the line cited, with what it says
-    const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
-    return make("div", { class: "source" }, make("code", {}, (known ? known.path : source) + (line ? ":" + line : "")), ...(known && known.says ? [make("blockquote", {}, words(known.says))] : []));
-  });
   const halt = () => { clearTimeout(rest); clearTimeout(leave); };
   function hide() {
     halt();
-    unGloss();
-    light(null);
     const box = $("card"), spot = box.getBoundingClientRect();
     if (pointer && box.classList.contains("show") && pointer[0] >= spot.left && pointer[0] <= spot.right && pointer[1] >= spot.top && pointer[1] <= spot.bottom) parked = pointer; // what the card uncovers is not what the pointer came to
-    box.classList.remove("show"); box.dataset.for = "";
+    recordCard.hide();
   }
   function hover(id) {
     halt();
@@ -870,21 +745,10 @@
   }
 
   // ---- search ----
-  const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
-  const TAIL = ["", "ㄱ", "ㄲ", "ㄱㅅ", "ㄴ", "ㄴㅈ", "ㄴㅎ", "ㄷ", "ㄹ", "ㄹㄱ", "ㄹㅁ", "ㄹㅂ", "ㄹㅅ", "ㄹㅌ", "ㄹㅍ", "ㄹㅎ", "ㅁ", "ㅂ", "ㅂㅅ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-  const PAIRS = { "ㄳ": "ㄱㅅ", "ㄵ": "ㄴㅈ", "ㄶ": "ㄴㅎ", "ㄺ": "ㄹㄱ", "ㄻ": "ㄹㅁ", "ㄼ": "ㄹㅂ", "ㄽ": "ㄹㅅ", "ㄾ": "ㄹㅌ", "ㄿ": "ㄹㅍ", "ㅀ": "ㄹㅎ", "ㅄ": "ㅂㅅ", "ㅘ": "ㅗㅏ", "ㅙ": "ㅗㅐ", "ㅚ": "ㅗㅣ", "ㅝ": "ㅜㅓ", "ㅞ": "ㅜㅔ", "ㅟ": "ㅜㅣ", "ㅢ": "ㅡㅣ" };
-  const KEYS = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p", "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g", "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l", "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m", "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t", "ㅒ": "o", "ㅖ": "p" };
-  const typed = text => [...text].map(letter => { // the Latin keys pressed when a Korean two-set layout was left on
-    const code = letter.charCodeAt(0) - 0xac00;
-    const parts = code >= 0 && code < 11172 ? LEAD[Math.floor(code / 588)] + VOWEL[Math.floor(code % 588 / 28)] + TAIL[code % 28] : PAIRS[letter] || letter;
-    return [...parts].map(part => KEYS[part] || part).join("");
-  }).join("");
-  const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
   const flat = value => typeof value === "string" ? words(value).replace(/`/g, "") : Array.isArray(value) ? value.map(flat).join("; ")
     : value && typeof value === "object" ? Object.entries(value).map(([key, item]) => `${key}: ${flat(item)}`).join("; ") : String(value);
   function index() { // each record's fields as the search weighs them, and its texts as a hit shows them, by name
-    const list = [], add = (id, kind, name, note, fields, shown) => list.push({ id, kind, name: name.replace(/`/g, ""), note, fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })),
-      shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text: flat(text) })) });
+    const list = [], add = (id, kind, name, note, fields, shown) => list.push({ id, kind, name, note, fields, shown: shown.map(([field, text]) => [field, text && flat(text)]) });
     const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
     const details = info => Object.entries(info || {});
     const aliased = record => (record.aliases || []).map(alias => [alias, 0]), said = record => (record.aliases || []).map(alias => ["matched alias:", alias]); // an alias weighs as the record's name
@@ -897,240 +761,12 @@
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
     for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["id", property.id], ["kind", property.kind], ["statement", property.statement]]);
     for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
-    for (const entry of list) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
-    lengths = list.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, list.length);
     return list;
   }
-  const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
-    if (Math.abs(a.length - b.length) > most) return most + 1;
-    let last = null, row = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const next = [i];
-      for (let j = 1; j <= b.length; j++) {
-        next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        if (last && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], last[j - 2] + 1);
-      }
-      last = row; row = next;
-    }
-    return row[b.length];
-  };
-  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
-  const ORDER = Object.keys(KINDS);
-  function match(token, field) { // how well TOKEN matches FIELD, best first: the whole field, a word, a word's start, the words' initials, inside a word, one slip, two slips; -1 for none
-    if (field.text === token) return 0;
-    if (field.tokens.includes(token)) return 1;
-    if (field.text.startsWith(token) || field.tokens.some(word => word.startsWith(token))) return 2;
-    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 3;
-    if (token.length > 2 && field.text.includes(token)) return 4;
-    const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
-    let least = most + 1;
-    for (const word of most ? field.tokens : []) {
-      const key = token + " " + word;
-      if (!slipping.has(key)) slipping.set(key, slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most));
-      least = Math.min(least, slipping.get(key));
-      if (least === 1) break;
-    }
-    return least <= most ? 4 + least : -1;
-  }
-  const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
-  const termed = query => (contract.terms || []).flatMap(term => (term.aliases || []).filter(alias => ` ${query} `.includes(` ${plain(alias)} `)).map(alias => [alias, term.term])); // the term aliases a query holds whole, each with its term
-  const forms = query => { // a query read as typed and as the keys of a Korean layout, then each with its term aliases read as their terms
-    const read = [plain(query), plain(typed(query))];
-    return read.concat(read.filter(form => termed(form).length).map(form => termed(form).reduce((done, [alias, term]) => ` ${done} `.replace(` ${plain(alias)} `, ` ${plain(term)} `).trim(), form)));
-  };
-  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
-  const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
-  function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
-    let field = 0, quality = 0, covered = 0, telling = 0;
-    for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
-      let place = 5, grade = 7, size = 0;
-      for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
-      if (grade === 7 && !partial) return null;
-      covered += grade < 7 ? 1 : 0; telling += grade < 7 && !STOP.has(token) ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
-    }
-    field /= tokens.length; quality /= tokens.length;
-    if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
-    let bm25 = 0;
-    for (const [term, weight] of rare) { // BM25, k1 1.2 and b 0.75, over every text of the record
-      const count = entry.terms.filter(word => word === term).length;
-      bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
-    }
-    return { entry, covered, telling, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
-  }
-  const STOP = new Set("a an and are as at be by for from has have how in is it its of on or that the this to was what when where which who why will with".split(" ")); // words nearly every text holds, so alone they tell no record apart
-  let lengths = 1;
-  function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
-    const scored = new Map();
-    slipping.clear();
-    for (const form of new Set(forms(query))) {
-      const tokens = form.split(" ").filter(Boolean);
-      if (!tokens.length) continue;
-      const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
-      const told = tokens.some(token => !STOP.has(token));
-      const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
-        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => told ? row.telling : row.covered || row.bm25 < 0);
-      const score = new Map(pool.map(row => [row.entry, 0]));
-      for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
-        const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
-        for (const row of pool) { let ahead = 0, past = sorted.length; while (ahead < past) { const middle = (ahead + past) >> 1; if (sorted[middle] < row[ranker]) ahead = middle + 1; else past = middle; } score.set(row.entry, score.get(row.entry) + weight / (60 + 1 + ahead)); }
-      }
-      for (const [entry, value] of score) if (value > (scored.get(entry) || 0)) scored.set(entry, value);
-    }
-    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
-  }
-  const folds = new Map();
-  const fold = text => { // TEXT as `plain` reads it, with the place in TEXT of each letter kept
-    if (folds.has(text)) return folds.get(text);
-    let folded = "", at = [], gap = false;
-    for (let i = 0; i < text.length; i++) {
-      const letter = text[i].toLowerCase();
-      if (letter.length !== 1 || !/[a-z0-9ㄱ-ㆎ가-힣]/.test(letter)) { gap = true; continue; }
-      if (gap && folded) { folded += " "; at.push(i); }
-      folded += letter; at.push(i); gap = false;
-    }
-    folds.set(text, { folded, at });
-    return folds.get(text);
-  };
-  function spans(text, tokens) { // the letters of TEXT each query word matched, by the first way `match` would take
-    const { folded, at } = fold(text), found = [], starts = [];
-    for (const word of folded.matchAll(/\S+/g)) starts.push([word.index, word.index + word[0].length]);
-    const mark = (start, end) => found.push([at[start], at[end - 1] + 1]);
-    for (const token of tokens) {
-      const heads = starts.filter(([start]) => folded.startsWith(token, start));
-      if (heads.length) { heads.forEach(([start]) => mark(start, start + token.length)); continue; }
-      if (token.length > 1 && starts.length >= token.length && starts.slice(0, token.length).every(([start], i) => folded[start] === token[i])) { starts.slice(0, token.length).forEach(([start]) => mark(start, start + 1)); continue; }
-      const kin = starts.filter(([start, end]) => stem(folded.slice(start, end)) === stem(token));
-      if (kin.length) { kin.forEach(([start, end]) => mark(start, end)); continue; }
-      if (token.length > 2 && folded.includes(token)) { for (let i = folded.indexOf(token); i >= 0; i = folded.indexOf(token, i + token.length)) mark(i, i + token.length); continue; }
-      const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
-      for (const [start, end] of most ? starts : []) {
-        const word = folded.slice(start, end), cut = word.length > token.length + most ? token.length : word.length;
-        if (slips(token, word.slice(0, cut), most) <= most) mark(start, start + cut);
-      }
-    }
-    return found;
-  }
-  const matches = (text, pattern) => [...text.matchAll(pattern)].filter(one => one[0]).slice(0, 50).map(one => [one.index, one.index + one[0].length]);
-  const marked = (text, found) => { // TEXT with each found span in a mark
-    const parts = [];
-    let done = 0;
-    for (const [start, end] of [...found].sort((a, b) => a[0] - b[0])) {
-      if (end <= done) continue;
-      const from = Math.max(start, done);
-      parts.push(text.slice(done, from), make("mark", {}, text.slice(from, end)));
-      done = end;
-    }
-    return parts.concat(text.slice(done));
-  };
-  function excerpt(text, found) { // about twelve words of TEXT around its first match, cut ends shown by an ellipsis
-    const all = [...text.matchAll(/\S+/g)], first = Math.min(...found.map(span => span[0]));
-    let from = Math.max(0, all.findIndex(word => word.index + word[0].length > first) - 4);
-    const to = Math.min(all.length, from + 12);
-    from = Math.max(0, to - 12);
-    const start = all[from].index, end = all[to - 1].index + all[to - 1][0].length;
-    const shifted = found.filter(([a, b]) => b > start && a < end).map(([a, b]) => [Math.max(a, start) - start, Math.min(b, end) - start]);
-    return [...(from ? ["… "] : []), ...marked(text.slice(start, end), shifted), ...(to < all.length ? [" …"] : [])];
-  }
-  function sought() { // the pattern the box holds in the regular expression mode, or the reason it is none
-    try { return { pattern: new RegExp($("query").value, "gi") }; } catch (error) { return { error: error.message.replace(/^.*: /, "") }; }
-  }
-  function grep(pattern) { // the records whose name or other texts the pattern matches, the name counting most
-    const found = [];
-    for (const entry of entries) {
-      const named = matches(entry.name, pattern).length > 0;
-      if (named || entry.shown.some(part => matches(part.text, pattern).length)) found.push([entry, named ? 2 : 1]);
-    }
-    return found.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
-  }
-  let chosen = 0, listed = [], scope = null, regular = false, memory = null;
-  const shelf = () => `paperwork-system-recent ${contract.title} ${location.pathname}`; // every file:// page shares one storage
-  const recalled = () => { // the last queries a pick was made from, each with its mode, the tab's own once the storage throws
-    if (!memory) try { return JSON.parse(localStorage.getItem(shelf()) || "[]").map(one => typeof one === "string" ? { text: one, regex: false } : one); } catch { memory = []; }
-    return memory;
-  };
-  const remember = queries => {
-    if (!memory) try { return localStorage.setItem(shelf(), JSON.stringify(queries)); } catch { memory = queries; }
-    memory = queries;
-  };
-  const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
-  const CROSS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-  function list() {
-    const query = $("query").value.trim(), box = $("hits"), input = $("query");
-    box.replaceChildren();
-    const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
-    const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
-    const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
-    const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
-    const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
-    const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
-    listed = groups.flatMap(group => group[1]);
-    if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
-    chosen = Math.min(chosen, Math.max(0, listed.length - 1));
-    input.setAttribute("aria-invalid", String(!!asked.error));
-    input.removeAttribute("aria-activedescendant");
-    const option = (item, ...children) => make("div", { class: "hit", role: "option", id: `hit-${listed.indexOf(item)}`, "aria-selected": String(listed[chosen] === item) }, ...children);
-    for (const [title, hits] of groups) {
-      if (!hits.length) continue;
-      box.append(make("h3", {}, title));
-      for (const item of hits) {
-        if (item.recent) { // the typed part plain, the rest of the kept query bold
-          const row = option(item, make("span", { class: "clock" }), make("div", { class: "text" }, make("span", { class: "recent" }, item.recent.slice(0, query.length), make("b", {}, item.recent.slice(query.length)))),
-            make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
-          row.dataset.recent = item.recent;
-          row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
-          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item) : recall(item));
-          box.append(row);
-          continue;
-        }
-        const entry = item, named = query ? find(entry.name) : [], text = [make("b", {}, ...marked(entry.name, named))];
-        const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
-        const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
-        const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
-        const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
-        if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
-        const row = option(entry, make("div", { class: "text" }, text[0], make("small", {}, entry.note), ...text.slice(1)));
-        row.dataset.hit = entry.id;
-        row.addEventListener("click", () => pick(entry));
-        box.append(row);
-      }
-    }
-    if (asked.error) box.append(make("div", { class: "none error", role: "alert" }, make("b", {}, "Not a regular expression"), make("span", {}, asked.error)));
-    else if (query && !found.length) box.append(make("div", { class: "none", role: "status" }, make("b", {}, `No results for “${query}”`),
-      make("span", {}, regular ? "Check the pattern, or turn regular expressions off with Alt+R." : "Try fewer or other words, or turn on regular expressions with Alt+R.")));
-    const current = box.querySelector('[aria-selected="true"]');
-    if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
-  }
-  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase(); // one row per text, kept in the mode it last ran in
-  function recall(item) { $("query").value = item.recent; regex(item.regex); }
-  function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
-  function regex(on) {
-    regular = on; chosen = -1;
-    $("regex").setAttribute("aria-pressed", String(on));
-    $("query").focus();
-    list();
-  }
-  function ask(only) {
-    scope = only || null; chosen = 0;
-    $("query").value = "";
-    $("veil").classList.add("show"); $("palette").classList.add("show");
-    document.body.dataset.palette = "1";
-    list();
-    $("query").focus();
-  }
-  function shut() {
-    $("veil").classList.remove("show"); $("palette").classList.remove("show");
-    document.body.dataset.palette = "";
-    $("query").blur();
-  }
-  function pick(entry) {
-    const query = $("query").value.trim();
-    if (entry.recent) return recall(entry);
-    if (query && document.body.dataset.palette) remember([{ text: query, regex: regular }, ...recalled().filter(one => !same(one, { recent: query, regex: regular }))].slice(0, 8));
-    shut();
+  function open(entry) { // the record a search picked
     if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
       const question = contract.questions.find(one => one.id === entry.id);
-      return pick(entries.find(one => one.id === (question.answers || [question.gap])[0]));
+      return open(entries.find(one => one.id === (question.answers || [question.gap])[0]));
     }
     if (entry.kind === "scenario") return start(entry.id);
     if (entry.kind === "level") return go({ level: entry.id, at: null, scenario: null });
@@ -1151,30 +787,10 @@
     });
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
     $("card").addEventListener("pointerenter", halt);
-    $("card").addEventListener("pointerover", event => {
-      const chip = event.target.closest(".ref"), term = event.target.closest(".term");
-      if (chip) light(chip.dataset.ref);
-      if (term) gloss(term, make("strong", {}, term.dataset.term), make("p", {}, ...prose(term.dataset.meaning, true)));
-    });
-    $("card").addEventListener("pointerout", event => {
-      if (event.target.closest(".ref") && !(event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".ref"))) light(null);
-      if (event.target.closest(".term")) unGloss();
-    });
-    $("card").addEventListener("click", event => {
-      const named = event.target.closest(".ref");
-      if (named && records[named.dataset.ref].kind === "property") { parked = [event.clientX, event.clientY]; return go({ level: home(named.dataset.ref), at: named.dataset.ref }); }
-      const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
-      if (!cite || shown) return unGloss();
-      gloss(cite, ...sources(records[$("card").dataset.for].record));
-      $("gloss").dataset.for = $("card").dataset.for;
-    });
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
-    $("search").addEventListener("click", () => ask());
-    $("scenarios").addEventListener("click", () => ask("Scenarios"));
-    $("properties").addEventListener("click", () => ask("Properties"));
-    $("veil").addEventListener("click", shut);
-    $("query").addEventListener("input", () => { chosen = -1; list(); });
-    $("regex").addEventListener("click", () => regex(!regular));
+    $("search").addEventListener("click", () => search.ask());
+    $("scenarios").addEventListener("click", () => search.ask("Scenarios"));
+    $("properties").addEventListener("click", () => search.ask("Properties"));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -1182,15 +798,7 @@
     $("again").addEventListener("click", () => start(view.scenario));
     $("onward").addEventListener("click", () => start(contract.scenarios[(contract.scenarios.indexOf(records[view.scenario].record) + 1) % contract.scenarios.length].id));
     addEventListener("keydown", event => {
-      if (document.body.dataset.palette) {
-        if (event.key === "Escape") shut();
-        else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
-        else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
-        else if (event.key === "Enter" && listed[chosen] && !event.target.closest("button")) pick(listed[chosen]); // a focused button takes its own Enter
-        else return;
-        return event.preventDefault();
-      }
-      if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); return ask(); }
+      if (search.key(event)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
       else if (event.key === " " && view.scenario && !event.target.closest("button, input")) { event.preventDefault(); run(); }

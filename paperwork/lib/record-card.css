@@ -1,0 +1,48 @@
+/* The record card, its badges and the note over it; it reads the page's theme variables. */
+.counts { display: inline-flex; gap: 2px; vertical-align: top; }
+.counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.counts > [data-count="holds"] { background: oklch(.5 .13 150); }
+.counts > [data-count="unknown"] { background: oklch(.5 0 0); }
+.counts > [data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
+.counts > [data-count="gap"] { background: oklch(.53 .21 27); }
+#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
+#card.kept { box-shadow: var(--shadow-lg); }
+#card.long { overflow-y: auto; }
+#card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
+#card.show { opacity: 1; transform: none; pointer-events: auto; }
+#card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+#card .tag { display: inline-flex; margin: 0 4px 4px 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
+#card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+#card dl { margin: 16px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+#card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+#card dd { margin: 2px 0 0; word-break: keep-all; }
+#card ul { margin: 0; padding-left: 16px; }
+#card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
+#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border: 0; vertical-align: top; }
+#card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 4px 8px; white-space: pre-wrap; } #card code { padding: 0 4px; }
+#card pre code { padding: 0; background: none; }
+#card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
+#card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }
+#card .turn { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
+#card .turn:hover { background: var(--accent); }
+#card .ref { padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
+#card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
+#card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
+#card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
+#card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
+#card .badge.broken { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
+#card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
+#card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
+#card .cite:hover { background: var(--accent); }
+#card pre.fence { margin: 4px 0; overflow-x: auto; white-space: pre; }
+#card math { font-size: 1.05em; }
+#card math[display="block"] { margin: 6px 0; text-align: center; }
+#gloss { position: fixed; z-index: 31; max-width: 360px; padding: 8px 10px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: 12px; line-height: 16px; opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
+#gloss.show { opacity: 1; pointer-events: auto; }
+#gloss p { margin: 2px 0 0; } #gloss .source + .source { margin-top: 8px; }
+#gloss code { padding: 1px 4px; border-radius: 6px; background: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+#gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
+@media (prefers-reduced-motion: reduce) {
+  #card { transform: none !important; }
+}

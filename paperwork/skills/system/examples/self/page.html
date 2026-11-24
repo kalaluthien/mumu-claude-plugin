@@ -5,6 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The system skill</title>
 <style>
+/* The record card, its badges and the note over it; it reads the page's theme variables. */
+.counts { display: inline-flex; gap: 2px; vertical-align: top; }
+.counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.counts > [data-count="holds"] { background: oklch(.5 .13 150); }
+.counts > [data-count="unknown"] { background: oklch(.5 0 0); }
+.counts > [data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
+.counts > [data-count="gap"] { background: oklch(.53 .21 27); }
+#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
+#card.kept { box-shadow: var(--shadow-lg); }
+#card.long { overflow-y: auto; }
+#card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
+#card.show { opacity: 1; transform: none; pointer-events: auto; }
+#card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
+#card .tag { display: inline-flex; margin: 0 4px 4px 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
+#card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+#card dl { margin: 16px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+#card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+#card dd { margin: 2px 0 0; word-break: keep-all; }
+#card ul { margin: 0; padding-left: 16px; }
+#card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
+#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border: 0; vertical-align: top; }
+#card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 4px 8px; white-space: pre-wrap; } #card code { padding: 0 4px; }
+#card pre code { padding: 0; background: none; }
+#card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
+#card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }
+#card .turn { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
+#card .turn:hover { background: var(--accent); }
+#card .ref { padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
+#card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
+#card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
+#card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
+#card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
+#card .badge.broken { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
+#card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
+#card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
+#card .cite:hover { background: var(--accent); }
+#card pre.fence { margin: 4px 0; overflow-x: auto; white-space: pre; }
+#card math { font-size: 1.05em; }
+#card math[display="block"] { margin: 6px 0; text-align: center; }
+#gloss { position: fixed; z-index: 31; max-width: 360px; padding: 8px 10px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: 12px; line-height: 16px; opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
+#gloss.show { opacity: 1; pointer-events: auto; }
+#gloss p { margin: 2px 0 0; } #gloss .source + .source { margin-top: 8px; }
+#gloss code { padding: 1px 4px; border-radius: 6px; background: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+#gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
+@media (prefers-reduced-motion: reduce) {
+  #card { transform: none !important; }
+}
+/* The search palette over a veil; it reads the page's theme variables. */
+#veil { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .5); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
+#veil.show { opacity: 1; pointer-events: auto; }
+#palette { position: fixed; z-index: 41; left: 50%; top: 18vh; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
+#palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#field { display: flex; align-items: center; gap: 8px; padding-right: 8px; border-bottom: 1px solid var(--border); }
+#palette input { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
+#regex { width: 32px; font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -.02em; }
+#regex[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+#palette input::placeholder { color: var(--muted-foreground); }
+#hits { max-height: 360px; overflow-y: auto; padding: 4px; }
+#hits h3 { margin: 0; padding: 8px 12px 4px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
+#hits .hit { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
+#hits .hit[aria-selected="true"] { background: var(--accent); }
+#hits .hit .text { flex: 1; min-width: 0; }
+#hits .hit .text > b { font-weight: 500; overflow-wrap: anywhere; }
+#hits .hit .where { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+#hits .hit .where i { font-style: normal; font-weight: 500; color: var(--foreground); }
+#hits mark { background: color-mix(in oklab, var(--mark) 18%, transparent); color: var(--foreground); font-weight: 600; border-radius: 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--mark) 70%, transparent); }
+#keys { display: flex; justify-content: flex-end; gap: 12px; height: 40px; align-items: center; padding: 0 16px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
+#keys span { display: inline-flex; align-items: center; gap: 4px; }
+#hits .hit small { margin-left: 8px; font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+#hits .hit .clock { display: inline-flex; color: var(--muted-foreground); }
+#hits .hit .recent { color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #hits .hit .recent b { font-weight: 600; color: var(--foreground); }
+#hits .hit .forget { width: 24px; height: 24px; color: var(--muted-foreground); }
+#hits .hit + h3 { margin-top: 24px; }
+#hits .none { display: flex; flex-direction: column; gap: 4px; padding: 24px; text-align: center; color: var(--muted-foreground); }
+#hits .none b { font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; }
+#hits .none.error b { color: var(--destructive); }
+@media (prefers-reduced-motion: reduce) {
+  #palette { transform: translate(-50%, 0) !important; }
+}
 :root {
   --radius: .625rem; --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0);
   --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --destructive: oklch(.577 .245 27.325);
@@ -77,16 +157,10 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .label.on { color: var(--foreground); background: var(--accent); z-index: 3; }
 .label.tucked:not(.shown) { visibility: hidden; pointer-events: none; }
 .label.tucked:not(.shown) .counts { visibility: visible; pointer-events: auto; } /* a label shown only while lit keeps its counts in sight at rest */
-.counts { display: inline-flex; gap: 2px; vertical-align: top; }
 .node .counts { position: absolute; right: 8px; bottom: 8px; }
 .stage.dense .node .counts { bottom: 4px; }
 .stage.dense .node .open ~ .counts { right: 32px; }
 .label .counts { margin-left: 4px; }
-.counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.counts > [data-count="holds"] { background: oklch(.5 .13 150); }
-.counts > [data-count="unknown"] { background: oklch(.5 0 0); }
-.counts > [data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
-.counts > [data-count="gap"] { background: oklch(.53 .21 27); }
 .stage .dim .counts { opacity: .5; }
 
 .stage .edge.dim { opacity: .38; }
@@ -108,44 +182,6 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .tool:focus-visible, #crumbs button:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
 .tool.quiet { color: var(--muted-foreground); font-weight: 400; }
 
-#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
-#card.kept { box-shadow: var(--shadow-lg); }
-#card.long { overflow-y: auto; }
-#card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
-#card.show { opacity: 1; transform: none; pointer-events: auto; }
-#card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
-#card .tag { display: inline-flex; margin: 0 4px 4px 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
-#card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
-#card dl { margin: 16px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-#card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
-#card dd { margin: 2px 0 0; word-break: keep-all; }
-#card ul { margin: 0; padding-left: 16px; }
-#card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
-#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border: 0; vertical-align: top; }
-#card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
-#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 4px 8px; white-space: pre-wrap; } #card code { padding: 0 4px; }
-#card pre code { padding: 0; background: none; }
-#card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
-#card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }
-#card .turn { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
-#card .turn:hover { background: var(--accent); }
-#card .ref { padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
-#card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
-#card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
-#card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
-#card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
-#card .badge.broken { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
-#card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
-#card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
-#card .cite:hover { background: var(--accent); }
-#card pre.fence { margin: 4px 0; overflow-x: auto; white-space: pre; }
-#card math { font-size: 1.05em; }
-#card math[display="block"] { margin: 6px 0; text-align: center; }
-#gloss { position: fixed; z-index: 31; max-width: 360px; padding: 8px 10px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: 12px; line-height: 16px; opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
-#gloss.show { opacity: 1; pointer-events: auto; }
-#gloss p { margin: 2px 0 0; } #gloss .source + .source { margin-top: 8px; }
-#gloss code { padding: 1px 4px; border-radius: 6px; background: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
-#gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
 .stage .named, .stage.playing .named { opacity: 1; }
 .node.named { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 28%, transparent), var(--shadow-md); }
 .area.named:not([data-band]) { border-color: var(--mark); }
@@ -195,39 +231,11 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 @keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 14% { opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
 @keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
 
-#veil { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .5); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
-#veil.show { opacity: 1; pointer-events: auto; }
-#palette { position: fixed; z-index: 41; left: 50%; top: 18vh; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
-#palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-#field { display: flex; align-items: center; gap: 8px; padding-right: 8px; border-bottom: 1px solid var(--border); }
-#palette input { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
-#regex { width: 32px; font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -.02em; }
-#regex[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
-#palette input::placeholder { color: var(--muted-foreground); }
-#hits { max-height: 360px; overflow-y: auto; padding: 4px; }
-#hits h3 { margin: 0; padding: 8px 12px 4px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
-#hits .hit { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
-#hits .hit[aria-selected="true"] { background: var(--accent); }
-#hits .hit .text { flex: 1; min-width: 0; }
-#hits .hit .text > b { font-weight: 500; overflow-wrap: anywhere; }
-#hits .hit .where { margin-top: 2px; font-size: 12px; line-height: 16px; color: var(--muted-foreground); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-#hits .hit .where i { font-style: normal; font-weight: 500; color: var(--foreground); }
-#hits mark { background: color-mix(in oklab, var(--mark) 18%, transparent); color: var(--foreground); font-weight: 600; border-radius: 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--mark) 70%, transparent); }
-#keys { display: flex; justify-content: flex-end; gap: 12px; height: 40px; align-items: center; padding: 0 16px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
-#keys span { display: inline-flex; align-items: center; gap: 4px; }
-#hits .hit small { margin-left: 8px; font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
-#hits .hit .clock { display: inline-flex; color: var(--muted-foreground); }
-#hits .hit .recent { color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #hits .hit .recent b { font-weight: 600; color: var(--foreground); }
-#hits .hit .forget { width: 24px; height: 24px; color: var(--muted-foreground); }
-#hits .hit + h3 { margin-top: 24px; }
-#hits .none { display: flex; flex-direction: column; gap: 4px; padding: 24px; text-align: center; color: var(--muted-foreground); }
-#hits .none b { font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; }
-#hits .none.error b { color: var(--destructive); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow, stroke, fill !important; transition-duration: .2s !important; transition-delay: 0s !important; }
   #token.run, #token.run.carry { animation: appear .24s var(--ease) both; offset-distance: 100%; }
-  #card, #chip, .node, .node .open, .tool { transform: none !important; }
-  #play, #palette { transform: translate(-50%, 0) !important; }
+  #chip, .node, .node .open, .tool { transform: none !important; }
+  #play { transform: translate(-50%, 0) !important; }
 }
 </style>
 </head>
@@ -240,8 +248,8 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 <button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
 </div>
 <aside id="card" role="tooltip"></aside>
-<div id="chip"></div>
 <div id="gloss" role="tooltip"></div>
+<div id="chip"></div>
 <div id="play" class="bar" role="toolbar" aria-label="Scenario">
 <button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
 <button id="run" class="tool icon" type="button" aria-label="Play" title="Play or pause (space)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="start" d="M7 4.5v15l12-7.5z" fill="currentColor"/><path class="pause" d="M8 5v14M16 5v14"/></svg></button>
@@ -263,6 +271,470 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 <script type="application/json" id="page-tags">{"forms": ["text", "number", "list", "table", "tree", "code"], "common": {"node": [{"name": "signals", "label": "signals", "form": "list", "example": "prints one line per run"}, {"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "chosen over polling to keep the page static"}], "edge": [{"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "kept one way so the server never writes"}], "area": [{"name": "why", "label": "why", "form": "text", "example": "split so each part can be removed alone"}]}, "node": {"actor": {"meaning": "a person, role, team or outside party that starts or receives", "items": [{"name": "goal", "label": "goal", "form": "text", "example": "settle a refund within a day"}, {"name": "count", "label": "count", "form": "number", "example": "about 10,000 users a day"}, {"name": "permissions", "label": "permissions", "form": "list", "example": "refund:write"}, {"name": "channels", "label": "channels", "form": "list", "example": "admin web"}, {"name": "trust", "label": "trust", "form": "text", "example": "signed in, staff"}]}, "service": {"meaning": "a long-running part that answers requests or listens", "items": [{"name": "responsibilities", "label": "responsibilities", "form": "list", "example": "issues tokens"}, {"name": "interfaces", "label": "interfaces", "form": "table", "example": "name, protocol, address"}, {"name": "technology", "label": "technology", "form": "text", "example": "Go 1.22"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "3 replicas, 500 requests a second each"}, {"name": "targets", "label": "targets", "form": "table", "example": "measure, target, window"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}]}, "job": {"meaning": "a unit of work that runs to its end: a step, task, function or stage", "items": [{"name": "inputs", "label": "inputs", "form": "table", "example": "name, type, from"}, {"name": "outputs", "label": "outputs", "form": "table", "example": "name, type, to"}, {"name": "steps", "label": "steps", "form": "list", "example": "load, check, write", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "0 2 * * *"}, {"name": "limits", "label": "limits", "form": "text", "example": "timeout 10 min, 3 retries"}, {"name": "runs-on", "label": "runs on", "form": "text", "example": "the CI runner"}]}, "endpoint": {"meaning": "a named, addressable interface a part offers: a route, port, command, tool or screen", "items": [{"name": "address", "label": "address", "form": "code", "example": "POST /v1/payments", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "OAuth2 scope pay:write"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "limits", "label": "limits", "form": "text", "example": "100 requests a second"}, {"name": "stability", "label": "stability", "form": "text", "example": "v1, stable"}]}, "dataStore": {"meaning": "data kept and read back later: a database, table, file, folder, cache or registry", "items": [{"name": "schema", "label": "schema", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files", "key": true}, {"name": "volume", "label": "volume", "form": "number", "example": "40 GB, 2 GB more a day"}, {"name": "retention", "label": "retention", "form": "text", "example": "kept 90 days"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "3 replicas, quorum"}, {"name": "access", "label": "access", "form": "table", "example": "who, mode, how"}, {"name": "backup", "label": "backup", "form": "text", "example": "every 15 min"}]}, "queue": {"meaning": "an ordered buffer of work or messages in flight", "items": [{"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "1 million messages"}, {"name": "retention", "label": "retention", "form": "text", "example": "7 days"}, {"name": "partitioning", "label": "partitioning", "form": "text", "example": "12 partitions by order id"}, {"name": "dead-letters", "label": "dead letters", "form": "text", "example": "after 5 tries"}]}, "artifact": {"meaning": "an unchanging, versioned output: an image, binary, release, model or document", "items": [{"name": "version", "label": "version", "form": "text", "example": "app 1.4.2"}, {"name": "format", "label": "format", "form": "text", "example": "zip", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files"}, {"name": "made-by", "label": "made by", "form": "text", "example": "the release job"}, {"name": "retention", "label": "retention", "form": "text", "example": "last 10"}, {"name": "used-by", "label": "used by", "form": "list", "example": "the installer"}]}, "trigger": {"meaning": "what starts a job or flow: a schedule, event, timer or a person's call", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "schedule", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "*/5 * * * *"}, {"name": "filter", "label": "filter", "form": "code", "example": "on: pull_request"}, {"name": "rate", "label": "rate", "form": "number", "example": "20 a second"}, {"name": "timing", "label": "timing", "form": "text", "example": "waits 3 s of quiet"}]}, "policy": {"meaning": "a rule that is enforced: a permission, limit, cache or routing rule", "items": [{"name": "statement", "label": "statement", "form": "text", "example": "only the owner merges", "key": true}, {"name": "scope", "label": "scope", "form": "list", "example": "every push to main"}, {"name": "enforced-by", "label": "enforced by", "form": "text", "example": "the server"}, {"name": "decisions", "label": "decisions", "form": "table", "example": "condition, action"}, {"name": "exceptions", "label": "exceptions", "form": "list", "example": "none"}]}, "router": {"meaning": "a part that chooses where flow goes: a gateway, balancer, proxy or dispatcher", "items": [{"name": "rules", "label": "rules", "form": "table", "example": "match, goes to", "key": true}, {"name": "algorithm", "label": "algorithm", "form": "text", "example": "round robin"}, {"name": "fallback", "label": "fallback", "form": "text", "example": "404"}, {"name": "fan-out", "label": "fan-out", "form": "number", "example": "1 to 3"}, {"name": "latency", "label": "latency", "form": "number", "example": "under 5 ms"}]}, "host": {"meaning": "where code runs: a machine, container, runner, browser or device", "items": [{"name": "size", "label": "size", "form": "text", "example": "4 CPUs, 16 GB"}, {"name": "count", "label": "count", "form": "number", "example": "3"}, {"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "system", "label": "system", "form": "text", "example": "Linux 6"}, {"name": "runs", "label": "runs", "form": "list", "example": "the API server"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16, port 443 open"}]}, "credential": {"meaning": "a secret or proof of identity: a key, token or certificate", "items": [{"name": "type", "label": "type", "form": "text", "example": "JWT, RS256", "key": true}, {"name": "issuer", "label": "issuer", "form": "text", "example": "the auth service"}, {"name": "claims", "label": "claims", "form": "table", "example": "claim, meaning"}, {"name": "lifetime", "label": "lifetime", "form": "text", "example": "1 hour, renewed for 30 days"}, {"name": "kept-in", "label": "kept in", "form": "text", "example": "the secrets manager"}]}, "state": {"meaning": "one state of a lifecycle, when the lifecycle itself is the subject", "items": [{"name": "meaning", "label": "meaning", "form": "text", "example": "paid, not shipped"}, {"name": "on-entry", "label": "on entry", "form": "list", "example": "reserve stock"}, {"name": "on-exit", "label": "on exit", "form": "list", "example": "release the hold"}, {"name": "timers", "label": "timers", "form": "text", "example": "expires after 30 min"}, {"name": "terminal", "label": "terminal", "form": "text", "example": "no"}, {"name": "holds", "label": "holds", "form": "list", "example": "amount is fixed"}, {"name": "ignores", "label": "ignores", "form": "list", "example": "a second pay request"}, {"name": "refuses", "label": "refuses", "form": "list", "example": "a merge before the review"}]}}, "edge": {"call": {"meaning": "asks and waits for the answer", "items": [{"name": "protocol", "label": "protocol", "form": "code", "example": "HTTPS GET /exam/papers", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "bearer token"}, {"name": "timing", "label": "timing", "form": "text", "example": "timeout 2 s, 3 retries"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a minute"}]}, "publish": {"meaning": "sends a message or event without waiting", "items": [{"name": "channel", "label": "channel", "form": "text", "example": "topic orders"}, {"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "rate", "label": "rate", "form": "number", "example": "500 a second"}]}, "access": {"meaning": "reads or writes a data store", "items": [{"name": "mode", "label": "mode", "form": "text", "example": "read", "key": true}, {"name": "query", "label": "query", "form": "code", "example": "by id"}, {"name": "fields", "label": "fields", "form": "list", "example": "id, total"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a second"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "may be 1 s stale"}]}, "sequence": {"meaning": "comes next in the order of control", "items": [{"name": "condition", "label": "condition", "form": "text", "example": "when the check passes"}, {"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "branching", "label": "branching", "form": "text", "example": "one of"}]}, "dependsOn": {"meaning": "needs the other to build or run", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "at run time"}, {"name": "version", "label": "version", "form": "text", "example": "3.11 or newer"}, {"name": "on-failure", "label": "on failure", "form": "text", "example": "does not start"}]}, "transition": {"meaning": "moves from one state to another", "items": [{"name": "event", "label": "event", "form": "text", "example": "payment received"}, {"name": "guard", "label": "guard", "form": "text", "example": "amount matches"}, {"name": "action", "label": "action", "form": "text", "example": "send a receipt"}]}, "produces": {"meaning": "makes an artifact or data", "items": [{"name": "output", "label": "output", "form": "text", "example": "report.html"}, {"name": "format", "label": "format", "form": "text", "example": "one HTML file"}, {"name": "frequency", "label": "frequency", "form": "text", "example": "each run"}, {"name": "derivation", "label": "derivation", "form": "text", "example": "joined from two tables"}]}, "triggers": {"meaning": "starts the job or flow", "items": [{"name": "filter", "label": "filter", "form": "text", "example": "only on main"}, {"name": "delay", "label": "delay", "form": "text", "example": "after 3 s of quiet"}, {"name": "dedupe", "label": "dedupe", "form": "text", "example": "one per burst"}]}, "governs": {"meaning": "applies a rule to the target", "items": [{"name": "scope", "label": "scope", "form": "text", "example": "all write requests"}, {"name": "effect", "label": "effect", "form": "text", "example": "deny"}, {"name": "priority", "label": "priority", "form": "number", "example": "1"}]}, "partOf": {"meaning": "is a part the other holds or lists", "items": [{"name": "role", "label": "role", "form": "text", "example": "one folder per plugin"}, {"name": "count", "label": "count", "form": "text", "example": "one or more"}]}}, "area": {"module": {"meaning": "parts grouped by what they do: a system, domain or package", "items": [{"name": "purpose", "label": "purpose", "form": "text", "example": "takes payments"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}, {"name": "interface", "label": "interface", "form": "list", "example": "POST /v1/payments"}, {"name": "rules", "label": "rules", "form": "list", "example": "nothing outside reads its tables"}]}, "deployment": {"meaning": "parts grouped by where they run: a region, cluster, network or machine", "items": [{"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "capacity", "label": "capacity", "form": "text", "example": "3 machines"}, {"name": "redundancy", "label": "redundancy", "form": "text", "example": "3 zones"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16"}]}, "trustZone": {"meaning": "parts inside one security boundary", "items": [{"name": "trust", "label": "trust", "form": "text", "example": "signed-in staff only"}, {"name": "entries", "label": "entries", "form": "list", "example": "the login page"}, {"name": "controls", "label": "controls", "form": "list", "example": "token on every call"}]}, "lane": {"meaning": "parts grouped by who is responsible: a team or role", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "the platform team"}, {"name": "on-call", "label": "on call", "form": "text", "example": "weekdays"}, {"name": "handoffs", "label": "handoffs", "form": "list", "example": "to support after release"}]}, "region": {"meaning": "the states one thing moves through, exactly one of them current; two regions of a level run side by side", "items": [{"name": "of", "label": "of", "form": "text", "example": "a change"}, {"name": "initial", "label": "initial", "form": "text", "example": "the id of its first state"}, {"name": "events", "label": "events", "form": "table", "example": "event, raised by"}]}, "phase": {"meaning": "parts grouped by when they act: a stage, environment or step of a lifecycle", "items": [{"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "entry", "label": "entry", "form": "text", "example": "build passed"}, {"name": "exit", "label": "exit", "form": "text", "example": "tests passed"}, {"name": "budget", "label": "budget", "form": "text", "example": "10 min"}]}}}</script>
 <script type="application/json" id="page-formulas">{"$\\frac{a}{q}": "\u003cmath display=\"inline\">\u003cmfrac>\u003cmrow>\u003cmi>a\u003c/mi>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003c/math>", "$a": "\u003cmath display=\"inline\">\u003cmi>a\u003c/mi>\u003c/math>", "$q": "\u003cmath display=\"inline\">\u003cmi>q\u003c/mi>\u003c/math>", "$$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}": "\u003cmath display=\"block\">\u003cmrow>\u003cmfrac>\u003cmrow>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003cmunderover>\u003cmo>∑\u003c/mo>\u003cmrow>\u003cmi>i\u003c/mi>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/munderover>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>,\u003c/mo>\u003cmspace width=\"1em\">\u003c/mspace>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>∈\u003c/mo>\u003cmo>{\u003c/mo>\u003cmn>0\u003c/mn>\u003cmo>,\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>}\u003c/mo>\u003c/mrow>\u003c/math>"}</script>
 <script>
+// The record card of a paperwork page with its badges: a record's rows drawn as prose with its quotes, formulas, named records, terms and
+// guesses, paged to the room beside the record, and the note over the card that a term or the sources raise. A page calls
+// `paperworkCard(options)` once its `#card` and `#gloss` exist; each option is a function it answers from its own records:
+//   make(name, attributes, ...children)  the element maker
+//   record(id)       { kind, record } of a record, or nothing
+//   terms()          the contract's terms; sources() its sources; counted() each record's properties by the kind a badge counts
+//   formulas         the MathML of each formula, by `$tex` or `$$tex`
+//   rows(id)         the card's rows, each [name, form, data]
+//   place(id, w, h)  { left, top, cost, tied } where a card that big rests, `tied` what it still covers
+//   kept(id)         whether the card is kept open
+//   light(id)        mark in the drawing the record a chip names, or nothing for null
+//   follow(id, event) a click on a chip: true when the page moved for it, so the card does nothing more
+window.paperworkCard = options => {
+  "use strict";
+  const { make, formulas } = options;
+  const $ = id => document.getElementById(id);
+  let termsFrom = null, patterns = [];
+  const terms = () => { // each term's pattern, made again only when the contract's terms change
+    const list = options.terms() || [];
+    if (list === termsFrom) return patterns;
+    termsFrom = list;
+    patterns = list.map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
+      + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
+    return patterns;
+  };
+  const label = id => options.record(id) ? (options.record(id).record.label || options.record(id).record.title || id) : id;
+  // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
+  const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
+  const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && options.record(id) ? label(id) : whole));
+  const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
+  const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
+  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["broken", "✗", "broken"], ["gap", "!", "gaps"]]; // each kind a badge counts: its symbol, so it reads without its colour, and its card row's name
+  const counts = id => { // the badges of a record the properties on it earn, one per kind it holds
+    const held = options.counted()[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
+    if (!shown.length) return null;
+    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
+      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
+  };
+  const countRows = id => COUNTS.filter(([kind]) => (options.counted()[id] || {})[kind]).map(([kind, , name]) => [name, "list", options.counted()[id][kind].map(one => `{${one}}`)]); // a card's row per kind of badge its record earns
+  const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
+  let glossed = new Set(); // the terms the card has marked, each at its first match only
+  const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
+    const guess = piece.search(/\(guess\)/i);
+    let first = null;
+    for (const one of terms()) if (!glossed.has(one.entry.term)) { const found = one.pattern.exec(piece); if (found && (!first || found.index < first.found.index)) first = { one, found }; }
+    if (guess >= 0 && (!first || guess < first.found.index)) return [...spoken(piece.slice(0, guess)), make("span", { class: "badge guess" }, "guess"), ...spoken(piece.slice(guess + 7))];
+    if (!first) return piece ? [piece] : [];
+    glossed.add(first.one.entry.term);
+    const { index } = first.found, text = first.found[0];
+    return [...spoken(piece.slice(0, index)), make("dfn", { class: "term", tabindex: "0", "data-term": first.one.entry.term, "data-meaning": first.one.entry.meaning }, text), ...spoken(piece.slice(index + text.length))];
+  };
+  const literal = quote => { // a fence as a block that keeps its lines, its first line's language word left out; a span as inline code, broken after each slash
+    if (quote.startsWith("```")) return make("pre", { class: "fence" }, make("code", {}, quote.slice(3, -3).replace(/^[\w+-]*\n/, "").replace(/\n$/, "")));
+    return make("code", {}, ...quote.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece]));
+  };
+  const formula = (tex, display) => { // the MathML make-page.py drew, or the TeX as code where it drew none
+    const markup = formulas[(display ? "$$" : "$") + tex];
+    if (!markup) return make("code", {}, tex);
+    const holder = document.createElement("template");
+    holder.innerHTML = markup;
+    return holder.content.firstChild;
+  };
+  const prose = (text, plain = false) => { // a text with its quotes, formulas, named records, terms and guesses drawn; PLAIN, for a text outside a card's rows, draws names as words and marks no term or guess
+    const all = String(text), out = [];
+    let last = 0;
+    for (const found of all.matchAll(MARKS)) {
+      const [whole, quote, block, inline, id] = found;
+      if (id && !options.record(id)) continue;
+      out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
+      last = found.index + whole.length;
+      if (quote) out.push(literal(quote));
+      else if (id && plain) out.push(label(id));
+      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, label(id)));
+      else out.push(formula(block || inline, !!block));
+    }
+    return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
+  };
+  const value = (form, data) => {
+    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
+    if (form === "table" && data && data.columns) {
+      const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
+      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
+      return [table];
+    }
+    if (form === "tree" && Array.isArray(data)) {
+      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, ...quoted(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
+      return [branch(data)];
+    }
+    if (form === "code") return [make("pre", {}, make("code", {}, ...quoted(data)))];
+    return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
+  };
+  let leaf = 0; // the page of rows the card shows
+  function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
+    const { kind, record } = options.record(id), box = $("card"), kept = options.kept(id), all = options.rows(id);
+    if (box.dataset.for !== id) leaf = 0;
+    const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
+    for (const extra of [record.basis, record.strength, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    if (record.status && record.status !== "holds") tags.append(make("span", { class: `tag badge ${record.status}` }, record.status)); // a settled statement needs no mark
+    if (record.evidence) tags.append(make("button", { class: "tag cite", type: "button", "aria-label": "Sources" }, `${record.evidence.length} ${record.evidence.length === 1 ? "source" : "sources"}`));
+    const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
+    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id, true)), tags, list, foot);
+    box.dataset.for = id;
+    box.classList.toggle("kept", kept);
+    const limit = Math.floor(Math.min(innerHeight * .46, 400));
+    const lay = (from, most, cap) => { // the rows from FROM on that CAP pixels of the card hold, MOST at most, and the row after them
+      box.classList.remove("long");
+      box.style.maxHeight = "none";
+      list.replaceChildren();
+      glossed = new Set();
+      let to = from;
+      for (; to < all.length && to - from < most; to++) {
+        const [name, form, data] = all[to];
+        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data))));
+        if (to > from && box.offsetHeight > cap) { list.lastChild.remove(); break; }
+      }
+      return to;
+    };
+    const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
+    const fill = (most, page) => { // the card with MOST rows a page at most on its PAGE-th page, placed by its first page, its later pages growing up from the same foot, a row taller than the room above scrolling under its fixed foot
+      const sign = (from, to, paged, next) => {
+        const turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${from + 1}–${to} of ${all.length} ›`);
+        turn.addEventListener("click", () => { leaf = next; card(id); });
+        foot.replaceChildren(...(paged ? [turn] : []), make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
+      };
+      const firstEnd = lay(0, most, limit);
+      sign(0, firstEnd, firstEnd < all.length, 0);
+      const first = Math.min(box.offsetHeight, limit), place = options.place(id, box.offsetWidth, first), bottom = place.top + first, cap = Math.min(limit, bottom - 8);
+      const starts = [0];
+      for (let to = firstEnd; to < all.length; to = lay(to, most, cap)) starts.push(to);
+      const shown = Math.min(page, starts.length - 1);
+      sign(starts[shown], lay(starts[shown], most, shown ? cap : limit), starts.length > 1, (shown + 1) % starts.length);
+      const height = shown ? cap : limit;
+      box.style.maxHeight = height + "px";
+      box.classList.toggle("long", box.scrollHeight > height + 1);
+      return { ...place, bottom, most, page: shown };
+    };
+    let at = fill(Infinity, 0);
+    for (let most = list.children.length - 1, tried = at; tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows a page until one does
+      tried = fill(most, 0);
+      if ((tried.tied > 0) < (at.tied > 0) || (tried.tied > 0) === (at.tied > 0) && tried.cost < at.cost) at = tried;
+    }
+    at = fill(at.most, leaf);
+    leaf = at.page;
+    box.style.left = at.left + "px";
+    box.style.top = "auto";
+    box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
+    box.classList.add("show");
+  }
+  function gloss(anchor, ...children) { // a note over the card, above what it explains or else below it
+    const box = $("gloss"), at = anchor.getBoundingClientRect();
+    box.replaceChildren(...children);
+    box.classList.add("show");
+    const w = box.offsetWidth, h = box.offsetHeight;
+    box.style.left = Math.min(Math.max(8, at.left), innerWidth - w - 8) + "px";
+    box.style.top = (at.top - h - 6 >= 8 ? at.top - h - 6 : Math.min(at.bottom + 6, innerHeight - h - 8)) + "px";
+  }
+  const unGloss = () => { $("gloss").classList.remove("show"); $("gloss").replaceChildren(); };
+  const sources = record => record.evidence.map(entry => { // each source a record cites, by its path and the line cited, with what it says
+    const [source, line] = entry.split(":"), known = (options.sources() || []).find(one => one.id === source);
+    return make("div", { class: "source" }, make("code", {}, (known ? known.path : source) + (line ? ":" + line : "")), ...(known && known.says ? [make("blockquote", {}, words(known.says))] : []));
+  });
+  function hide() {
+    unGloss();
+    options.light(null);
+    $("card").classList.remove("show"); $("card").dataset.for = "";
+  }
+  $("card").addEventListener("pointerover", event => {
+    const chip = event.target.closest(".ref"), term = event.target.closest(".term");
+    if (chip) options.light(chip.dataset.ref);
+    if (term) gloss(term, make("strong", {}, term.dataset.term), make("p", {}, ...prose(term.dataset.meaning, true)));
+  });
+  $("card").addEventListener("pointerout", event => {
+    if (event.target.closest(".ref") && !(event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".ref"))) options.light(null);
+    if (event.target.closest(".term")) unGloss();
+  });
+  $("card").addEventListener("click", event => {
+    const named = event.target.closest(".ref");
+    if (named && options.follow(named.dataset.ref, event)) return;
+    const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
+    if (!cite || shown) return unGloss();
+    gloss(cite, ...sources(options.record($("card").dataset.for).record));
+    $("gloss").dataset.for = $("card").dataset.for;
+  });
+  return { MARKS, words, bare, tagName, label, counts, countRows, prose, show: card, hide };
+};
+// The search palette of a paperwork page: a query ranked over the page's records by reciprocal rank fusion, read also as the keys of a
+// Korean layout and through the terms' aliases, or a regular expression; recent queries kept per page. A page calls
+// `paperworkSearch(options)` once its `#veil` and `#palette` exist, and hands each keydown to `key(event)` first:
+//   make(name, attributes, ...children)  the element maker
+//   entries()  each record as { id, kind, name, note, fields: [[text, place]], shown: [[field, text]] }, a field's place 0 for a name,
+//              then 1 for an id, 2 for a tag, 3 for prose and 4 for details, its shown texts as a hit's excerpt draws them
+//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind] groups an empty query lists
+//   terms()    the contract's terms; shelf(): the storage key of the page's recent queries
+//   open(entry) the page moves to a picked record
+window.paperworkSearch = options => {
+  "use strict";
+  const { make } = options;
+  const $ = id => document.getElementById(id);
+  const KINDS = options.kinds, ORDER = Object.keys(KINDS);
+  const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
+  const TAIL = ["", "ㄱ", "ㄲ", "ㄱㅅ", "ㄴ", "ㄴㅈ", "ㄴㅎ", "ㄷ", "ㄹ", "ㄹㄱ", "ㄹㅁ", "ㄹㅂ", "ㄹㅅ", "ㄹㅌ", "ㄹㅍ", "ㄹㅎ", "ㅁ", "ㅂ", "ㅂㅅ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  const PAIRS = { "ㄳ": "ㄱㅅ", "ㄵ": "ㄴㅈ", "ㄶ": "ㄴㅎ", "ㄺ": "ㄹㄱ", "ㄻ": "ㄹㅁ", "ㄼ": "ㄹㅂ", "ㄽ": "ㄹㅅ", "ㄾ": "ㄹㅌ", "ㄿ": "ㄹㅍ", "ㅀ": "ㄹㅎ", "ㅄ": "ㅂㅅ", "ㅘ": "ㅗㅏ", "ㅙ": "ㅗㅐ", "ㅚ": "ㅗㅣ", "ㅝ": "ㅜㅓ", "ㅞ": "ㅜㅔ", "ㅟ": "ㅜㅣ", "ㅢ": "ㅡㅣ" };
+  const KEYS = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p", "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g", "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l", "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m", "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t", "ㅒ": "o", "ㅖ": "p" };
+  const typed = text => [...text].map(letter => { // the Latin keys pressed when a Korean two-set layout was left on
+    const code = letter.charCodeAt(0) - 0xac00;
+    const parts = code >= 0 && code < 11172 ? LEAD[Math.floor(code / 588)] + VOWEL[Math.floor(code % 588 / 28)] + TAIL[code % 28] : PAIRS[letter] || letter;
+    return [...parts].map(part => KEYS[part] || part).join("");
+  }).join("");
+  const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
+  const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
+    if (Math.abs(a.length - b.length) > most) return most + 1;
+    let last = null, row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++) {
+        next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (last && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], last[j - 2] + 1);
+      }
+      last = row; row = next;
+    }
+    return row[b.length];
+  };
+  function match(token, field) { // how well TOKEN matches FIELD, best first: the whole field, a word, a word's start, the words' initials, inside a word, one slip, two slips; -1 for none
+    if (field.text === token) return 0;
+    if (field.tokens.includes(token)) return 1;
+    if (field.text.startsWith(token) || field.tokens.some(word => word.startsWith(token))) return 2;
+    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 3;
+    if (token.length > 2 && field.text.includes(token)) return 4;
+    const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+    let least = most + 1;
+    for (const word of most ? field.tokens : []) {
+      const key = token + " " + word;
+      if (!slipping.has(key)) slipping.set(key, slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most));
+      least = Math.min(least, slipping.get(key));
+      if (least === 1) break;
+    }
+    return least <= most ? 4 + least : -1;
+  }
+  const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
+  const termed = query => (options.terms() || []).flatMap(term => (term.aliases || []).filter(alias => ` ${query} `.includes(` ${plain(alias)} `)).map(alias => [alias, term.term])); // the term aliases a query holds whole, each with its term
+  const forms = query => { // a query read as typed and as the keys of a Korean layout, then each with its term aliases read as their terms
+    const read = [plain(query), plain(typed(query))];
+    return read.concat(read.filter(form => termed(form).length).map(form => termed(form).reduce((done, [alias, term]) => ` ${done} `.replace(` ${plain(alias)} `, ` ${plain(term)} `).trim(), form)));
+  };
+  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
+  const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over the system skill's fixtures/ranking-queries.json
+  function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
+    let field = 0, quality = 0, covered = 0, telling = 0;
+    for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
+      let place = 5, grade = 7, size = 0;
+      for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
+      if (grade === 7 && !partial) return null;
+      covered += grade < 7 ? 1 : 0; telling += grade < 7 && !STOP.has(token) ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
+    }
+    field /= tokens.length; quality /= tokens.length;
+    if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
+    let bm25 = 0;
+    for (const [term, weight] of rare) { // BM25, k1 1.2 and b 0.75, over every text of the record
+      const count = entry.terms.filter(word => word === term).length;
+      bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
+    }
+    return { entry, covered, telling, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
+  }
+  const STOP = new Set("a an and are as at be by for from has have how in is it its of on or that the this to was what when where which who why will with".split(" ")); // words nearly every text holds, so alone they tell no record apart
+  function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
+    const scored = new Map();
+    slipping.clear();
+    for (const form of new Set(forms(query))) {
+      const tokens = form.split(" ").filter(Boolean);
+      if (!tokens.length) continue;
+      const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
+      const told = tokens.some(token => !STOP.has(token));
+      const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
+        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => told ? row.telling : row.covered || row.bm25 < 0);
+      const score = new Map(pool.map(row => [row.entry, 0]));
+      for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
+        const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
+        for (const row of pool) { let ahead = 0, past = sorted.length; while (ahead < past) { const middle = (ahead + past) >> 1; if (sorted[middle] < row[ranker]) ahead = middle + 1; else past = middle; } score.set(row.entry, score.get(row.entry) + weight / (60 + 1 + ahead)); }
+      }
+      for (const [entry, value] of score) if (value > (scored.get(entry) || 0)) scored.set(entry, value);
+    }
+    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  const folds = new Map();
+  const fold = text => { // TEXT as `plain` reads it, with the place in TEXT of each letter kept
+    if (folds.has(text)) return folds.get(text);
+    let folded = "", at = [], gap = false;
+    for (let i = 0; i < text.length; i++) {
+      const letter = text[i].toLowerCase();
+      if (letter.length !== 1 || !/[a-z0-9ㄱ-ㆎ가-힣]/.test(letter)) { gap = true; continue; }
+      if (gap && folded) { folded += " "; at.push(i); }
+      folded += letter; at.push(i); gap = false;
+    }
+    folds.set(text, { folded, at });
+    return folds.get(text);
+  };
+  function spans(text, tokens) { // the letters of TEXT each query word matched, by the first way `match` would take
+    const { folded, at } = fold(text), found = [], starts = [];
+    for (const word of folded.matchAll(/\S+/g)) starts.push([word.index, word.index + word[0].length]);
+    const mark = (start, end) => found.push([at[start], at[end - 1] + 1]);
+    for (const token of tokens) {
+      const heads = starts.filter(([start]) => folded.startsWith(token, start));
+      if (heads.length) { heads.forEach(([start]) => mark(start, start + token.length)); continue; }
+      if (token.length > 1 && starts.length >= token.length && starts.slice(0, token.length).every(([start], i) => folded[start] === token[i])) { starts.slice(0, token.length).forEach(([start]) => mark(start, start + 1)); continue; }
+      const kin = starts.filter(([start, end]) => stem(folded.slice(start, end)) === stem(token));
+      if (kin.length) { kin.forEach(([start, end]) => mark(start, end)); continue; }
+      if (token.length > 2 && folded.includes(token)) { for (let i = folded.indexOf(token); i >= 0; i = folded.indexOf(token, i + token.length)) mark(i, i + token.length); continue; }
+      const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+      for (const [start, end] of most ? starts : []) {
+        const word = folded.slice(start, end), cut = word.length > token.length + most ? token.length : word.length;
+        if (slips(token, word.slice(0, cut), most) <= most) mark(start, start + cut);
+      }
+    }
+    return found;
+  }
+  const matches = (text, pattern) => [...text.matchAll(pattern)].filter(one => one[0]).slice(0, 50).map(one => [one.index, one.index + one[0].length]);
+  const marked = (text, found) => { // TEXT with each found span in a mark
+    const parts = [];
+    let done = 0;
+    for (const [start, end] of [...found].sort((a, b) => a[0] - b[0])) {
+      if (end <= done) continue;
+      const from = Math.max(start, done);
+      parts.push(text.slice(done, from), make("mark", {}, text.slice(from, end)));
+      done = end;
+    }
+    return parts.concat(text.slice(done));
+  };
+  function excerpt(text, found) { // about twelve words of TEXT around its first match, cut ends shown by an ellipsis
+    const all = [...text.matchAll(/\S+/g)], first = Math.min(...found.map(span => span[0]));
+    let from = Math.max(0, all.findIndex(word => word.index + word[0].length > first) - 4);
+    const to = Math.min(all.length, from + 12);
+    from = Math.max(0, to - 12);
+    const start = all[from].index, end = all[to - 1].index + all[to - 1][0].length;
+    const shifted = found.filter(([a, b]) => b > start && a < end).map(([a, b]) => [Math.max(a, start) - start, Math.min(b, end) - start]);
+    return [...(from ? ["… "] : []), ...marked(text.slice(start, end), shifted), ...(to < all.length ? [" …"] : [])];
+  }
+  function sought() { // the pattern the box holds in the regular expression mode, or the reason it is none
+    try { return { pattern: new RegExp($("query").value, "gi") }; } catch (error) { return { error: error.message.replace(/^.*: /, "") }; }
+  }
+  function grep(pattern) { // the records whose name or other texts the pattern matches, the name counting most
+    const found = [];
+    for (const entry of entries) {
+      const named = matches(entry.name, pattern).length > 0;
+      if (named || entry.shown.some(part => matches(part.text, pattern).length)) found.push([entry, named ? 2 : 1]);
+    }
+    return found.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  let chosen = 0, listed = [], scope = null, regular = false, memory = null;
+  let entries = [], from = null, ready = [], lengths = 1;
+  const prepared = () => { // each entry's fields as the search weighs them, made again only when the page's entries change
+    const list = options.entries();
+    if (list === from) return ready;
+    from = list;
+    ready = list.map(({ id, kind, name, note, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note,
+      fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })), shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text })) }));
+    for (const entry of ready) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
+    lengths = ready.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, ready.length);
+    return ready;
+  };
+  const recalled = () => { // the last queries a pick was made from, each with its mode, the tab's own once the storage throws
+    if (!memory) try { return JSON.parse(localStorage.getItem(options.shelf()) || "[]").map(one => typeof one === "string" ? { text: one, regex: false } : one); } catch { memory = []; }
+    return memory;
+  };
+  const remember = queries => {
+    if (!memory) try { return localStorage.setItem(options.shelf(), JSON.stringify(queries)); } catch { memory = queries; }
+    memory = queries;
+  };
+  const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  const CROSS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  function list() {
+    const query = $("query").value.trim(), box = $("hits"), input = $("query");
+    entries = prepared();
+    box.replaceChildren();
+    const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
+    const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
+    const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
+    const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
+    const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
+    const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
+      : options.browse.filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
+    listed = groups.flatMap(group => group[1]);
+    if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
+    chosen = Math.min(chosen, Math.max(0, listed.length - 1));
+    input.setAttribute("aria-invalid", String(!!asked.error));
+    input.removeAttribute("aria-activedescendant");
+    const option = (item, ...children) => make("div", { class: "hit", role: "option", id: `hit-${listed.indexOf(item)}`, "aria-selected": String(listed[chosen] === item) }, ...children);
+    for (const [title, hits] of groups) {
+      if (!hits.length) continue;
+      box.append(make("h3", {}, title));
+      for (const item of hits) {
+        if (item.recent) { // the typed part plain, the rest of the kept query bold
+          const row = option(item, make("span", { class: "clock" }), make("div", { class: "text" }, make("span", { class: "recent" }, item.recent.slice(0, query.length), make("b", {}, item.recent.slice(query.length)))),
+            make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
+          row.dataset.recent = item.recent;
+          row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
+          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item) : recall(item));
+          box.append(row);
+          continue;
+        }
+        const entry = item, named = query ? find(entry.name) : [], text = [make("b", {}, ...marked(entry.name, named))];
+        const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
+        const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
+        const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
+        const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
+        if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
+        const row = option(entry, make("div", { class: "text" }, text[0], make("small", {}, entry.note), ...text.slice(1)));
+        row.dataset.hit = entry.id;
+        row.addEventListener("click", () => pick(entry));
+        box.append(row);
+      }
+    }
+    if (asked.error) box.append(make("div", { class: "none error", role: "alert" }, make("b", {}, "Not a regular expression"), make("span", {}, asked.error)));
+    else if (query && !found.length) box.append(make("div", { class: "none", role: "status" }, make("b", {}, `No results for “${query}”`),
+      make("span", {}, regular ? "Check the pattern, or turn regular expressions off with Alt+R." : "Try fewer or other words, or turn on regular expressions with Alt+R.")));
+    const current = box.querySelector('[aria-selected="true"]');
+    if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
+  }
+  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase(); // one row per text, kept in the mode it last ran in
+  function recall(item) { $("query").value = item.recent; regex(item.regex); }
+  function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
+  function regex(on) {
+    regular = on; chosen = -1;
+    $("regex").setAttribute("aria-pressed", String(on));
+    $("query").focus();
+    list();
+  }
+  function ask(only) {
+    scope = only || null; chosen = 0;
+    $("query").value = "";
+    $("veil").classList.add("show"); $("palette").classList.add("show");
+    document.body.dataset.palette = "1";
+    list();
+    $("query").focus();
+  }
+  function shut() {
+    $("veil").classList.remove("show"); $("palette").classList.remove("show");
+    document.body.dataset.palette = "";
+    $("query").blur();
+  }
+  function pick(entry) {
+    const query = $("query").value.trim();
+    if (entry.recent) return recall(entry);
+    if (query && document.body.dataset.palette) remember([{ text: query, regex: regular }, ...recalled().filter(one => !same(one, { recent: query, regex: regular }))].slice(0, 8));
+    shut();
+    options.open(entry);
+  }
+  function key(event) { // whether the palette took the key: every key while it is open, and the keys that open it
+    if (document.body.dataset.palette) {
+      if (event.key === "Escape") shut();
+      else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
+      else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
+      else if (event.key === "Enter" && listed[chosen] && !event.target.closest("button")) pick(listed[chosen]); // a focused button takes its own Enter
+      else return true;
+      event.preventDefault();
+      return true;
+    }
+    if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); ask(); return true; }
+    return false;
+  }
+  $("veil").addEventListener("click", shut);
+  $("query").addEventListener("input", () => { chosen = -1; list(); });
+  $("regex").addEventListener("click", () => regex(!regular));
+  return { ask, key };
+};
 (() => {
   "use strict";
   const read = id => JSON.parse(document.getElementById(id).textContent);
@@ -281,8 +753,15 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let terms = [], contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
+  const recordCard = paperworkCard({ make, formulas: FORMULAS, record: id => records[id], terms: () => contract.terms, sources: () => contract.sources,
+    counted: () => counted, rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow });
+  const { words, bare, tagName, label, counts, prose } = recordCard;
+  const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
+    kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" },
+    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]],
+    shelf: () => `paperwork-system-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
 
   // ---- the contract's records ----
   function load(data) {
@@ -301,26 +780,11 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
       const kind = property.kind === "gap" ? "gap" : property.status || "holds";
       for (const one of new Set(property.on || [])) ((counted[one] = counted[one] || {})[kind] = counted[one][kind] || []).push(property.id);
     }
-    terms = (contract.terms || []).map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
-      + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
     entries = index();
   }
-  const label = id => records[id] ? (records[id].record.label || records[id].record.title || id) : id;
-  // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
-  const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
-  const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && records[id] ? label(id) : whole));
-  const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
-  const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
   const sentence = edge => edge.tag === "transition"
     ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
     : `${label(edge.from)} ${words(edge.label)} ${label(edge.to)}.`;
-  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["broken", "✗", "broken"], ["gap", "!", "gaps"]]; // each kind a badge counts: its symbol, so it reads without its colour, and its card row's name
-  const counts = id => { // the badges of a record the properties on it earn, one per kind it holds
-    const held = counted[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
-    if (!shown.length) return null;
-    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
-      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
-  };
   const home = id => { // the level a record is seen on
     const found = records[id];
     if (!found) return null;
@@ -388,7 +852,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const tally = node => COUNTS.filter(([kind]) => counted[node.id] && counted[node.id][kind]).length * 28; // the badges share the tag's line
+    const tally = node => recordCard.countRows(node.id).length * 28; // the badges share the tag's line
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tagName(node.tag).length * 7 + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
     const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
@@ -839,67 +1303,15 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
       element.classList.toggle("dim", !!(focus || scenario) && !lit.has(id) && !tone[id] && !held.has(id));
     }
     settle(new Set([...lit, ...Object.keys(tone).filter(id => tone[id] === "step" || tone[id] === "next")]), focus);
-    if (hovered) card(hovered); else if (view.at) card(view.at); else hide();
+    if (hovered) recordCard.show(hovered); else if (view.at) recordCard.show(view.at); else hide();
   }
-  const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
-  let glossed = new Set(); // the terms the card has marked, each at its first match only
-  const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
-    const guess = piece.search(/\(guess\)/i);
-    let first = null;
-    for (const one of terms) if (!glossed.has(one.entry.term)) { const found = one.pattern.exec(piece); if (found && (!first || found.index < first.found.index)) first = { one, found }; }
-    if (guess >= 0 && (!first || guess < first.found.index)) return [...spoken(piece.slice(0, guess)), make("span", { class: "badge guess" }, "guess"), ...spoken(piece.slice(guess + 7))];
-    if (!first) return piece ? [piece] : [];
-    glossed.add(first.one.entry.term);
-    const { index } = first.found, text = first.found[0];
-    return [...spoken(piece.slice(0, index)), make("dfn", { class: "term", tabindex: "0", "data-term": first.one.entry.term, "data-meaning": first.one.entry.meaning }, text), ...spoken(piece.slice(index + text.length))];
-  };
-  const literal = quote => { // a fence as a block that keeps its lines, its first line's language word left out; a span as inline code, broken after each slash
-    if (quote.startsWith("```")) return make("pre", { class: "fence" }, make("code", {}, quote.slice(3, -3).replace(/^[\w+-]*\n/, "").replace(/\n$/, "")));
-    return make("code", {}, ...quote.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece]));
-  };
-  const formula = (tex, display) => { // the MathML make-page.py drew, or the TeX as code where it drew none
-    const markup = FORMULAS[(display ? "$$" : "$") + tex];
-    if (!markup) return make("code", {}, tex);
-    const holder = document.createElement("template");
-    holder.innerHTML = markup;
-    return holder.content.firstChild;
-  };
-  const prose = (text, plain = false) => { // a text with its quotes, formulas, named records, terms and guesses drawn; PLAIN, for a text outside a card's rows, draws names as words and marks no term or guess
-    const all = String(text), out = [];
-    let last = 0;
-    for (const found of all.matchAll(MARKS)) {
-      const [whole, quote, block, inline, id] = found;
-      if (id && !records[id]) continue;
-      out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
-      last = found.index + whole.length;
-      if (quote) out.push(literal(quote));
-      else if (id && plain) out.push(label(id));
-      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, label(id)));
-      else out.push(formula(block || inline, !!block));
-    }
-    return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
-  };
-  const value = (form, data) => {
-    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
-    if (form === "table" && data && data.columns) {
-      const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
-      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
-      return [table];
-    }
-    if (form === "tree" && Array.isArray(data)) {
-      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, ...quoted(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
-      return [branch(data)];
-    }
-    if (form === "code") return [make("pre", {}, make("code", {}, ...quoted(data)))];
-    return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
-  };
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
     if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
     if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind] && /^(node|edge)$/.test(records[id].kind)) add(name, "list", counted[id][kind].map(one => `{${one}}`));
+    if (/^(node|edge)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) add(name, form, data);
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
@@ -947,63 +1359,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
     return best; // `tied` is what the spot still covers of the record and of what is tied to it
   }
-  let leaf = 0, parked = null, pointer = null; // the page of rows the card shows; where the pointer stood when the card left from under it, which raises no card until it moves; where the pointer last moved
-  function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
-    const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
-    if (box.dataset.for !== id) leaf = 0;
-    const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
-    for (const extra of [record.basis, record.strength, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
-    if (record.status && record.status !== "holds") tags.append(make("span", { class: `tag badge ${record.status}` }, record.status)); // a settled statement needs no mark
-    if (record.evidence) tags.append(make("button", { class: "tag cite", type: "button", "aria-label": "Sources" }, `${record.evidence.length} ${record.evidence.length === 1 ? "source" : "sources"}`));
-    const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
-    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id, true)), tags, list, foot);
-    box.dataset.for = id;
-    box.classList.toggle("kept", kept);
-    const limit = Math.floor(Math.min(innerHeight * .46, 400));
-    const lay = (from, most, cap) => { // the rows from FROM on that CAP pixels of the card hold, MOST at most, and the row after them
-      box.classList.remove("long");
-      box.style.maxHeight = "none";
-      list.replaceChildren();
-      glossed = new Set();
-      let to = from;
-      for (; to < all.length && to - from < most; to++) {
-        const [name, form, data] = all[to];
-        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data))));
-        if (to > from && box.offsetHeight > cap) { list.lastChild.remove(); break; }
-      }
-      return to;
-    };
-    const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
-    const fill = (most, page) => { // the card with MOST rows a page at most on its PAGE-th page, placed by its first page, its later pages growing up from the same foot, a row taller than the room above scrolling under its fixed foot
-      const sign = (from, to, paged, next) => {
-        const turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${from + 1}–${to} of ${all.length} ›`);
-        turn.addEventListener("click", () => { leaf = next; card(id); });
-        foot.replaceChildren(...(paged ? [turn] : []), make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
-      };
-      const firstEnd = lay(0, most, limit);
-      sign(0, firstEnd, firstEnd < all.length, 0);
-      const first = Math.min(box.offsetHeight, limit), place = beside(id, box.offsetWidth, first), bottom = place.top + first, cap = Math.min(limit, bottom - 8);
-      const starts = [0];
-      for (let to = firstEnd; to < all.length; to = lay(to, most, cap)) starts.push(to);
-      const shown = Math.min(page, starts.length - 1);
-      sign(starts[shown], lay(starts[shown], most, shown ? cap : limit), starts.length > 1, (shown + 1) % starts.length);
-      const height = shown ? cap : limit;
-      box.style.maxHeight = height + "px";
-      box.classList.toggle("long", box.scrollHeight > height + 1);
-      return { ...place, bottom, most, page: shown };
-    };
-    let at = fill(Infinity, 0);
-    for (let most = list.children.length - 1, tried = at; tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows a page until one does
-      tried = fill(most, 0);
-      if ((tried.tied > 0) < (at.tied > 0) || (tried.tied > 0) === (at.tied > 0) && tried.cost < at.cost) at = tried;
-    }
-    at = fill(at.most, leaf);
-    leaf = at.page;
-    box.style.left = at.left + "px";
-    box.style.top = "auto";
-    box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
-    box.classList.add("show");
-  }
+  let parked = null, pointer = null; // where the pointer stood when the card left from under it, which raises no card until it moves; where the pointer last moved
   const toward = id => { // ID when the shown level holds it, else the node of the shown level that opens the levels down to ID's level, or nothing
     if (!records[id] || !["node", "edge", "area", "level"].includes(records[id].kind)) return null;
     let one = id;
@@ -1018,27 +1374,18 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
     if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
   }
-  function gloss(anchor, ...children) { // a note over the card, above what it explains or else below it
-    const box = $("gloss"), at = anchor.getBoundingClientRect();
-    box.replaceChildren(...children);
-    box.classList.add("show");
-    const w = box.offsetWidth, h = box.offsetHeight;
-    box.style.left = Math.min(Math.max(8, at.left), innerWidth - w - 8) + "px";
-    box.style.top = (at.top - h - 6 >= 8 ? at.top - h - 6 : Math.min(at.bottom + 6, innerHeight - h - 8)) + "px";
+  function follow(id, event) { // a chip that names a property opens that property's card, which waits for the pointer to move
+    if (records[id].kind !== "property") return false;
+    parked = [event.clientX, event.clientY];
+    go({ level: home(id), at: id });
+    return true;
   }
-  const unGloss = () => { $("gloss").classList.remove("show"); $("gloss").replaceChildren(); };
-  const sources = record => record.evidence.map(entry => { // each source a record cites, by its path and the line cited, with what it says
-    const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
-    return make("div", { class: "source" }, make("code", {}, (known ? known.path : source) + (line ? ":" + line : "")), ...(known && known.says ? [make("blockquote", {}, words(known.says))] : []));
-  });
   const halt = () => { clearTimeout(rest); clearTimeout(leave); };
   function hide() {
     halt();
-    unGloss();
-    light(null);
     const box = $("card"), spot = box.getBoundingClientRect();
     if (pointer && box.classList.contains("show") && pointer[0] >= spot.left && pointer[0] <= spot.right && pointer[1] >= spot.top && pointer[1] <= spot.bottom) parked = pointer; // what the card uncovers is not what the pointer came to
-    box.classList.remove("show"); box.dataset.for = "";
+    recordCard.hide();
   }
   function hover(id) {
     halt();
@@ -1135,21 +1482,10 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
   }
 
   // ---- search ----
-  const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
-  const TAIL = ["", "ㄱ", "ㄲ", "ㄱㅅ", "ㄴ", "ㄴㅈ", "ㄴㅎ", "ㄷ", "ㄹ", "ㄹㄱ", "ㄹㅁ", "ㄹㅂ", "ㄹㅅ", "ㄹㅌ", "ㄹㅍ", "ㄹㅎ", "ㅁ", "ㅂ", "ㅂㅅ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-  const PAIRS = { "ㄳ": "ㄱㅅ", "ㄵ": "ㄴㅈ", "ㄶ": "ㄴㅎ", "ㄺ": "ㄹㄱ", "ㄻ": "ㄹㅁ", "ㄼ": "ㄹㅂ", "ㄽ": "ㄹㅅ", "ㄾ": "ㄹㅌ", "ㄿ": "ㄹㅍ", "ㅀ": "ㄹㅎ", "ㅄ": "ㅂㅅ", "ㅘ": "ㅗㅏ", "ㅙ": "ㅗㅐ", "ㅚ": "ㅗㅣ", "ㅝ": "ㅜㅓ", "ㅞ": "ㅜㅔ", "ㅟ": "ㅜㅣ", "ㅢ": "ㅡㅣ" };
-  const KEYS = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p", "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g", "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l", "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m", "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t", "ㅒ": "o", "ㅖ": "p" };
-  const typed = text => [...text].map(letter => { // the Latin keys pressed when a Korean two-set layout was left on
-    const code = letter.charCodeAt(0) - 0xac00;
-    const parts = code >= 0 && code < 11172 ? LEAD[Math.floor(code / 588)] + VOWEL[Math.floor(code % 588 / 28)] + TAIL[code % 28] : PAIRS[letter] || letter;
-    return [...parts].map(part => KEYS[part] || part).join("");
-  }).join("");
-  const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
   const flat = value => typeof value === "string" ? words(value).replace(/`/g, "") : Array.isArray(value) ? value.map(flat).join("; ")
     : value && typeof value === "object" ? Object.entries(value).map(([key, item]) => `${key}: ${flat(item)}`).join("; ") : String(value);
   function index() { // each record's fields as the search weighs them, and its texts as a hit shows them, by name
-    const list = [], add = (id, kind, name, note, fields, shown) => list.push({ id, kind, name: name.replace(/`/g, ""), note, fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })),
-      shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text: flat(text) })) });
+    const list = [], add = (id, kind, name, note, fields, shown) => list.push({ id, kind, name, note, fields, shown: shown.map(([field, text]) => [field, text && flat(text)]) });
     const texts = info => words(JSON.stringify(info || {})).replace(/["{}\[\],:]+/g, " ");
     const details = info => Object.entries(info || {});
     const aliased = record => (record.aliases || []).map(alias => [alias, 0]), said = record => (record.aliases || []).map(alias => ["matched alias:", alias]); // an alias weighs as the record's name
@@ -1162,240 +1498,12 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
     for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["id", property.id], ["kind", property.kind], ["statement", property.statement]]);
     for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
-    for (const entry of list) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
-    lengths = list.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, list.length);
     return list;
   }
-  const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
-    if (Math.abs(a.length - b.length) > most) return most + 1;
-    let last = null, row = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const next = [i];
-      for (let j = 1; j <= b.length; j++) {
-        next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        if (last && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], last[j - 2] + 1);
-      }
-      last = row; row = next;
-    }
-    return row[b.length];
-  };
-  const KINDS = { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" };
-  const ORDER = Object.keys(KINDS);
-  function match(token, field) { // how well TOKEN matches FIELD, best first: the whole field, a word, a word's start, the words' initials, inside a word, one slip, two slips; -1 for none
-    if (field.text === token) return 0;
-    if (field.tokens.includes(token)) return 1;
-    if (field.text.startsWith(token) || field.tokens.some(word => word.startsWith(token))) return 2;
-    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 3;
-    if (token.length > 2 && field.text.includes(token)) return 4;
-    const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
-    let least = most + 1;
-    for (const word of most ? field.tokens : []) {
-      const key = token + " " + word;
-      if (!slipping.has(key)) slipping.set(key, slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most));
-      least = Math.min(least, slipping.get(key));
-      if (least === 1) break;
-    }
-    return least <= most ? 4 + least : -1;
-  }
-  const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
-  const termed = query => (contract.terms || []).flatMap(term => (term.aliases || []).filter(alias => ` ${query} `.includes(` ${plain(alias)} `)).map(alias => [alias, term.term])); // the term aliases a query holds whole, each with its term
-  const forms = query => { // a query read as typed and as the keys of a Korean layout, then each with its term aliases read as their terms
-    const read = [plain(query), plain(typed(query))];
-    return read.concat(read.filter(form => termed(form).length).map(form => termed(form).reduce((done, [alias, term]) => ` ${done} `.replace(` ${plain(alias)} `, ` ${plain(term)} `).trim(), form)));
-  };
-  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
-  const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over fixtures/ranking-queries.json
-  function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
-    let field = 0, quality = 0, covered = 0, telling = 0;
-    for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
-      let place = 5, grade = 7, size = 0;
-      for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
-      if (grade === 7 && !partial) return null;
-      covered += grade < 7 ? 1 : 0; telling += grade < 7 && !STOP.has(token) ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
-    }
-    field /= tokens.length; quality /= tokens.length;
-    if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
-    let bm25 = 0;
-    for (const [term, weight] of rare) { // BM25, k1 1.2 and b 0.75, over every text of the record
-      const count = entry.terms.filter(word => word === term).length;
-      bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
-    }
-    return { entry, covered, telling, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
-  }
-  const STOP = new Set("a an and are as at be by for from has have how in is it its of on or that the this to was what when where which who why will with".split(" ")); // words nearly every text holds, so alone they tell no record apart
-  let lengths = 1;
-  function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
-    const scored = new Map();
-    slipping.clear();
-    for (const form of new Set(forms(query))) {
-      const tokens = form.split(" ").filter(Boolean);
-      if (!tokens.length) continue;
-      const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
-      const told = tokens.some(token => !STOP.has(token));
-      const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
-        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => told ? row.telling : row.covered || row.bm25 < 0);
-      const score = new Map(pool.map(row => [row.entry, 0]));
-      for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
-        const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
-        for (const row of pool) { let ahead = 0, past = sorted.length; while (ahead < past) { const middle = (ahead + past) >> 1; if (sorted[middle] < row[ranker]) ahead = middle + 1; else past = middle; } score.set(row.entry, score.get(row.entry) + weight / (60 + 1 + ahead)); }
-      }
-      for (const [entry, value] of score) if (value > (scored.get(entry) || 0)) scored.set(entry, value);
-    }
-    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
-  }
-  const folds = new Map();
-  const fold = text => { // TEXT as `plain` reads it, with the place in TEXT of each letter kept
-    if (folds.has(text)) return folds.get(text);
-    let folded = "", at = [], gap = false;
-    for (let i = 0; i < text.length; i++) {
-      const letter = text[i].toLowerCase();
-      if (letter.length !== 1 || !/[a-z0-9ㄱ-ㆎ가-힣]/.test(letter)) { gap = true; continue; }
-      if (gap && folded) { folded += " "; at.push(i); }
-      folded += letter; at.push(i); gap = false;
-    }
-    folds.set(text, { folded, at });
-    return folds.get(text);
-  };
-  function spans(text, tokens) { // the letters of TEXT each query word matched, by the first way `match` would take
-    const { folded, at } = fold(text), found = [], starts = [];
-    for (const word of folded.matchAll(/\S+/g)) starts.push([word.index, word.index + word[0].length]);
-    const mark = (start, end) => found.push([at[start], at[end - 1] + 1]);
-    for (const token of tokens) {
-      const heads = starts.filter(([start]) => folded.startsWith(token, start));
-      if (heads.length) { heads.forEach(([start]) => mark(start, start + token.length)); continue; }
-      if (token.length > 1 && starts.length >= token.length && starts.slice(0, token.length).every(([start], i) => folded[start] === token[i])) { starts.slice(0, token.length).forEach(([start]) => mark(start, start + 1)); continue; }
-      const kin = starts.filter(([start, end]) => stem(folded.slice(start, end)) === stem(token));
-      if (kin.length) { kin.forEach(([start, end]) => mark(start, end)); continue; }
-      if (token.length > 2 && folded.includes(token)) { for (let i = folded.indexOf(token); i >= 0; i = folded.indexOf(token, i + token.length)) mark(i, i + token.length); continue; }
-      const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
-      for (const [start, end] of most ? starts : []) {
-        const word = folded.slice(start, end), cut = word.length > token.length + most ? token.length : word.length;
-        if (slips(token, word.slice(0, cut), most) <= most) mark(start, start + cut);
-      }
-    }
-    return found;
-  }
-  const matches = (text, pattern) => [...text.matchAll(pattern)].filter(one => one[0]).slice(0, 50).map(one => [one.index, one.index + one[0].length]);
-  const marked = (text, found) => { // TEXT with each found span in a mark
-    const parts = [];
-    let done = 0;
-    for (const [start, end] of [...found].sort((a, b) => a[0] - b[0])) {
-      if (end <= done) continue;
-      const from = Math.max(start, done);
-      parts.push(text.slice(done, from), make("mark", {}, text.slice(from, end)));
-      done = end;
-    }
-    return parts.concat(text.slice(done));
-  };
-  function excerpt(text, found) { // about twelve words of TEXT around its first match, cut ends shown by an ellipsis
-    const all = [...text.matchAll(/\S+/g)], first = Math.min(...found.map(span => span[0]));
-    let from = Math.max(0, all.findIndex(word => word.index + word[0].length > first) - 4);
-    const to = Math.min(all.length, from + 12);
-    from = Math.max(0, to - 12);
-    const start = all[from].index, end = all[to - 1].index + all[to - 1][0].length;
-    const shifted = found.filter(([a, b]) => b > start && a < end).map(([a, b]) => [Math.max(a, start) - start, Math.min(b, end) - start]);
-    return [...(from ? ["… "] : []), ...marked(text.slice(start, end), shifted), ...(to < all.length ? [" …"] : [])];
-  }
-  function sought() { // the pattern the box holds in the regular expression mode, or the reason it is none
-    try { return { pattern: new RegExp($("query").value, "gi") }; } catch (error) { return { error: error.message.replace(/^.*: /, "") }; }
-  }
-  function grep(pattern) { // the records whose name or other texts the pattern matches, the name counting most
-    const found = [];
-    for (const entry of entries) {
-      const named = matches(entry.name, pattern).length > 0;
-      if (named || entry.shown.some(part => matches(part.text, pattern).length)) found.push([entry, named ? 2 : 1]);
-    }
-    return found.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
-  }
-  let chosen = 0, listed = [], scope = null, regular = false, memory = null;
-  const shelf = () => `paperwork-system-recent ${contract.title} ${location.pathname}`; // every file:// page shares one storage
-  const recalled = () => { // the last queries a pick was made from, each with its mode, the tab's own once the storage throws
-    if (!memory) try { return JSON.parse(localStorage.getItem(shelf()) || "[]").map(one => typeof one === "string" ? { text: one, regex: false } : one); } catch { memory = []; }
-    return memory;
-  };
-  const remember = queries => {
-    if (!memory) try { return localStorage.setItem(shelf(), JSON.stringify(queries)); } catch { memory = queries; }
-    memory = queries;
-  };
-  const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
-  const CROSS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-  function list() {
-    const query = $("query").value.trim(), box = $("hits"), input = $("query");
-    box.replaceChildren();
-    const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
-    const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
-    const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
-    const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
-    const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
-    const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]].filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
-    listed = groups.flatMap(group => group[1]);
-    if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
-    chosen = Math.min(chosen, Math.max(0, listed.length - 1));
-    input.setAttribute("aria-invalid", String(!!asked.error));
-    input.removeAttribute("aria-activedescendant");
-    const option = (item, ...children) => make("div", { class: "hit", role: "option", id: `hit-${listed.indexOf(item)}`, "aria-selected": String(listed[chosen] === item) }, ...children);
-    for (const [title, hits] of groups) {
-      if (!hits.length) continue;
-      box.append(make("h3", {}, title));
-      for (const item of hits) {
-        if (item.recent) { // the typed part plain, the rest of the kept query bold
-          const row = option(item, make("span", { class: "clock" }), make("div", { class: "text" }, make("span", { class: "recent" }, item.recent.slice(0, query.length), make("b", {}, item.recent.slice(query.length)))),
-            make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
-          row.dataset.recent = item.recent;
-          row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
-          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item) : recall(item));
-          box.append(row);
-          continue;
-        }
-        const entry = item, named = query ? find(entry.name) : [], text = [make("b", {}, ...marked(entry.name, named))];
-        const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
-        const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
-        const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
-        const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
-        if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
-        const row = option(entry, make("div", { class: "text" }, text[0], make("small", {}, entry.note), ...text.slice(1)));
-        row.dataset.hit = entry.id;
-        row.addEventListener("click", () => pick(entry));
-        box.append(row);
-      }
-    }
-    if (asked.error) box.append(make("div", { class: "none error", role: "alert" }, make("b", {}, "Not a regular expression"), make("span", {}, asked.error)));
-    else if (query && !found.length) box.append(make("div", { class: "none", role: "status" }, make("b", {}, `No results for “${query}”`),
-      make("span", {}, regular ? "Check the pattern, or turn regular expressions off with Alt+R." : "Try fewer or other words, or turn on regular expressions with Alt+R.")));
-    const current = box.querySelector('[aria-selected="true"]');
-    if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
-  }
-  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase(); // one row per text, kept in the mode it last ran in
-  function recall(item) { $("query").value = item.recent; regex(item.regex); }
-  function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
-  function regex(on) {
-    regular = on; chosen = -1;
-    $("regex").setAttribute("aria-pressed", String(on));
-    $("query").focus();
-    list();
-  }
-  function ask(only) {
-    scope = only || null; chosen = 0;
-    $("query").value = "";
-    $("veil").classList.add("show"); $("palette").classList.add("show");
-    document.body.dataset.palette = "1";
-    list();
-    $("query").focus();
-  }
-  function shut() {
-    $("veil").classList.remove("show"); $("palette").classList.remove("show");
-    document.body.dataset.palette = "";
-    $("query").blur();
-  }
-  function pick(entry) {
-    const query = $("query").value.trim();
-    if (entry.recent) return recall(entry);
-    if (query && document.body.dataset.palette) remember([{ text: query, regex: regular }, ...recalled().filter(one => !same(one, { recent: query, regex: regular }))].slice(0, 8));
-    shut();
+  function open(entry) { // the record a search picked
     if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
       const question = contract.questions.find(one => one.id === entry.id);
-      return pick(entries.find(one => one.id === (question.answers || [question.gap])[0]));
+      return open(entries.find(one => one.id === (question.answers || [question.gap])[0]));
     }
     if (entry.kind === "scenario") return start(entry.id);
     if (entry.kind === "level") return go({ level: entry.id, at: null, scenario: null });
@@ -1416,30 +1524,10 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     });
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
     $("card").addEventListener("pointerenter", halt);
-    $("card").addEventListener("pointerover", event => {
-      const chip = event.target.closest(".ref"), term = event.target.closest(".term");
-      if (chip) light(chip.dataset.ref);
-      if (term) gloss(term, make("strong", {}, term.dataset.term), make("p", {}, ...prose(term.dataset.meaning, true)));
-    });
-    $("card").addEventListener("pointerout", event => {
-      if (event.target.closest(".ref") && !(event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".ref"))) light(null);
-      if (event.target.closest(".term")) unGloss();
-    });
-    $("card").addEventListener("click", event => {
-      const named = event.target.closest(".ref");
-      if (named && records[named.dataset.ref].kind === "property") { parked = [event.clientX, event.clientY]; return go({ level: home(named.dataset.ref), at: named.dataset.ref }); }
-      const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
-      if (!cite || shown) return unGloss();
-      gloss(cite, ...sources(records[$("card").dataset.for].record));
-      $("gloss").dataset.for = $("card").dataset.for;
-    });
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
-    $("search").addEventListener("click", () => ask());
-    $("scenarios").addEventListener("click", () => ask("Scenarios"));
-    $("properties").addEventListener("click", () => ask("Properties"));
-    $("veil").addEventListener("click", shut);
-    $("query").addEventListener("input", () => { chosen = -1; list(); });
-    $("regex").addEventListener("click", () => regex(!regular));
+    $("search").addEventListener("click", () => search.ask());
+    $("scenarios").addEventListener("click", () => search.ask("Scenarios"));
+    $("properties").addEventListener("click", () => search.ask("Properties"));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -1447,15 +1535,7 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
     $("again").addEventListener("click", () => start(view.scenario));
     $("onward").addEventListener("click", () => start(contract.scenarios[(contract.scenarios.indexOf(records[view.scenario].record) + 1) % contract.scenarios.length].id));
     addEventListener("keydown", event => {
-      if (document.body.dataset.palette) {
-        if (event.key === "Escape") shut();
-        else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
-        else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
-        else if (event.key === "Enter" && listed[chosen] && !event.target.closest("button")) pick(listed[chosen]); // a focused button takes its own Enter
-        else return;
-        return event.preventDefault();
-      }
-      if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); return ask(); }
+      if (search.key(event)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
       else if (event.key === " " && view.scenario && !event.target.closest("button, input")) { event.preventDefault(); run(); }
