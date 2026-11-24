@@ -391,5 +391,2187 @@
   "lines": [
    "purpose: text-plain: `#ff0000` in `Rebuild a system in #ff0000 from one con` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
   ]
+ },
+ {
+  "fault": "a drawing value as a CSS property",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system drawn with color: red."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `color: r` in `Rebuild a system drawn with color: red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value in three hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in #f00 from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#f00` in `Rebuild a system in #f00 from one contra` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup left open",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system that ends in <script"
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<script` in `Rebuild a system that ends in <script` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "Korean letters alone in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system ㅋ skill"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `The system ㅋ skill` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "a two-word label with two spaces",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Tag  catalogue lists."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Tag  catalogue list` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label after the and an id",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the {subject} Checker accepts."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the {subject} Checker a` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label inside a longer label",
+  "set": [
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Checker run"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the checker run feeds."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the checker run feeds.` spells the label of `write`; name it as `{write}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "`은` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}은 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}은 계약을 읽습니다.` writes `은` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`는` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}는 계약을 읽습니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`이` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}이 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}이 계약을 읽습니다.` writes `이` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`가` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}가 계약을 읽습니다.` writes `가` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`을` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}을 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}을 계약을 읽습니다.` writes `을` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`를` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}를 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}를 계약을 읽습니다.` writes `를` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`과` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}과 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}과 계약을 읽습니다.` writes `과` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`와` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}와 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}와 계약을 읽습니다.` writes `와` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`으로` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}으로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}으로 계약을 읽습니다.` writes `으로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`로` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}로 계약을 읽습니다.` writes `로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a space before `은`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 은 읽습니다.` puts a space before a particle in `` 은`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `는`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 는 읽습니다.` puts a space before a particle in `` 는`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `가`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 가 읽습니다.` puts a space before a particle in `` 가`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `을`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 을 읽습니다.` puts a space before a particle in `` 을`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `를`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 를 읽습니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `의`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 의 읽습니다.` puts a space before a particle in `` 의`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에 읽습니다.` puts a space before a particle in `` 에`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `와`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 와 읽습니다.` puts a space before a particle in `` 와`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `과`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 과 읽습니다.` puts a space before a particle in `` 과`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `도`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 도 읽습니다.` puts a space before a particle in `` 도`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `로`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 로 읽습니다.` puts a space before a particle in `` 로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `으로`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 으로 읽습니다.` puts a space before a particle in `` 으로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에서`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에서 읽습니다.` puts a space before a particle in `` 에서`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에게`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에게 읽습니다.` puts a space before a particle in `` 에게`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle after an English word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "contract 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `contract 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `t 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle closing the text",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "다시 만들 때 읽는 것은 `contract` 를"
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `다시 만들 때 읽는 것은 `contract` 를` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로써`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로써 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로써 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에게서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에게서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에게서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라면`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라면 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라면 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `입니다`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세입니다 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세입니다 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이며`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이며 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이며 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이나`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이나 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이나 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이란`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이란 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이란 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이든`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이든 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이든 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에게`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에게 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `까지`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세까지 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세까지 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `부터`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세부터 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세부터 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `처럼`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세처럼 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세처럼 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `보다`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세보다 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세보다 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `라는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세라는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세라는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `라고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세라고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세라고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로써`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로써 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로써 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `은`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세은 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `가`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세가 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `을`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세을 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `를`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세를 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `의`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세의 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `와`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세와 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `과`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세과 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `만`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세만 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세만 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `며`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세며 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세며 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `나`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세나 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세나 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `란`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세란 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세란 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `든`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세든 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세든 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the CSS property `color`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with color: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `color: 1` in `Rebuild a system with color: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `background`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with background: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `background: 1` in `Rebuild a system with background: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `background-color`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with background-color: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `background-color: 1` in `Rebuild a system with background-color: ` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `left`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with left: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `left: 1` in `Rebuild a system with left: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `top`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with top: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `top: 1` in `Rebuild a system with top: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `right`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with right: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `right: 1` in `Rebuild a system with right: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `bottom`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with bottom: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `bottom: 1` in `Rebuild a system with bottom: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `width`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with width: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `width: 1` in `Rebuild a system with width: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `height`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with height: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `height: 1` in `Rebuild a system with height: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `margin`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with margin: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `margin: 1` in `Rebuild a system with margin: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `padding`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with padding: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `padding: 1` in `Rebuild a system with padding: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-size`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-size: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-size: 1` in `Rebuild a system with font-size: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-family`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-family: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-family: 1` in `Rebuild a system with font-family: 1 set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-weight`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-weight: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-weight: 1` in `Rebuild a system with font-weight: 1 set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `border`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with border: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `border: 1` in `Rebuild a system with border: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `opacity`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with opacity: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `opacity: 1` in `Rebuild a system with opacity: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `z-index`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with z-index: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `z-index: 1` in `Rebuild a system with z-index: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `rgb(1, 2, 3)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with rgb(1, 2, 3) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `rgb(` in `Rebuild a system with rgb(1, 2, 3) set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `rgba(1, 2, 3, 1)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with rgba(1, 2, 3, 1) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `rgba(` in `Rebuild a system with rgba(1, 2, 3, 1) s` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `hsl(1, 2%, 3%)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with hsl(1, 2%, 3%) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `hsl(` in `Rebuild a system with hsl(1, 2%, 3%) set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `hsla(1, 2%, 3%, 1)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with hsla(1, 2%, 3%, 1) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `hsla(` in `Rebuild a system with hsla(1, 2%, 3%, 1)` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `oklch(1 2 3)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with oklch(1 2 3) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `oklch(` in `Rebuild a system with oklch(1 2 3) set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `12px`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with 12px set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `12px` in `Rebuild a system with 12px set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `1.5px`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with 1.5px set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `1.5px` in `Rebuild a system with 1.5px set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `x = 3`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with x = 3 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `x = 3` in `Rebuild a system with x = 3 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `y=-4`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with y=-4 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `y=-4` in `Rebuild a system with y=-4 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `#abc`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with #abc set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#abc` in `Rebuild a system with #abc set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `#a0b1c2`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with #a0b1c2 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#a0b1c2` in `Rebuild a system with #a0b1c2 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an avoided word written `box`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one box."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one box.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxs`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one boxs.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxes`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxes."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one boxes.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `Boxes`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one Boxes."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one Boxes.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxed`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxed."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "an avoided word written `box-like`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one box-like."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
  }
 ]

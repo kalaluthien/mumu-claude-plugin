@@ -30,7 +30,7 @@ CONTRACT = {
     "actors": [{"id": "shop", "name": "Shop front"}, {"id": "store", "name": "Order store"}],
     "calls": [{"id": "ask", "from": "shop", "to": "store", "label": "look up an order", "note": "sends the order number to {store}"},
               {"id": "answer", "from": "store", "to": "shop", "label": "return the order", "note": "{store}은(는) 주문을 찾아 돌려줍니다."}],
-    "terms": [{"term": "order", "meaning": "what a buyer asked for", "avoid": ["purchase", "buy", "buy order"]}],
+    "terms": [{"id": "order", "term": "order", "meaning": "what a buyer asked for", "avoid": ["purchase", "buy", "buy order"]}],
 }
 FAULTS = [  # the text a fault replaces, by the call or actor it sits on, the rule system names it by, and what its message must say besides the text
     ("calls/ask/note", "costs $\\foo x$ per call", "formula"),
@@ -51,6 +51,7 @@ FAULTS = [  # the text a fault replaces, by the call or actor it sits on, the ru
     ("calls/answer/note", "`order` 를 찾아 돌려줍니다.", "korean-text"),
     ("calls/ask/note", "sends the purchase number", "term-words"),
     ("calls/ask/note", "sends the buy order number", "term-words", "says `buy order`"),
+    ("terms/order/avoid", ["purchase", "Order"], "term-words", "`Order` is the term `order`"),
 ]
 
 
@@ -62,7 +63,7 @@ def breaks(contract):
     said += [(f"terms/{k + 1}/meaning", entry["meaning"]) for k, entry in enumerate(contract["terms"])]
     labels = {actor["id"]: actor["name"] for actor in actors} | {call["id"]: call["label"] for call in calls}
     return text_breaks(names + said, labels) + wording_breaks(said, names, [(actor["id"], actor["name"]) for actor in actors],
-                                                [(f"terms/{entry['term']}/term", entry) for entry in contract["terms"]])
+                                                [(f"terms/{entry['id']}/term", f"terms/{entry['id']}/avoid", entry) for entry in contract["terms"]])
 
 
 def written(contract, where, text):
@@ -80,8 +81,8 @@ def prose_checks():
         got = breaks(written(CONTRACT, where, text))
         if [(place, kind) for place, kind, _ in got] != [(where, rule)]:
             found.append(f"`{text}` at {where} gave {[(place, kind) for place, kind, _ in got] or 'no break'}, expected one {rule} there")
-        elif not all(part in got[0][2] for part in [f"`{text[:40]}`", *said]):
-            found.append(f"`{text}` at {where} broke {rule} saying `{got[0][2]}`, which misses {[f'`{text[:40]}`', *said]}")
+        elif not all(part in got[0][2] for part in [f"`{text[:40]}`" for _ in [text] if isinstance(text, str)] + said):
+            found.append(f"`{text}` at {where} broke {rule} saying `{got[0][2]}`, which misses what it should say")
     return found
 
 

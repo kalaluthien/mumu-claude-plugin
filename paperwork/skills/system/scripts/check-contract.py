@@ -416,7 +416,7 @@ def breaks(contract, root=None):
     names = [("title", contract["title"])] + [(f"levels/{level['id']}/{kind}/{element['id']}/label", element["label"])
                                               for level in contract["levels"] for kind in ("areas", "nodes") for element in level.get(kind, [])]
     found += wording_breaks(worded(contract, quoted), names, [(element["id"], element["label"]) for element in named],
-                            [(f"terms/{k + 1}/term", entry) for k, entry in enumerate(contract.get("terms", []))])
+                            [(f"terms/{k + 1}/term", f"term {entry['term']}", entry) for k, entry in enumerate(contract.get("terms", []))])
     found += alias_breaks(contract)
     all_edges = {edge['id']: edge for edge in edges(contract)}
     for item in contract.get("properties", []):
