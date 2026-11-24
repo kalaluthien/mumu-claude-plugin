@@ -10,9 +10,9 @@ import claude_config
 KIND = "claude"
 # claude.ai connectors (Gmail, Drive, Notion...) serve no teamwork role, and their tool list costs ~5k tokens every turn
 SETTINGS = {"disableClaudeAiConnectors": True}
-# every call re-reads the whole context, which Claude Code lets grow far before it compacts; a worker's window compacts sooner,
-# so its history stays shorter on every call
-WORKER_SETTINGS = {**SETTINGS, "autoCompactWindow": 145000}
+# every call re-reads the whole context, which Claude Code lets grow far before it compacts; a worker follows the owner's window,
+# else this one, so it compacts where the owner chose
+DEFAULT_COMPACT_WINDOW = 250000
 # Each tool off is a choice, since each description costs ~2-11k tokens every turn; subagents get only their session's tools (code.claude.com/docs/en/sub-agents):
 # - manager: Artifact off, it publishes nothing; Workflow off, it orchestrates by hand
 # - worker: AskUserQuestion off, it asks the owner through its manager; Artifact off, unless its manager passes --allow Artifact for a root task that publishes a page
@@ -31,9 +31,18 @@ DIALOGS = [
 ]
 
 
+def worker_settings():
+    """SETTINGS with the autoCompactWindow of the user settings file, else DEFAULT_COMPACT_WINDOW when it is unset, missing or unreadable."""
+    try:
+        window = json.loads((claude_config.folder() / "settings.json").read_text()).get("autoCompactWindow")
+    except (OSError, ValueError, AttributeError):
+        window = None
+    return {**SETTINGS, "autoCompactWindow": window if isinstance(window, int) and not isinstance(window, bool) else DEFAULT_COMPACT_WINDOW}
+
+
 def command(name, plugin_folder, model, effort, off):
     return ["--name", name, "--plugin-dir", plugin_folder, "--model", model, "--effort", effort,
-            "--settings", json.dumps(WORKER_SETTINGS if name.endswith("-worker") else SETTINGS), *(["--disallowedTools", ",".join(off)] if off else [])]
+            "--settings", json.dumps(worker_settings() if name.endswith("-worker") else SETTINGS), *(["--disallowedTools", ",".join(off)] if off else [])]
 
 
 def named(name, transcript):
