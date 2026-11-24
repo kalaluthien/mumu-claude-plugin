@@ -89,7 +89,6 @@
   "region-initial": [[["areas", 1, "info", "initial"], "open"]],
   "scenario-steps": [[["scenarios", 0, "principle"]]],
   "scenario-steps-empty-note": [[["scenarios", 0, "steps", 1, "note"], "  "]],
-  "scenario-steps-long-note": [[["scenarios", 0, "steps", 0, "note"], "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"]],
   "scenario-steps-no-such-record": [[["scenarios", 0, "steps", 0, "at"], "shelf"]],
   "scenario-steps-note-copies-a-purpose": [[["scenarios", 0, "steps"], [{"at": "door", "note": "keep one parcel until its code is typed"}, {"at": "fills"}, {"at": "fill", "note": "the receiver gets six digits"}, {"at": "take"}]]],
   "scenario-steps-note-names-an-end": [[["nodes", 0, "info"], {"failure": {"columns": ["case", "what happens"], "rows": [["a door jams", "the parcel stays"]]}}], [["scenarios", 0, "steps", 0, "note"], "{door} opens"]],

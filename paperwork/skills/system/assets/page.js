@@ -112,10 +112,11 @@
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
     const need = node => text(node) + beside(node);
-    const lines = node => need(node) <= most ? 1 : Math.ceil(text(node) * 1.15 / (most - beside(node))); // a label too long for the widest box goes on over more lines
-    const widest = Math.min(most, Math.max(196, ...level.nodes.map(need))), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
+    const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
+    const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
+    const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
     const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
-    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(most, Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
+    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
   const heading = (area, fit) => { // an area as wide as its header's label and tag, so neither reaches past its frame
     pen.font = `500 12px ${FONT}`;

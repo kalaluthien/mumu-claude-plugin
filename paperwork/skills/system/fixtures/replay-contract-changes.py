@@ -303,7 +303,6 @@ def refused(contract):
         "a tag left open": with_step(lambda step: step.update(note="<blink it holds")),
         "a tag in a table cell": with_item(("table", lambda table: {"columns": table["columns"], "rows": [["<b>it</b>"] * len(table["columns"])]})),
         "a step that names no record": with_step(lambda step: step.update(at="no-such-record")),
-        "a step note over 60 characters": with_step(lambda step: step.update(note="x" * 61)),
         "a hex colour in a purpose": with_node(lambda node: node.update(purpose="draws itself in #ff0000")),
         "a colour function in a purpose": with_node(lambda node: node.update(purpose="draws itself in rgb(255, 0, 0)")),
         "a style declaration in a step note": with_step(lambda step: step.update(note="color: red")),

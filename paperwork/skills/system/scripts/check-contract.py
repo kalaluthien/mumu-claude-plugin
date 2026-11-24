@@ -61,7 +61,7 @@ RULES = {
     "region-initial": "a region's `initial` names one of its states",
     "transition-ends": "a transition joins two states of one region, only a transition joins two states, and none leaves a state marked `terminal`",
     "fact-paths": "a fact names two different paths of edges that start at one node and end at one node, none of them marked `many`",
-    "scenario-steps": "a step names a node or an edge by its id and adds a note of 60 characters at most that holds a word, names neither end of its own edge and is no copy of its record's purpose, and one scenario at least is a principle",
+    "scenario-steps": "a step names a node or an edge by its id and adds a note, of any length, that holds a word, names neither end of its own edge and is no copy of its record's purpose, and one scenario at least is a principle",
     "property-form": "one invariant or property at least is stated; a property's kind, strength and status are known words, a gap alone names its fault, and each `on` names a node, an edge, an area, a level or a scenario",
     "evidence-source": "an evidence entry is a source id, `id:line` or `id:line-line`, and a node's `files` entry a source id; under --root each source path that is no url exists and holds the lines cited",
     "question-answered": "one rebuild question at least is asked; each names in `answers` the records that answer it, one at least with evidence, or in `gap` the gap property that says why none does, never both",
@@ -409,8 +409,6 @@ def breaks(contract, root=None):
             where = f"scenario {scenario['id']} step {k + 1}"
             if not any(step["at"] in group for group in places.values()):
                 found.append((where, "scenario-steps", f"`{step['at']}` is no node or edge"))
-            elif len(step.get("note", "")) > 60:
-                found.append((where, "scenario-steps", "a step's own note is 60 characters at most; the record it names says the rest"))
             elif "note" in step and (not step["note"].strip() or step["note"].strip().rstrip(".").casefold() == purposes.get(step["at"])):
                 found.append((where, "scenario-steps", "the note is empty or a copy of its record's purpose; a note adds what this step alone shows, so write that or leave the note out"))
             else:

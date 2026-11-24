@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables] [layout]
-// With no word it runs the twenty-two steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [formulas] [code] [tables] [layout] [wrap]
+// With no word it runs the twenty-three steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -43,9 +43,8 @@
 //            past its sides.
 //   clear    the pointer resting on each node of each example's levels raises a card that overlaps no node an edge
 //            joins to that node.
-//   moves    each scenario marks each step on the record it names, on that record's level, in 80 characters at
-//            most, under controls of a tenth of the window at most, forward and back by the arrow keys; the
-//            space key plays a scenario by itself and stops it, a step's button leads to that step, and the step
+//   moves    each scenario marks each step on the record it names, on that record's level, under controls of a
+//            tenth of the window at most, forward and back by the arrow keys; the space key plays a scenario by itself and stops it, a step's button leads to that step, and the step
 //            after the last offers the scenario again; a double click on a node that opens a level and on one
 //            that opens none each adds one view to those the browser's back walks, printed as `a double click
 //            adds one view`; three
@@ -134,6 +133,11 @@
 //            each principle on a kept card. Every level of page-changes at rest in light holds at most half of the
 //            crowded parallel pairs, two runs of different edges under 16 px apart beside each other for over 24 px, that
 //            3dd6783c drew, printed as `parallel room: PASS` or `parallel room: FAIL` with the count.
+//   wrap     on a copy of the first example whose first scenario's first three steps hold Korean notes of 150 characters
+//            or more, whose first node's purpose is such a text and whose first node's label holds a word of 40 letters,
+//            the checker accepts the copy, and at each size each of those notes shows whole over two lines or more inside
+//            the window, and the note, the node's label and each text of the node's kept card split no word across two
+//            lines and reach past no side of their box.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -146,7 +150,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables", "layout"];
+const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "formulas", "code", "tables", "layout", "wrap"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
@@ -835,13 +839,12 @@ async function scenarios(browser, example, size, walked, named = null, lent = nu
           const node = document.querySelector(`#stage .node[data-id="${id}"]`), name = node && node.querySelector("b");
           return name && name.scrollWidth <= name.clientWidth && name.getBoundingClientRect().top >= node.getBoundingClientRect().top && node.querySelector("small").getBoundingClientRect().bottom <= node.getBoundingClientRect().bottom ? name.textContent : null;
         };
-        return { marked, level: document.body.dataset.level, step: +document.body.dataset.step, label: named && label(named.id), words: document.getElementById("chip").textContent.length, controls: area("play") + area("chip"), runs: !!token && token.classList.contains("run"), edge: !!document.querySelector(`#stage .edge[data-id="${at}"]`) };
+        return { marked, level: document.body.dataset.level, step: +document.body.dataset.step, label: named && label(named.id), controls: area("play") + area("chip"), runs: !!token && token.classList.contains("run"), edge: !!document.querySelector(`#stage .edge[data-id="${at}"]`) };
       }, [step.at, named]);
       check(seen.step === i, `${where}: the key left it at step ${seen.step}, not ${i}`);
       if (named && seen.level === example.levelOf[named.id]) { check(seen.label === named.label, `${where} step ${i}: node ${named.id} reads ${seen.label}, not ${named.label}`); named.seen = true; }
       check(seen.level === example.levelOf[step.at], `${where} step ${i}: on level ${seen.level}, not ${example.levelOf[step.at]}`);
       check(seen.marked.length === 1 && seen.marked[0] === step.at, `${where} step ${i}: marks ${seen.marked.join(",") || "nothing"}, not ${step.at}`);
-      check(named || seen.words <= 80, `${where} step ${i}: shows ${seen.words} characters`); // a note that names the renamed node holds its long new label
       check(seen.controls <= size[0] * size[1] / 10, `${where} step ${i}: its controls cover over a tenth of the window`);
       check(!seen.edge || seen.runs, `${where} step ${i}: no mark moves along the edge`);
     }
@@ -1868,6 +1871,82 @@ async function tables(browser) {
     await page.context().close();
   }));
 }
+// ---- wrap ----
+const NOTES = [ // Korean descriptions of 150 characters or more, which wrap only between words
+  "사람이 페이지에서 남긴 의견은 서버가 받아 대기열에 넣고, 세션이 의견을 읽어 파일을 고칠 때까지 기다립니다. 세션이 파일을 고치면 페이지는 바뀐 내용을 다시 불러와 보여 주며, 의견 옆에는 세션이 남긴 답글이 함께 나타납니다. 사람은 파일을 직접 열지 않고도 요청한 수정이 끝났는지 확인합니다.",
+  "연결이 열리면 표시줄은 서버와 이어졌다는 사실과 아직 처리하지 않은 변경의 개수를 함께 보여 줍니다. 사람은 표시줄만 보고도 자신이 남긴 의견이 서버에 닿았는지, 세션이 아직 읽지 않았는지를 곧바로 알 수 있습니다. 개수가 영이 되면 세션이 모든 변경을 읽었다는 뜻입니다.",
+  "사람이 문서의 한 부분에 의견을 달면 페이지는 그 부분의 위치와 의견의 내용을 하나로 묶어 기록합니다. 기록은 서버로 보내지기 전까지 브라우저 저장소에 남아 있으므로, 창을 닫았다가 다시 열어도 사라지지 않습니다. 서버가 기록을 받으면 브라우저 저장소의 사본은 곧바로 지워집니다.",
+];
+const LONGWORD = "Extraordinarilylongcompoundidentifierword"; // one word of 40 letters
+const spread = ([selector, frame]) => { // per shown element: the lines its text takes, the first word split across two lines and the first word past its box or FRAME, such as a card that clips it
+  const lines = (tops) => tops.sort((a, b) => a - b).filter((top, i, all) => !i || top - all[i - 1] > 6).length; // glyphs of one line differ in top by a pixel or two
+  return [...document.querySelectorAll(selector)].filter((element) => element.getClientRects().length).map((element) => {
+    const own = element.getBoundingClientRect(), outer = frame ? element.closest(frame).getBoundingClientRect() : own, tops = [], found = { text: element.textContent, split: "", out: "", wide: element.scrollWidth > element.clientWidth + 1 || element.scrollHeight > element.clientHeight + 1 };
+    const box = { left: Math.max(own.left, outer.left), right: Math.min(own.right, outer.right), top: Math.max(own.top, outer.top), bottom: Math.min(own.bottom, outer.bottom) };
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    for (let text = walker.nextNode(); text; text = walker.nextNode()) for (const word of text.data.matchAll(/\S+/g)) {
+      const range = document.createRange();
+      range.setStart(text, word.index);
+      range.setEnd(text, word.index + word[0].length);
+      const rects = [...range.getClientRects()].filter((rect) => rect.width > 0.5);
+      tops.push(...rects.map((rect) => rect.top));
+      if (!found.split && lines(rects.map((rect) => rect.top)) > 1) found.split = word[0];
+      if (!found.out && rects.some((rect) => rect.left < box.left - 0.5 || rect.right > box.right + 0.5 || rect.top < box.top - 0.5 || rect.bottom > box.bottom + 0.5)) found.out = word[0];
+    }
+    return { ...found, lines: lines(tops), inside: own.left >= 0 && own.top >= 0 && own.right <= innerWidth && own.bottom <= innerHeight };
+  });
+};
+const unbroken = (seen, where) => seen.forEach((one) => {
+  check(!one.split, `${where}: the word ${one.split} is split across two lines`);
+  check(!one.out && !one.wide, `${where}: ${one.out ? "the word " + one.out : "the text"} reaches past its box or is cut off`);
+});
+async function wrap(browser) {
+  const example = examples[0], flat = JSON.parse(fs.readFileSync(example.source, "utf8")), node = flat.nodes[0], scenario = flat.scenarios[0];
+  NOTES.forEach((note) => check(note.length >= 150, `a planted note is ${note.length} characters, under 150`));
+  scenario.steps.slice(0, NOTES.length).forEach((step, i) => { step.note = NOTES[i]; });
+  node.purpose = NOTES[0];
+  node.info = { ...(node.info || {}), failure: { columns: ["경우", "일어나는 일", "사람이 보는 것", "다시 시도하는 방법"], rows: [[NOTES[1].slice(0, 40), NOTES[2].slice(0, 60), NOTES[0].slice(0, 50), NOTES[1].slice(40, 90)]] } };
+  node.label = `${node.label} ${LONGWORD}`;
+  const copy = { name: example.name + "-wrap", source: path.join(scratch, example.name + "-wrap.json"), built: path.join(scratch, example.name + "-wrap.html") };
+  fs.writeFileSync(copy.source, JSON.stringify(flat));
+  make(copy);
+  await Promise.all(SIZES.map(async (size) => {
+    const where = `${copy.name} at ${size.join("x")}`;
+    let page = await open(browser, copy, size, { still: true });
+    await page.click("#scenarios");
+    await page.click(`#hits [data-hit="${scenario.id}"]`);
+    await rest(page);
+    for (let i = 0; i < NOTES.length; i++) {
+      if (i) { await page.keyboard.press("ArrowRight"); await rest(page); }
+      const [chip] = await page.evaluate(spread, ["#chip.show"]);
+      check(chip && chip.text === NOTES[i], `${where} step ${i + 1}: the note shows ${chip ? chip.text.length + " of " + NOTES[i].length + " characters" : "nothing"}`);
+      check(chip.lines >= 2 && chip.inside, `${where} step ${i + 1}: the note takes ${chip.lines} line${chip.lines === 1 ? "" : "s"}${chip.inside ? "" : " and reaches past the window"}`);
+      unbroken([chip], `${where} step ${i + 1}'s note`);
+    }
+    quiet(page, where);
+    await page.context().close();
+    page = await open(browser, copy, size, { at: `#level=${node.level}&at=${node.id}` });
+    await settled(page);
+    check(await page.evaluate(CARDED, node.id), `${where}: no card is kept open for ${node.id}`);
+    const label = await page.evaluate(spread, [`#stage .node[data-id="${node.id}"] b`, ".node"]);
+    check(label.length === 1 && label[0].text === node.label, `${where}: node ${node.id} does not show its label`);
+    unbroken(label, `${where}: node ${node.id}'s label`);
+    const card = [], cells = [];
+    for (let leaf = 0; leaf < 12; leaf++) { // each page of the kept card, turned by its More rows button as a person would
+      const seen = await page.evaluate(spread, ["#card h2, #card p, #card dd, #card th, #card td", "#card"]);
+      card.push(...seen);
+      cells.push(...(await page.evaluate(spread, ["#card td", "#card"])));
+      if (!(await page.locator("#card .turn").count()) || await page.evaluate(() => document.querySelector("#card .turn").disabled)) break;
+      await page.click("#card .turn");
+      await rest(page);
+    }
+    check(card.some((one) => one.text.includes(NOTES[0])), `${where}: the kept card of ${node.id} does not show its purpose`);
+    check(cells.length >= 4, `${where}: the kept card of ${node.id} shows ${cells.length} of the planted table's 4 cells`);
+    unbroken(card, `${where}: the kept card of ${node.id}`);
+    quiet(page, where);
+    await page.context().close();
+  }));
+}
 // ---- layout ----
 const GROUPS = ["card head", "card item", "card footer", "search hit", "search kind", "search keys", "tools", "scenario bar", "node", "area header"];
 const PRINCIPLES = ["proximity", "common region", "alignment", "scale", "contrast"];
@@ -2159,7 +2238,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables, layout };
+    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, formulas, code, tables, layout, wrap };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");

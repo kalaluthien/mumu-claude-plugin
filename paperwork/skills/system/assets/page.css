@@ -19,7 +19,7 @@
 }
 * { box-sizing: border-box; border-color: var(--border); }
 html, body { height: 100%; margin: 0; overflow: hidden; }
-body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; }
+body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; }
 button { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 12px/1 ui-sans-serif, system-ui, sans-serif; }
