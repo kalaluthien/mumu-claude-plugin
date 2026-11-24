@@ -3,7 +3,7 @@
   "owner": { "name": "kalaluthien" },
   "description": "Three Claude Code plugins: a team that lands reviewed pull requests, documents, and lessons that compound.",
   "plugins": [
-    { "name": "paperwork", "source": "./paperwork", "license": "Apache-2.0", "description": "Describe a system as one checked contract a reader can rebuild it from; relay applies a person's edits on a local HTML page to its file." },
+    { "name": "paperwork", "source": "./paperwork", "license": "Apache-2.0", "description": "Describe a system as one checked contract a reader can rebuild it from; the system skill's relay playbook applies a person's edits on a local HTML page to its file, serving the page only when asked." },
     { "name": "teamwork", "source": "./teamwork", "license": "Apache-2.0", "description": "A manager routes the owner's intent to workers that define, do and close it." },
     { "name": "homework", "source": "./homework", "license": "Apache-2.0", "description": "A lesson is filed once, where its reader looks, before the session ends." }
   ]

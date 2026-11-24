@@ -175,7 +175,7 @@ Paperwork writes down a subject, such as code, a process or requirements, as one
 | skill | when it runs | what you do |
 | --- | --- | --- |
 | [`/paperwork:system`](paperwork/skills/system/SKILL.md) | you want a subject described | type the command with your subject, or ask in plain words |
-| [`/paperwork:system`, relay playbook](paperwork/skills/system/references/relay.md) | you comment on, fill in or edit a local HTML page, and the change must go into the page's file | open the local link the session gives you, and edit there; the session loads the playbook itself |
+| [`/paperwork:system`, relay playbook](paperwork/skills/system/references/relay.md) | you ask the session to take your comments or edits on a local HTML page, or hand it the edits you made there | ask the session to serve the page, then open the local link it gives you and edit there; the session serves a page only when you ask, and loads the playbook itself |
 
 `relay` serves the page only on your machine (`127.0.0.1`), behind a link with a random secret part. Each comment you leave on a part reaches the session, which applies it, replies under your comment and reloads the page; for a page `system` made, it changes the contract and builds the page again. Paperwork ships no hooks and no plugin monitors; `relay` starts its page server only while a session serves a page.
 
