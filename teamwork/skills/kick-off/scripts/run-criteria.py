@@ -510,6 +510,10 @@ def run_per_hunk(options, task, root, live):
         held = {label for label, result in at_head.items() if result == "pass"}
         unneeded, conditions, mutants, unjudged = [], 0, 0, []
 
+        def kept_passing(copy):
+            """True when every row passing at the head passes in COPY, stopping at the first that does not, since one is enough."""
+            return all(row(label, *criterion, copy, options.timeout, live)[2] == "pass" for label, criterion in found if label in held)
+
         def survives(group):
             """True when no passing row changes with every hunk of GROUP, all of one file or link, reverted together."""
             path = pathlib.Path(copy, group[0][0])
@@ -528,7 +532,7 @@ def run_per_hunk(options, task, root, live):
                     path.write_bytes(text.encode("latin-1"))
                     if mode is not None:
                         path.chmod(stat.S_IMODE(mode))
-            still = {label for label, result in results(copy).items() if result == "pass"}
+            passing = kept_passing(copy)
             path.unlink(missing_ok=True)
             for folder in made[:1]:
                 shutil.rmtree(folder)
@@ -537,7 +541,7 @@ def run_per_hunk(options, task, root, live):
             elif kept is not None:
                 path.write_bytes(kept)
                 path.chmod(stat.S_IMODE(mode))
-            return held <= still
+            return passing
 
         by_file = {}
         for hunk in hunks:
@@ -560,15 +564,15 @@ def run_per_hunk(options, task, root, live):
                 for number, start, end, replacement, kind in added_mutants(line, patch, text):
                     data = text.encode()
                     path.write_bytes(data[:start] + replacement + data[end:])
-                    still = {label for label, result in results(copy).items() if result == "pass"}
+                    alive = kept_passing(copy)
                     path.write_text(text)
                     if kind == "condition":
                         conditions += 1
                     else:
                         mutants += 1
-                    if held <= still and kind == "condition":
+                    if alive and kind == "condition":
                         unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
-                    elif held <= still:
+                    elif alive:
                         unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode()}`, so make a criterion fail on it or drop it")
     print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded")
     print(*unneeded, sep="\n")
