@@ -4,7 +4,8 @@
 usage: serve-relay.py <page.html> [--port <n>] [--quiet <seconds>]
 
 It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and
-reused on a restart. Its first stdout line is `relay url: <url>`; once a change is queued and `--quiet` seconds
+reused on a restart. Its first stdout line is `relay url: <url>`, its second `relay page: <file url>`, the page's
+`file://` url that opens it standalone; once a change is queued and `--quiet` seconds
 (default 3) pass with no newer one, it prints one `relay pending ...` line carrying the commands that pull and
 ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in
 `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."""
@@ -231,7 +232,7 @@ def main(args):
     keep()
     for each in (watch, announce):
         threading.Thread(target=each, daemon=True).start()
-    print(f"relay url: {url}", flush=True)
+    print(f"relay url: {url}\nrelay page: {page.as_uri()}", flush=True)
     server.serve_forever()
 
 

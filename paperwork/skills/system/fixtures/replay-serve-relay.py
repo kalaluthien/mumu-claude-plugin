@@ -6,9 +6,11 @@ usage: replay-serve-relay.py
 It prints one line per step, then PASS or FAIL."""
 import json
 import pathlib
+import queue
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.request
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -23,6 +25,19 @@ def call(url, body=None):
         return json.loads(reply.read())
 
 
+def lines(stream):
+    """A function returning the stream's next line, or "" when none comes within 10 seconds, so a missing line fails a step."""
+    waiting = queue.Queue()
+    threading.Thread(target=lambda: [waiting.put(line) for line in stream], daemon=True).start()
+
+    def next_line():
+        try:
+            return waiting.get(timeout=10).strip()
+        except queue.Empty:
+            return ""
+    return next_line
+
+
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
@@ -35,17 +50,20 @@ def main(args):
         check = subprocess.run([sys.executable, str(SCRIPTS / "check-page.py"), str(page)], capture_output=True, text=True)
         steps.append(("connect-page writes the runtime and check-page prints follows",
                       connect.returncode == 0 and "<!-- relay runtime -->" in page.read_text() and check.stdout.strip() == "follows"))
-        steps.append(("SKILL.md names the skill relay", "\nname: relay\n" in (HERE.parent / "SKILL.md").read_text()))
+        steps.append(("SKILL.md routes to the relay playbook", "(references/relay.md)" in (HERE.parent / "SKILL.md").read_text()
+                      and (HERE.parent / "references" / "relay.md").is_file()))
         server = subprocess.Popen([sys.executable, str(SCRIPTS / "serve-relay.py"), str(page), "--port", "0", "--quiet", "1"],
                                   stdout=subprocess.PIPE, text=True)
         try:
-            first = server.stdout.readline().strip()
+            read = lines(server.stdout)
+            first = read()
             url = first.removeprefix("relay url: ")
             steps.append(("serve-relay prints its url", first.startswith("relay url: ")))
+            steps.append(("serve-relay prints the page's file url", read() == "relay page: " + page.resolve().as_uri()))
             if first.startswith("relay url: "):
                 change = call(url + "api/changes", {"kind": "comment", "target": "idea", "payload": {"text": "Say more"}})
                 steps.append(("a posted comment is queued", change.get("id") is not None))
-                pending = server.stdout.readline().strip()
+                pending = read()
                 steps.append(("a pending line follows", pending.startswith("relay pending 1")))
                 queued = call(url + "api/changes")
                 queued = queued.get("changes", queued) if isinstance(queued, dict) else queued
@@ -59,7 +77,7 @@ def main(args):
             server.wait()
     for name, right in steps:
         print(f"{'PASS' if right else 'FAIL'} {name}")
-    right = len(steps) == 6 and all(right for _, right in steps)
+    right = len(steps) == 7 and all(right for _, right in steps)
     print("PASS" if right else "FAIL")
     return 0 if right else 1
 

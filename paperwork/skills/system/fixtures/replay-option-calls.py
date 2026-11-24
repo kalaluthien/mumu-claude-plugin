@@ -16,9 +16,9 @@ import tempfile
 SKILLS = pathlib.Path(__file__).resolve().parents[2]
 UNKNOWN = ("--help", "--x")
 CALLS = [
-    ("relay/scripts/serve-relay.py", ["body", "--port", "1", "--quiet", "1"]),
-    ("relay/scripts/connect-page.py", ["body"]),
-    ("relay/scripts/check-page.py", ["body"]),
+    ("system/scripts/serve-relay.py", ["body", "--port", "1", "--quiet", "1"]),
+    ("system/scripts/connect-page.py", ["body"]),
+    ("system/scripts/check-page.py", ["body"]),
     ("system/scripts/check-contract.py", ["check", "body", "--root", "folder", "--tags", "body"]),
     ("system/scripts/check-contract.py", ["read", "body", "--tags", "body"]),
     ("system/scripts/check-contract.py", ["outline", "body", "level"]),

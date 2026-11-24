@@ -292,7 +292,7 @@ async function diagram(browser) {
   for (const example of examples) {
     check(fs.existsSync(example.kept), `${example.name} keeps no built page`);
     check(fs.readFileSync(example.kept, "utf8") === fs.readFileSync(example.built, "utf8"), `${example.name}'s kept page differs from the one make-page.py builds`);
-    const followed = python(path.resolve(ROOT, "..", "relay", "scripts", "check-page.py"), example.built);
+    const followed = python(path.join(ROOT, "scripts", "check-page.py"), example.built);
     check(followed.status === 0 && followed.stdout.trim() === "follows", `the relay page checker says of ${example.name}: ${followed.stdout.trim().split("\n")[0]}`);
   }
   const refused = path.join(scratch, "refused.json"), unbuilt = path.join(scratch, "refused.html");

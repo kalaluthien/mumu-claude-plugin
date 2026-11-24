@@ -4,67 +4,67 @@
  "sources": [
   {
    "id": "src-skill",
-   "path": "paperwork/skills/relay/SKILL.md",
+   "path": "paperwork/skills/system/references/relay.md",
    "says": "the domain words, the six steps a session takes and the seven rules it keeps"
   },
   {
    "id": "src-server",
-   "path": "paperwork/skills/relay/scripts/serve-relay.py",
+   "path": "paperwork/skills/system/scripts/serve-relay.py",
    "says": "the server: arguments, routes, files, timers and every status code"
   },
   {
    "id": "src-connect",
-   "path": "paperwork/skills/relay/scripts/connect-page.py",
+   "path": "paperwork/skills/system/scripts/connect-page.py",
    "says": "how the runtime and the two empty blocks are pasted into a page"
   },
   {
    "id": "src-check",
-   "path": "paperwork/skills/relay/scripts/check-page.py",
+   "path": "paperwork/skills/system/scripts/check-page.py",
    "says": "the seven rules a page file must follow and each break line"
   },
   {
    "id": "src-runtime",
-   "path": "paperwork/skills/relay/assets/page-runtime.js",
+   "path": "paperwork/skills/system/assets/page-runtime.js",
    "says": "what the page does in the browser: globals, badges, panel, status bar, sending and reloading"
   },
   {
    "id": "src-starter",
-   "path": "paperwork/skills/relay/assets/diagram-page.html",
+   "path": "paperwork/skills/system/assets/diagram-page.html",
    "says": "the starter diagram page: its data, its drawing code and its copy of the runtime"
   },
   {
    "id": "src-e2e",
-   "path": "paperwork/skills/relay/scripts/run-relay.cjs",
+   "path": "paperwork/skills/system/scripts/run-relay.cjs",
    "says": "the end-to-end run in a headless browser, and its --queue and --verify modes"
   },
   {
    "id": "src-replay-check",
-   "path": "paperwork/skills/relay/fixtures/replay-check-page.py",
+   "path": "paperwork/skills/system/fixtures/replay-check-page.py",
    "says": "the replay of the page checker on each fixture page and the starter"
   },
   {
    "id": "src-replay-options",
-   "path": "paperwork/skills/relay/fixtures/replay-option-calls.py",
+   "path": "paperwork/skills/system/fixtures/replay-option-calls.py",
    "says": "the replay of each Python script with --help and an unknown option"
   },
   {
    "id": "src-fx-follows",
-   "path": "paperwork/skills/relay/fixtures/follows-thread.html",
+   "path": "paperwork/skills/system/fixtures/follows-thread.html",
    "says": "a page that follows every rule, with a thread keyed by an id inside page data"
   },
   {
    "id": "src-fx-anchors",
-   "path": "paperwork/skills/relay/fixtures/break-anchors.html",
+   "path": "paperwork/skills/system/fixtures/break-anchors.html",
    "says": "a page that uses one data-id twice"
   },
   {
    "id": "src-fx-escape",
-   "path": "paperwork/skills/relay/fixtures/break-escape.html",
+   "path": "paperwork/skills/system/fixtures/break-escape.html",
    "says": "a page with a raw `<` inside page data"
   },
   {
    "id": "src-fx-replies",
-   "path": "paperwork/skills/relay/fixtures/break-replies.html",
+   "path": "paperwork/skills/system/fixtures/break-replies.html",
    "says": "a page whose session entry replies to an entry of another thread"
   }
  ],
@@ -687,13 +687,14 @@
       [
        "stdout",
        "text lines",
-       "`relay url: <url>` first, then `relay pending ...` lines"
+       "`relay url: <url>` first, `relay page: <file url>` second, then `relay pending ...` lines"
       ]
      ]
     },
     "technology": "Python 3, standard library only: http.server.ThreadingHTTPServer with BaseHTTPRequestHandler (answers as HTTP/1.0), two daemon threads, one lock",
     "signals": [
      "first stdout line: `relay url: <url>`, the url being `http://127.0.0.1:<port>/<token>/`",
+     "second stdout line: `relay page: <file url>`, the page's `file://` url that opens it standalone",
      "`relay pending <n>: <c> comment, <d> data for <absolute page path> | pull: curl -s <url>api/changes`, then `| ack after editing the page: curl -s -X POST -H 'Origin: <origin>' -H 'Content-Type: application/json'`, then `-d '<ids>' <url>api/changes/ack`, the ids written `{\"ids\":[<id>,...]}`",
      "stderr: `relay cannot listen on 127.0.0.1:<port>: <error>`",
      "no request log: log_message prints nothing"
@@ -2471,7 +2472,7 @@
      ]
     },
     "signals": [
-     "the docstring: Queue the change events an open HTML page sends for a Claude Code session to apply, and tell the page to reload when its file changes. / usage: serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`] / It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and reused on a restart. Its first stdout line is `relay url: <url>`; once a change is queued and `--quiet` seconds (default 3) pass with no newer one, it prints one `relay pending ...` line carrying the commands that pull and ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."
+     "the docstring: Queue the change events an open HTML page sends for a Claude Code session to apply, and tell the page to reload when its file changes. / usage: serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`] / It binds 127.0.0.1 behind a random token, `http://127.0.0.1:<port>/<token>/`, written to `url.txt` beside the page and reused on a restart. Its first stdout line is `relay url: <url>`, its second `relay page: <file url>`, the page's `file://` url that opens it standalone; once a change is queued and `--quiet` seconds (default 3) pass with no newer one, it prints one `relay pending ...` line carrying the commands that pull and ack the queue. It never writes the page: each version of it is copied, read only, into `history/`; events wait in `changes/pending.jsonl` and acked ones move to `changes/applied.jsonl`."
     ]
    },
    "evidence": [
@@ -2501,7 +2502,7 @@
      "origin = http://127.0.0.1:`<the bound port>`; url = `<origin>`/`<token>`/; write url and a newline to {url-file}",
      "run {keeper} once",
      "start {watcher} and {announcer} as daemon threads",
-     "print `relay url: <url>` flushed, then serve forever"
+     "print `relay url: <url>` and `relay page: <the page's file url>` flushed, then serve forever"
     ],
     "failure": {
      "columns": [

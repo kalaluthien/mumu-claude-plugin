@@ -4,7 +4,7 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 
 ## Domain
 
-- **page**: one `.html` file made by `make-page.py` from a contract. The contract is its page data, and each node, edge and area is an anchor, so it follows the page rules of the `relay` skill.
+- **page**: one `.html` file made by `make-page.py` from a contract. The contract is its page data, and each node, edge and area is an anchor, so it follows the page rules of [relay.md](relay.md).
 - **diagram**: one level drawn to fill the window: each node a rectangle with its label and its tag's name, near-square but a `state`, well rounded as a statechart draws it, and a `dataStore`, a cylinder; each area a frame, dashed for a `region` or a `trustZone`, and a `lane` or `phase` a band with no frame, the bands of a level filled in turn by three muted pastel tints; no legend; each edge a line with its label; a level too full for the window is drawn denser, never with smaller type, and a label that would cover another thing shows only while its edge is lit by the pointer, a pick or a scenario, in a place free among what is lit. A node is never narrower than its label's longest word.
 - **overlay**: the card beside the node, edge or area under the pointer, clear of that record and of what is tied to it, while the rest of the diagram steps back; it shows one row per item in the item's form, wraps a long text inside its width, and pages the rows its height cannot hold by its `More rows` button, which stays in place as the pages turn, with fewer rows a page where no such place holds more; it scrolls only round one row taller than itself, its button still in view; none comes while a level is still arriving. A click keeps the same card open; Escape closes it.
 - **card words**: a card's texts explain themselves: a record named as `{id}` is a chip whose hover marks that record, or the node of the shown level that opens the way to it; the first match of each term is a term whose hover shows its meaning; `N sources` opens each cited source's path and `says`; a `(guess)` and a property's `unknown` or `broken` status are badges, a holding one none; a quote is code, a fence a block keeping its lines, and a formula MathML that `make-page.py` drew, inline or as a centered block.
@@ -19,7 +19,7 @@ Show a checked contract as one HTML page a person reads, searches and plays with
 
 1. Build: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/make-page.py <contract> [<page>]`.
 2. Hand the page's path to the person, who opens it in a desktop browser.
-3. To take the person's comments on it, connect and serve the page as the `relay` skill says; apply a comment to the contract, and build again.
+3. Only when the owner asks to take comments on it, connect and serve the page as [relay.md](relay.md) says; apply a comment to the contract, and build again.
 
 ## Rules
 
