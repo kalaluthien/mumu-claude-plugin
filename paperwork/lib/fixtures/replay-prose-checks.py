@@ -4,7 +4,8 @@
 usage: replay-prose-checks.py
 
 prose checks: a stand-in contract of actors and calls gets one fault per check written into a copy, each in one call's note or one actor's
-name; the module must return one break of the rule system names it by, at that text's place, and none for the contract as written.
+name; the module must return one break of the rule system names it by, at that text's place, whose message quotes the text and names
+what in it broke the rule, and none for the contract as written.
 system reach: on a copy of the plugin whose module checks no Korean sentence ending, system's checker must accept a description closing
 outside `니다`, which it refuses on this checkout. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import copy
@@ -25,9 +26,9 @@ CONTRACT = {
     "actors": [{"id": "shop", "name": "Shop front"}, {"id": "store", "name": "Order store"}],
     "calls": [{"id": "ask", "from": "shop", "to": "store", "name": "look up an order", "note": "sends the order number to {store}"},
               {"id": "answer", "from": "store", "to": "shop", "name": "return the order", "note": "{store}은(는) 주문을 찾아 돌려줍니다."}],
-    "terms": [{"term": "order", "meaning": "what a buyer asked for", "avoid": ["purchase"]}],
+    "terms": [{"term": "order", "meaning": "what a buyer asked for", "avoid": ["purchase", "buy", "buy order"]}],
 }
-FAULTS = [  # the text a fault replaces, by the call or actor it sits on, and the rule system names it by
+FAULTS = [  # the text a fault replaces, by the call or actor it sits on, the rule system names it by, and what its message must say besides the text
     ("calls/ask/note", "costs $\\foo x$ per call", "formula"),
     ("calls/ask/note", "sends an `open quote", "text-plain"),
     ("calls/ask/note", "sends the number to {nobody}", "text-plain"),
@@ -35,10 +36,12 @@ FAULTS = [  # the text a fault replaces, by the call or actor it sits on, and th
     ("calls/ask/note", "draws the call in #ff0000", "text-plain"),
     ("calls/ask/note", "asks the Order store for the number", "text-plain"),
     ("actors/store/name", "주문 창고", "name-english"),
-    ("calls/answer/note", "{store}는 주문을 찾아 돌려줍니다.", "korean-text"),
+    ("actors/store/name", "Order $x$ store", "formula"),
+    ("calls/answer/note", "{store}는 주문을 찾아 돌려줍니다.", "korean-text", "writes `는`"),
     ("calls/answer/note", "{store}은(는) 주문을 찾아 돌려준다.", "korean-text"),
     ("calls/answer/note", "`order` 를 찾아 돌려줍니다.", "korean-text"),
     ("calls/ask/note", "sends the purchase number", "term-words"),
+    ("calls/ask/note", "sends the buy order number", "term-words", "says `buy order`"),
 ]
 
 
@@ -63,10 +66,12 @@ def written(contract, where, text):
 def prose_checks():
     """Each reason the module misses a fault or breaks the contract as written."""
     found = [f"the contract as written breaks {rule} at {where}" for where, rule, _ in breaks(CONTRACT)]
-    for where, text, rule in FAULTS:
-        got = [(place, kind) for place, kind, _ in breaks(written(CONTRACT, where, text))]
-        if got != [(where, rule)]:
-            found.append(f"`{text}` at {where} gave {got or 'no break'}, expected one {rule} there")
+    for where, text, rule, *said in FAULTS:
+        got = breaks(written(CONTRACT, where, text))
+        if [(place, kind) for place, kind, _ in got] != [(where, rule)]:
+            found.append(f"`{text}` at {where} gave {[(place, kind) for place, kind, _ in got] or 'no break'}, expected one {rule} there")
+        elif not all(part in got[0][2] for part in [f"`{text[:40]}`", *said]):
+            found.append(f"`{text}` at {where} broke {rule} saying `{got[0][2]}`, which misses {[f'`{text[:40]}`', *said]}")
     return found
 
 
