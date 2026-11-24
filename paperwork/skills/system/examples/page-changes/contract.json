@@ -10,12 +10,12 @@
   {
    "id": "src-server",
    "path": "paperwork/skills/system/scripts/serve-relay.py",
-   "says": "the server: arguments, routes, files, timers and every status code"
+   "says": "the server's command: its arguments and the call that starts the shared server"
   },
   {
    "id": "src-connect",
    "path": "paperwork/skills/system/scripts/connect-page.py",
-   "says": "how the runtime and the two empty blocks are pasted into a page"
+   "says": "the connect command: its argument and the line it prints"
   },
   {
    "id": "src-check",
@@ -24,8 +24,18 @@
   },
   {
    "id": "src-runtime",
-   "path": "paperwork/skills/system/assets/page-runtime.js",
+   "path": "paperwork/lib/relay-runtime.js",
    "says": "what the page does in the browser: globals, badges, panel, status bar, sending and reloading"
+  },
+  {
+   "id": "src-relay-page",
+   "path": "paperwork/lib/relay_page.py",
+   "says": "how the runtime and the two empty blocks are pasted into a page, shared by every skill that relays a page"
+  },
+  {
+   "id": "src-relay-server",
+   "path": "paperwork/lib/relay_server.py",
+   "says": "the server: routes, files, timers and every status code, shared by every skill that relays a page"
   },
   {
    "id": "src-starter",
@@ -101,7 +111,7 @@
   },
   {
    "term": "runtime",
-   "meaning": "the script assets/page-runtime.js, pasted inline into a page between two marker comments",
+   "meaning": "the script lib/relay-runtime.js, pasted inline into a page between two marker comments",
    "coined": true
   },
   {
@@ -558,7 +568,7 @@
       ],
       [
        "runtime text",
-       "assets/page-runtime.js beside scripts/, read whole and stripped of outer whitespace",
+       "lib/relay-runtime.js of the plugin, read whole and stripped of outer whitespace",
        "{skill-folder}"
       ]
      ]
@@ -621,12 +631,13 @@
    },
    "evidence": [
     "src-connect:2",
-    "src-connect:13",
-    "src-connect:17"
+    "src-relay-page:6",
+    "src-connect:15"
    ],
    "basis": "observed",
    "files": [
-    "src-connect"
+    "src-connect",
+    "src-relay-page"
    ]
   },
   {
@@ -723,12 +734,13 @@
    },
    "evidence": [
     "src-server:2",
-    "src-server:223",
+    "src-relay-server:199",
     "src-skill:13"
    ],
    "basis": "observed",
    "files": [
-    "src-server"
+    "src-server",
+    "src-relay-server"
    ]
   },
   {
@@ -785,7 +797,7 @@
      "console.error `relay: pageRender failed` with the error",
      "console.error `relay: runtime failed` with the error"
     ],
-    "owner": "source in assets/page-runtime.js; every page carries its own pasted copy"
+    "owner": "source in lib/relay-runtime.js; every page carries its own pasted copy"
    },
    "evidence": [
     "src-runtime:1",
@@ -956,7 +968,7 @@
    "opens": "starter-parts",
    "purpose": "Give a new page a working example that follows the whole interface: anchors, page data, threads, a render hook, a data change and a current runtime.",
    "info": {
-    "format": "one HTML file, 310 lines, lang en, charset utf-8, title Diagram; its lines 80 to 308 are the markers around a copy of {runtime} identical to assets/page-runtime.js stripped",
+    "format": "one HTML file, 310 lines, lang en, charset utf-8, title Diagram; its lines 80 to 308 are the markers around a copy of {runtime} identical to lib/relay-runtime.js stripped",
     "made-by": "written by hand; its runtime copy by {connector}",
     "used-by": [
      "a session that starts a new page as a copy of it",
@@ -1150,8 +1162,8 @@
     "capacity": "no limit on the count; one post is 1,000,000 bytes at most"
    },
    "evidence": [
-    "src-server:64",
-    "src-server:79",
+    "src-relay-server:40",
+    "src-relay-server:55",
     "src-skill:11"
    ],
    "basis": "observed"
@@ -1273,7 +1285,7 @@
     "src-skill:21",
     "src-skill:22",
     "src-skill:23",
-    "src-e2e:194"
+    "src-e2e:195"
    ],
    "basis": "documented"
   },
@@ -1533,7 +1545,7 @@
     "src-skill:8",
     "src-runtime:15",
     "src-check:87",
-    "src-e2e:173"
+    "src-e2e:174"
    ],
    "basis": "observed"
   },
@@ -1656,7 +1668,7 @@
    "evidence": [
     "src-skill:9",
     "src-check:17",
-    "src-server:24"
+    "src-relay-server:13"
    ],
    "basis": "observed"
   },
@@ -1677,9 +1689,9 @@
     ]
    },
    "evidence": [
-    "src-connect:13",
-    "src-connect:24",
-    "src-server:28"
+    "src-relay-page:6",
+    "src-relay-page:14",
+    "src-relay-server:17"
    ],
    "basis": "observed"
   },
@@ -1734,7 +1746,7 @@
     "src-runtime:15",
     "src-runtime:168",
     "src-runtime:222",
-    "src-e2e:126"
+    "src-e2e:127"
    ],
    "basis": "observed"
   },
@@ -2470,9 +2482,9 @@
    },
    "evidence": [
     "src-server:4",
-    "src-server:32",
-    "src-server:223",
-    "src-server:253"
+    "src-server:19",
+    "src-relay-server:199",
+    "src-server:37"
    ],
    "basis": "observed"
   },
@@ -2515,10 +2527,10 @@
     }
    },
    "evidence": [
-    "src-server:47",
-    "src-server:53",
-    "src-server:60",
-    "src-server:223"
+    "src-server:33",
+    "src-relay-server:29",
+    "src-relay-server:36",
+    "src-relay-server:199"
    ],
    "basis": "observed"
   },
@@ -2563,8 +2575,8 @@
     "retention": "the life of the process; only `next` is rebuilt from the files at start"
    },
    "evidence": [
-    "src-server:59",
-    "src-server:61"
+    "src-relay-server:35",
+    "src-relay-server:37"
    ],
    "basis": "observed"
   },
@@ -2587,7 +2599,7 @@
     "why": "a file still being written changes between two polls, so only content quiet for a whole poll is read"
    },
    "evidence": [
-    "src-server:107"
+    "src-relay-server:83"
    ],
    "basis": "observed"
   },
@@ -2643,8 +2655,8 @@
     "why": "a reload into a page without its runtime would leave a page that never reloads again"
    },
    "evidence": [
-    "src-server:92",
-    "src-server:28"
+    "src-relay-server:68",
+    "src-relay-server:17"
    ],
    "basis": "observed"
   },
@@ -2678,7 +2690,7 @@
     "limits": "each newly queued change pushes due to its own time plus the quiet window; an ack or a restart never sets due"
    },
    "evidence": [
-    "src-server:122"
+    "src-relay-server:98"
    ],
    "basis": "observed"
   },
@@ -2696,9 +2708,9 @@
     "kept-in": "{url-file} beside the page, as the whole url and a newline; the file is never served"
    },
    "evidence": [
-    "src-server:53",
-    "src-server:54",
-    "src-server:153",
+    "src-relay-server:29",
+    "src-relay-server:30",
+    "src-relay-server:129",
     "src-skill:34"
    ],
    "basis": "observed"
@@ -2755,9 +2767,9 @@
     "fallback": "404 with an empty text/plain body; /`<token>` without the closing slash is 404 too"
    },
    "evidence": [
-    "src-server:151",
-    "src-server:182",
-    "src-server:203"
+    "src-relay-server:127",
+    "src-relay-server:158",
+    "src-relay-server:179"
    ],
    "basis": "observed"
   },
@@ -2812,8 +2824,8 @@
     ]
    },
    "evidence": [
-    "src-server:27",
-    "src-server:203"
+    "src-relay-server:16",
+    "src-relay-server:179"
    ],
    "basis": "observed"
   },
@@ -2853,8 +2865,8 @@
     "limits": "every answer but the event stream carries Content-Type, Cache-Control: no-store and Content-Length"
    },
    "evidence": [
-    "src-server:184",
-    "src-server:143"
+    "src-relay-server:160",
+    "src-relay-server:119"
    ],
    "basis": "observed"
   },
@@ -2948,7 +2960,7 @@
     "limits": "on success: append the change to pending.jsonl, add one to memory's queue counter, set memory's due to now plus the quiet window"
    },
    "evidence": [
-    "src-server:64"
+    "src-relay-server:40"
    ],
    "basis": "observed"
   },
@@ -2988,7 +3000,7 @@
     "limits": "reading changes nothing"
    },
    "evidence": [
-    "src-server:186"
+    "src-relay-server:162"
    ],
    "basis": "observed"
   },
@@ -3057,7 +3069,7 @@
     "limits": "on a match: append the moved changes to applied.jsonl, rewrite pending.jsonl without them, add one to memory's queue counter; the due time is not touched"
    },
    "evidence": [
-    "src-server:79"
+    "src-relay-server:55"
    ],
    "basis": "observed"
   },
@@ -3107,7 +3119,7 @@
     "limits": "one thread per stream, waking every 0.5 s; it ends when a write fails"
    },
    "evidence": [
-    "src-server:157"
+    "src-relay-server:133"
    ],
    "basis": "observed"
   },
@@ -3167,8 +3179,8 @@
     "why": "the first piece is compared by os.path.samefile, since the file system may match a name in another letter case"
    },
    "evidence": [
-    "src-server:192",
-    "src-server:26"
+    "src-relay-server:168",
+    "src-relay-server:15"
    ],
    "basis": "observed"
   },
@@ -3225,8 +3237,8 @@
     }
    },
    "evidence": [
-    "src-server:35",
-    "src-server:47"
+    "src-server:22",
+    "src-server:33"
    ],
    "basis": "observed"
   },
@@ -3256,9 +3268,9 @@
     "retention": "until acked"
    },
    "evidence": [
-    "src-server:51",
-    "src-server:238",
-    "src-server:242"
+    "src-relay-server:27",
+    "src-relay-server:214",
+    "src-relay-server:218"
    ],
    "basis": "observed"
   },
@@ -3287,8 +3299,8 @@
     "retention": "kept for good; nothing prunes it"
    },
    "evidence": [
-    "src-server:51",
-    "src-server:87"
+    "src-relay-server:27",
+    "src-relay-server:63"
    ],
    "basis": "observed"
   },
@@ -3333,7 +3345,7 @@
     }
    },
    "evidence": [
-    "src-server:98",
+    "src-relay-server:74",
     "src-skill:35"
    ],
    "basis": "observed"
@@ -3362,8 +3374,8 @@
     }
    },
    "evidence": [
-    "src-server:52",
-    "src-server:230"
+    "src-relay-server:28",
+    "src-relay-server:206"
    ],
    "basis": "observed"
   },
@@ -3402,7 +3414,7 @@
    },
    "evidence": [
     "src-runtime:33",
-    "src-e2e:113"
+    "src-e2e:114"
    ],
    "basis": "observed"
   },
@@ -3428,7 +3440,7 @@
    "evidence": [
     "src-runtime:22",
     "src-runtime:49",
-    "src-e2e:295"
+    "src-e2e:296"
    ],
    "basis": "observed"
   },
@@ -3457,7 +3469,7 @@
     ]
    },
    "evidence": [
-    "src-server:74",
+    "src-relay-server:50",
     "src-skill:24",
     "src-runtime:127"
    ],
@@ -3477,7 +3489,7 @@
     ]
    },
    "evidence": [
-    "src-server:87"
+    "src-relay-server:63"
    ],
    "basis": "observed"
   },
@@ -3918,9 +3930,9 @@
    },
    "evidence": [
     "src-e2e:12",
-    "src-e2e:33",
-    "src-e2e:36",
-    "src-e2e:479"
+    "src-e2e:34",
+    "src-e2e:37",
+    "src-e2e:480"
    ],
    "basis": "observed"
   },
@@ -3940,7 +3952,7 @@
    },
    "evidence": [
     "src-e2e:31",
-    "src-e2e:44"
+    "src-e2e:45"
    ],
    "basis": "observed"
   },
@@ -3964,7 +3976,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:441"
+    "src-e2e:442"
    ],
    "basis": "observed"
   },
@@ -3987,7 +3999,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:101"
+    "src-e2e:102"
    ],
    "basis": "observed"
   },
@@ -4010,7 +4022,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:141"
+    "src-e2e:142"
    ],
    "basis": "observed"
   },
@@ -4034,8 +4046,8 @@
     "why": "a session acks in a later tool call than its edit, so the ack reaches a page that has already reloaded"
    },
    "evidence": [
-    "src-e2e:180",
-    "src-e2e:207"
+    "src-e2e:181",
+    "src-e2e:208"
    ],
    "basis": "observed"
   },
@@ -4067,7 +4079,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:235"
+    "src-e2e:236"
    ],
    "basis": "observed"
   },
@@ -4092,8 +4104,8 @@
     "why": "a form value recorded on blur redraws the badges, and the click that caused the blur must still open its panel"
    },
    "evidence": [
-    "src-e2e:280",
-    "src-e2e:306"
+    "src-e2e:281",
+    "src-e2e:307"
    ],
    "basis": "observed"
   },
@@ -4114,8 +4126,8 @@
     ]
    },
    "evidence": [
-    "src-e2e:334",
-    "src-e2e:42"
+    "src-e2e:335",
+    "src-e2e:43"
    ],
    "basis": "observed"
   },
@@ -4142,7 +4154,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:365"
+    "src-e2e:366"
    ],
    "basis": "observed"
   }
@@ -4318,7 +4330,7 @@
    },
    "evidence": [
     "src-runtime:37",
-    "src-server:203"
+    "src-relay-server:179"
    ]
   },
   {
@@ -4362,7 +4374,7 @@
    },
    "evidence": [
     "src-runtime:214",
-    "src-server:157"
+    "src-relay-server:133"
    ]
   },
   {
@@ -4405,7 +4417,7 @@
     "delivery": "checked every 0.5 s per stream; only differences from the values at connect or at the last send are sent, so an ack while the stream was down sends nothing"
    },
    "evidence": [
-    "src-server:157",
+    "src-relay-server:133",
     "src-runtime:216"
    ]
   },
@@ -4420,8 +4432,8 @@
     "consistency": "the whole file is rewritten through a .tmp file and os.replace, under one lock"
    },
    "evidence": [
-    "src-server:74",
-    "src-server:242"
+    "src-relay-server:50",
+    "src-relay-server:218"
    ]
   },
   {
@@ -4436,8 +4448,8 @@
    },
    "evidence": [
     "src-server:9",
-    "src-server:107",
-    "src-server:185"
+    "src-relay-server:83",
+    "src-relay-server:161"
    ]
   },
   {
@@ -4490,7 +4502,7 @@
     "delivery": "once per burst: after a change is queued and the quiet window passes with no newer one; nothing is printed for changes that were already pending at start, nor after an ack"
    },
    "evidence": [
-    "src-server:122",
+    "src-relay-server:98",
     "src-skill:13"
    ]
   },
@@ -4520,7 +4532,7 @@
    },
    "evidence": [
     "src-skill:20",
-    "src-server:186"
+    "src-relay-server:162"
    ]
   },
   {
@@ -4597,7 +4609,7 @@
    },
    "evidence": [
     "src-skill:24",
-    "src-server:79"
+    "src-relay-server:55"
    ]
   },
   {
@@ -4656,7 +4668,7 @@
     "mode": "write, only when the text differs"
    },
    "evidence": [
-    "src-connect:35"
+    "src-relay-page:25"
    ]
   },
   {
@@ -4666,11 +4678,11 @@
    "label": "copies the source text of",
    "tag": "dependsOn",
    "info": {
-    "kind": "reads assets/page-runtime.js at each run",
+    "kind": "reads lib/relay-runtime.js at each run",
     "on-failure": "a missing file raises an uncaught error"
    },
    "evidence": [
-    "src-connect:23"
+    "src-relay-page:14"
    ]
   },
   {
@@ -4725,7 +4737,7 @@
    },
    "evidence": [
     "src-starter:80",
-    "src-e2e:103"
+    "src-e2e:104"
    ]
   },
   {
@@ -4764,7 +4776,7 @@
     "protocol": "python3 serve-page-changes.py <page> --quiet 1.5"
    },
    "evidence": [
-    "src-e2e:78"
+    "src-e2e:79"
    ]
   },
   {
@@ -4778,7 +4790,7 @@
    },
    "evidence": [
     "src-replay-options:18",
-    "src-e2e:103"
+    "src-e2e:104"
    ]
   },
   {
@@ -5314,7 +5326,7 @@
    "label": "runs",
    "tag": "triggers",
    "evidence": [
-    "src-server:32"
+    "src-server:19"
    ]
   },
   {
@@ -5327,8 +5339,8 @@
     "mode": "read, then write"
    },
    "evidence": [
-    "src-server:54",
-    "src-server:230"
+    "src-relay-server:30",
+    "src-relay-server:206"
    ]
   },
   {
@@ -5342,7 +5354,7 @@
     "derivation": "the fourth `/` piece of {url-file}, else secrets.token_urlsafe(16)"
    },
    "evidence": [
-    "src-server:53"
+    "src-relay-server:29"
    ]
   },
   {
@@ -5352,7 +5364,7 @@
    "label": "starts as a daemon thread",
    "tag": "triggers",
    "evidence": [
-    "src-server:232"
+    "src-relay-server:208"
    ]
   },
   {
@@ -5362,7 +5374,7 @@
    "label": "starts as a daemon thread",
    "tag": "triggers",
    "evidence": [
-    "src-server:232"
+    "src-relay-server:208"
    ]
   },
   {
@@ -5372,7 +5384,7 @@
    "label": "runs once before the url line",
    "tag": "triggers",
    "evidence": [
-    "src-server:231"
+    "src-relay-server:207"
    ]
   },
   {
@@ -5385,7 +5397,7 @@
     "effect": "404 without it"
    },
    "evidence": [
-    "src-server:153"
+    "src-relay-server:129"
    ]
   },
   {
@@ -5398,7 +5410,7 @@
     "condition": "nothing after /`<token>`/"
    },
    "evidence": [
-    "src-server:184"
+    "src-relay-server:160"
    ]
   },
   {
@@ -5408,7 +5420,7 @@
    "label": "sends GET api/changes to",
    "tag": "sequence",
    "evidence": [
-    "src-server:186"
+    "src-relay-server:162"
    ]
   },
   {
@@ -5418,7 +5430,7 @@
    "label": "sends GET api/events to",
    "tag": "sequence",
    "evidence": [
-    "src-server:190"
+    "src-relay-server:166"
    ]
   },
   {
@@ -5428,7 +5440,7 @@
    "label": "sends every other GET to",
    "tag": "sequence",
    "evidence": [
-    "src-server:192"
+    "src-relay-server:168"
    ]
   },
   {
@@ -5438,7 +5450,7 @@
    "label": "sends every POST of a known route through",
    "tag": "sequence",
    "evidence": [
-    "src-server:206"
+    "src-relay-server:182"
    ]
   },
   {
@@ -5451,7 +5463,7 @@
     "effect": "403 or 400 before the handler"
    },
    "evidence": [
-    "src-server:208"
+    "src-relay-server:184"
    ]
   },
   {
@@ -5464,7 +5476,7 @@
     "effect": "403 or 400 before the handler"
    },
    "evidence": [
-    "src-server:208"
+    "src-relay-server:184"
    ]
   },
   {
@@ -5477,7 +5489,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-server:74"
+    "src-relay-server:50"
    ]
   },
   {
@@ -5495,7 +5507,7 @@
     ]
    },
    "evidence": [
-    "src-server:73"
+    "src-relay-server:49"
    ]
   },
   {
@@ -5508,7 +5520,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-server:188"
+    "src-relay-server:164"
    ]
   },
   {
@@ -5521,7 +5533,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-server:88"
+    "src-relay-server:64"
    ]
   },
   {
@@ -5534,7 +5546,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-server:87"
+    "src-relay-server:63"
    ]
   },
   {
@@ -5550,7 +5562,7 @@
     ]
    },
    "evidence": [
-    "src-server:89"
+    "src-relay-server:65"
    ]
   },
   {
@@ -5564,7 +5576,7 @@
     "rate": "every 0.5 s per stream"
    },
    "evidence": [
-    "src-server:169"
+    "src-relay-server:145"
    ]
   },
   {
@@ -5577,7 +5589,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-server:185"
+    "src-relay-server:161"
    ]
   },
   {
@@ -5590,7 +5602,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-server:193"
+    "src-relay-server:169"
    ]
   },
   {
@@ -5604,7 +5616,7 @@
     "rate": "every 0.5 s"
    },
    "evidence": [
-    "src-server:111"
+    "src-relay-server:87"
    ]
   },
   {
@@ -5617,7 +5629,7 @@
     "delay": "0.5 to 1 s after the last write"
    },
    "evidence": [
-    "src-server:114"
+    "src-relay-server:90"
    ]
   },
   {
@@ -5630,7 +5642,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-server:100"
+    "src-relay-server:76"
    ]
   },
   {
@@ -5646,7 +5658,7 @@
     ]
    },
    "evidence": [
-    "src-server:104"
+    "src-relay-server:80"
    ]
   },
   {
@@ -5659,7 +5671,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-server:130"
+    "src-relay-server:106"
    ]
   },
   {
@@ -5675,7 +5687,7 @@
     ]
    },
    "evidence": [
-    "src-server:127"
+    "src-relay-server:103"
    ]
   },
   {
@@ -5717,7 +5729,7 @@
    },
    "evidence": [
     "src-runtime:47",
-    "src-server:71"
+    "src-relay-server:47"
    ]
   },
   {
@@ -5744,7 +5756,7 @@
     "action": "move its line from pending.jsonl to applied.jsonl and raise the queue counter"
    },
    "evidence": [
-    "src-server:85"
+    "src-relay-server:61"
    ]
   },
   {
@@ -5833,7 +5845,7 @@
     "condition": "no option"
    },
    "evidence": [
-    "src-e2e:444"
+    "src-e2e:445"
    ]
   },
   {
@@ -5846,7 +5858,7 @@
     "condition": "--queue `<folder>`"
    },
    "evidence": [
-    "src-e2e:442"
+    "src-e2e:443"
    ]
   },
   {
@@ -5859,7 +5871,7 @@
     "condition": "--verify `<folder>`"
    },
    "evidence": [
-    "src-e2e:443"
+    "src-e2e:444"
    ]
   },
   {
@@ -5873,7 +5885,7 @@
     "on-failure": "`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell` and exit 1"
    },
    "evidence": [
-    "src-e2e:446"
+    "src-e2e:447"
    ]
   },
   {
@@ -5887,7 +5899,7 @@
     "on-failure": "`FAIL queue: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:357"
+    "src-e2e:358"
    ]
   },
   {
@@ -5901,7 +5913,7 @@
     "on-failure": "`FAIL setup: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:432"
+    "src-e2e:433"
    ]
   },
   {
@@ -5914,7 +5926,7 @@
     "order": 1
    },
    "evidence": [
-    "src-e2e:456"
+    "src-e2e:457"
    ]
   },
   {
@@ -5927,7 +5939,7 @@
     "order": 2
    },
    "evidence": [
-    "src-e2e:457"
+    "src-e2e:458"
    ]
   },
   {
@@ -5940,7 +5952,7 @@
     "order": 3
    },
    "evidence": [
-    "src-e2e:458"
+    "src-e2e:459"
    ]
   },
   {
@@ -5953,7 +5965,7 @@
     "order": 4
    },
    "evidence": [
-    "src-e2e:459"
+    "src-e2e:460"
    ]
   },
   {
@@ -5966,7 +5978,7 @@
     "order": 5
    },
    "evidence": [
-    "src-e2e:460"
+    "src-e2e:461"
    ]
   },
   {
@@ -6256,9 +6268,9 @@
    ],
    "evidence": [
     "src-server:9",
-    "src-e2e:170",
-    "src-e2e:215",
-    "src-e2e:277"
+    "src-e2e:171",
+    "src-e2e:216",
+    "src-e2e:278"
    ]
   },
   {
@@ -6274,8 +6286,8 @@
     "pending-file"
    ],
    "evidence": [
-    "src-server:62",
-    "src-e2e:275"
+    "src-relay-server:38",
+    "src-e2e:276"
    ]
   },
   {
@@ -6290,8 +6302,8 @@
     "startup"
    ],
    "evidence": [
-    "src-server:54",
-    "src-e2e:272"
+    "src-relay-server:30",
+    "src-e2e:273"
    ]
   },
   {
@@ -6305,9 +6317,9 @@
     "announcer"
    ],
    "evidence": [
-    "src-server:122",
-    "src-e2e:159",
-    "src-e2e:166"
+    "src-relay-server:98",
+    "src-e2e:160",
+    "src-e2e:167"
    ]
   },
   {
@@ -6323,9 +6335,9 @@
     "route-events"
    ],
    "evidence": [
-    "src-server:103",
-    "src-server:113",
-    "src-e2e:287"
+    "src-relay-server:79",
+    "src-relay-server:89",
+    "src-e2e:288"
    ]
   },
   {
@@ -6340,7 +6352,7 @@
     "pushes-reload"
    ],
    "evidence": [
-    "src-e2e:218"
+    "src-e2e:219"
    ]
   },
   {
@@ -6355,8 +6367,8 @@
     "local-machine"
    ],
    "evidence": [
-    "src-server:224",
-    "src-e2e:259"
+    "src-relay-server:200",
+    "src-e2e:260"
    ]
   },
   {
@@ -6374,8 +6386,8 @@
     "applied-file"
    ],
    "evidence": [
-    "src-server:196",
-    "src-e2e:249"
+    "src-relay-server:172",
+    "src-e2e:250"
    ]
   },
   {
@@ -6389,8 +6401,8 @@
     "history-folder"
    ],
    "evidence": [
-    "src-server:102",
-    "src-e2e:229"
+    "src-relay-server:78",
+    "src-e2e:230"
    ]
   },
   {
@@ -6407,7 +6419,7 @@
    ],
    "evidence": [
     "src-runtime:21",
-    "src-e2e:300"
+    "src-e2e:301"
    ]
   },
   {
@@ -6422,7 +6434,7 @@
     "session-store"
    ],
    "evidence": [
-    "src-e2e:219"
+    "src-e2e:220"
    ]
   },
   {
@@ -6437,7 +6449,7 @@
    ],
    "evidence": [
     "src-runtime:68",
-    "src-e2e:316"
+    "src-e2e:317"
    ]
   },
   {
@@ -6452,7 +6464,7 @@
    ],
    "evidence": [
     "src-runtime:222",
-    "src-e2e:135"
+    "src-e2e:136"
    ]
   },
   {
@@ -6461,13 +6473,13 @@
    "kind": "invariant",
    "strength": "must",
    "status": "holds",
-   "statement": "The copy of {runtime} inside {starter} equals assets/page-runtime.js stripped; {connector} on the starter writes nothing.",
+   "statement": "The copy of {runtime} inside {starter} equals lib/relay-runtime.js stripped; {connector} on the starter writes nothing.",
    "on": [
     "starter",
     "holds-a"
    ],
    "evidence": [
-    "src-e2e:104"
+    "src-e2e:105"
    ]
   },
   {
@@ -6529,9 +6541,9 @@
     "origin-rule"
    ],
    "evidence": [
-    "src-server:27",
-    "src-server:69",
-    "src-server:212"
+    "src-relay-server:16",
+    "src-relay-server:45",
+    "src-relay-server:188"
    ]
   },
   {
@@ -6578,7 +6590,7 @@
    ],
    "evidence": [
     "src-skill:19",
-    "src-e2e:47"
+    "src-e2e:48"
    ]
   },
   {
@@ -6593,7 +6605,7 @@
    ],
    "evidence": [
     "src-runtime:43",
-    "src-server:208"
+    "src-relay-server:184"
    ]
   },
   {
@@ -6609,7 +6621,7 @@
    ],
    "evidence": [
     "src-check:17",
-    "src-server:24"
+    "src-relay-server:13"
    ]
   },
   {
@@ -6625,7 +6637,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:195"
+    "src-e2e:196"
    ]
   },
   {
@@ -6655,7 +6667,7 @@
     "keeper"
    ],
    "evidence": [
-    "src-server:100"
+    "src-relay-server:76"
    ]
   },
   {
@@ -6684,8 +6696,8 @@
     "announcer"
    ],
    "evidence": [
-    "src-server:134",
-    "src-server:234"
+    "src-relay-server:110",
+    "src-relay-server:210"
    ]
   },
   {
@@ -6725,8 +6737,8 @@
     ]
    ],
    "evidence": [
-    "src-server:92",
-    "src-server:231"
+    "src-relay-server:68",
+    "src-relay-server:207"
    ]
   },
   {
@@ -6758,8 +6770,8 @@
    ],
    "evidence": [
     "src-connect:6",
-    "src-connect:37",
-    "src-e2e:104"
+    "src-connect:20",
+    "src-e2e:105"
    ]
   },
   {
@@ -6807,7 +6819,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:195"
+    "src-e2e:196"
    ]
   },
   {
@@ -6855,7 +6867,7 @@
    ],
    "evidence": [
     "src-skill:11",
-    "src-server:66"
+    "src-relay-server:42"
    ]
   },
   {
@@ -6885,7 +6897,7 @@
     "route-table"
    ],
    "evidence": [
-    "src-server:29"
+    "src-relay-server:18"
    ]
   }
  ],
