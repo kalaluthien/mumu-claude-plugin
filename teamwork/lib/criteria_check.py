@@ -20,6 +20,7 @@ GOAL_FIX = {
     "no path in the Goal": "add to the Goal one line, `Path: caller: <caller>; before: <step before>; after: <step after>; meets: <who sees the result>`, "
                            "naming the flow of the changed part, as protocol.md's **Scope the path** says: its callers, the steps before and after it, "
                            "and whoever meets its result, all on that one line; a Goal that names only the changed part misses what breaks when it changes",
+    "no Definition of done": "put the criteria under a `## Definition of done` heading, the only one the lint, `file` and `edit` read; under another heading, such as `## Criteria`, they are never checked",
     "path names no flow": "as protocol.md's **Scope the path** says, write the `Path:` line as `label: name` items split by `;`, the only form that counts: at least one of "
                           "`caller:`, `before:`, `after:` or `meets:` followed by the party it names, never `none`, empty, or a `<...>` blank of the form left in the line; "
                           "a line that names only the changed part, or says nothing is affected, gives no flow",
@@ -419,6 +420,7 @@ def lint(body, task=None):
     new_rules = task is None or task >= CUT_OFF
     goal = task_state.sections(body).get("goal")
     goal_found = goal_defects(goal) if goal is not None and (task is None or task >= GOAL_CUT_OFF) else []
+    goal_found += ["no Definition of done"] if goal is not None and "done" not in task_state.sections(body) and (task is None or task >= GOAL_CUT_OFF) else []
     # a part, `[task] #n`, is no criterion, so its form is the graph's to check
     matched = [(line_number, line, task_state.CRITERION.match(line).groups()[1:]) for line_number, line in enumerate(lines, 1)]
     criteria = [(line_number, line, groups) for line_number, line, groups in matched if groups[0] != "task"]
