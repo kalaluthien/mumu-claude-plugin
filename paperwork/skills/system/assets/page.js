@@ -16,7 +16,7 @@
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let terms = [], contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let terms = [], contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
 
   // ---- the contract's records ----
@@ -30,7 +30,12 @@
     }
     for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
     for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
-    for (const property of contract.properties || []) records[property.id] = { kind: "property", record: property };
+    counted = {};
+    for (const property of contract.properties || []) {
+      records[property.id] = { kind: "property", record: property };
+      const kind = property.kind === "gap" ? "gap" : property.status || "holds";
+      for (const one of new Set(property.on || [])) ((counted[one] = counted[one] || {})[kind] = counted[one][kind] || []).push(property.id);
+    }
     terms = (contract.terms || []).map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
       + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
     entries = index();
@@ -44,6 +49,13 @@
   const sentence = edge => edge.tag === "transition"
     ? `${label(edge.from)} → ${label(edge.to)} on ${words(edge.label)}`
     : `${label(edge.from)} ${words(edge.label)} ${label(edge.to)}.`;
+  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["broken", "✗", "broken"], ["gap", "!", "gaps"]]; // each kind a badge counts: its symbol, so it reads without its colour, and its card row's name
+  const counts = id => { // the badges of a record the properties on it earn, one per kind it holds
+    const held = counted[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
+    if (!shown.length) return null;
+    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
+      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
+  };
   const home = id => { // the level a record is seen on
     const found = records[id];
     if (!found) return null;
@@ -111,7 +123,8 @@
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const need = node => text(node) + beside(node);
+    const tally = node => COUNTS.filter(([kind]) => counted[node.id] && counted[node.id][kind]).length * 28; // the badges share the tag's line
+    const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tagName(node.tag).length * 7 + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
     const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
     const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
@@ -330,6 +343,8 @@
       const face = faces[id], best = shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first), point = seen ? best.point : face.point;
       face.text.classList.toggle("shown", seen);
       face.text.style.left = point.x + "px"; face.text.style.top = point.y + "px";
+      const badges = face.text.querySelector(".counts");
+      if (badges) badges.style.transform = point === face.point ? "" : `translate(${face.point.x - point.x}px, ${face.point.y - point.y}px)`; // a badge stays where the pointer found it while its label moves
       if (seen) taken.push(best.spot);
     }
   }
@@ -364,6 +379,8 @@
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
       }
+      const badges = counts(node.id);
+      if (badges) card.append(badges);
       stage.append(card);
     }
     blocks = level.nodes.map(node => ({ ...boxes[node.id] }));
@@ -382,7 +399,8 @@
       group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
         draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
       svg.append(group);
-      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true));
+      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true)), badges = counts(edge.id);
+      if (badges) text.append(badges);
       stage.append(text);
       if (!plans[key].seats[edge.id]) {
         const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
@@ -616,6 +634,7 @@
     if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
+    for (const [kind, , name] of COUNTS) if (counted[id] && counted[id][kind] && /^(node|edge)$/.test(records[id].kind)) add(name, "list", counted[id][kind].map(one => `{${one}}`));
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
@@ -663,7 +682,7 @@
     for (let x = -32; x <= 32; x += 8) for (let y = -32; y <= 32; y += 8) weigh(rough.left + x, rough.top + y); // the spots between those tried
     return best; // `tied` is what the spot still covers of the record and of what is tied to it
   }
-  let leaf = 0; // the page of rows the card shows
+  let leaf = 0, parked = null; // the page of rows the card shows; where the pointer clicked a chip, which raises no card until it moves
   function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
     const { kind, record } = records[id], box = $("card"), kept = view.at === id, all = rows(id);
     if (box.dataset.for !== id) leaf = 0;
@@ -808,7 +827,7 @@
     transport();
     if (!step) return;
     if (step.note) {
-      chip.replaceChildren(...prose(step.note, true));
+      chip.replaceChildren(make("small", {}, `Step ${view.step + 1}`), make("span", {}, ...prose(step.note, true)));
       chip.style.left = chip.style.top = "0px"; // measured where the window's edge cuts no line short
       const at = beside(step.at, chip.offsetWidth, chip.offsetHeight, 12, true); // a note is small enough to keep off every node
       chip.style.left = at.left + "px";
@@ -1119,8 +1138,8 @@
   // ---- wiring ----
   function wire() {
     const stage = $("stage");
-    addEventListener("pointermove", approach);
-    stage.addEventListener("pointerover", event => { const id = hit(event.target); approach(event); if (id) hover(id); });
+    addEventListener("pointermove", event => { if (parked && Math.hypot(event.clientX - parked[0], event.clientY - parked[1]) > 2) parked = null; approach(event); });
+    stage.addEventListener("pointerover", event => { if (parked) return; const id = hit(event.target); approach(event); if (id) hover(id); }); // the card a chip opened moved off a pointer that has not moved
     stage.addEventListener("pointerout", event => { approach(event); if (hit(event.target)) unhover(); });
     stage.addEventListener("click", event => { const id = hit(event.target); if (id && event.detail < 2) go({ at: view.at === id ? null : id }); }); // a double click's second click would undo its first
     stage.addEventListener("dblclick", event => { const id = hit(event.target); if (id && records[id].record.opens) go({ level: records[id].record.opens, at: null }, true); }); // in place of the view its first click added
@@ -1140,6 +1159,8 @@
       if (event.target.closest(".term")) unGloss();
     });
     $("card").addEventListener("click", event => {
+      const named = event.target.closest(".ref");
+      if (named && records[named.dataset.ref].kind === "property") { parked = [event.clientX, event.clientY]; return go({ level: home(named.dataset.ref), at: named.dataset.ref }); }
       const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
       if (!cite || shown) return unGloss();
       gloss(cite, ...sources(records[$("card").dataset.for].record));
