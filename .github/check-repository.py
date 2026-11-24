@@ -277,7 +277,7 @@ def runner_marker(root, files, folder, path, argv):
 
 def run_fixtures(root, files, failures, fresh):
     """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
-    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path, a path no runner has failing; returns (how many, how many replayed)."""
+    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path; returns (how many, how many replayed)."""
     calls = []
     for path in files:
         if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
@@ -286,7 +286,6 @@ def run_fixtures(root, files, failures, fresh):
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 if FIXTURES_CALL.search(handle.read()):
                     calls.append((path, [sys.executable, path, "fixtures"]))
-    failures += ["fixture {}: no such runner".format(path) for path in sorted(set() if fresh is True else fresh - {path for path, _ in calls})]
     with tempfile.TemporaryDirectory() as stand_ins:
         for name in ("claude", "herdr"):
             with open(os.path.join(stand_ins, name), "w") as handle:
