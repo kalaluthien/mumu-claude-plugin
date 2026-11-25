@@ -21,7 +21,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
-from contract_fields import cited, fits  # noqa: E402
+from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_prose import KOREAN, MARKUP, REFERENCE, shown, text_breaks, wording_breaks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
@@ -157,11 +157,6 @@ def placed(value, where="", skipped=()):
     return [pair for key, part in value.items() for pair in placed(part, f"{where}/{key}", skipped)] if isinstance(value, dict) else []
 
 
-def tag_items(kind, tag):
-    """The items an element of KIND with TAG may hold: its tag's own, then the ones common to the kind."""
-    return {item["name"]: item for item in TAGS[kind].get(tag, {}).get("items", []) + TAGS["common"][kind]}
-
-
 OPTIONAL = {"avoid": list, "area": str, "opens": str, "purpose": str, "about": str, "note": str, "authority": str, "strength": str, "status": str, "fault": str,
             "many": bool, "principle": bool, "coined": bool, "on": list, "paths": list, "sources": list, "terms": list, "scenarios": list,
             "properties": list, "areas": list, "edges": list, "questions": list, "answers": list, "gap": str, "files": list, "aliases": list}
@@ -269,7 +264,7 @@ def breaks(contract, root=None):
                 if element["tag"] not in TAGS[kind]:
                     found.append((where, "tag-known", f"`{element['tag']}` is no {kind} tag; one of {', '.join(TAGS[kind])}"))
                     continue
-                allowed = tag_items(kind, element["tag"])
+                allowed = tag_items(TAGS, kind, element["tag"])
                 for name, value in element.get("info", {}).items():
                     if name not in allowed:
                         found.append((where, "info-item", f"`{name}` is no item of {element['tag']}; one of {', '.join(allowed)}"))
@@ -363,7 +358,7 @@ def breaks(contract, root=None):
         found.append(("properties", "property-form", "state one invariant or property at least: what must hold while the purpose is met"))
     labels = {element["id"]: element["label"] for element in elements(contract)}
     quoted = {id(value) for level in contract["levels"] for kind in ("area", "node", "edge") for element in level.get(kind + "s", [])
-              for name, value in element.get("info", {}).items() if tag_items(kind, element["tag"]).get(name, {}).get("form") == "code"}
+              for name, value in element.get("info", {}).items() if tag_items(TAGS, kind, element["tag"]).get(name, {}).get("form") == "code"}
     found += text_breaks(placed(contract, skipped=quoted), labels)
     named = [element for element in elements(contract) if "from" not in element]
     for level in contract["levels"]:
@@ -529,7 +524,7 @@ def outline_lines(contract, only=None):
             continue
         lines.append(f"\nlevel {level['id']}: {shown(level['title'], labels)}: {shown(level.get('about', '(no about)'), labels)}")
         def part(kind, element, lead, indent):
-            catalogue_labels = {name: item["label"] for name, item in tag_items(kind, element["tag"]).items()}
+            catalogue_labels = {name: item["label"] for name, item in tag_items(TAGS, kind, element["tag"]).items()}
             said = element.get(lead) if kind == "node" else element.get("info", {}).get(lead)
             return ([f"{indent}{element['label']} ({element['tag']})" + (f": {shown(said, labels)}" if isinstance(said, str) else "")]
                     + [f"{indent}  {catalogue_labels.get(name, name)}: {flat(value, labels)}" for name, value in element.get("info", {}).items() if kind == "node" or name != lead]

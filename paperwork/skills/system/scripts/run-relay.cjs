@@ -26,6 +26,7 @@ const os = require("os");
 const path = require("path");
 const readline = require("readline");
 const { spawn, spawnSync } = require("child_process");
+const { sleep, check, until } = require(path.join(__dirname, "..", "..", "..", "lib", "wait-until.cjs"));
 
 const ROOT = path.resolve(__dirname, "..");
 const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
@@ -46,19 +47,6 @@ function browserBinary() {
   const cache = path.join(os.homedir(), "Library/Caches/ms-playwright");
   const shells = fs.existsSync(cache) ? fs.readdirSync(cache).filter((name) => name.startsWith("chromium_headless_shell-")).sort() : [];
   return shells.length ? path.join(cache, shells[shells.length - 1], "chrome-headless-shell-mac-arm64/chrome-headless-shell") : null;
-}
-
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
-
-async function until(probe, ms, what) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const value = await probe().catch(() => null);
-    if (value) return value;
-    await sleep(100);
-  }
-  throw new Error(`timed out waiting for ${what}`);
 }
 
 function request(method, url, { headers = {}, body } = {}) {

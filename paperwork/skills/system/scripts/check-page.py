@@ -14,6 +14,9 @@ import pathlib
 import re
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from relay_page import refuse  # noqa: E402
+
 ANCHOR = re.compile(r"[\w.:-]{1,80}")
 BLOCKS = ("page-data", "page-threads")
 PARSED = ("handle_starttag", "handle_endtag", "handle_data")  # html.parser calls these by name
@@ -41,11 +44,6 @@ class Page(html.parser.HTMLParser):
     def handle_data(self, data):
         if self.inside is not None:
             self.inside["text"] += data
-
-
-def refuse(word):
-    """Refuse NaN and Infinity, which Python reads and a browser's JSON.parse does not."""
-    raise ValueError(f"{word} is not JSON")
 
 
 def parse(name, block, found):

@@ -20,7 +20,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
-from contract_fields import cited, fits  # noqa: E402
+from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
 from flow_order import before, critical, cycle, ranks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
@@ -125,11 +125,6 @@ def form_breaks(contract):
     return found
 
 
-def tag_items(kind, tag):
-    """The items a record of KIND with TAG may hold: its tag's own, then the ones common to the kind."""
-    return {item["name"]: item for item in TAGS[kind].get(tag, {}).get("items", []) + TAGS["common"][kind]}
-
-
 def placed(value, where, skipped=()):
     """Every string VALUE holds, at any depth, but those whose identity is in SKIPPED, each as (where, text)."""
     if id(value) in skipped:
@@ -229,7 +224,7 @@ def breaks(contract, root=None):
                 found.append((where, "tag-known", f"`{record['tag']}` is no {catalogue} tag; one of {', '.join(TAGS[catalogue])}"))
             elif kind == "edges" and record["level"] in levels and (record["tag"] in PLAN_EDGES) != (levels[record["level"]]["kind"] == "plan"):
                 found.append((where, "tag-known", f"`{record['tag']}` does not fit a {levels[record['level']]['kind']} level; a plan's edge is one of {', '.join(PLAN_EDGES)}, an interaction's any other"))
-            items = tag_items(catalogue, record["tag"])
+            items = tag_items(TAGS, catalogue, record["tag"])
             for name, value in record.get("info", {}).items():
                 if name not in items:
                     found.append((where, "info-item", f"`{name}` is no item of `{record['tag']}`; one of {', '.join(items)}"))
@@ -348,7 +343,7 @@ def prose_breaks(contract, records):
     labelled = [(kind, record) for kind in ("nodes", "edges", "tasks", "milestones") for record in records[kind]]
     labels = {record["id"]: record["label"] for _, record in labelled}
     quoted = {id(value) for kind, catalogue in (("nodes", "node"), ("edges", "edge"), ("tasks", "task")) for record in records[kind]
-              for name, value in record.get("info", {}).items() if tag_items(catalogue, record["tag"]).get(name, {}).get("form") == "code"}
+              for name, value in record.get("info", {}).items() if tag_items(TAGS, catalogue, record["tag"]).get(name, {}).get("form") == "code"}
     edge_labels = {id(edge["label"]) for edge in records["edges"]}
     said = []
     said += placed(contract.get("purpose"), "purpose")

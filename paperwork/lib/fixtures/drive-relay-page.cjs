@@ -10,6 +10,7 @@ const path = require("path");
 const readline = require("readline");
 const { spawn } = require("child_process");
 const { missing, launch } = require(path.join(__dirname, "..", "launch-browser.cjs"));
+const { sleep, check, until } = require(path.join(__dirname, "..", "wait-until.cjs"));
 
 const [pageFile, anchor, ...command] = process.argv.slice(2);
 if (!pageFile || !anchor || !command.length) {
@@ -17,18 +18,6 @@ if (!pageFile || !anchor || !command.length) {
   process.exit(2);
 }
 const COMMENT = "Say this idea in fewer words";
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
-
-async function until(probe, ms, what) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const value = await probe().catch(() => null);
-    if (value) return value;
-    await sleep(100);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-}
 
 function request(method, url, headers = {}, body) {
   return new Promise((resolve, reject) => {

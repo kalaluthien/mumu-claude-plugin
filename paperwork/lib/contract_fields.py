@@ -1,4 +1,5 @@
-"""The checks of one field both contract checkers share: whether a value has an item's form, and whether an evidence entry names its source."""
+"""The checks of one field both contract checkers share: the items a tag allows, whether a value has an item's form, and whether an evidence
+entry names its source."""
 import re
 
 
@@ -32,3 +33,8 @@ def cited(entry, sources, root):
     if span and path is not None and path.is_file() and int(span.group(2) or span.group(1)) > len(path.read_text(errors="replace").splitlines()):
         return [f"`{entry}` names a line past the end of `{sources[name]['path']}`"]
     return []
+
+
+def tag_items(tags, kind, tag):
+    """The items a record of KIND with TAG may hold in the catalogue TAGS: its tag's own, then the ones common to the kind."""
+    return {item["name"]: item for item in tags[kind].get(tag, {}).get("items", []) + tags["common"][kind]}
