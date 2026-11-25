@@ -855,6 +855,241 @@
     ],
     5
    ]
+  ],
+  "cited-lines": [
+   [
+    [
+     "sources",
+     2
+    ],
+    {
+     "id": "skill-file",
+     "path": "SKILL.md",
+     "says": "The flow skill's routing table."
+    }
+   ],
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "skill-file:3",
+     "skill-file:2-4"
+    ]
+   ]
+  ],
+  "evidence-source-line-zero": [
+   [
+    [
+     "sources",
+     2
+    ],
+    {
+     "id": "skill-file",
+     "path": "SKILL.md",
+     "says": "The flow skill's routing table."
+    }
+   ],
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "skill-file:0"
+    ]
+   ]
+  ],
+  "evidence-source-reversed": [
+   [
+    [
+     "sources",
+     2
+    ],
+    {
+     "id": "skill-file",
+     "path": "SKILL.md",
+     "says": "The flow skill's routing table."
+    }
+   ],
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "skill-file:4-2"
+    ]
+   ]
+  ],
+  "fragment-span-par": [
+   [
+    [
+     "fragments",
+     0,
+     "kind"
+    ],
+    "par"
+   ]
+  ],
+  "nested-fragments-outer-first": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "reads-shard",
+     "gives-up"
+    ]
+   ]
+  ],
+  "nested-fragments-inner-first": [
+   [
+    [
+     "fragments",
+     1,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "reads-shard",
+     "gives-up",
+     "returns-record"
+    ]
+   ]
+  ],
+  "failure-item": [
+   [
+    [
+     "edges",
+     0,
+     "info"
+    ],
+    {
+     "protocol": "HTTPS GET /v1/names/{name}",
+     "failure": {
+      "columns": [
+       "status",
+       "when"
+      ],
+      "rows": [
+       [
+        "503",
+        "{gateway} is down"
+       ]
+      ]
+     }
+    }
+   ]
+  ],
+  "term-words-meaning": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "deed"
+    ]
+   ],
+   [
+    [
+     "terms",
+     0,
+     "meaning"
+    ],
+    "the deed of the account id and the time a name was taken"
+   ]
+  ],
+  "name-english-term": [
+   [
+    [
+     "terms",
+     0,
+     "term"
+    ],
+    "소유자 record"
+   ]
+  ],
+  "fragment-span-loop-two": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     1
+    ],
+    {
+     "guard": "the first shard times out",
+     "edges": [
+      "gives-up"
+     ]
+    }
+   ]
+  ],
+  "fragment-span-break-two": [
+   [
+    [
+     "fragments",
+     1,
+     "operands",
+     1
+    ],
+    {
+     "guard": "the record comes late",
+     "edges": [
+      "returns-record"
+     ]
+    }
+   ]
+  ],
+  "fragment-span-opt-two": [
+   [
+    [
+     "fragments",
+     2,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "reads-store"
+    ]
+   ],
+   [
+    [
+     "fragments",
+     2,
+     "operands",
+     1
+    ],
+    {
+     "guard": "the store answers",
+     "edges": [
+      "fills-cache"
+     ]
+    }
+   ]
+  ],
+  "text-plain-term-meaning": [
+   [
+    [
+     "terms",
+     0,
+     "meaning"
+    ],
+    "the account id and the time a name was taken, as {nobody} keeps them"
+   ]
   ]
  },
  "launch-plan": {

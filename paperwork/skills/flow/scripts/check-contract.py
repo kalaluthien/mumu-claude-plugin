@@ -207,7 +207,7 @@ def fragment_breaks(contract, level):
         if level["kind"] != "interaction":
             found.append((where, "fragment-span", "sits in a plan level; a fragment frames the edges of an interaction"))
             continue
-        if fragment["kind"] not in FRAGMENTS or not (len(operands) == 1 if FRAGMENTS[fragment["kind"]] == 1 else len(operands) >= 2):
+        if fragment["kind"] not in FRAGMENTS or not (len(operands) == 1 if FRAGMENTS[fragment["kind"]] == 1 else len(operands) >= FRAGMENTS[fragment["kind"]]):
             found.append((where, "fragment-span", f"kind is one of {', '.join(FRAGMENTS)}, `alt` and `par` with two operands or more, any other with one"))
             continue
         named = [name for operand in operands for name in operand["edges"]]
