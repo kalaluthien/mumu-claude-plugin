@@ -19,7 +19,7 @@ RUNTIME_END = b"<!-- /relay runtime -->"
 HANDLED = ("do_GET", "do_POST", "log_message")  # http.server calls these by name
 
 
-def serve(page, port=0, quiet=3.0):
+def serve(page, port, quiet):
     """Serve PAGE, a resolved path, on 127.0.0.1 behind a token until stopped, keeping its records beside it; 1 when it cannot listen."""
     folder = page.parent
     changes, history = folder / "changes", folder / "history"
