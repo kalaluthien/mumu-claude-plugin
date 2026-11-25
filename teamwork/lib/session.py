@@ -1,7 +1,7 @@
 """The session port: where a team's sessions run, done by the herdr adapter.
 
 Every adapter has these functions, by the same names:
-- reads: `live_names()` the live sessions' names, None when the host gave no list, `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), as the pane's record says, which `own()` and `own_interactive()` narrow to a session started or renamed as its name, or a person types into, and `own_name()` reads, `agent(name)` one by name or None,
+- reads: `live_names()` the live sessions' names, None when the host gave no list, `sessions(session_id)` the live sessions and this one's own ({} when the caller is none of them), as the pane's record says, which `own()` narrows to a team session started or renamed as its name and `own_interactive()` to one a person types into, and `own_name()` reads, `agent(name)` one by name or None,
   `screen(pane, styled=False)` the text a pane shows, with its color codes when `styled`, `tabs(workspace)` a workspace's tabs, each with its `label`
 - writes: `open_tab(workspace, cwd, label)` and `open_workspace(cwd, label)` each a new place,
   `rename(place, name)` its tab and pane, `start(name, pane, kind, argv, timeout)` an agent in a pane, `prompt(pane, text)` None once taken, else why not,
@@ -12,12 +12,13 @@ A session has `name`, `agent` (its kind, as the agent port's `KIND` names it), `
 a place has `pane_id` and `tab_id`. A `pane` argument may be a session's name, which the host resolves on each call, since it may move the pane. Functions raise RuntimeError when the host refuses a write they cannot do without."""
 import agent as coding_agent  # not `agent`, which the host's `agent(name)` answers
 import session_herdr as adapter
+import team_names
 
 
 def own():
-    """(the live sessions, this one's own) as `sessions()` gives them, with the own {} unless this session was started or renamed as its recorded name, since herdr names the pane's session after the pane, so a `claude -p` run there would act as its worker."""
+    """(the live sessions, this one's own) as `sessions()` gives them, with the own {} unless its name ends in a role and this session was started or renamed as that name, since herdr names the pane's session after the pane, so a `claude -p` run there would act as its worker; the name's suffix is read first, since the check after it walks `ps` and transcripts."""
     listed, me = adapter.sessions()
-    return listed, me if coding_agent.named(me.get("name"), coding_agent.own_transcript()) else {}
+    return listed, me if team_names.role(me.get("name")) and coding_agent.named(me.get("name"), coding_agent.own_transcript()) else {}
 
 
 def own_interactive():

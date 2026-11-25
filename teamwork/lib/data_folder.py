@@ -1,6 +1,14 @@
-"""Where a project keeps the data teamwork writes for itself: `<main checkout>/.teamwork/<name>`, the same for every worktree of the project."""
+"""Where a project keeps the data teamwork writes for itself, `<main checkout>/.teamwork/<name>`, the same for every worktree of the project, and where its worktrees sit, `<main checkout>/.claude/worktrees/<name>`;
+and the one `--repository <folder>` flag, which names the checkout a script call acts on."""
+import os
 import pathlib
+import re
 import subprocess
+import sys
+
+FLAG = "--repository"
+WORKTREE_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]*")
+WORKTREES = pathlib.PurePath(".claude") / "worktrees"
 
 
 def common_folder():
@@ -45,3 +53,52 @@ def folder(name):
     claim(common, name)
     exclude(common, name)
     return common.parent / ".teamwork" / name
+
+
+def enter(args, doc):
+    """ARGS without `--repository <folder>` or `--repository=<folder>`, the process moved into that folder, so every git call below it acts on that checkout, main or worktree, and
+    a relative path among the other arguments (`--body`, `--text`, a body file) is read from that folder; ARGS as they were with no flag. A call with the flag twice or with no folder is refused as a call DOC cannot read, a
+    folder in no git repository with one line, each on stderr with exit 2."""
+    at = [index for index, word in enumerate(args) if word == FLAG or word.startswith(FLAG + "=")]
+    if not at:
+        return args
+    joined = "=" in args[at[0]]
+    folder = args[at[0]].partition("=")[2] if joined else "".join(args[at[0] + 1:at[0] + 2])
+    if len(at) > 1 or not folder or folder.startswith("-"):
+        print(doc, file=sys.stderr)
+        sys.exit(2)
+    try:
+        os.chdir(folder)
+    except OSError as e:
+        print(f"{FLAG}: {folder}: {e.strerror}", file=sys.stderr)
+        sys.exit(2)
+    if common_folder() is None:
+        print(f"{FLAG}: {folder} is in no git repository.", file=sys.stderr)
+        sys.exit(2)
+    return args[:at[0]] + args[at[0] + 1 + (not joined):]
+
+
+def main_checkout():
+    """The main checkout of the current folder's repository, the same from any of its worktrees; None outside one."""
+    common = common_folder()
+    return common.parent if common else None
+
+
+def worktrees():
+    """The folder `<main checkout>/.claude/worktrees` that holds every worktree; None outside a repository."""
+    root = main_checkout()
+    return root / WORKTREES if root else None
+
+
+def worktree(name):
+    """The path `<main checkout>/.claude/worktrees/<NAME>`; ValueError for a NAME that is not one segment of letters, digits and `-` opening with a letter or digit, or whose
+    path is itself a link, which a removal would follow to another folder; LookupError outside a repository."""
+    folder = worktrees()
+    if folder is None:
+        raise LookupError("run it inside the repository")
+    if not WORKTREE_NAME.fullmatch(name):
+        raise ValueError(f"{name!r} is no worktree name: use one word of letters, digits and `-`, as `<task>-worker`")
+    path = folder / name
+    if path.is_symlink():
+        raise ValueError(f"{name!r} is a link in {folder}, not a worktree")
+    return path

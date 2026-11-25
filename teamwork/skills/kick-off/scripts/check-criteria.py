@@ -2,13 +2,13 @@
 """Print each criterion of a task body's Definition of done whose form a judge would send back, or run-criteria.py cannot read, one line per criterion,
 `<position>: <defects>`, and exit 1; a body with none prints nothing and exits 0.
 
-usage: check-criteria.py <task>
-usage: check-criteria.py [--task <task>] <body-file | ->
+usage: check-criteria.py <task> [--repository <folder>]
+usage: check-criteria.py [--task <task>] <body-file | -> [--repository <folder>]
 usage: check-criteria.py --title <title>
 usage: check-criteria.py --reason <what changed>
 usage: check-criteria.py --cut-off
 
-A task is its number, `#n` or url; given alone it is read from the board, body and number. A word that names no file and no task
+`--repository` names the checkout, main or worktree, whose board a task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; given alone it is read from the board, body and number. A word that names no file and no task
 on the board prints one line saying which, exit 1.
 
 It reads the form only, never running a command, since whether a check passes on the base stays the judge's to find.
@@ -35,10 +35,12 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
+import data_folder  # noqa: E402
 import decisions  # noqa: E402
 import task_state  # noqa: E402
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     if args == ["--cut-off"]:
         print(criteria_check.CUT_OFF)
         return 0

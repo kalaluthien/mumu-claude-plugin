@@ -3,7 +3,7 @@
 from (`pr`: first commit of the pull request that closed it; `created`: no such pull request, so its creation), then
 the count of rows per start source.
 
-usage: list-task-durations.py
+usage: list-task-durations.py [--repository <folder>]
        list-task-durations.py --from-json <file>
 
 It reads the board of the repository the current folder is in; `--from-json` reads a fixture list of tasks instead."""
@@ -13,10 +13,12 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+import data_folder  # noqa: E402
 import task_history  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):
         tasks = json.load(open(args[1]))
     elif not args:

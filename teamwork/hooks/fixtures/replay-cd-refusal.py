@@ -3,16 +3,18 @@
 per case, then `PASS cd never allowed` as the last line when every case holds, else `FAIL cd never allowed`, and exit 1 on any failure.
 
 usage: replay-cd-refusal.py
-- denied: each spelling of a cd into the live checkout in SPELLINGS, followed by a read, `git ls-remote`, `gh api` or a write, and each cd that opens a block, is
-  refused with `permissionDecision: deny` naming the folder the shell stands in, and no answer of the hook holds `allow`
+- denied: each spelling of a cd into the live checkout in SPELLINGS, a symlink to it or to a folder in it, a `..` after a link in or out of it, and another letter case of its path where the file system ignores case, included, followed by a read, `git ls-remote`, `gh api` or a write, and each cd that opens a block, is
+  refused with `permissionDecision: deny` naming the folder the shell stands in, `--repository <folder>` and `git -C <folder>`, and no answer of the hook holds `allow`
 - chain: from the worktree, a second cd is read from the folder the first reached when `&&`, `;` or `(` joins them, and from the worktree when a pipe, `||` or
   a closed subshell does, so each of CHAINS is denied or passes as it says, a redirect on the first cd included
 - quoted: a `cd <live>/teamwork` inside a quoted argument, a heredoc body or a comment passes, and one in a `$(...)`, or run after a heredoc or a quoted `&&`,
   is denied, each of QUOTED as it says
+- gone: a cd into a live checkout whose folder is not on disk is refused by its path, and a cd out of it passes
 - inside: a cd within the session's own worktree or outside the checkout passes with no answer"""
 import json
 import os
 import pathlib
+import signal
 import subprocess
 import sys
 import tempfile
@@ -26,7 +28,7 @@ SPELLINGS = ("cd -P {live}/teamwork", "cd -L -- {live}/teamwork", "builtin cd {l
              "L={live}/teamwork; cd ${{L}}/.", "L={live}/teamwork; echo \"x; L=/tmp;\"; cd $L", "L={live}/teamwork; echo 'x; L=/tmp;'; cd $L", "L={live}/teamwork; # y; L=/tmp;\ncd $L",
              "L={live}/teamwork; false && L=/tmp; cd $L", "L=/tmp; false || L={live}/teamwork; cd $L", "cd \"$PWD/../../../teamwork\"",
              "cd .. && cd $PWD/../../teamwork", "cd .. && cd ${{PWD}}/../../teamwork", "A=1 L={live}/teamwork; cd $L", "export A=1 L={live}/teamwork && cd $L", "L=\"{live}\"/teamwork; cd $L",
-             "L={live}; M=$L/teamwork; cd $M", "L={live}/teamwork; cd ${{L%/}}", "cd $UNSET_FOR_CD_REPLAY",
+             "L={live}; M=$L/teamwork; cd $M", "cd \"$TEAMWORK_LIVE_ALIAS/teamwork\"", "cd -P $TEAMWORK_LIVE_ALIAS/teamwork/..", "cd link", "cd -P link/..", "cd link/../", "cd {live}/teamwork/out/..", "L={live}/teamwork; cd ${{L%/}}", "cd $UNSET_FOR_CD_REPLAY",
              "command builtin cd {live}/teamwork", "command -p cd {live}/teamwork", "cd $'{live}/teamwork'", "cd $'{live}/team\\x77ork'", "cd $(echo {live}/teamwork)",
              "cd `echo {live}/teamwork`", "cd \"$(echo {live}/teamwork)\"", "command -p builtin cd $(echo {live}/teamwork)",
              "command -- cd {live}/teamwork", "command -p -- cd {live}/teamwork", "command -pp cd {live}/teamwork", "cd $'{live}/teamwork\\x00/../.claude/worktrees/w'", "cd $'{live}/teamwork\\0'",
@@ -42,7 +44,7 @@ BLOCKED = tuple(f"{opening} {risky}; {closer}" for opening, closer in BLOCKS for
        "{{ cd {live}/teamwork; git ls-files; }} && rm note.txt", "{{ cd {live}/teamwork; git ls-files; }} > out.txt", "while rm note.txt; do cd {live}/teamwork; git ls-files; done",
        "if true; then cd $UNSET_FOR_CD_REPLAY; rm note.txt; fi")
 CHAINS = (("cd sub && cd ../../..", True), ("cd sub; (cd .. && cd ../..)", True), ("cd sub && cd ../.. && ls", False), ("(cd sub && cd ..); cd ../..", True),
-          ("cd sub | cd ../..", True), ("cd sub && cd .. && cd ..", False), ("cd sub 2>/dev/null && cd ../../..", True), ("cd sub 2>&1 && cd ../.. && ls", False))
+          ("cd sub | cd ../..", True), ("cd sub && cd .. && cd ..", False), ("cd sub 2>/dev/null && cd ../../..", True), ("cd sub 2>&1 && cd ../.. && ls", False), ("cd -P link/../..", False))
 QUOTED = (("echo $'cd {live}/teamwork && ls'", False), ("git commit -m \"fix && cd {live}/teamwork && ls\"", False), ("echo 'cd {live}/teamwork && ls'", False), ("cat <<'EOF'\nit's && cd {live}/teamwork && ls\nEOF", False),
           ("cat <<EOF\n(cd {live}/teamwork && ls)\nEOF", False), ("echo x # cd {live}/teamwork && ls", False), ("cat <<'EOF' >/dev/null\nit's\nEOF\ncd {live}/teamwork && ls", True),
           ("echo \"a && b\" && cd {live}/teamwork && ls", True), ("git commit -m 'x'; (cd {live}/teamwork && ls)", True),
@@ -59,6 +61,10 @@ def setup():
     worktree = live / ".claude" / "worktrees" / "w"
     worktree.mkdir(parents=True)
     os.environ["TEAMWORK_LIVE_FOLDER"] = str(live)
+    (live / "teamwork" / "out").symlink_to(work / "alias" / "..")  # a link out of the live checkout, whose `..` a plain cd reads as the folder it stands in
+    (worktree / "link").symlink_to(live / "teamwork")  # a link inside the worktree to a folder of the live checkout, whose `..` a `cd -P` takes to the live checkout
+    (work / "alias").symlink_to(live)  # the live checkout under another name, which a cd enters as well
+    os.environ["TEAMWORK_LIVE_ALIAS"] = str(work / "alias")
     stubs = replay_probe.fake_herdr(work, [{"pane_id": "p1", "name": "t-worker"}])
     return stubs, live, worktree
 
@@ -84,17 +90,22 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
+    signal.alarm(300)  # a hook that loops ends the runner, which would otherwise wait for it
     stubs, live, worktree = setup()
     (worktree / "sub").mkdir()
+    swapped = str(live).swapcase()  # the live checkout under another letter case, the same folder where the file system ignores case
     entering = [f"{spelling} && {follower}" for spelling in SPELLINGS[:1] for follower in FOLLOWERS] + [f"{spelling} && git ls-files" for spelling in SPELLINGS[1:]]
+    entering += [f"cd {swapped}/teamwork && git ls-files"] * os.path.isdir(swapped)
     entering += [text for text in BLOCKED] + [f"{opening} git ls-files; {closer}" for opening, closer in BLOCKS]
     said = {command: hook_reason(stubs, worktree, command.format(live=live)) for command in entering}
     step("denied", next((f"{command!r} " + (said[command] if said[command] else "was not denied") for command in entering
-                         if not said[command] or said[command].startswith("allowed") or f"stands in {worktree}" not in said[command]), None))
+                         if not said[command] or said[command].startswith("allowed") or not all(text in said[command] for text in (f"stands in {worktree}", "--repository <folder>", "git -C <folder>"))), None))
     step("chain", next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in CHAINS
                         if bool(hook_reason(stubs, worktree, command)) != denied), None))
     step("quoted", next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
                          if bool(hook_reason(stubs, worktree, command)) != denied), None))
+    ghost = pathlib.Path(os.sep + "gone-checkout") / ".claude" / "worktrees" / "w"  # a checkout that is not on disk is read by its written path
+    step("gone", None if hook_reason(stubs, ghost, "cd /gone-checkout/teamwork && ls") and not hook_reason(stubs, ghost, "cd /tmp && ls") else "a cd into a checkout that is gone was not refused, or a cd out of it was")
     step("inside", next((f"{command!r} got {got}" for command in ("cd sub && ls", "cd /tmp && ls", f"cd {worktree}/sub && git status")
                          if (got := replay_probe.route_event(ROUTE, {"hook_event_name": "PreToolUse", "cwd": str(worktree), "tool_input": {"command": command}}, stubs, "t-worker"))), None))
     print("FAIL cd never allowed" if failed else "PASS cd never allowed")

@@ -3,7 +3,6 @@
 
 usage: route-event.py
 It reads one hook event as JSON on stdin and prints the hook's answer, if any, as JSON on stdout."""
-import collections
 import json
 import os
 import pathlib
@@ -28,57 +27,26 @@ NO_DATA = "A text never carries data"
 REMINDED = {"file": ("`file`", "40 characters", NO_DATA), "change": ("40 characters",), "comment": ("**Comment**", "`comment`", NO_DATA), "change comment": ("**Comment**",),
             "resolve": ("`resolve`", NO_DATA), "edit": ("**Body**", "40 characters"), "change edit": ("40 characters",)}
 WORKTREES = "/.claude/worktrees/"
-# a write to a GitHub issue, by `gh issue` or by `gh api` with a body, a method that writes or a GraphQL mutation of a GitHub issue or comment. A `gh`, shell or `eval`
-# word runs when it opens a simple command or follows only words that are no NEVER_RUNS word, such as a wrapper and its flags, read in a text with its
-# quoted strings, substitutions, comments and heredoc bodies blanked, since a commit message, a grep pattern or a note may name it; what it is given is read
-# unblanked. A shell or `eval` runs its `-c` code or its words, else the heredoc or here-string it reads and the text a pipe feeds it; a command
-# substitution runs its inside. A reminder against a habit, not a wall: a command a variable, a function, a group or a script file names is not followed.
-# a word that runs none of the words after it, so a command word behind it is a mention
-NEVER_RUNS = r"in|echo|printf|grep|egrep|fgrep|rg|git|cat|tee|ls|head|tail|wc|man|which|type|test|tr|cut|sort|uniq|jq|nl|diff|less"
-WORD_START = rf"(?:^|[;&|(){{`!\n])[ \t]*(?:(?!(?:\S*/)?(?:{NEVER_RUNS})[ \t])[^\s;&|()<>]+[ \t]+)*?(?:\S*/)?"
-COMMAND_START = WORD_START + r"gh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*"
-GITHUB_ISSUE_WRITE = re.compile(COMMAND_START + r"issue\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*"
-                                r"(?:create|new|comment|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)\b", re.M)
-GITHUB_API = re.compile(COMMAND_START + r"api\s+(?!graphql)", re.M)
-GITHUB_GRAPHQL = re.compile(COMMAND_START + r"api\s+graphql\b", re.M)
-API_WRITES = re.compile(r"(?:^|(?<=\s))(?:(?:-X|--method)[\s=]*(?:POST|PATCH|PUT|DELETE)\b|-[fF]\b|--(?:raw-)?field\b|--input\b)")
-API_READS = re.compile(r"(?:^|(?<=\s))(?:-X|--method)[\s=]*GET\b")
-API_ISSUES = re.compile(r"\b(?:issues|sub_issues|dependencies)\b")
-API_FIELD_VALUE = re.compile(r"(?:^|(?<=\s))(?:-[fF]|--(?:raw-)?field)[\s=]*(?:(?:[^\s\"']*(?:\"(?:\\.|[^\"\\])*\"|'[^']*'))+[^\s\"']*|\S+)")
-SHELL_START = re.compile(WORD_START + r"((?:r?ba|da|z|k|mk|pdk|tc|c|y|o|a)?sh(?:-?[\d.]+)?|fish|nu|rc|pwsh|eval)(?![\w.-])", re.M)
-PIPELINE_START = re.compile(r";|&&|\|\||(?<![|<>&])&(?![&>])|(?<![|&][ \t])(?<![|&])\n")
-LOOSE_WRITE = re.compile(r"(?:\b|(?<=\\[nt]))gh\b[^\n]*?\b(?:issue\b[^\n]*?\b(?:create|new|comment|edit|close|reopen|delete|transfer|pin|unpin|lock|unlock|develop)\b"
-                         r"|api\b[^\n]*?(?:(?:-X|--method)[\s=]*(?:POST|PATCH|PUT|DELETE)\b|(?<!\S)-[fF]\b|--(?:raw-)?field\b|--input\b|\bmutation\b))")
+# a word the shell hands to a command that only names files or text, so the words after it run nothing
+NEVER_RUNS = frozenset("in echo printf grep egrep fgrep rg git cat tee ls head tail wc man which type test tr cut sort uniq jq nl diff less".split())
+MENTIONS = NEVER_RUNS | {"mv", "cp"}
+SHELLS = re.compile(r"(?:r?ba|da|z|k|mk|pdk|tc|c|y|o|a)?sh(?:-?[\d.]+)?|fish|nu|rc|pwsh")
+ISSUE_VERBS = ("create", "new", "comment", "edit", "close", "reopen", "delete", "transfer", "pin", "unpin", "lock", "unlock", "develop")
+API_VALUED = ("--method", "--field", "--raw-field", "--input", "--jq", "--header")
 SUBSTITUTION = re.compile(r"(?<!\\)\$\(((?:[^()]|\([^()]*\))*)\)|(?<!\\)`((?:\\.|[^`\\])*)`")
 HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)\\?(\w+)\1[^\n]*\n(.*?)\n[ \t]*\2[ \t]*(?=\n|$)", re.S)
-HERE_STRING = re.compile(r"<<<[ \t]*(\"(?:\\.|[^\"\\])*\"|'[^']*'|(?:\\.|[^\s\\])+)")
 QUOTED = re.compile(r"\"(?:\\.|[^\"\\])*\"|'[^']*'")
 COMMENT = re.compile(r"(?:^|(?<=[ \t;&|(]))#[^\n]*", re.M)
 CHANGE_DIRECTORY = re.compile(r"(?:^|[;&|({]|\bthen|\bdo)[ \t]*(?:(?:builtin|command)[ \t]+(?:(?:-p+|--)[ \t]+)*)*(?:cd|pushd)[ \t]+(?:-[A-Za-z@]+[ \t]+)*(?:--[ \t]+)?((?:\"[^\"]*\"|'[^']*'|\$\{[^}\s]*\}|\$\([^)]*\)|`[^`]*`|[^\s;&|)}\"'])+)", re.M)
-ASSIGNMENT = r"[ \t]*(?:export[ \t]+)?([A-Za-z_]\w*)=(\"[^\"$`\\]*\"|'[^']*'|[^\s;&|()$`\"'\\]*)[ \t]*(?:&&|;|\n)"  # a value with an expansion is left out, since its result is unknown here
-ASSIGNED = re.compile(f"(?:^|(?<=[;&|(\\n])){ASSIGNMENT}")
-SHELL_SET = {"OLDPWD", "SHLVL", "_", "PPID", "RANDOM", "LINENO", "SECONDS"}  # names the shell sets for itself, so the hook's copy is no value of the shell's
-UNREAD_VARIABLE = re.compile(r"\$[\w{(]|`")
-VARIABLE = re.compile(r"\$(\w+)|\$\{(\w+)\}")
-ANSI_QUOTED = re.compile(r"\$'((?:\\.|[^'\\])*)'")
+# what the shell reads as one word or as nothing, in the order it meets it: an escaped character, a single-quoted string, a double-quoted string and the substitutions in it, a bare substitution, a comment
+SUBSTITUTED = r"(?:\$\((?:[^()]|\([^()]*\))*\)|`(?:\\.|[^`\\])*`)"
+SPANS = re.compile(rf"\\.|'[^']*'|\"(?:\\.|{SUBSTITUTED}|\$(?!\()|[^\"\\$`])*\"|{SUBSTITUTED}|(?<![^\s;&|(])#[^\n]*")
+PUNCTUATION = set(";&|()<>\n")
 
 
 def blanked_bodies(command):
     """COMMAND of the same length with each heredoc body turned into `_`."""
     return HEREDOC.sub(lambda found: found.group(0).partition("\n")[0] + "\n" + "_" * (len(found.group(0)) - len(found.group(0).partition("\n")[0]) - 1), command)
-
-
-def blank_inside(found, opening):
-    """The text FOUND matched, kept for its OPENING characters and its last one, and `_` between."""
-    return found.group(0)[:opening] + "_" * (len(found.group(0)) - opening - 1) + found.group(0)[-1]
-
-
-def blank_text(command):
-    """COMMAND of the same length with each heredoc body, command substitution's, quoted string's inside and comment turned into `_`, so a word inside
-    them is no command and a quote inside a substitution closes none outside it; a substitution is read by itself."""
-    command = SUBSTITUTION.sub(lambda found: blank_inside(found, 2 if found.group(0)[0] == "$" else 1), blanked_bodies(command))
-    command = QUOTED.sub(lambda found: blank_inside(found, 1), command)
-    return COMMENT.sub(lambda found: "_" * len(found.group(0)), command)
 
 
 def inert_text(command):
@@ -93,12 +61,6 @@ def inert_text(command):
     return COMMENT.sub(lambda found: "_" * len(found.group(0)), QUOTED.sub(blank_quoted, blanked_bodies(command)))
 
 
-def rest_of_command(command, blanked, start):
-    """The text of COMMAND from START to the end of its simple command, found in the blanked text, so a `;` inside a quoted body ends nothing."""
-    end = re.search(r"[;|\n]|(?<![<>])&(?!>)", blanked[start:])
-    return command[start:start + end.start()] if end else command[start:]
-
-
 def unquoted(word):
     """WORD as the shell hands it on, its quotes removed, or as written when they never close."""
     try:
@@ -107,95 +69,116 @@ def unquoted(word):
         return word
 
 
-def shell_writes(command, blanked, found):
-    """Whether the shell or `eval` FOUND in BLANKED, the blanked COMMAND, writes to a GitHub issue: by its `-c` code or by the words `eval` runs; else, when
-    it reads its input rather than a script file, by the heredoc or here-string it reads, or by a write in the text the stages before it in its pipeline
-    print, since that text is what it runs."""
-    rest = rest_of_command(command, blanked, found.end())
-    lexer = shlex.shlex(rest, posix=True, punctuation_chars="<>&()")
-    lexer.whitespace_split = True
+def commands(text, depth=0):
+    """The simple commands of TEXT as lists of words, read as the shell reads them: quotes and backslashes removed, a comment dropped, `;`, `&&`, `||`, `|`, `&`, a
+    parenthesis and a newline ending a command, a redirect's target left out, and the commands a command runs by other means added, each read the same way: a command
+    substitution (also inside double quotes), the code a shell is given by `-c`, `eval`'s words, the heredoc or here-string a shell reads and the words a pipe feeds it;
+    nothing for a text that does not parse, since a hook never raises."""
+    if depth > 5:
+        return []
+    inner, bodies = [], []
+    text = HEREDOC.sub(lambda found: bodies.append(found[3]) or found[0].partition("\n")[0], text.replace("\\\n", " "))
+
+    def span(found):
+        if found[0][0] in "\\'":
+            return found[0]
+        if found[0][0] == "#":
+            return ""
+        return SUBSTITUTION.sub(lambda part: inner.append(part[1] if part[1] is not None else part[2]) or "$S", found[0])
+    lexer = shlex.shlex(SPANS.sub(span, text), posix=True, punctuation_chars="".join(PUNCTUATION))
+    lexer.whitespace_split, lexer.whitespace, lexer.commenters = True, " \t\r", ""
     try:
         tokens = list(lexer)
     except ValueError:
-        return bool(LOOSE_WRITE.search(rest))
-    redirect = [bool(token) and set(token) <= set("<>&") for token in tokens] + [False]
-    words = [token for at, token in enumerate(tokens) if not redirect[at] and not (at and redirect[at - 1]) and not (token.isdigit() and redirect[at + 1])
-             and token.strip("()")]
-    if found.group(1) == "eval":
-        return writes_github_issue(" ".join(words[words[:1] == ["--"]:]))
-    for at, option in enumerate(words):
+        return []
+    rows, row, fed, hold, piped = [], [], [], "", False
+    for token in [*tokens, "\n"]:
+        if not token or not set(token) <= PUNCTUATION:
+            if hold == "<<<":
+                fed.append(token)
+            elif hold and hold.startswith("<<") and bodies:
+                fed.append(bodies.pop(0))
+            elif not hold:
+                row.append(token)
+            hold = ""
+        elif "<" in token or ">" in token:
+            hold = token
+        else:
+            rows.append((row, fed, piped))
+            row, fed, hold, piped = [], [], "", token == "|"
+    found = [words for words, _, _ in rows if words]
+    for at, (words, fed, piped) in enumerate(rows):
+        for place, word in enumerate(words):
+            name = os.path.basename(word)
+            if name in NEVER_RUNS:
+                break
+            if name != "eval" and not SHELLS.fullmatch(name):
+                continue
+            code = shell_code(name, words[place + 1:])
+            before, earlier = rows[at - 1][:2] if piped and at else ([], [])
+            fed += [" ".join(next((before[k + 1:] for k, word in enumerate(before) if os.path.basename(word) in NEVER_RUNS), before))] * bool(before) + earlier
+            inner += fed if code is None else code
+            break
+    for text in inner:
+        found += commands(text, depth + 1)
+    return found
+
+
+def shell_code(name, args):
+    """The text a shell or `eval` called NAME runs from its ARGS: its `-c` code or, for `eval`, its words; None when it reads a script file's or its input's commands, and
+    the empty list when it reads a script file."""
+    if name == "eval":
+        return [" ".join(args)]
+    for at, option in enumerate(args):
         if option.startswith("--command="):
-            return writes_github_issue(option.partition("=")[2])
-        if option in ("--command", "-Command") or option[:1] == "-" and option[1:2] != "-" and "c" in option[1:]:
-            return writes_github_issue(next((word for word in words[at + 1:] if not word.startswith("-")), ""))
-    operand = 0
-    while operand < len(words) and words[operand][:1] in "-+" and words[operand] not in ("-", "--"):
-        operand += 2 if words[operand][1:2] != "-" and words[operand][-1] in "oO" else 1
-    if "--version" in words[:operand] or "--help" in words[:operand] or words[operand:] and words[operand] not in ("-", "--", "/dev/stdin", "/dev/fd/0"):
-        return False
-    end = found.end() + len(rest)
-    start = max((match.end() for match in PIPELINE_START.finditer(blanked, 0, found.start() + 1)), default=0)
-    fed = [HEREDOC, HERE_STRING]
-    own = [match for pattern in fed for match in pattern.finditer(command) if found.end() <= match.start() < end]
-    before = [match for pattern in fed for match in pattern.finditer(command) if start <= match.start() < found.start()]
-    return any(writes_github_issue(match.group(3) if match.re is HEREDOC else unquoted(match.group(1))) for match in own) or bool(
-        LOOSE_WRITE.search("\n".join([command[start:found.start()]] + [match.group(match.lastindex) for match in before])))
+            return [option.partition("=")[2]]
+        if option in ("--command", "-Command") or re.fullmatch(r"-[A-Za-z]*c[A-Za-z]*", option):
+            return [next((word for word in args[at + 1:] if not word.startswith("-")), "")]
+    return None if all(word.startswith("-") or word in ("/dev/stdin", "/dev/fd/0") for word in args) else []
+
+
+def after_options(args, names):
+    """The place of the first of NAMES in ARGS that only options and their values come before, else None."""
+    return next((at for at, word in enumerate(args) if word in names and all(earlier[:1] == "-" or index and args[index - 1][:1] == "-" for index, earlier in enumerate(args[:at]))), None)
+
+
+def api_writes(args):
+    """Whether the words ARGS after `gh api` write to a GitHub issue or its comment: a field, an input file or a method that writes, with no `GET`, on an endpoint of
+    issues, or a GraphQL mutation of an issue or comment."""
+    method, fields, endpoints, at = "", [], [], 0
+    while at < len(args):
+        word, at = args[at], at + 1
+        if word.startswith("--"):
+            name, equals, value = word.partition("=")
+            if name in API_VALUED and not equals:
+                value, at = args[at] if at < len(args) else "", at + 1
+            method = value.upper() if name == "--method" else method
+            fields += [value] * (name in ("--field", "--raw-field", "--input"))
+        elif word.startswith("-") and len(word) > 1:  # a short flag may sit in a bundle (`-fbody=x`, `-iXPOST`), the first one that takes a value ending it
+            place = next((place for place, letter in enumerate(word) if letter in "XfFHqt"), None)
+            if place:
+                value, at = (word[place + 1:], at) if word[place + 1:] else (args[at] if at < len(args) else "", at + 1)
+                method = value.upper() if word[place] == "X" else method
+                fields += [value] * (word[place] in "fF")
+        else:
+            endpoints.append(word)
+    if "graphql" in endpoints:
+        return any(re.search(r"\bmutation\b.*(?:[Ii]ssue|[Cc]omment)", field, re.S) for field in fields)
+    return bool(fields or method in ("POST", "PATCH", "PUT", "DELETE")) and method != "GET" and any(re.search(r"\b(?:issues|sub_issues|dependencies)\b", word) for word in endpoints)
 
 
 def writes_github_issue(command):
-    """True when COMMAND, a shell or `eval` it runs, or a command substitution it runs, writes to a GitHub issue."""
-    command = command.replace("\\\n", " ")
-    blanked = blank_text(command)
-    if GITHUB_ISSUE_WRITE.search(blanked):
-        return True
-    for found in GITHUB_API.finditer(blanked):
-        rest = rest_of_command(command, blanked, found.end())
-        if API_WRITES.search(rest) and not API_READS.search(rest) and API_ISSUES.search(API_FIELD_VALUE.sub(" ", rest)):
-            return True
-    for found in GITHUB_GRAPHQL.finditer(blanked):
-        if re.search(r"\bmutation\b.*(?:[Ii]ssue|[Cc]omment)", rest_of_command(command, blanked, found.end()), re.S):
-            return True
-    if any(shell_writes(command, blanked, found) for found in SHELL_START.finditer(blanked)):
-        return True
-    unrun = re.sub(r"'[^']*'", lambda found: "'" + "_" * (len(found.group(0)) - 2) + "'", blanked_bodies(command))
-    return any(writes_github_issue(command[found.start(1):found.end(1)] if found.group(1) is not None else command[found.start(2):found.end(2)])
-               for found in SUBSTITUTION.finditer(unrun))
-
-
-def ansi_decoded(text):
-    """TEXT with each ANSI-C quoted `$'...'` it holds written as the single-quoted string the shell reads, and each `$"..."` as `"..."`; an ANSI-C string whose
-    escapes are more than a hex pair or an octal triple of a non-NUL ASCII character is left as written, since the shell may read it otherwise (it cuts a word at a
-    NUL, which `\\c@` and `\\400` also make), and the hook cannot read it."""
-    def decode(found):
-        if not re.fullmatch(r"(?:[^\\]|\\x[0-9a-fA-F]{2}|\\[0-3][0-7]{2})*", found[1]):
-            return found[0]
-        plain = re.sub(r"\\x([0-9a-fA-F]{2})|\\([0-3][0-7]{2})", lambda escape: chr(int(escape[1] or escape[2], 16 if escape[1] else 8)), found[1])
-        return shlex.quote(plain) if plain.isascii() and "\0" not in plain else found[0]
-    return ANSI_QUOTED.sub(decode, re.sub(r'\$("(?:\\.|[^"\\])*")', r"\1", text))
-
-
-def replaced(text, name, value):
-    """TEXT with each `$NAME` and `${NAME}` outside single quotes replaced by VALUE."""
-    parts = re.split(r"('[^']*')", text)
-    return "".join(part if at % 2 else VARIABLE.sub(lambda found: value if (found[1] or found[2]) == name else found[0], part) for at, part in enumerate(parts))
-
-
-def expanded(word, before, folder):
-    """[WORD, ...] with each `$NAME` and `${NAME}` it holds replaced by every value a plain assignment in BEFORE gave it, wherever the shell may skip it, else by the
-    hook's environment, which the shell inherits, with `PWD` as FOLDER; a name stays as written when BEFORE assigns it in any form this cannot read, such as two
-    to a statement, a value of joined quotes or one that expands, and so does a name with no value. A single-quoted part of WORD stays as it is, since the shell
-    expands nothing in it, and assignments are read from the text the shell runs, so one inside a quote or comment counts for none."""
-    inert = inert_text(before)
-    given = {}
-    for found in ASSIGNED.finditer(inert):
-        given.setdefault(found[1], []).append(before[found.start(2):found.end(2)].strip("\"'"))
-    spelled = collections.Counter(re.findall(r"(?<![\w$])([A-Za-z_]\w*)\+?=", inert))
-    values = {name: [value] for name, value in os.environ.items() if name not in SHELL_SET} | {"PWD": [folder]} | given
-    values = {name: options for name, options in values.items() if not spelled[name] or spelled[name] == len(given.get(name, ()))}
-    texts = [word]
-    for name in {found[1] or found[2] for found in VARIABLE.finditer(word)} & values.keys():
-        texts = [replaced(text, name, value) for text in texts for value in values[name]]
-    return texts
+    """True when a command in COMMAND, one it runs by `-c`, `eval`, a substitution or a pipe into a shell included, is `gh issue` with a verb that writes, or `gh api` that
+    writes to an issue; `gh` is read as the shell reads it, so `"gh" "issue" "create"` is the same."""
+    for words in commands(command):
+        for place, word in enumerate(words):
+            if os.path.basename(word) in NEVER_RUNS:
+                break
+            args = words[place + 1:]
+            at = after_options(args, ("issue", "api")) if os.path.basename(word) == "gh" else None
+            if at is not None and (api_writes(args[at + 1:]) if args[at] == "api" else after_options(args[at + 1:], ISSUE_VERBS) is not None):
+                return True
+    return False
 
 
 def directory_before(prefix, cwd):
@@ -221,9 +204,32 @@ def directory_before(prefix, cwd):
         if token not in ("&&", ";", "("):
             here = cwd
         elif spelled[:1] in (["cd"], ["pushd"]) and target:
-            here = os.path.normpath(os.path.join(here, os.path.expanduser(expanded(target, prefix, here)[-1])))
+            here = os.path.normpath(os.path.join(here, os.path.expanduser(target)))
         words = []
     return here
+
+
+def inside(path, folder):
+    """Whether PATH is FOLDER or lies under it, by the file each names, so a symlink or another letter case of FOLDER is it too; a PATH that does not exist yet is
+    taken by its nearest folder that does."""
+    try:
+        want = os.stat(folder)
+    except OSError:
+        return (path + "/").startswith(folder + "/")
+    while True:
+        try:
+            if os.path.samestat(os.stat(path), want):
+                return True
+        except OSError:
+            pass
+        if os.path.dirname(path) == path:
+            return False
+        path = os.path.dirname(path)
+
+
+def in_live_checkout(path, root):
+    """The folder PATH names, with its `..` read as written or after each symlink before it is resolved (a `cd` and a `cd -P` differ there), where it is in the live checkout ROOT outside its worktrees; else None."""
+    return next((found for found in (os.path.normpath(path), os.path.realpath(path)) if inside(found, root) and not inside(found, root + WORKTREES)), None)
 
 
 def live_change_directory(command, cwd):
@@ -234,35 +240,12 @@ def live_change_directory(command, cwd):
     for found in CHANGE_DIRECTORY.finditer(inert_text(command)) if inside else ():  # a cd inside a quote, heredoc or comment runs nothing
         before = blanked_bodies(command[:found.start(1)])
         here = directory_before(before, cwd)
-        targets = expanded(ansi_decoded(command[found.start(1):found.end(1)]), before, here)
-        for target in targets:  # a variable the shell may have set either way is read as each value, and none of them is rewritten
-            path = os.path.normpath(os.path.join(here, os.path.expanduser(unquoted(target))))
-            if (path + "/").startswith(root + "/") and WORKTREES not in path + "/":
-                return path, worktree
-        unread = next((target for target in targets if UNREAD_VARIABLE.search(outside_single_quotes(target)) or ANSI_QUOTED.search(target)), None)
-        if unread:  # a folder the hook cannot read may be the live checkout
-            return unread, worktree
+        target = command[found.start(1):found.end(1)]
+        if re.search(r"\$|`", target):  # a folder the hook cannot read may be the live checkout
+            return target, worktree
+        if entered := in_live_checkout(os.path.join(here, os.path.expanduser(unquoted(target))), root):
+            return entered, worktree
     return None
-
-
-def outside_single_quotes(word):
-    """WORD without its single-quoted spans, where an apostrophe inside double quotes quotes nothing."""
-    kept, quote, escaped = "", "", False
-    for char in word:
-        if quote == "'":
-            quote = "" if char == "'" else quote
-        elif escaped:
-            kept, escaped = kept + char, False
-        elif char == "\\":
-            kept, escaped = kept + char, True
-        elif quote == '"':
-            kept, quote = kept + char, "" if char == '"' else quote
-        elif char in "'\"":
-            quote = char
-            kept += char if char == '"' else ""
-        else:
-            kept += char
-    return kept
 
 
 def unseen(lines, session_id):
@@ -292,17 +275,28 @@ def reminder(call, role, session_id=None):
     return found and "\n".join([f"Reminder: the playbook rules this `{call['called']}` must keep:", *found])
 
 
+def expanded_path(word):
+    """WORD with `${CLAUDE_PLUGIN_ROOT}`, `$CLAUDE_PLUGIN_ROOT`, `$HOME` and a leading tilde written as the folders they name; None when another variable or a substitution is left in it."""
+    folders = {"CLAUDE_PLUGIN_ROOT": str(ROOT), "HOME": os.path.expanduser("~")}
+    word = os.path.expanduser(re.sub(r"\$\{(CLAUDE_PLUGIN_ROOT|HOME)\}|\$(CLAUDE_PLUGIN_ROOT|HOME)\b", lambda found: folders[found[1] or found[2]], word))
+    return None if "$" in word or "`" in word else word
+
+
 def missing_script(command, cwd):
-    """The first script of this plugin the command names by a path that does not exist, with the plugin's files of that name, since a remembered path goes stale."""
-    for word in re.findall(r"[^\s'\"=]+\.py\b", command):
-        path = pathlib.Path(cwd or ".") / word
-        if f"/{ROOT.name}/" in word and not path.exists():
-            return word, sorted(str(found) for found in ROOT.rglob(path.name) if "fixtures" not in found.parts)
+    """The first script of this plugin the command names by a path that does not exist, with the plugin's files of that name, since a remembered path goes stale; a word of a
+    command passes when the command is `mv`, `cp`, `git`, `ls` or another that only names files, when the word follows `-c` or `-m` or another script, and a redirect's target,
+    a quoted message, a heredoc body and a comment are no word of a command."""
+    for words in commands(command):
+        for at, word in enumerate(words):
+            path = expanded_path(word)
+            if path and path.endswith(".py") and f"/{ROOT.name}/" in path and not re.search(r"\s", path) and not pathlib.Path(cwd or ".", path).exists() \
+                    and not (set(map(os.path.basename, words[:at])) & MENTIONS or words[at - 1:at] in (["-c"], ["-m"]) or at and words[at - 1].endswith(".py")):
+                return path, sorted(str(file) for file in ROOT.rglob(pathlib.Path(path).name))
     return None
 
 
 def command_of(event):
-    return (event.get("tool_input") or {}).get("command", "")
+    return (event.get("tool_input") or {}).get("command") or ""
 
 
 def route(kind, event, role, me, listed):
@@ -319,7 +313,8 @@ def route(kind, event, role, me, listed):
     if entered:  # guards the checkout every session loads; it only denies, so every call keeps the person's prompt and the classifier
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"This cd enters {entered[0]}, which is or may be in the live checkout every session loads, so an edit there lands outside your worktree; "
-                f"nothing in this command ran; run it again without that cd and read the live checkout by path or git -C, since your shell already stands in {entered[1]}."}}
+                f"nothing in this command ran; run it again without that cd: a plugin script takes `--repository <folder>` to act on another checkout, git takes `git -C <folder>`, and a file is read by its path, "
+                f"since your shell already stands in {entered[1]}."}}
     if kind == "PreToolUse" and writes_github_issue(command_of(event)):
         return {"hookSpecificOutput": {"hookEventName": kind, "permissionDecision": "deny", "permissionDecisionReason":
                 f"Team work (a task, finding, hand-over, question or answer) lives on the git-refs board, never in a GitHub issue; nothing in this command ran. Write it with "
@@ -345,8 +340,8 @@ def main(args):
     elif kind in ("SessionStart", "Stop") \
             or kind == "PreToolUse" and (board.command(command) or writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
-        role = team_names.role(me.get("name")) if agent.named(me.get("name"), event.get("transcript_path")) else None
-        if out := role and route(kind, event, role, me, listed):
+        role = team_names.role(me.get("name"))  # first, since a name with no role ends the lookup and `agent.named` walks `ps` and transcripts
+        if role and agent.named(me.get("name"), event.get("transcript_path")) and (out := route(kind, event, role, me, listed)):
             print(json.dumps(out))
     return 0
 

@@ -3,7 +3,7 @@
 took (all past tasks when fewer than 5 share it).
 
 usage: estimate-task-time.py [--from-json <file>] [--gaps-json <file>] [--expect-restarts <n>] [--wait <name>=<hours>]...
-                             [--seed <n>] [<board url>...]
+                             [--seed <n>] [--repository <folder>] [<board url>...]
 
 The total is a bootstrap over those hours, repeatable by `--seed`. A url must name the repository the current folder is in; another's is refused, since the board read is this folder's.
 Past hours already hold the usual restarts and waits, so the script adds only what the history lacks: `--expect-restarts
@@ -20,6 +20,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
 import claude_config  # noqa: E402
+import data_folder  # noqa: E402
 import session_gaps  # noqa: E402
 import task_backtest  # noqa: E402
 import task_estimate  # noqa: E402
@@ -35,7 +36,7 @@ def parse_options(argv):
     parser.add_argument("--expect-restarts", type=float, default=0.0)
     parser.add_argument("--wait", action="append", default=[], type=lambda value: (value.partition("=")[0], float(value.partition("=")[2])))
     parser.add_argument("urls", nargs="*")
-    return parser.parse_args(argv)
+    return parser.parse_args(data_folder.enter(argv, __doc__))
 
 
 def load(options, urls):

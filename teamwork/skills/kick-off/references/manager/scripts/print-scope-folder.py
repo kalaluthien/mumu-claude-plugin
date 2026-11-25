@@ -2,19 +2,21 @@
 """Print the folder a manager's root tasks are filed in, `--scope`'s value: the top-level folder named like the project in the manager's name, else an empty line for the repository root.
 A name that is no `<project>-manager` name, or whose project is not lowercase words joined by `-` and at most 22 characters, gets exit 2, so a wrong folder is never printed.
 
-usage: print-scope-folder.py <manager-name>
-       print-scope-folder.py --me"""
+usage: print-scope-folder.py <manager-name> [--repository <folder>]
+       print-scope-folder.py --me [--repository <folder>]"""
 import pathlib
 import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board_scope  # noqa: E402
+import data_folder  # noqa: E402
 import session  # noqa: E402
 import team_names  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     if len(args) != 1:
         print(__doc__, file=sys.stderr)
         return 2

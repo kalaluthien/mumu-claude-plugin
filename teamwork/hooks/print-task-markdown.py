@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
 """Print one task as Markdown, the text the task pane draws when a task's number is pressed: its title, state, body, then each comment after a rule.
 
-usage: print-task-markdown.py <number>
+usage: print-task-markdown.py <number> [--repository <folder>]
        print-task-markdown.py --nodes <file> <number>
-`--nodes` reads the task from the task nodes in a file instead of the board."""
+`--nodes` reads the task from the task nodes in a file instead of the board; `--repository` names the checkout, main or worktree, whose board is read, else the current folder's."""
 import json
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
+import data_folder  # noqa: E402
 import task_state  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     nodes = None
     if any(argument.startswith("--") for argument in args[1:]):
         print(__doc__, file=sys.stderr)

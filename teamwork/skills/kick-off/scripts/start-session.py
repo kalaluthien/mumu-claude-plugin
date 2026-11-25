@@ -3,14 +3,14 @@
 a worker or sentinel in a new tab of its manager's workspace, a successor `<p>-next` of `succeed <p>` in a new tab of p's,
 any other manager in a new workspace of its own. `--allow` turns a tool on that its role has off.
 
-usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]... [--steer <key>]...
+usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]... [--steer <key>]... [--repository <folder>]
 
 A worker or sentinel started while its manager's heartbeat `print-team-gaps.py` runs under no process of the manager's session gets a warning on stderr naming the command that starts it.
 
-`--steer` puts the steering lines of those keys (print-steering.py lists them) after the kick-off arguments; a key it refuses, exit 2, starts nothing."""
+`--steer` puts the steering lines of those keys (print-steering.py lists them) after the kick-off arguments; a key it refuses, exit 2, starts nothing.
+`--repository` names the checkout, main or worktree, whose repository the session joins and whose worktrees its `<cwd>` may be."""
 import os
 import pathlib
-import subprocess
 import sys
 import time
 
@@ -18,6 +18,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into t
 sys.path.insert(0, str(ROOT / "lib"))
 import agent  # noqa: E402
 import background_work  # noqa: E402
+import data_folder  # noqa: E402
 import session  # noqa: E402
 import steering_lines  # noqa: E402
 import team_names  # noqa: E402
@@ -45,11 +46,8 @@ def look(name, pane):
 
 def trusted(folder):
     """True when FOLDER is the repository root or under its worktrees; the root is the main checkout's, also from a worktree."""
-    git = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], capture_output=True, text=True)
-    if git.returncode:  # no repository here: no folder is inside it
-        return False
-    root = pathlib.Path(git.stdout.strip()).resolve().parent
-    return folder == root or root / ".claude" / "worktrees" in folder.parents
+    root, trees = data_folder.main_checkout(), data_folder.worktrees()  # both None outside a repository, which no folder is inside
+    return folder == root or trees in folder.parents
 
 
 def accept_trust(name, cwd, kickoff):
@@ -87,7 +85,7 @@ def main(args):
     parser.add_argument("--effort", required=True)
     parser.add_argument("--allow", action="append", default=[], metavar="TOOL")  # its subagents lack a tool their session lacks: grant it per root task
     parser.add_argument("--steer", action="append", default=[], metavar="KEY")
-    options = parser.parse_args(args)
+    options = parser.parse_args(data_folder.enter(args, __doc__))
     try:
         steering = steering_lines.lines(options.steer) if options.steer else ""
     except ValueError as e:

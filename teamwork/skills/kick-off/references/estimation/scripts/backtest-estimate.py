@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay `estimate-task-time.py` over the closed tasks of the repository the current folder is in, in time order.
 
-usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...]
+usage: backtest-estimate.py [--from-json <file>] [--as-of <time> --tasks <n>,<n>...] [--repository <folder>]
 
 The first 60% calibrate the range
 levels, the last 40% only score: held-out coverage of the per-task range, its median width and median absolute error, for
@@ -14,6 +14,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+import data_folder  # noqa: E402
 import task_backtest  # noqa: E402
 import task_history  # noqa: E402
 import usage_parser  # noqa: E402
@@ -24,7 +25,7 @@ def main(args):
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
     parser.add_argument("--tasks", type=lambda value: {int(task_number) for task_number in value.split(",")}, default=set())
-    options = parser.parse_args(args)
+    options = parser.parse_args(data_folder.enter(args, __doc__))
     fixture, cutoff, numbers = options.from_json, options.as_of, options.tasks
     repos = list(fixture) if fixture else [task_history.own_repository()]
     pooled = [0, 0]

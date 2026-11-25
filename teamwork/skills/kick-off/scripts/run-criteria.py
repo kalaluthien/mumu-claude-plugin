@@ -3,9 +3,9 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --pass <n>=<sample-file>...] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
-A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
+`--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
 A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
 file is the worker's own draft, so it runs.
@@ -74,6 +74,7 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
+import data_folder  # noqa: E402
 import decisions  # noqa: E402
 import task_state  # noqa: E402
 import usage_parser  # noqa: E402
@@ -656,7 +657,7 @@ def main(args):
     parser.add_argument("--ref")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
-    options = parser.parse_args(args)
+    options = parser.parse_args(data_folder.enter(args, __doc__))
     file = pathlib.Path(options.task)
     task = {"body": read_file(file), "comments": []} if file.is_file() else runnable(read_task(options.task))
     root = git_output("rev-parse", "--show-toplevel") or "."

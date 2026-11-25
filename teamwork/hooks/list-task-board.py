@@ -2,21 +2,23 @@
 """Print the project's open tasks as the task pane draws them: each part under its parent by a guide, a row's title with
 `(blocked by #a #b)` while a blocker is open, then its status (`n/m parts done holder wait`), then what the pane folds under it: open questions, decisions, next step, criteria, closed parts.
 
-usage: list-task-board.py <project> [--json [--width <n>] | --width <n> | --check]
+usage: list-task-board.py <project> [--json [--width <n>] | --width <n> | --check] [--repository <folder>]
        list-task-board.py --nodes <file> [--json [--width <n>] | --width <n> | --check]
 `--json` prints the rows the pane draws, laid out for `--width` cells, else for a narrow docked pane; `--width` alone wraps the
 text to that many cells; `--check` prints per width 24, 30, 40, 60 and 80 whether the rows fit; `--nodes` reads the board's
-task nodes from a file instead of the board."""
+task nodes from a file instead of the board; `--repository` names the checkout, main or worktree, whose board is read, else the current folder's."""
 import json
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
+import data_folder  # noqa: E402
 import task_board  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     width = args[args.index("--width") + 1] if "--width" in args and args.index("--width") + 1 < len(args) else None
     words = [word for word in args if word not in ("--json", "--nodes", "--check", "--width", width)]
     if len(words) != 1 or words[0].startswith("-") or "--width" in args and not (width or "").isdigit():

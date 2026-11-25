@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Do one operation of the local git landing, which keeps each change in the main checkout's `.teamwork/changes`.
 
-usage: use-landing.py <operation> <args>
+usage: use-landing.py <operation> <args> [--repository <folder>]
 
   change <branch> <title> <body-file> [base]   file BRANCH as a change into BASE, by default the main checkout's branch; print its url
   merge <change> <sha>                         squash SHA, the branch tip a judge approved, onto the base; print the new commit"""
@@ -14,6 +14,7 @@ import landing_git  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     verb, *operands = args or [""]
     if any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)

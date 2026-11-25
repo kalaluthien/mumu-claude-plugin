@@ -2,17 +2,19 @@
 """Print the owner's decisions on a task that no body edit has folded in yet, and the body's sha, so a worker folds every addition in one edit.
 A body edit folds a decision when its keyword line names the decision's url; exit 1 when the board read failed.
 
-usage: list-additions.py <task>"""
+usage: list-additions.py <task> [--repository <folder>]"""
 import pathlib
 import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
+import data_folder  # noqa: E402
 import decisions  # noqa: E402
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     number = decisions.task_number(args[0]) if len(args) == 1 else None
     if number is None:
         print(__doc__, file=sys.stderr)

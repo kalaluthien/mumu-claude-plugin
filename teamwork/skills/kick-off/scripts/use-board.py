@@ -13,7 +13,7 @@ usage: use-board.py resolve <task> --summary <line> [--text <file>] [--not-plann
 usage: use-board.py reopen <task>
 usage: use-board.py label <task> --label <name> [--remove]
 
-`<task>` is a number or url. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
+`<task>` is a number or url; `--repository <folder>` on any verb names the checkout whose board it acts on, and a relative `--body` or `--text` path is read from it. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
 takes that line from the first line of `--text`. `<names>` and `<numbers>` split by spaces, `""` for none. A write prints its url; a refused one posts nothing, exits 2 and names the fix. Meanings:
 references/task-grammar.md; `--scope`: references/adapters/board.md."""
 import argparse
@@ -26,6 +26,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
+import data_folder  # noqa: E402
 import decisions  # noqa: E402
 import task_links  # noqa: E402
 import task_state  # noqa: E402
@@ -306,7 +307,7 @@ def main(args):
         # the usage is the help, so a call asking for it learns that rather than which argument it lacks
         print(f"use-board: `{'--help' if '--help' in args else '-h'}` is no option; the usage follows", file=sys.stderr)
         usage_parser.refuse(__doc__)
-    options = parser().parse_args(args)
+    options = parser().parse_args(data_folder.enter(args, __doc__))
     try:
         if getattr(options, "task", None) is not None:
             # a caller holds a task as its number or as the url a write printed, so either names it

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Print one line per named live agent: name, pane id, workspace id, status; an unnamed session has no name key, so it is skipped.
-`--me` prints only this session's name, or nothing outside a named session.
+`--me` prints only this session's name, or nothing outside a named session and for a name that ends in no role.
 
 usage: list-sessions.py
        list-sessions.py --me"""

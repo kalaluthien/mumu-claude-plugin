@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Close a named session once it stops working: send it its exit, answer the dialogs it shows, then close its tab.
 
-usage: close-session.py <name> [--force]
+usage: close-session.py <name> [--force] [--repository <folder>]
 
 Another session's close is refused, exit 2, while a task it holds has an open `BLOCKED:` no `DECIDED:` answered, printing that task's url and question,
-since its worker waits on that answer; `--force` closes it anyway. A session closing itself runs detached, so it closes once the turn ends. TEAMWORK_CLOSE_SESSION_TIMEOUT (default 3600) bounds the
+since its worker waits on that answer; `--force` closes it anyway. `--repository` names the checkout, main or worktree, whose board that wait is read from. A session closing itself runs detached, so it closes once the turn ends. TEAMWORK_CLOSE_SESSION_TIMEOUT (default 3600) bounds the
 wait in seconds."""
 import os
 import pathlib
@@ -15,6 +15,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import agent  # noqa: E402
 import board  # noqa: E402
+import data_folder  # noqa: E402
 import session  # noqa: E402
 import task_state  # noqa: E402
 
@@ -58,6 +59,7 @@ def waiting(name):
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     force = "--force" in args
     args = [arg for arg in args if arg != "--force"]
     if len(args) != 1 or args[0].startswith("-"):

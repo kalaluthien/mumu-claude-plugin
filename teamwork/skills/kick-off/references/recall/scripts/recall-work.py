@@ -3,7 +3,7 @@
 best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its comments
 that opens with a keyword of task-grammar.md.
 
-usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>]
+usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>] [--repository <folder>]
 
 `--before` sees the repository as it stood at DATE, to replay a past kick-off."""
 import collections
@@ -15,6 +15,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
+import data_folder  # noqa: E402
 import task_state  # noqa: E402
 from judge_note import without_judge_note  # noqa: E402
 import landing  # noqa: E402
@@ -102,7 +103,7 @@ def main(args):
     parser.add_argument("--path", action="append", default=[])
     parser.add_argument("--before")
     parser.add_argument("--top", type=int, default=10)
-    options = parser.parse_args(args)
+    options = parser.parse_args(data_folder.enter(args, __doc__))
     items = load(options.before)
     newest = max(items, default=1)
     scores = text_scores(items, words(" ".join(options.words))) + path_scores(items, options.path, options.before)

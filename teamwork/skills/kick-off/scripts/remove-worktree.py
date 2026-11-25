@@ -3,16 +3,17 @@
 `origin`, then fast-forward the main checkout. An unclean worktree is kept, never forced; a branch with unmerged commits is kept;
 a remote branch is deleted only under a worker branch name.
 
-usage: remove-worktree.py <name>..."""
+usage: remove-worktree.py <name>... [--repository <folder>]
+A name is one word of letters, digits and `-`, else nothing is removed. `--repository` names the checkout, main or worktree, whose repository this removes from."""
 import os
 import pathlib
 import re
-import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import data_folder  # noqa: E402
 import landing  # noqa: E402
+from landing_git import git  # noqa: E402
 import team_names  # noqa: E402
 
 
@@ -20,20 +21,19 @@ import team_names  # noqa: E402
 WORKER_BRANCH = re.compile(r"-worker(-[A-Za-z0-9]+)?$")
 
 
-def git(*argv, cwd):
-    return subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True)
+def merged_heads(branches):
+    """The heads of the merged changes: the newest closed ones, and each of BRANCHES by its name too, since the newest alone would forget an old merge of that very branch."""
+    found = [landing.pulls("closed"), *(landing.pulls("closed", branch=branch) for branch in branches)]
+    return {pull["headRefOid"] for pulls in found for pull in pulls or [] if pull["mergedAt"]}
 
 
-def unmerged_tips(name, root):
-    """Short shas of NAME's local and remote tips that neither `origin/HEAD` nor a merged change's head holds."""
-    git("fetch", "origin", cwd=root)
+def unmerged_tips(name, root, heads):
+    """Short shas of NAME's local and remote tips that neither `origin/HEAD` nor a merged change's head in HEADS holds."""
     default = git("symbolic-ref", "--short", "refs/remotes/origin/HEAD", cwd=root).stdout.strip()
     tips = {git("rev-parse", "--verify", "--quiet", ref, cwd=root).stdout.strip()
             for ref in (f"refs/heads/{name}", f"refs/remotes/origin/{name}")} - {""}
     # a squash merge leaves the branch commits off the base, so a tip inside the head of a merged change or pull request counts as merged too,
     # which is how a swapped-out worker's branch, the ancestor of its successor's, is retired
-    # a name lookup too, since the newest merged pull requests alone would forget an old merge of this very branch
-    heads = {pull["headRefOid"] for found in (landing.pulls("closed"), landing.pulls("closed", branch=name)) for pull in found or [] if pull["mergedAt"]}
     merged = {tip for tip in tips if any(not git("merge-base", "--is-ancestor", tip, head, cwd=root).returncode for head in heads)}
     # with no `origin/HEAD` only a merged pull request counts, so the branch is kept rather than guessed merged
     return sorted(tip[:9] for tip in tips - merged if not default or git("merge-base", "--is-ancestor", tip, default, cwd=root).returncode)
@@ -45,9 +45,9 @@ def owned(name, root):
     return sorted({ref.removeprefix("origin/") for ref in refs if team_names.owns(name, ref.removeprefix("origin/"))} - {"HEAD"})
 
 
-def drop(branch, root):
+def drop(branch, root, heads):
     """What was removed of BRANCH, and why any of it was kept, or None."""
-    unmerged = unmerged_tips(branch, root)
+    unmerged = unmerged_tips(branch, root, heads)
     if unmerged:
         return [], f"branch {branch} kept, unmerged commits at {', '.join(unmerged)}"
     done = []
@@ -64,18 +64,18 @@ def drop(branch, root):
     return done, None
 
 
-def remove(name, root):
-    """What was removed for NAME, its worktree and each branch it owns, and why any was kept: an unclean worktree is kept, never forced."""
+def remove(name, root, branches, heads):
+    """What was removed for NAME, its worktree and each of its BRANCHES, and why any was kept: an unclean worktree is kept, never forced."""
     done, kept = [], []
-    tree = root / ".claude" / "worktrees" / name
+    tree = data_folder.worktree(name)
     git("worktree", "prune", cwd=root)  # a folder deleted by hand leaves its worktree registered
     if tree.exists():
         result = git("worktree", "remove", str(tree), cwd=root)
         if result.returncode:
             return f"{name}: worktree kept, {result.stderr.strip()}"
         done.append("worktree")
-    for branch in owned(name, root):
-        removed, reason = drop(branch, root)
+    for branch in branches:
+        removed, reason = drop(branch, root, heads)
         done += removed
         kept += [reason] if reason else []
     said = ", ".join(done) + " removed" if done else "nothing removed" if kept else "nothing left to remove"
@@ -83,16 +83,22 @@ def remove(name, root):
 
 
 def main(args):
+    args = data_folder.enter(args, __doc__)
     if not args or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2
-    common = data_folder.common_folder()
-    if common is None:
-        sys.exit("remove-worktree.py: run it inside the checkout.")
-    root = common.parent  # the main checkout, wherever in it this runs
+    try:
+        for name in args:  # every name is read before any worktree goes
+            data_folder.worktree(name)
+    except (LookupError, ValueError) as e:
+        sys.exit(f"remove-worktree.py: {e}; nothing removed.")
+    root = data_folder.main_checkout()  # wherever in it this runs
     os.chdir(root)  # a worker removing its own worktree would otherwise read the landing from a deleted folder and keep its merged branch
+    git("fetch", "origin", cwd=root)
+    branches = {name: owned(name, root) for name in args}
+    heads = merged_heads(sorted({branch for found in branches.values() for branch in found}))
     for name in args:
-        print(remove(name, root))
+        print(remove(name, root, branches[name], heads))
     if not git("remote", "get-url", "origin", cwd=root).returncode:  # with no remote, a local merge already moved the checkout
         result = git("pull", "--ff-only", cwd=root)
         print("checkout fast-forwarded" if not result.returncode else f"checkout not fast-forwarded: {result.stderr.strip()}")
