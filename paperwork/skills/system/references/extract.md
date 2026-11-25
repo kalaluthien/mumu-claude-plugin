@@ -31,6 +31,7 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 | security and trust | who may do what, with which secret | `credential` and `policy` nodes, `trustZone` areas |
 | actors and outside systems | who starts or receives, outside the subject | `actor` nodes |
 | gaps and open questions | what the sources do not settle | `gap` properties |
+| evidence | the source behind each finding | each record's `evidence` |
 
 ## Steps
 

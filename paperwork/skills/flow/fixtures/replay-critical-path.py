@@ -126,7 +126,7 @@ def places(first):
     return at
 
 
-def missed_order(seed, name, contract, first, run):
+def missed_order(contract, first, run):
     """The reason the order call RUN printed a wrong critical path or place for CONTRACT, or None."""
     tasks = {task["id"] for task in contract["tasks"]}
     lines = [line for line in run.stdout.splitlines() if line.startswith("critical-path work ")]
@@ -163,7 +163,7 @@ def main(args):
                     missed += 1
                     print(f"FAIL {seed} plan-{k}: a plan with a cycle was not refused by its order rules: {run.stdout.strip()[:200]}")
                 continue
-            reason = missed_order(seed, f"plan-{k}", contract, first, run)
+            reason = missed_order(contract, first, run)
             if reason:
                 missed += 1
                 print(f"FAIL {seed} plan-{k}: {reason}")
@@ -171,7 +171,7 @@ def main(args):
         path = pathlib.Path(folder) / "chain.json"
         path.write_text(json.dumps(contract))
         run = subprocess.run([sys.executable, str(CHECKER), "order", str(path)], capture_output=True, text=True)
-        reason = missed_order(seed, "chain", contract, first, run)
+        reason = missed_order(contract, first, run)
         if reason:
             missed += 1
             print(f"FAIL {seed} chain: {reason}")

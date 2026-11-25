@@ -1,6 +1,8 @@
 """The record card, with its badges, and the search palette a paperwork page draws: the markup, style and code a page script pastes into
 its page: the style of `record-card.css` and `record-search.css` before the page's own, and the code of `record-card.js` and
-`record-search.js` before the page's, which calls `paperworkCard` and `paperworkSearch`."""
+`record-search.js` before the page's, which calls `paperworkCard` and `paperworkSearch`; and each data block's JSON, safe inside its script
+element."""
+import json
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -28,3 +30,8 @@ def style():
 def code():
     """The parts' code, to run before the page's own."""
     return "\n".join((HERE / f"{part}.js").read_text().strip() for part in PARTS)
+
+
+def block(value):
+    """JSON that is safe inside a script element."""
+    return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")

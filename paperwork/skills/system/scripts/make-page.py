@@ -12,8 +12,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import nested  # noqa: E402
-from page_parts import CARD, code, palette, style  # noqa: E402
-from tex_mathml import formulas, key, mathml  # noqa: E402
+from page_parts import CARD, block, code, palette, style  # noqa: E402
+from tex_mathml import drawn  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
@@ -59,27 +59,6 @@ PAGE = """<!doctype html>
 </body>
 </html>
 """
-
-
-def block(value):
-    """JSON that is safe inside a script element."""
-    return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c")
-
-
-def drawn(value):
-    """The MathML of each formula a text of VALUE holds, by the name the page looks it up by; an item of the code form may hold TeX the
-    checker never reads, which the page shows as it is."""
-    if isinstance(value, dict):
-        return {name: markup for part in value.values() for name, markup in drawn(part).items()}
-    if isinstance(value, list):
-        return {name: markup for part in value for name, markup in drawn(part).items()}
-    found = {}
-    for tex, display in formulas(value) if isinstance(value, str) else []:
-        try:
-            found[key(tex, display)] = mathml(tex, display)
-        except ValueError:
-            pass
-    return found
 
 
 def main(args):
