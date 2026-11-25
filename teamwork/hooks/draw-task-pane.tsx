@@ -154,6 +154,11 @@ export const register: Register = on => {
 
   // the owner closes the pane by its frame's x; the manager's model calls this tool when the owner asks to see the pane again
   on('tool.call', { tool: `mcp__teamwork__${PANE_TOOL}` }, async ($) => {
+    // a plugin reload or a compaction loads this module again with no session start, so the first call starts the board watch itself
+    if (!refresh) {
+      const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
+      watch($, me?.stdout.trim() ?? '')
+    }
     await showPane($)
     await refresh?.()
     return { result: 'Tasks pane shown' }

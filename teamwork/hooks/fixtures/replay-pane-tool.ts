@@ -10,6 +10,7 @@ const FULL = `mcp__${PLUGIN}__${TOOL}`
 const calls: string[] = []
 let session = 'worker-one-worker'
 let boardReads = 0
+let watches = 0
 const $ = {
   plugin: { root: '/plugin' },
   ui: { open: async () => void calls.push('open'), close: async () => void calls.push('close'), panes: async () => [{ id: 'teamwork-tasks', isShown: false }] },
@@ -21,7 +22,7 @@ const $ = {
       boardReads++
       return { exitCode: 0, stdout: '[]', stderr: '' }
     },
-    spawn: () => (async function* () { yield { text: 'changed' } })(),
+    spawn: () => { watches++; return (async function* () { yield { text: 'changed' } })() },
   },
 }
 
@@ -42,6 +43,7 @@ const verdict = async (): Promise<string> => {
   if (answer.deny !== undefined || answer.result === undefined) return `the tool did not answer with a result: ${JSON.stringify(answer)}`
   if (calls.join(' ') !== 'close open') return `the pane was not closed and opened again: ${calls.join(' ')}`
   if (boardReads <= reads) return 'the board was not read again'
+  if (watches !== 1) return `the call after a session start left ${watches} board watches, not 1`
   const manager = await Bun.file(`${import.meta.dir}/../../skills/kick-off/references/manager.md`).text()
   const triage = manager.split('\n').filter(line => line.startsWith('   | '))
   if (!triage.some(line => line.includes(`\`${FULL}\``))) return 'the Triage table of manager.md does not name the tool'
