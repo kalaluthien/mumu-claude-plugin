@@ -5,6 +5,8 @@ any other manager in a new workspace of its own. `--allow` turns a tool on that 
 
 usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]... [--steer <key>]...
 
+A worker or sentinel started while its manager's heartbeat `print-team-gaps.py` runs under no process of the manager's session gets a warning on stderr naming the command that starts it.
+
 `--steer` puts the steering lines of those keys (print-steering.py lists them) after the kick-off arguments; a key it refuses, exit 2, starts nothing."""
 import os
 import pathlib
@@ -15,6 +17,7 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[3]  # this plugin, loaded into the new session too
 sys.path.insert(0, str(ROOT / "lib"))
 import agent  # noqa: E402
+import background_work  # noqa: E402
 import session  # noqa: E402
 import steering_lines  # noqa: E402
 import team_names  # noqa: E402
@@ -116,6 +119,10 @@ def main(args):
     workspace, refusal = placement(options.name, options.args, role, listed)
     if refusal:
         sys.exit(f"start-session.py: {refusal}")
+    if workspace and (manager_id := next((listed_agent.get("agent_session") or {} for listed_agent in listed if listed_agent.get("workspace_id") == workspace and team_names.role(listed_agent.get("name")) == "manager"), {}).get("value")) \
+            and not background_work.heartbeat_running(manager_id):  # a worker started with no heartbeat running goes unwatched for as long as that lasts
+        print(f"start-session.py: warning: the heartbeat of the manager of {options.name} is not running, so no gap of its team is shown; start `{ROOT}/monitors/print-team-gaps.py` "
+              f"in the manager's session with the Monitor tool (persistent), or reload its plugins.", file=sys.stderr)
     text = agent.kickoff(f"{options.args} — {steering}" if steering else options.args)
     trust = agent.TRUST[0]
     pane, sent = None, False

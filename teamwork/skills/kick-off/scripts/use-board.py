@@ -16,6 +16,7 @@ usage: use-board.py label <task> --label <name> [--remove]
 `<task>` is a number or url. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
 takes that line from the first line of `--text`. `<names>` and `<numbers>` split by spaces, `""` for none. A write prints its url; a refused one posts nothing, exits 2 and names the fix. Meanings:
 references/task-grammar.md; `--scope`: references/adapters/board.md."""
+import argparse
 import difflib
 import pathlib
 import re
@@ -26,6 +27,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
 import criteria_check  # noqa: E402
 import decisions  # noqa: E402
+import task_links  # noqa: E402
 import task_state  # noqa: E402
 from judge_note import without_judge_note  # noqa: E402
 import own_reports  # noqa: E402
@@ -170,6 +172,17 @@ def file_task(options):
     return 0
 
 
+def hold_new_parts(task, parts):
+    """A part PARTS names that nobody holds yet is held by the session that named it, when that session holds TASK, so the heartbeat never calls a part its holder files unrouted."""
+    me = my_name()
+    if not me or me not in (task_state.compose(decisions.read(task, board.fresh)[task])["holders"] or []):
+        return
+    for part in parts:
+        record = board.fresh(part)
+        if record and record.get("state") == "OPEN" and not task_state.holder_values(record):
+            hold_task(argparse.Namespace(task=part, holders=me))
+
+
 def edit_body(options):
     """Posts the keyword line `DECIDED: <reason>` with the diff from the stored body to the new one, then stores the new body, both or neither."""
     task, body_file, base = options.task, options.body, options.base
@@ -178,7 +191,7 @@ def edit_body(options):
     new = read_text(body_file)
     if re.match(r"--- .*\n\+\+\+ .*\n@@ ", new):
         sys.exit(f"use-board: {body_file} is a diff, so nothing was posted or changed: hand the whole new body, which `read {task} --body` prints to start from")
-    refusal = []
+    refusal, added = [], []
 
     def land():
         # read again on each try: a board that lost a write race runs this again from the newer body, so --base holds against that write too
@@ -208,6 +221,7 @@ def edit_body(options):
         fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
         url = board.comment(task, f"{line}\n\n{fence}diff\n{diff}{fence}\n")
         board.edit(task, new)
+        added[:] = [part for part in task_links.parts(new) if part not in task_links.parts(old)]
         return url
 
     url = board.atomic(land)
@@ -215,6 +229,7 @@ def edit_body(options):
         code, message = refusal[0]
         print(f"use-board: {message}", file=sys.stderr)
         return code
+    hold_new_parts(task, added)
     print(f"{url}\nuse-board: #{task}'s body is the new one, and its new comment holds the diff")
     return 0
 
