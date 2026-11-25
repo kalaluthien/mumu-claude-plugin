@@ -1,0 +1,878 @@
+{
+ "name-lookup": {
+  "form": [
+   [
+    [
+     "nodes",
+     0,
+     "colour"
+    ],
+    "blue"
+   ]
+  ],
+  "unique-ids": [
+   [
+    [
+     "edges",
+     6,
+     "id"
+    ],
+    "asks-owner"
+   ]
+  ],
+  "tag-known": [
+   [
+    [
+     "nodes",
+     0,
+     "tag"
+    ],
+    "robot"
+   ]
+  ],
+  "info-item": [
+   [
+    [
+     "nodes",
+     2,
+     "info"
+    ],
+    {
+     "flavour": "plain"
+    }
+   ]
+  ],
+  "info-form": [
+   [
+    [
+     "nodes",
+     1,
+     "info",
+     "responsibilities"
+    ],
+    "checks the rate of each client"
+   ]
+  ],
+  "node-group": [
+   [
+    [
+     "nodes",
+     0,
+     "group"
+    ],
+    "nowhere"
+   ]
+  ],
+  "level-nodes": [
+   [
+    [
+     "nodes",
+     5
+    ],
+    {
+     "id": "audit-log",
+     "label": "Audit log",
+     "tag": "dataStore",
+     "group": "registry",
+     "purpose": "Keeps each lookup for a month."
+    }
+   ]
+  ],
+  "level-links": [
+   [
+    [
+     "edges",
+     1,
+     "opens"
+    ]
+   ]
+  ],
+  "edge-ends": [
+   [
+    [
+     "edges",
+     0,
+     "to"
+    ],
+    "name-cache"
+   ]
+  ],
+  "fragment-span": [
+   [
+    [
+     "fragments",
+     0,
+     "kind"
+    ],
+    "alt"
+   ]
+  ],
+  "after-known": [
+   [
+    [
+     "edges",
+     5,
+     "after"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "milestone-order-interaction": [
+   [
+    [
+     "edges",
+     0,
+     "after"
+    ],
+    [
+     "name-resolved"
+    ]
+   ]
+  ],
+  "purpose-missing": [
+   [
+    [
+     "nodes",
+     0,
+     "purpose"
+    ]
+   ]
+  ],
+  "property-form": [
+   [
+    [
+     "properties",
+     2,
+     "fault"
+    ]
+   ]
+  ],
+  "evidence-source": [
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "question-answered": [
+   [
+    [
+     "questions",
+     2,
+     "gap"
+    ],
+    "one-owner"
+   ]
+  ],
+  "name-form": [
+   [
+    [
+     "nodes",
+     0,
+     "label"
+    ],
+    "the browser app"
+   ]
+  ],
+  "name-english": [
+   [
+    [
+     "groups",
+     0,
+     "label"
+    ],
+    "Client 측"
+   ]
+  ],
+  "korean-text": [
+   [
+    [
+     "nodes",
+     0,
+     "purpose"
+    ],
+    "이름의 소유자를 보여 줌."
+   ]
+  ],
+  "text-plain": [
+   [
+    [
+     "nodes",
+     0,
+     "purpose"
+    ],
+    "Shows {nobody} who owns the name."
+   ]
+  ],
+  "formula": [
+   [
+    [
+     "nodes",
+     0,
+     "purpose"
+    ],
+    "Shows the owner of $\\frobnicate{x}$."
+   ]
+  ],
+  "form-not-object": [
+   [
+    [
+     "nodes",
+     0
+    ],
+    "browser-app"
+   ]
+  ],
+  "form-empty-label": [
+   [
+    [
+     "nodes",
+     1,
+     "label"
+    ],
+    " "
+   ]
+  ],
+  "form-optional-field": [
+   [
+    [
+     "nodes",
+     0,
+     "info"
+    ],
+    "plain"
+   ]
+  ],
+  "form-text-list": [
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     ""
+    ]
+   ]
+  ],
+  "form-basis": [
+   [
+    [
+     "nodes",
+     0,
+     "basis"
+    ],
+    "rumour"
+   ]
+  ],
+  "form-contract-field": [
+   [
+    [
+     "levels"
+    ]
+   ]
+  ],
+  "form-operand": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "edges"
+    ],
+    "reads-shard"
+   ]
+  ],
+  "form-empty-list": [
+   [
+    [
+     "groups"
+    ],
+    []
+   ]
+  ],
+  "form-milestone-after": [
+   [
+    [
+     "milestones",
+     0,
+     "after"
+    ],
+    []
+   ]
+  ],
+  "form-level-kind": [
+   [
+    [
+     "levels",
+     1,
+     "kind"
+    ],
+    "story"
+   ]
+  ],
+  "form-fragment-level": [
+   [
+    [
+     "fragments",
+     0,
+     "level"
+    ],
+    "nowhere"
+   ]
+  ],
+  "evidence-source-lines": [
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "api-spec:seven"
+    ]
+   ]
+  ],
+  "evidence-source-past-end": [
+   [
+    [
+     "sources",
+     2
+    ],
+    {
+     "id": "skill-file",
+     "path": "SKILL.md",
+     "says": "The flow skill's routing table."
+    }
+   ],
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "skill-file:9999"
+    ]
+   ]
+  ],
+  "evidence-source-path": [
+   [
+    [
+     "sources",
+     2
+    ],
+    {
+     "id": "lost-file",
+     "path": "no/such/file.md",
+     "says": "A file that is not there."
+    }
+   ],
+   [
+    [
+     "nodes",
+     0,
+     "evidence"
+    ],
+    [
+     "lost-file"
+    ]
+   ]
+  ],
+  "fragment-span-unknown-edge": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "fragment-span-gap": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "asks-owner",
+     "reads-shard"
+    ]
+   ]
+  ],
+  "fragment-span-guard": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "guard"
+    ]
+   ]
+  ],
+  "fragment-span-overlap": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "reads-shard",
+     "gives-up"
+    ]
+   ],
+   [
+    [
+     "fragments",
+     1,
+     "operands",
+     0,
+     "edges"
+    ],
+    [
+     "gives-up",
+     "returns-record"
+    ]
+   ]
+  ],
+  "unique-ids-slug": [
+   [
+    [
+     "fragments",
+     0,
+     "id"
+    ],
+    "Each_Shard"
+   ]
+  ],
+  "tag-known-level": [
+   [
+    [
+     "edges",
+     0,
+     "tag"
+    ],
+    "request"
+   ],
+   [
+    [
+     "edges",
+     0,
+     "info"
+    ]
+   ]
+  ],
+  "node-group-unknown": [
+   [
+    [
+     "nodes",
+     2,
+     "group"
+    ],
+    "nowhere"
+   ]
+  ],
+  "level-nodes-unknown": [
+   [
+    [
+     "levels",
+     1,
+     "nodes",
+     3
+    ],
+    "nowhere"
+   ]
+  ],
+  "edge-ends-level": [
+   [
+    [
+     "edges",
+     0,
+     "level"
+    ],
+    "nowhere"
+   ]
+  ],
+  "edge-ends-twice": [
+   [
+    [
+     "edges",
+     10
+    ],
+    {
+     "id": "asks-again",
+     "level": "inside-resolve",
+     "from": "name-service",
+     "to": "name-store",
+     "label": "SELECT owner FROM names",
+     "tag": "access"
+    }
+   ]
+  ],
+  "level-links-first": [
+   [
+    [
+     "edges",
+     6,
+     "opens"
+    ],
+    "lookup"
+   ]
+  ],
+  "property-form-none": [
+   [
+    [
+     "properties",
+     0,
+     "kind"
+    ],
+    "assumption"
+   ],
+   [
+    [
+     "properties",
+     1,
+     "kind"
+    ],
+    "assumption"
+   ]
+  ],
+  "property-form-strength": [
+   [
+    [
+     "properties",
+     0,
+     "strength"
+    ],
+    "maybe"
+   ]
+  ],
+  "property-form-on": [
+   [
+    [
+     "properties",
+     0,
+     "on"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "question-answered-none": [
+   [
+    [
+     "questions"
+    ],
+    []
+   ]
+  ],
+  "question-answered-both": [
+   [
+    [
+     "questions",
+     0,
+     "gap"
+    ],
+    "stale-cache"
+   ]
+  ],
+  "question-answered-unproven": [
+   [
+    [
+     "questions",
+     0,
+     "answers"
+    ],
+    [
+     "name-resolved"
+    ]
+   ]
+  ],
+  "text-plain-edge-label": [
+   [
+    [
+     "edges",
+     0,
+     "label"
+    ],
+    "GET `/v1/names`"
+   ]
+  ],
+  "text-plain-label": [
+   [
+    [
+     "nodes",
+     0,
+     "label"
+    ],
+    "Browser app."
+   ]
+  ],
+  "name-form-title": [
+   [
+    [
+     "levels",
+     0,
+     "title"
+    ],
+    "Lookup Flow"
+   ]
+  ],
+  "text-plain-guard": [
+   [
+    [
+     "fragments",
+     0,
+     "operands",
+     0,
+     "guard"
+    ],
+    "while the name store answers"
+   ]
+  ],
+  "after-known-level": [
+   [
+    [
+     "edges",
+     9,
+     "after"
+    ],
+    [
+     "name-resolved"
+    ]
+   ]
+  ],
+  "level-links-unknown": [
+   [
+    [
+     "edges",
+     2,
+     "opens"
+    ],
+    "nowhere"
+   ]
+  ],
+  "form-milestone-level": [
+   [
+    [
+     "milestones",
+     0,
+     "level"
+    ],
+    "nowhere"
+   ]
+  ],
+  "task-place-interaction": [
+   [
+    [
+     "tasks"
+    ],
+    [
+     {
+      "id": "writes-log",
+      "level": "lookup",
+      "node": "gateway",
+      "label": "Write the log",
+      "tag": "work",
+      "purpose": "Keeps each lookup for the audit."
+     }
+    ]
+   ]
+  ],
+  "property-form-on-property": [
+   [
+    [
+     "properties",
+     0,
+     "on"
+    ],
+    [
+     "answer-in-time"
+    ]
+   ]
+  ],
+  "name-form-property-title": [
+   [
+    [
+     "properties",
+     0,
+     "title"
+    ],
+    "One Owner"
+   ]
+  ],
+  "text-plain-label-space": [
+   [
+    [
+     "nodes",
+     0,
+     "label"
+    ],
+    "Browser app "
+   ]
+  ],
+  "evidence-source-fragment": [
+   [
+    [
+     "fragments",
+     0,
+     "evidence"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "evidence-source-milestone": [
+   [
+    [
+     "milestones",
+     0,
+     "evidence"
+    ],
+    [
+     "nowhere"
+    ]
+   ]
+  ],
+  "info-form-tree": [
+   [
+    [
+     "nodes",
+     4,
+     "info",
+     "layout",
+     0,
+     "children",
+     0
+    ],
+    {
+     "note": "no name"
+    }
+   ]
+  ],
+  "text-plain-info": [
+   [
+    [
+     "edges",
+     0,
+     "info",
+     "timing"
+    ],
+    "the API gateway gives up after 5 seconds"
+   ]
+  ]
+ },
+ "launch-plan": {
+  "task-place": [
+   [
+    [
+     "tasks",
+     0,
+     "node"
+    ],
+    "nobody"
+   ]
+  ],
+  "milestone-order-plan": [
+   [
+    [
+     "tasks",
+     2,
+     "after"
+    ],
+    [
+     "merge-change"
+    ]
+   ]
+  ],
+  "order-acyclic": [
+   [
+    [
+     "edges",
+     7
+    ],
+    {
+     "id": "sends-version",
+     "level": "release",
+     "from": "publish-package",
+     "to": "write-notes",
+     "label": "send the version number",
+     "tag": "wait"
+    }
+   ]
+  ],
+  "term-words": [
+   [
+    [
+     "milestones",
+     0,
+     "purpose"
+    ],
+    "After the lockdown only the merge and the release steps run."
+   ]
+  ],
+  "fragment-span-plan": [
+   [
+    [
+     "fragments"
+    ],
+    [
+     {
+      "id": "on-red",
+      "level": "release",
+      "kind": "opt",
+      "operands": [
+       {
+        "guard": "a test fails",
+        "edges": [
+         "asks-tests"
+        ]
+       }
+      ]
+     }
+    ]
+   ]
+  ],
+  "edge-ends-plan": [
+   [
+    [
+     "edges",
+     0,
+     "to"
+    ],
+    "ci-runner"
+   ]
+  ],
+  "purpose-missing-task": [
+   [
+    [
+     "tasks",
+     0,
+     "purpose"
+    ]
+   ]
+  ]
+ }
+}

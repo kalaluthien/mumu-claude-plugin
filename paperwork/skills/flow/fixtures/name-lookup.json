@@ -1,0 +1,63 @@
+{
+  "title": "Name lookup",
+  "purpose": "Shows how a browser asks the registry who owns a name, and what it hears back when the store fails.",
+  "sources": [
+    {"id": "api-spec", "path": "https://example.com/registry/api-spec", "says": "What the API gateway serves at /v1/names/{name}, its replies and its retry policy.", "authority": "outranks the runbook on replies"},
+    {"id": "runbook", "path": "https://example.com/registry/runbook", "says": "How the name service reads the store and its cache."}
+  ],
+  "terms": [
+    {"term": "owner record", "meaning": "the account id and the time a name was taken, as the store keeps them", "aliases": ["소유자 기록"]}
+  ],
+  "groups": [
+    {"id": "client-side", "label": "Client side", "purpose": "Runs on the person's device."},
+    {"id": "registry", "label": "Registry", "purpose": "Runs in the registry's own data centre."}
+  ],
+  "levels": [
+    {"id": "lookup", "title": "lookup", "kind": "interaction", "nodes": ["browser-app", "gateway", "name-service", "name-store"], "about": "One lookup from the browser to the store and back."},
+    {"id": "inside-resolve", "title": "inside-resolve", "kind": "interaction", "nodes": ["name-service", "name-cache", "name-store"], "about": "How {name-service} resolves one name, cache first."}
+  ],
+  "nodes": [
+    {"id": "browser-app", "label": "Browser app", "tag": "actor", "group": "client-side", "purpose": "Shows the person who owns the name they typed.", "evidence": ["api-spec"], "basis": "documented"},
+    {"id": "gateway", "label": "API gateway", "tag": "service", "group": "registry", "purpose": "Takes public requests, checks their rate and passes them on.",
+     "info": {"capacity": "2000 lookups a second", "responsibilities": ["checks the rate of each client", "turns a timeout into `503`"]}, "evidence": ["api-spec"], "basis": "documented"},
+    {"id": "name-service", "label": "Name service", "tag": "service", "group": "registry", "purpose": "Turns a name into its owner record.", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "name-cache", "label": "Name cache", "tag": "dataStore", "group": "registry", "purpose": "Keeps recent owner records for a minute.", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "name-store", "label": "Name store", "tag": "dataStore", "group": "registry", "purpose": "Keeps every owner record for good.", "info": {"layout": [{"name": "names", "note": "one row per name", "children": [{"name": "shard-a"}, {"name": "shard-b"}]}]}, "evidence": ["runbook"], "basis": "documented"}
+  ],
+  "edges": [
+    {"id": "asks-owner", "level": "lookup", "from": "browser-app", "to": "gateway", "label": "GET /v1/names/{name}", "tag": "call",
+     "info": {"protocol": "HTTPS GET /v1/names/{name}", "timing": "the browser gives up after 5 seconds"}, "evidence": ["api-spec"], "basis": "documented"},
+    {"id": "resolves-name", "level": "lookup", "from": "gateway", "to": "name-service", "label": "resolve(name)", "tag": "call", "opens": "inside-resolve",
+     "info": {"protocol": "gRPC Resolve", "timing": "timeout 1 s"}, "evidence": ["runbook"], "basis": "documented"},
+    {"id": "reads-shard", "level": "lookup", "from": "name-service", "to": "name-store", "label": "SELECT owner FROM names", "tag": "access",
+     "info": {"why": "a name may sit in either of two shards while it moves"}, "evidence": ["runbook"], "basis": "documented"},
+    {"id": "gives-up", "level": "lookup", "from": "name-service", "to": "gateway", "label": "UNAVAILABLE", "tag": "reply",
+     "info": {"status": "gRPC 14 UNAVAILABLE"}, "evidence": ["runbook"], "basis": "documented"},
+    {"id": "returns-record", "level": "lookup", "from": "name-service", "to": "gateway", "label": "OwnerRecord", "tag": "reply",
+     "info": {"response": {"columns": ["field", "type", "meaning"], "rows": [["account", "string", "the owner's account id"], ["since", "timestamp", "when the name was taken"]]}}, "evidence": ["runbook"], "basis": "documented"},
+    {"id": "answers-browser", "level": "lookup", "from": "gateway", "to": "browser-app", "label": "200 OK", "tag": "reply", "after": ["name-resolved"],
+     "info": {"status": "200 OK"}, "evidence": ["api-spec"], "basis": "documented"},
+    {"id": "reads-cache", "level": "inside-resolve", "from": "name-service", "to": "name-cache", "label": "GET name:{name}", "tag": "access", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "misses-cache", "level": "inside-resolve", "from": "name-cache", "to": "name-service", "label": "nil", "tag": "reply", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "reads-store", "level": "inside-resolve", "from": "name-service", "to": "name-store", "label": "SELECT owner FROM names", "tag": "access", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "fills-cache", "level": "inside-resolve", "from": "name-service", "to": "name-cache", "label": "SET name:{name} EX 60", "tag": "access", "evidence": ["runbook"], "basis": "inferred"}
+  ],
+  "fragments": [
+    {"id": "each-shard", "level": "lookup", "kind": "loop", "operands": [{"guard": "for each of the two shards, until one holds the name", "edges": ["reads-shard"]}], "evidence": ["runbook"]},
+    {"id": "store-down", "level": "lookup", "kind": "break", "operands": [{"guard": "both shards time out", "edges": ["gives-up"]}], "evidence": ["runbook"]},
+    {"id": "on-miss", "level": "inside-resolve", "kind": "opt", "operands": [{"guard": "the cache holds no record", "edges": ["reads-store", "fills-cache"]}], "evidence": ["runbook"]}
+  ],
+  "milestones": [
+    {"id": "name-resolved", "level": "lookup", "label": "Name resolved", "after": ["returns-record"], "purpose": "From here on the gateway holds the owner record and only sends it on."}
+  ],
+  "properties": [
+    {"id": "one-owner", "title": "one-owner", "kind": "invariant", "statement": "A name has at most one owner record in the whole store.", "on": ["name-store"], "evidence": ["runbook"]},
+    {"id": "answer-in-time", "title": "answer-in-time", "kind": "invariant", "strength": "should", "statement": "{gateway} answers within 2 seconds, with `503` when {name-service} gives up.", "on": ["answers-browser", "gives-up"], "evidence": ["api-spec"]},
+    {"id": "stale-cache", "title": "stale-cache", "kind": "gap", "status": "unknown", "fault": "missing", "statement": "No source says what {name-cache} does when a name changes owner within its minute.", "on": ["fills-cache"]}
+  ],
+  "questions": [
+    {"id": "call-order", "asks": "In what order do the parts call one another for one lookup?", "answers": ["asks-owner", "resolves-name", "reads-shard", "returns-record", "answers-browser"]},
+    {"id": "store-fails", "asks": "What does the browser hear when the store fails?", "answers": ["store-down", "answer-in-time"]},
+    {"id": "cache-change", "asks": "What does a cached record show after the name changes owner?", "gap": "stale-cache"}
+  ]
+}

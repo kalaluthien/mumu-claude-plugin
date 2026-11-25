@@ -1,8 +1,8 @@
 {
   "name": "paperwork",
-  "version": "0.17.8",
+  "version": "0.18.0",
   "license": "Apache-2.0",
-  "description": "Describe a system as one checked contract a reader can rebuild it from; the system skill's relay playbook applies a person's edits on a local HTML page to its file, serving the page only when asked.",
+  "description": "Describe a system as one checked contract a reader can rebuild it from, and a flow of calls or work as sequence diagrams; the system skill's relay playbook applies a person's edits on a local HTML page to its file, serving the page only when asked.",
   "author": {
     "name": "kalaluthien"
   }
