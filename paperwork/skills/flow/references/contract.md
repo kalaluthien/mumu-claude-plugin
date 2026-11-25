@@ -12,7 +12,7 @@ A contract is one JSON object. A record names another only by its id, and a text
 - **group**: `id`, `label`, `purpose`: the side a node belongs to, such as a team or a data centre; the page gives each group one colour and its label.
 - **level**: `id`, `title` (a slug), `kind` (`interaction` or `plan`), `nodes` (the ids it draws, in order across the top or down the left), `about`. The first level is the whole flow; every other is opened by an edge.
 - **node**: `id`, `label`, `tag`, `group`, `purpose`, `info`: a system, an actor or a resource; one node may be drawn by several levels.
-- **edge**: `id`, `level`, `from`, `to`, `label`, `tag`, `opens`, `after`, `info`. On an interaction it joins two nodes its level lists, its label the exchange as written, such as `GET /v1/names/{name}`, and its place in the list its place in time. On a plan it joins two tasks: a `request` asks the `to` task to start, a `wait` holds it until the `from` task ends.
+- **edge**: `id`, `level`, `from`, `to`, `label`, `tag`, `opens`, `after`, `info`. On an interaction it joins two nodes its level lists, or a node to itself for its own step, its label the exchange as written, such as `GET /v1/names/{name}`, and its place in the list its place in time. On a plan it joins two tasks: a `request` asks the `to` task to start, a `wait` holds it until the `from` task ends.
 - **task**: `id`, `level`, `node`, `label`, `tag`, `purpose`, `after`, `info`: one piece of work on a plan, drawn as a bar on its node's line.
 - **fragment**: `id`, `level`, `kind` (`alt`, `opt`, `loop`, `par` or `break`), `operands`, each `{"guard", "edges"}`: a frame round edges of an interaction that follow one another; `alt` and `par` hold two operands or more, the others one, and every operand but a `par`'s says its guard.
 - **milestone**: `id`, `level`, `label`, `after` (what it waits on), `purpose`: one point in time; what comes after it names it in its own `after`.
@@ -26,7 +26,7 @@ A contract is one JSON object. A record names another only by its id, and a text
 
 1. Write the questions a builder must answer: the order of the calls, each failure branch, the owner of each step, what blocks what, and what is still unknown.
 2. Choose the levels: the whole flow first, an inner one only where a question lies inside one exchange, opened by that edge.
-3. Write the groups and nodes, then the edges or tasks in time order, each with its tag's items; `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py tags` prints them.
+3. Write the groups and nodes, then the edges or tasks in time order, each with its tag's items, a `call` between two groups with its `failure` or `errors`; `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py tags` prints them.
 4. Frame each branch, option, repeat, parallel run and early exit as a fragment, and each point every later step waits on as a milestone.
 5. Write the properties, the gaps included, then answer each question.
 6. Check: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py check <contract> --root <subject root>`; the `rules` call says what each rule asks.

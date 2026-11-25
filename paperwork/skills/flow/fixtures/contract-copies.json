@@ -14,7 +14,7 @@
    [
     [
      "edges",
-     6,
+     7,
      "id"
     ],
     "asks-owner"
@@ -82,7 +82,7 @@
    [
     [
      "edges",
-     1,
+     2,
      "opens"
     ]
    ]
@@ -111,7 +111,7 @@
    [
     [
      "edges",
-     5,
+     6,
      "after"
     ],
     [
@@ -517,7 +517,7 @@
    [
     [
      "edges",
-     10
+     11
     ],
     {
      "id": "asks-again",
@@ -533,7 +533,7 @@
    [
     [
      "edges",
-     6,
+     7,
      "opens"
     ],
     "lookup"
@@ -655,7 +655,7 @@
    [
     [
      "edges",
-     9,
+     10,
      "after"
     ],
     [
@@ -667,7 +667,7 @@
    [
     [
      "edges",
-     2,
+     3,
      "opens"
     ],
     "nowhere"
@@ -781,6 +781,19 @@
      "timing"
     ],
     "the API gateway gives up after 5 seconds"
+   ]
+  ],
+  "call-failure": [
+   [
+    [
+     "edges",
+     0,
+     "info"
+    ],
+    {
+     "protocol": "HTTPS GET /v1/names/{name}",
+     "timing": "the browser gives up after 5 seconds"
+    }
    ]
   ]
  },

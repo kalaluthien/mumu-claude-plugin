@@ -19,9 +19,10 @@ Describe how a subject unfolds in time, its calls between systems or its plan of
 | case | playbook |
 | --- | --- |
 | write or change a flow contract | [references/contract.md](references/contract.md) |
+| show a contract to a person as a page | [references/page.md](references/page.md) |
 | find what a reader needs, or word a text | `${CLAUDE_PLUGIN_ROOT}/skills/system/references/extract.md` and `${CLAUDE_PLUGIN_ROOT}/skills/system/references/writing.md`, read for nodes, edges and tasks |
 
 ## Rules
 
 - **Written contracts only**: take the subject from written sources, such as a specification, a runbook or a plan, and cite one for each record; record what no source settles as a gap.
-- **After a change to this folder**: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py fixtures` and `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-critical-path.py`; each must print `PASS`.
+- **After a change to this folder**: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py fixtures`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-critical-path.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-deep-contract.py` and `node ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/run-page.cjs`; each must print `PASS`.

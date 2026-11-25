@@ -47,6 +47,7 @@ RULES = {
     "level-nodes": "a level lists in `nodes` the nodes it draws, each once, in order across the top or down the left, and every node is listed by one level at least",
     "level-links": "an edge's `opens` names a level, every level but the first is opened by one edge at least, and no chain of `opens` leads from a level back to it",
     "edge-ends": "an interaction's edge joins two nodes its level lists, and a plan's edge two different tasks of its level; a pair is joined once by one label in a direction",
+    "call-failure": "a `call` between nodes of two groups names its failure in a `failure` or `errors` item",
     "task-place": "a task sits in a plan level, on a node that level lists",
     "fragment-span": "a fragment sits in an interaction level with its kind's operands, two or more for `alt` and `par`, one for `opt`, `loop` and `break`, each naming edges of its level that follow one another, every operand but a `par`'s saying its guard; the operands follow one another, and two fragments nest or stand apart",
     "after-known": "an `after` names a milestone, edge or task of its own level, never itself",
@@ -297,6 +298,10 @@ def breaks(contract, root=None):
                 found.append((where, "level-links", f"`opens` names `{edge['opens']}`, which is no level"))
         if level["kind"] == "interaction" and not (edge["from"] in level["nodes"] and edge["to"] in level["nodes"]):
             found.append((where, "edge-ends", f"joins `{edge['from']}` and `{edge['to']}`; an interaction's edge joins two nodes level `{level['id']}` lists"))
+        sides = {nodes.get(end, {}).get("group") for end in (edge["from"], edge["to"])}
+        crosses = len(sides) == 2 and sides <= groups  # an unknown group breaks node-group alone
+        if level["kind"] == "interaction" and edge["tag"] == "call" and crosses and not {"failure", "errors"} & set(edge.get("info", {})):
+            found.append((where, "call-failure", "crosses from one group to another and names no failure; say what the caller sees when it fails in `failure` or `errors`"))
         if level["kind"] == "plan" and not (tasks.get(edge["from"], {}).get("level") == level["id"] == tasks.get(edge["to"], {}).get("level") and edge["from"] != edge["to"]):
             found.append((where, "edge-ends", f"joins `{edge['from']}` and `{edge['to']}`; a plan's edge joins two different tasks of level `{level['id']}`"))
     pairs = {}
