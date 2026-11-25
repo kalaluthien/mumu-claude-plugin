@@ -6,6 +6,8 @@ usage: replay-relay-parts.py
 relay parts: in a scratch folder a bare page and a stand-in skill script that connects the page and serves it through the lib modules;
 `drive-relay-page.cjs` starts that script and, in a headless Chromium, comments on the page, sees the comment queued and one pending line,
 writes the page file and acks the comment, and sees the open page reload with the queue empty.
+page connect: lib's `connect` says `connected` for a page with no runtime and `updated` for one that holds it, writes the runtime just before
+the last `</body>`, even one at the page's very start or after one in a script's string, and leaves a current page unwritten, read only.
 system reach: on a copy of the plugin whose lib runtime ends with a marked comment, system's `connect-page.py` must write that comment into
 a page; no file under `skills/system/` may hold the runtime, the server or the connect code itself, or name the runtime's old file;
 system's two scripts import only names they use; and the `page-changes` example, checked with this checkout as its root, cites
@@ -34,6 +36,7 @@ page = pathlib.Path(sys.argv[1]).resolve()
 print(connect(page), page, flush=True)
 sys.exit(serve(page, 0, 1.0))
 '''
+BLOCKS = '<script type="application/json" id="page-data">\n{}\n</script>\n<script type="application/json" id="page-threads">\n{"threads": {}}\n</script>\n'  # what connect adds to a page holding neither
 OLD = "page-runtime.js"  # the runtime's file before lib held it
 OWN = ("def connect(", "def serve(", "class Handler(", "window.recordChange = (", 'HANDLED = ("do_GET"')  # a line only the shared code itself holds
 
@@ -50,6 +53,33 @@ def relay_parts():
                               capture_output=True, text=True, timeout=120)
     said = (done.stdout.strip().splitlines() or [done.stderr.strip()])[-1]
     return [] if said == "PASS relay loop" else [said]
+
+
+def page_connect():
+    """Each reason lib's connect placed the runtime wrongly, named the page's state wrongly or wrote a current page."""
+    sys.path.insert(0, str(LIB))
+    from relay_page import START, connect
+    found = []
+    pages = {"a bare page": (BARE, "<p data-id=\"idea\">An idea</p>"),
+             "a page that starts at its end": ("</body></html>\n", ""),
+             "a page whose script holds an end": ('<html><body><script>const end = "</body>";</script><p>x</p></body></html>\n', '<script>const end = "</body>";</script><p>x</p>')}
+    with tempfile.TemporaryDirectory() as scratch:
+        for name, (text, before) in pages.items():
+            page = pathlib.Path(scratch) / "page.html"
+            page.write_text(text)
+            said = connect(page)
+            html = page.read_text()
+            at = html.find(START)
+            found += [] if said == "connected" else [f"{name} with no runtime was said {said}"]
+            found += [] if at >= 0 and html[at:].rstrip().endswith("</body></html>") and html[:at].endswith(before + BLOCKS) else [f"{name} got the runtime elsewhere than just before its last </body>"]
+            page.chmod(0o444)
+            try:
+                said = connect(page)
+                found += [] if said == "updated" else [f"{name} holding the runtime was said {said}"]
+            except PermissionError:
+                found.append(f"{name} already current was written again")
+            page.chmod(0o644)
+    return found
 
 
 def system_reach():
@@ -91,7 +121,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     failed = False
-    for step, run in (("relay parts", relay_parts), ("system reach", system_reach)):
+    for step, run in (("relay parts", relay_parts), ("page connect", page_connect), ("system reach", system_reach)):
         reasons = run()
         failed = failed or bool(reasons)
         print(f"FAIL {step}: {'; '.join(reasons)}" if reasons else f"PASS {step}")
