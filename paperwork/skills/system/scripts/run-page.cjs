@@ -1920,7 +1920,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       check(at === there, `a click on the chip for ${property} in the card of ${id} shows the level ${at}, not ${there}`);
       if (!jittered) jittered = await jitter(page, property, clicked);
       if (!stilled && await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return !!(one && one.closest("#stage [data-id], #stage [data-edge]")); }, clicked))
-        stilled = await rested(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
+        stilled = await clickedResting(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
@@ -1941,7 +1941,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   check(faded.some((one) => one.dim), `with the card of ${copy.node} kept no record holding badges is dimmed, so a dimmed record's badges are untested`);
   for (const one of faded) check(one.own ? one.shown === 1 : !one.dim || one.shown <= 0.75, `with the card of ${copy.node} kept the badges of ${one.dim ? "the dimmed " : ""}${one.id} show at opacity ${one.shown.toFixed(2)}`);
 }
-async function rested(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
+async function clickedResting(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
   await page.mouse.move(x, y);
   await page.goto("about:blank");
   await page.goto("file://" + example.built + hash);
