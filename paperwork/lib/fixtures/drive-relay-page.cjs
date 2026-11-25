@@ -5,11 +5,12 @@
 //
 // usage: drive-relay-page.cjs <page.html> <anchor> <command>...
 const fs = require("fs");
-const http = require("http");
 const path = require("path");
 const readline = require("readline");
 const { spawn } = require("child_process");
 const { missing, launch } = require(path.join(__dirname, "..", "launch-browser.cjs"));
+const { sleep, check, until } = require(path.join(__dirname, "..", "check-step.cjs"));
+const { request } = require(path.join(__dirname, "..", "send-request.cjs"));
 
 const [pageFile, anchor, ...command] = process.argv.slice(2);
 if (!pageFile || !anchor || !command.length) {
@@ -17,30 +18,6 @@ if (!pageFile || !anchor || !command.length) {
   process.exit(2);
 }
 const COMMENT = "Say this idea in fewer words";
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
-
-async function until(probe, ms, what) {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const value = await probe().catch(() => null);
-    if (value) return value;
-    await sleep(100);
-  }
-  throw new Error(`timed out waiting for ${what}`);
-}
-
-function request(method, url, headers = {}, body) {
-  return new Promise((resolve, reject) => {
-    const sent = http.request(url, { method, headers }, (response) => {
-      let text = "";
-      response.on("data", (chunk) => { text += chunk; });
-      response.on("end", () => resolve({ status: response.statusCode, text }));
-    });
-    sent.on("error", reject);
-    sent.end(body);
-  });
-}
 
 async function main() {
   if (missing()) return `${missing()}`;
@@ -67,7 +44,7 @@ async function main() {
     const html = fs.readFileSync(pageFile, "utf8");
     check(html.includes("An idea<"), "the page file holds no `An idea` to edit");
     fs.writeFileSync(pageFile, html.replace("An idea<", "A short idea<"));
-    const acked = await request("POST", url + "api/changes/ack", { Origin: origin, "Content-Type": "application/json" }, JSON.stringify({ ids: [pending[0].id] }));
+    const acked = await request("POST", url + "api/changes/ack", { headers: { Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ ids: [pending[0].id] }) });
     check(acked.status === 200 && JSON.parse(acked.text).acked === 1, `the ack answered ${acked.status} ${acked.text}`);
     await until(async () => (await page.textContent(`[data-id="${anchor}"]`)) === "A short idea", 8000, "the open page to reload with the edit");
     check(JSON.parse((await request("GET", url + "api/changes")).text).length === 0, "the queue is not empty after the ack");

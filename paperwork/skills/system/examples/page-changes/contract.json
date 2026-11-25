@@ -48,6 +48,11 @@
    "says": "the end-to-end run in a headless browser, and its --queue and --verify modes"
   },
   {
+   "id": "src-launch",
+   "path": "paperwork/lib/launch-browser.cjs",
+   "says": "where Playwright and the newest headless shell it installed are found"
+  },
+  {
    "id": "src-replay-check",
    "path": "paperwork/skills/system/fixtures/replay-check-page.py",
    "says": "the replay of the page checker on each fixture page and the starter"
@@ -734,7 +739,7 @@
    },
    "evidence": [
     "src-server:2",
-    "src-relay-server:199",
+    "src-relay-server:201",
     "src-skill:13"
    ],
    "basis": "observed",
@@ -950,9 +955,9 @@
    },
    "evidence": [
     "src-check:2",
-    "src-check:17",
-    "src-check:75",
-    "src-check:119"
+    "src-check:20",
+    "src-check:73",
+    "src-check:117"
    ],
    "basis": "observed",
    "files": [
@@ -1162,8 +1167,8 @@
     "capacity": "no limit on the count; one post is 1,000,000 bytes at most"
    },
    "evidence": [
-    "src-relay-server:40",
-    "src-relay-server:55",
+    "src-relay-server:42",
+    "src-relay-server:57",
     "src-skill:11"
    ],
    "basis": "observed"
@@ -1285,7 +1290,7 @@
     "src-skill:21",
     "src-skill:22",
     "src-skill:23",
-    "src-e2e:195"
+    "src-e2e:165"
    ],
    "basis": "documented"
   },
@@ -1411,7 +1416,7 @@
    },
    "evidence": [
     "src-skill:32",
-    "src-check:56"
+    "src-check:54"
    ],
    "basis": "documented"
   },
@@ -1544,8 +1549,8 @@
    "evidence": [
     "src-skill:8",
     "src-runtime:15",
-    "src-check:87",
-    "src-e2e:174"
+    "src-check:85",
+    "src-e2e:144"
    ],
    "basis": "observed"
   },
@@ -1625,7 +1630,7 @@
    "evidence": [
     "src-skill:10",
     "src-skill:32",
-    "src-check:92",
+    "src-check:90",
     "src-fx-follows:3"
    ],
    "basis": "observed"
@@ -1667,8 +1672,8 @@
    },
    "evidence": [
     "src-skill:9",
-    "src-check:17",
-    "src-relay-server:13"
+    "src-check:20",
+    "src-relay-server:15"
    ],
    "basis": "observed"
   },
@@ -1691,7 +1696,7 @@
    "evidence": [
     "src-relay-page:6",
     "src-relay-page:14",
-    "src-relay-server:17"
+    "src-relay-server:19"
    ],
    "basis": "observed"
   },
@@ -1746,7 +1751,7 @@
     "src-runtime:15",
     "src-runtime:168",
     "src-runtime:222",
-    "src-e2e:127"
+    "src-e2e:97"
    ],
    "basis": "observed"
   },
@@ -2483,7 +2488,7 @@
    "evidence": [
     "src-server:4",
     "src-server:19",
-    "src-relay-server:199",
+    "src-relay-server:201",
     "src-server:37"
    ],
    "basis": "observed"
@@ -2528,9 +2533,9 @@
    },
    "evidence": [
     "src-server:33",
-    "src-relay-server:29",
-    "src-relay-server:36",
-    "src-relay-server:199"
+    "src-relay-server:31",
+    "src-relay-server:38",
+    "src-relay-server:201"
    ],
    "basis": "observed"
   },
@@ -2575,8 +2580,8 @@
     "retention": "the life of the process; only `next` is rebuilt from the files at start"
    },
    "evidence": [
-    "src-relay-server:35",
-    "src-relay-server:37"
+    "src-relay-server:37",
+    "src-relay-server:39"
    ],
    "basis": "observed"
   },
@@ -2599,7 +2604,7 @@
     "why": "a file still being written changes between two polls, so only content quiet for a whole poll is read"
    },
    "evidence": [
-    "src-relay-server:83"
+    "src-relay-server:85"
    ],
    "basis": "observed"
   },
@@ -2655,8 +2660,8 @@
     "why": "a reload into a page without its runtime would leave a page that never reloads again"
    },
    "evidence": [
-    "src-relay-server:68",
-    "src-relay-server:17"
+    "src-relay-server:70",
+    "src-relay-server:19"
    ],
    "basis": "observed"
   },
@@ -2690,7 +2695,7 @@
     "limits": "each newly queued change pushes due to its own time plus the quiet window; an ack or a restart never sets due"
    },
    "evidence": [
-    "src-relay-server:98"
+    "src-relay-server:100"
    ],
    "basis": "observed"
   },
@@ -2708,9 +2713,9 @@
     "kept-in": "{url-file} beside the page, as the whole url and a newline; the file is never served"
    },
    "evidence": [
-    "src-relay-server:29",
-    "src-relay-server:30",
-    "src-relay-server:129",
+    "src-relay-server:31",
+    "src-relay-server:32",
+    "src-relay-server:131",
     "src-skill:34"
    ],
    "basis": "observed"
@@ -2767,9 +2772,9 @@
     "fallback": "404 with an empty text/plain body; /`<token>` without the closing slash is 404 too"
    },
    "evidence": [
-    "src-relay-server:127",
-    "src-relay-server:158",
-    "src-relay-server:179"
+    "src-relay-server:129",
+    "src-relay-server:160",
+    "src-relay-server:181"
    ],
    "basis": "observed"
   },
@@ -2824,8 +2829,8 @@
     ]
    },
    "evidence": [
-    "src-relay-server:16",
-    "src-relay-server:179"
+    "src-relay-server:18",
+    "src-relay-server:181"
    ],
    "basis": "observed"
   },
@@ -2865,8 +2870,8 @@
     "limits": "every answer but the event stream carries Content-Type, Cache-Control: no-store and Content-Length"
    },
    "evidence": [
-    "src-relay-server:160",
-    "src-relay-server:119"
+    "src-relay-server:162",
+    "src-relay-server:121"
    ],
    "basis": "observed"
   },
@@ -2960,7 +2965,7 @@
     "limits": "on success: append the change to pending.jsonl, add one to memory's queue counter, set memory's due to now plus the quiet window"
    },
    "evidence": [
-    "src-relay-server:40"
+    "src-relay-server:42"
    ],
    "basis": "observed"
   },
@@ -3000,7 +3005,7 @@
     "limits": "reading changes nothing"
    },
    "evidence": [
-    "src-relay-server:162"
+    "src-relay-server:164"
    ],
    "basis": "observed"
   },
@@ -3069,7 +3074,7 @@
     "limits": "on a match: append the moved changes to applied.jsonl, rewrite pending.jsonl without them, add one to memory's queue counter; the due time is not touched"
    },
    "evidence": [
-    "src-relay-server:55"
+    "src-relay-server:57"
    ],
    "basis": "observed"
   },
@@ -3119,7 +3124,7 @@
     "limits": "one thread per stream, waking every 0.5 s; it ends when a write fails"
    },
    "evidence": [
-    "src-relay-server:133"
+    "src-relay-server:135"
    ],
    "basis": "observed"
   },
@@ -3179,8 +3184,8 @@
     "why": "the first piece is compared by os.path.samefile, since the file system may match a name in another letter case"
    },
    "evidence": [
-    "src-relay-server:168",
-    "src-relay-server:15"
+    "src-relay-server:170",
+    "src-relay-server:17"
    ],
    "basis": "observed"
   },
@@ -3268,9 +3273,9 @@
     "retention": "until acked"
    },
    "evidence": [
-    "src-relay-server:27",
-    "src-relay-server:214",
-    "src-relay-server:218"
+    "src-relay-server:29",
+    "src-relay-server:216",
+    "src-relay-server:220"
    ],
    "basis": "observed"
   },
@@ -3299,8 +3304,8 @@
     "retention": "kept for good; nothing prunes it"
    },
    "evidence": [
-    "src-relay-server:27",
-    "src-relay-server:63"
+    "src-relay-server:29",
+    "src-relay-server:65"
    ],
    "basis": "observed"
   },
@@ -3345,7 +3350,7 @@
     }
    },
    "evidence": [
-    "src-relay-server:74",
+    "src-relay-server:76",
     "src-skill:35"
    ],
    "basis": "observed"
@@ -3374,8 +3379,8 @@
     }
    },
    "evidence": [
-    "src-relay-server:28",
-    "src-relay-server:206"
+    "src-relay-server:30",
+    "src-relay-server:208"
    ],
    "basis": "observed"
   },
@@ -3414,7 +3419,7 @@
    },
    "evidence": [
     "src-runtime:33",
-    "src-e2e:114"
+    "src-e2e:84"
    ],
    "basis": "observed"
   },
@@ -3440,7 +3445,7 @@
    "evidence": [
     "src-runtime:22",
     "src-runtime:49",
-    "src-e2e:296"
+    "src-e2e:266"
    ],
    "basis": "observed"
   },
@@ -3469,7 +3474,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:50",
+    "src-relay-server:52",
     "src-skill:24",
     "src-runtime:127"
    ],
@@ -3489,7 +3494,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:63"
+    "src-relay-server:65"
    ],
    "basis": "observed"
   },
@@ -3763,10 +3768,10 @@
     "src-fx-anchors:1",
     "src-fx-escape:2",
     "src-fx-replies:3",
-    "src-check:57",
-    "src-check:85",
-    "src-check:115",
-    "src-check:127"
+    "src-check:55",
+    "src-check:83",
+    "src-check:113",
+    "src-check:125"
    ],
    "basis": "observed"
   },
@@ -3811,7 +3816,7 @@
    "evidence": [
     "src-replay-check:2",
     "src-replay-check:16",
-    "src-check:85"
+    "src-check:83"
    ],
    "basis": "observed"
   },
@@ -3930,9 +3935,9 @@
    },
    "evidence": [
     "src-e2e:12",
-    "src-e2e:34",
-    "src-e2e:37",
-    "src-e2e:480"
+    "src-e2e:35",
+    "src-e2e:38",
+    "src-e2e:450"
    ],
    "basis": "observed"
   },
@@ -3951,8 +3956,8 @@
     ]
    },
    "evidence": [
-    "src-e2e:31",
-    "src-e2e:45"
+    "src-launch:8",
+    "src-launch:10"
    ],
    "basis": "observed"
   },
@@ -3976,7 +3981,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:442"
+    "src-e2e:412"
    ],
    "basis": "observed"
   },
@@ -3999,7 +4004,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:102"
+    "src-e2e:72"
    ],
    "basis": "observed"
   },
@@ -4022,7 +4027,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:142"
+    "src-e2e:112"
    ],
    "basis": "observed"
   },
@@ -4046,8 +4051,8 @@
     "why": "a session acks in a later tool call than its edit, so the ack reaches a page that has already reloaded"
    },
    "evidence": [
-    "src-e2e:181",
-    "src-e2e:208"
+    "src-e2e:151",
+    "src-e2e:178"
    ],
    "basis": "observed"
   },
@@ -4079,7 +4084,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:236"
+    "src-e2e:206"
    ],
    "basis": "observed"
   },
@@ -4104,8 +4109,8 @@
     "why": "a form value recorded on blur redraws the badges, and the click that caused the blur must still open its panel"
    },
    "evidence": [
-    "src-e2e:281",
-    "src-e2e:307"
+    "src-e2e:251",
+    "src-e2e:277"
    ],
    "basis": "observed"
   },
@@ -4126,8 +4131,8 @@
     ]
    },
    "evidence": [
-    "src-e2e:335",
-    "src-e2e:43"
+    "src-e2e:305",
+    "src-e2e:44"
    ],
    "basis": "observed"
   },
@@ -4154,7 +4159,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:366"
+    "src-e2e:336"
    ],
    "basis": "observed"
   }
@@ -4330,7 +4335,7 @@
    },
    "evidence": [
     "src-runtime:37",
-    "src-relay-server:179"
+    "src-relay-server:181"
    ]
   },
   {
@@ -4374,7 +4379,7 @@
    },
    "evidence": [
     "src-runtime:214",
-    "src-relay-server:133"
+    "src-relay-server:135"
    ]
   },
   {
@@ -4417,7 +4422,7 @@
     "delivery": "checked every 0.5 s per stream; only differences from the values at connect or at the last send are sent, so an ack while the stream was down sends nothing"
    },
    "evidence": [
-    "src-relay-server:133",
+    "src-relay-server:135",
     "src-runtime:216"
    ]
   },
@@ -4432,8 +4437,8 @@
     "consistency": "the whole file is rewritten through a .tmp file and os.replace, under one lock"
    },
    "evidence": [
-    "src-relay-server:50",
-    "src-relay-server:218"
+    "src-relay-server:52",
+    "src-relay-server:220"
    ]
   },
   {
@@ -4448,8 +4453,8 @@
    },
    "evidence": [
     "src-server:9",
-    "src-relay-server:83",
-    "src-relay-server:161"
+    "src-relay-server:85",
+    "src-relay-server:163"
    ]
   },
   {
@@ -4502,7 +4507,7 @@
     "delivery": "once per burst: after a change is queued and the quiet window passes with no newer one; nothing is printed for changes that were already pending at start, nor after an ack"
    },
    "evidence": [
-    "src-relay-server:98",
+    "src-relay-server:100",
     "src-skill:13"
    ]
   },
@@ -4532,7 +4537,7 @@
    },
    "evidence": [
     "src-skill:20",
-    "src-relay-server:162"
+    "src-relay-server:164"
    ]
   },
   {
@@ -4609,7 +4614,7 @@
    },
    "evidence": [
     "src-skill:24",
-    "src-relay-server:55"
+    "src-relay-server:57"
    ]
   },
   {
@@ -4722,7 +4727,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-check:123"
+    "src-check:121"
    ]
   },
   {
@@ -4737,7 +4742,7 @@
    },
    "evidence": [
     "src-starter:80",
-    "src-e2e:104"
+    "src-e2e:74"
    ]
   },
   {
@@ -4776,7 +4781,7 @@
     "protocol": "python3 serve-page-changes.py <page> --quiet 1.5"
    },
    "evidence": [
-    "src-e2e:79"
+    "src-e2e:49"
    ]
   },
   {
@@ -4790,7 +4795,7 @@
    },
    "evidence": [
     "src-replay-options:18",
-    "src-e2e:104"
+    "src-e2e:74"
    ]
   },
   {
@@ -4962,7 +4967,7 @@
     "on-failure": "the checker prints a thread-keys break"
    },
    "evidence": [
-    "src-check:97"
+    "src-check:95"
    ]
   },
   {
@@ -4975,7 +4980,7 @@
     "effect": "a bad or repeated id is a break"
    },
    "evidence": [
-    "src-check:81"
+    "src-check:79"
    ]
   },
   {
@@ -5339,8 +5344,8 @@
     "mode": "read, then write"
    },
    "evidence": [
-    "src-relay-server:30",
-    "src-relay-server:206"
+    "src-relay-server:32",
+    "src-relay-server:208"
    ]
   },
   {
@@ -5354,7 +5359,7 @@
     "derivation": "the fourth `/` piece of {url-file}, else secrets.token_urlsafe(16)"
    },
    "evidence": [
-    "src-relay-server:29"
+    "src-relay-server:31"
    ]
   },
   {
@@ -5364,7 +5369,7 @@
    "label": "starts as a daemon thread",
    "tag": "triggers",
    "evidence": [
-    "src-relay-server:208"
+    "src-relay-server:210"
    ]
   },
   {
@@ -5374,7 +5379,7 @@
    "label": "starts as a daemon thread",
    "tag": "triggers",
    "evidence": [
-    "src-relay-server:208"
+    "src-relay-server:210"
    ]
   },
   {
@@ -5384,7 +5389,7 @@
    "label": "runs once before the url line",
    "tag": "triggers",
    "evidence": [
-    "src-relay-server:207"
+    "src-relay-server:209"
    ]
   },
   {
@@ -5397,7 +5402,7 @@
     "effect": "404 without it"
    },
    "evidence": [
-    "src-relay-server:129"
+    "src-relay-server:131"
    ]
   },
   {
@@ -5410,7 +5415,7 @@
     "condition": "nothing after /`<token>`/"
    },
    "evidence": [
-    "src-relay-server:160"
+    "src-relay-server:162"
    ]
   },
   {
@@ -5420,7 +5425,7 @@
    "label": "sends GET api/changes to",
    "tag": "sequence",
    "evidence": [
-    "src-relay-server:162"
+    "src-relay-server:164"
    ]
   },
   {
@@ -5430,7 +5435,7 @@
    "label": "sends GET api/events to",
    "tag": "sequence",
    "evidence": [
-    "src-relay-server:166"
+    "src-relay-server:168"
    ]
   },
   {
@@ -5440,7 +5445,7 @@
    "label": "sends every other GET to",
    "tag": "sequence",
    "evidence": [
-    "src-relay-server:168"
+    "src-relay-server:170"
    ]
   },
   {
@@ -5450,7 +5455,7 @@
    "label": "sends every POST of a known route through",
    "tag": "sequence",
    "evidence": [
-    "src-relay-server:182"
+    "src-relay-server:184"
    ]
   },
   {
@@ -5463,7 +5468,7 @@
     "effect": "403 or 400 before the handler"
    },
    "evidence": [
-    "src-relay-server:184"
+    "src-relay-server:186"
    ]
   },
   {
@@ -5476,7 +5481,7 @@
     "effect": "403 or 400 before the handler"
    },
    "evidence": [
-    "src-relay-server:184"
+    "src-relay-server:186"
    ]
   },
   {
@@ -5489,7 +5494,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-relay-server:50"
+    "src-relay-server:52"
    ]
   },
   {
@@ -5507,7 +5512,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:49"
+    "src-relay-server:51"
    ]
   },
   {
@@ -5520,7 +5525,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-relay-server:164"
+    "src-relay-server:166"
    ]
   },
   {
@@ -5533,7 +5538,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-relay-server:64"
+    "src-relay-server:66"
    ]
   },
   {
@@ -5546,7 +5551,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-relay-server:63"
+    "src-relay-server:65"
    ]
   },
   {
@@ -5562,7 +5567,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:65"
+    "src-relay-server:67"
    ]
   },
   {
@@ -5576,7 +5581,7 @@
     "rate": "every 0.5 s per stream"
    },
    "evidence": [
-    "src-relay-server:145"
+    "src-relay-server:147"
    ]
   },
   {
@@ -5589,7 +5594,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-relay-server:161"
+    "src-relay-server:163"
    ]
   },
   {
@@ -5602,7 +5607,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-relay-server:169"
+    "src-relay-server:171"
    ]
   },
   {
@@ -5616,7 +5621,7 @@
     "rate": "every 0.5 s"
    },
    "evidence": [
-    "src-relay-server:87"
+    "src-relay-server:89"
    ]
   },
   {
@@ -5629,7 +5634,7 @@
     "delay": "0.5 to 1 s after the last write"
    },
    "evidence": [
-    "src-relay-server:90"
+    "src-relay-server:92"
    ]
   },
   {
@@ -5642,7 +5647,7 @@
     "mode": "write"
    },
    "evidence": [
-    "src-relay-server:76"
+    "src-relay-server:78"
    ]
   },
   {
@@ -5658,7 +5663,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:80"
+    "src-relay-server:82"
    ]
   },
   {
@@ -5671,7 +5676,7 @@
     "mode": "read"
    },
    "evidence": [
-    "src-relay-server:106"
+    "src-relay-server:108"
    ]
   },
   {
@@ -5687,7 +5692,7 @@
     ]
    },
    "evidence": [
-    "src-relay-server:103"
+    "src-relay-server:105"
    ]
   },
   {
@@ -5729,7 +5734,7 @@
    },
    "evidence": [
     "src-runtime:47",
-    "src-relay-server:47"
+    "src-relay-server:49"
    ]
   },
   {
@@ -5756,7 +5761,7 @@
     "action": "move its line from pending.jsonl to applied.jsonl and raise the queue counter"
    },
    "evidence": [
-    "src-relay-server:61"
+    "src-relay-server:63"
    ]
   },
   {
@@ -5845,7 +5850,7 @@
     "condition": "no option"
    },
    "evidence": [
-    "src-e2e:445"
+    "src-e2e:415"
    ]
   },
   {
@@ -5858,7 +5863,7 @@
     "condition": "--queue `<folder>`"
    },
    "evidence": [
-    "src-e2e:443"
+    "src-e2e:413"
    ]
   },
   {
@@ -5871,7 +5876,7 @@
     "condition": "--verify `<folder>`"
    },
    "evidence": [
-    "src-e2e:444"
+    "src-e2e:414"
    ]
   },
   {
@@ -5885,7 +5890,7 @@
     "on-failure": "`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell` and exit 1"
    },
    "evidence": [
-    "src-e2e:447"
+    "src-e2e:417"
    ]
   },
   {
@@ -5899,7 +5904,7 @@
     "on-failure": "`FAIL queue: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:358"
+    "src-e2e:328"
    ]
   },
   {
@@ -5913,7 +5918,7 @@
     "on-failure": "`FAIL setup: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:433"
+    "src-e2e:403"
    ]
   },
   {
@@ -5926,7 +5931,7 @@
     "order": 1
    },
    "evidence": [
-    "src-e2e:457"
+    "src-e2e:427"
    ]
   },
   {
@@ -5939,7 +5944,7 @@
     "order": 2
    },
    "evidence": [
-    "src-e2e:458"
+    "src-e2e:428"
    ]
   },
   {
@@ -5952,7 +5957,7 @@
     "order": 3
    },
    "evidence": [
-    "src-e2e:459"
+    "src-e2e:429"
    ]
   },
   {
@@ -5965,7 +5970,7 @@
     "order": 4
    },
    "evidence": [
-    "src-e2e:460"
+    "src-e2e:430"
    ]
   },
   {
@@ -5978,7 +5983,7 @@
     "order": 5
    },
    "evidence": [
-    "src-e2e:461"
+    "src-e2e:431"
    ]
   },
   {
@@ -6268,9 +6273,9 @@
    ],
    "evidence": [
     "src-server:9",
-    "src-e2e:171",
-    "src-e2e:216",
-    "src-e2e:278"
+    "src-e2e:141",
+    "src-e2e:186",
+    "src-e2e:248"
    ]
   },
   {
@@ -6286,8 +6291,8 @@
     "pending-file"
    ],
    "evidence": [
-    "src-relay-server:38",
-    "src-e2e:276"
+    "src-relay-server:40",
+    "src-e2e:246"
    ]
   },
   {
@@ -6302,8 +6307,8 @@
     "startup"
    ],
    "evidence": [
-    "src-relay-server:30",
-    "src-e2e:273"
+    "src-relay-server:32",
+    "src-e2e:243"
    ]
   },
   {
@@ -6317,9 +6322,9 @@
     "announcer"
    ],
    "evidence": [
-    "src-relay-server:98",
-    "src-e2e:160",
-    "src-e2e:167"
+    "src-relay-server:100",
+    "src-e2e:130",
+    "src-e2e:137"
    ]
   },
   {
@@ -6335,9 +6340,9 @@
     "route-events"
    ],
    "evidence": [
-    "src-relay-server:79",
-    "src-relay-server:89",
-    "src-e2e:288"
+    "src-relay-server:81",
+    "src-relay-server:91",
+    "src-e2e:258"
    ]
   },
   {
@@ -6352,7 +6357,7 @@
     "pushes-reload"
    ],
    "evidence": [
-    "src-e2e:219"
+    "src-e2e:189"
    ]
   },
   {
@@ -6367,8 +6372,8 @@
     "local-machine"
    ],
    "evidence": [
-    "src-relay-server:200",
-    "src-e2e:260"
+    "src-relay-server:202",
+    "src-e2e:230"
    ]
   },
   {
@@ -6386,8 +6391,8 @@
     "applied-file"
    ],
    "evidence": [
-    "src-relay-server:172",
-    "src-e2e:250"
+    "src-relay-server:174",
+    "src-e2e:220"
    ]
   },
   {
@@ -6401,8 +6406,8 @@
     "history-folder"
    ],
    "evidence": [
-    "src-relay-server:78",
-    "src-e2e:230"
+    "src-relay-server:80",
+    "src-e2e:200"
    ]
   },
   {
@@ -6419,7 +6424,7 @@
    ],
    "evidence": [
     "src-runtime:21",
-    "src-e2e:301"
+    "src-e2e:271"
    ]
   },
   {
@@ -6434,7 +6439,7 @@
     "session-store"
    ],
    "evidence": [
-    "src-e2e:220"
+    "src-e2e:190"
    ]
   },
   {
@@ -6449,7 +6454,7 @@
    ],
    "evidence": [
     "src-runtime:68",
-    "src-e2e:317"
+    "src-e2e:287"
    ]
   },
   {
@@ -6464,7 +6469,7 @@
    ],
    "evidence": [
     "src-runtime:222",
-    "src-e2e:136"
+    "src-e2e:106"
    ]
   },
   {
@@ -6479,7 +6484,7 @@
     "holds-a"
    ],
    "evidence": [
-    "src-e2e:105"
+    "src-e2e:75"
    ]
   },
   {
@@ -6494,8 +6499,8 @@
     "checker"
    ],
    "evidence": [
-    "src-check:108",
-    "src-check:114"
+    "src-check:106",
+    "src-check:112"
    ]
   },
   {
@@ -6541,9 +6546,9 @@
     "origin-rule"
    ],
    "evidence": [
-    "src-relay-server:16",
-    "src-relay-server:45",
-    "src-relay-server:188"
+    "src-relay-server:18",
+    "src-relay-server:47",
+    "src-relay-server:190"
    ]
   },
   {
@@ -6590,7 +6595,7 @@
    ],
    "evidence": [
     "src-skill:19",
-    "src-e2e:48"
+    "src-launch:13"
    ]
   },
   {
@@ -6605,7 +6610,7 @@
    ],
    "evidence": [
     "src-runtime:43",
-    "src-relay-server:184"
+    "src-relay-server:186"
    ]
   },
   {
@@ -6620,8 +6625,8 @@
     "route-post"
    ],
    "evidence": [
-    "src-check:17",
-    "src-relay-server:13"
+    "src-check:20",
+    "src-relay-server:15"
    ]
   },
   {
@@ -6637,7 +6642,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:196"
+    "src-e2e:166"
    ]
   },
   {
@@ -6667,7 +6672,7 @@
     "keeper"
    ],
    "evidence": [
-    "src-relay-server:76"
+    "src-relay-server:78"
    ]
   },
   {
@@ -6696,8 +6701,8 @@
     "announcer"
    ],
    "evidence": [
-    "src-relay-server:110",
-    "src-relay-server:210"
+    "src-relay-server:112",
+    "src-relay-server:212"
    ]
   },
   {
@@ -6737,8 +6742,8 @@
     ]
    ],
    "evidence": [
-    "src-relay-server:68",
-    "src-relay-server:207"
+    "src-relay-server:70",
+    "src-relay-server:209"
    ]
   },
   {
@@ -6754,7 +6759,7 @@
    ],
    "evidence": [
     "src-skill:32",
-    "src-check:57"
+    "src-check:55"
    ]
   },
   {
@@ -6771,7 +6776,7 @@
    "evidence": [
     "src-connect:6",
     "src-connect:20",
-    "src-e2e:105"
+    "src-e2e:75"
    ]
   },
   {
@@ -6819,7 +6824,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:196"
+    "src-e2e:166"
    ]
   },
   {
@@ -6867,7 +6872,7 @@
    ],
    "evidence": [
     "src-skill:11",
-    "src-relay-server:42"
+    "src-relay-server:44"
    ]
   },
   {
@@ -6897,7 +6902,7 @@
     "route-table"
    ],
    "evidence": [
-    "src-relay-server:18"
+    "src-relay-server:20"
    ]
   }
  ],

@@ -25,3 +25,8 @@ def connect(page):
     if updated != html:
         page.write_text(updated)
     return "updated" if found else "connected"
+
+
+def refuse(word):
+    """Refuse NaN and Infinity, which Python reads and a browser's JSON.parse does not."""
+    raise ValueError(f"{word} is not JSON")

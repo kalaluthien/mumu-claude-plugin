@@ -53,6 +53,22 @@ def mathml(tex, display=False):
     return f'<math display="{"block" if display else "inline"}">{row_of(inner)}</math>'
 
 
+def drawn(value):
+    """The MathML of each formula a text of VALUE holds, by the name the page looks it up by; an item of the code form may hold TeX the
+    checker never reads, which the page shows as it is."""
+    if isinstance(value, dict):
+        return {name: markup for part in value.values() for name, markup in drawn(part).items()}
+    if isinstance(value, list):
+        return {name: markup for part in value for name, markup in drawn(part).items()}
+    found = {}
+    for tex, display in formulas(value) if isinstance(value, str) else []:
+        try:
+            found[key(tex, display)] = mathml(tex, display)
+        except ValueError:
+            pass
+    return found
+
+
 def row_of(parts):
     return parts[0] if len(parts) == 1 else "<mrow>" + "".join(parts) + "</mrow>"
 

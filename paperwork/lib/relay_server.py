@@ -11,6 +11,8 @@ import sys
 import threading
 import time
 
+from relay_page import refuse
+
 ANCHOR = re.compile(r"[\w.:-]{1,80}")
 KINDS = ("comment", "data")
 RECORDS = ("changes", "history", "url.txt")
@@ -220,8 +222,3 @@ def write(path, items):
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text("".join(json.dumps(item, ensure_ascii=False) + "\n" for item in items))
     os.replace(temporary, path)
-
-
-def refuse(word):
-    """Refuse NaN and Infinity, which Python reads and a browser's JSON.parse does not."""
-    raise ValueError(f"{word} is not JSON")

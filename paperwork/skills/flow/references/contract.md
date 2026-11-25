@@ -35,6 +35,6 @@ A contract is one JSON object. A record names another only by its id, and a text
 
 ## Rules
 
-- **Order is the record's**: time on an interaction is the edges' list order and `after`, on a plan the edges and `after`; no record holds a position, a date or a duration.
+- **Order is the record's**: time on an interaction is the edges' list order and `after`, on a plan the edges and `after`; no record holds a date or a duration.
 - **Milestones hold**: nothing a milestone waits on comes after what waits on the milestone; the checker refuses such a crossing as `milestone-order`.
 - **No drawing field**: no record holds a position, a colour or a size; the page's code decides them.

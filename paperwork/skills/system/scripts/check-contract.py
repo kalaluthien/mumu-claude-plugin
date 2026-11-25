@@ -21,6 +21,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
+from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_prose import KOREAN, MARKUP, REFERENCE, shown, text_breaks, wording_breaks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
@@ -156,29 +157,6 @@ def placed(value, where="", skipped=()):
     return [pair for key, part in value.items() for pair in placed(part, f"{where}/{key}", skipped)] if isinstance(value, dict) else []
 
 
-def tag_items(kind, tag):
-    """The items an element of KIND with TAG may hold: its tag's own, then the ones common to the kind."""
-    return {item["name"]: item for item in TAGS[kind].get(tag, {}).get("items", []) + TAGS["common"][kind]}
-
-
-def fits(value, form):
-    """True when VALUE has the shape FORM asks."""
-    if form in ("text", "code"):
-        return isinstance(value, str) and bool(value.strip())
-    if form == "number":
-        return isinstance(value, (int, float)) and not isinstance(value, bool) or isinstance(value, str) and bool(value.strip())
-    if form == "list":
-        return isinstance(value, list) and bool(value) and all(isinstance(entry, str) for entry in value)
-    if form == "table":
-        return (isinstance(value, dict) and set(value) == {"columns", "rows"} and isinstance(value["columns"], list) and bool(value["columns"])
-                and isinstance(value["rows"], list) and all(isinstance(name, str) for name in value["columns"])
-                and all(isinstance(row, list) and len(row) == len(value["columns"]) and all(isinstance(cell, (str, int, float)) and not isinstance(cell, bool) for cell in row)
-                        for row in value["rows"]))
-    return isinstance(value, list) and bool(value) and all(
-        isinstance(entry, dict) and isinstance(entry.get("name"), str) and set(entry) <= {"name", "note", "children"} and isinstance(entry.get("note", ""), str)
-        and ("children" not in entry or fits(entry["children"], "tree")) for entry in value)
-
-
 OPTIONAL = {"avoid": list, "area": str, "opens": str, "purpose": str, "about": str, "note": str, "authority": str, "strength": str, "status": str, "fault": str,
             "many": bool, "principle": bool, "coined": bool, "on": list, "paths": list, "sources": list, "terms": list, "scenarios": list,
             "properties": list, "areas": list, "edges": list, "questions": list, "answers": list, "gap": str, "files": list, "aliases": list}
@@ -253,20 +231,6 @@ def form_breaks(contract):
     return found
 
 
-def cited(entry, sources, root):
-    """What is wrong with one evidence ENTRY: an unknown source, or lines the source's file does not hold."""
-    name, _, lines = entry.partition(":")
-    if name not in sources:
-        return [f"`{entry}` opens with no source id; one of {', '.join(sources)}"]
-    span = re.fullmatch(r"(\d+)(?:-(\d+))?", lines)
-    if lines and not (span and 1 <= int(span.group(1)) <= int(span.group(2) or span.group(1))):
-        return [f"`{entry}` must end with a line or a range of lines, such as `{name}:7` or `{name}:7-15`"]
-    path = None if root is None or "://" in sources[name]["path"] else root / sources[name]["path"]
-    if span and path is not None and path.is_file() and int(span.group(2) or span.group(1)) > len(path.read_text(errors="replace").splitlines()):
-        return [f"`{entry}` names a line past the end of `{sources[name]['path']}`"]
-    return []
-
-
 def breaks(contract, root=None):
     """Every break of CONTRACT as (where, rule, message), in the order a reader meets them."""
     found = form_breaks(contract)
@@ -300,7 +264,7 @@ def breaks(contract, root=None):
                 if element["tag"] not in TAGS[kind]:
                     found.append((where, "tag-known", f"`{element['tag']}` is no {kind} tag; one of {', '.join(TAGS[kind])}"))
                     continue
-                allowed = tag_items(kind, element["tag"])
+                allowed = tag_items(TAGS, kind, element["tag"])
                 for name, value in element.get("info", {}).items():
                     if name not in allowed:
                         found.append((where, "info-item", f"`{name}` is no item of {element['tag']}; one of {', '.join(allowed)}"))
@@ -394,7 +358,7 @@ def breaks(contract, root=None):
         found.append(("properties", "property-form", "state one invariant or property at least: what must hold while the purpose is met"))
     labels = {element["id"]: element["label"] for element in elements(contract)}
     quoted = {id(value) for level in contract["levels"] for kind in ("area", "node", "edge") for element in level.get(kind + "s", [])
-              for name, value in element.get("info", {}).items() if tag_items(kind, element["tag"]).get(name, {}).get("form") == "code"}
+              for name, value in element.get("info", {}).items() if tag_items(TAGS, kind, element["tag"]).get(name, {}).get("form") == "code"}
     found += text_breaks(placed(contract, skipped=quoted), labels)
     named = [element for element in elements(contract) if "from" not in element]
     for level in contract["levels"]:
@@ -560,7 +524,7 @@ def outline_lines(contract, only=None):
             continue
         lines.append(f"\nlevel {level['id']}: {shown(level['title'], labels)}: {shown(level.get('about', '(no about)'), labels)}")
         def part(kind, element, lead, indent):
-            catalogue_labels = {name: item["label"] for name, item in tag_items(kind, element["tag"]).items()}
+            catalogue_labels = {name: item["label"] for name, item in tag_items(TAGS, kind, element["tag"]).items()}
             said = element.get(lead) if kind == "node" else element.get("info", {}).get(lead)
             return ([f"{indent}{element['label']} ({element['tag']})" + (f": {shown(said, labels)}" if isinstance(said, str) else "")]
                     + [f"{indent}  {catalogue_labels.get(name, name)}: {flat(value, labels)}" for name, value in element.get("info", {}).items() if kind == "node" or name != lead]

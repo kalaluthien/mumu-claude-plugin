@@ -20,6 +20,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
+from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
 from flow_order import before, critical, cycle, ranks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
@@ -124,43 +125,6 @@ def form_breaks(contract):
     return found
 
 
-def cited(entry, sources, root):
-    """What is wrong with one evidence ENTRY: an unknown source, or lines the source's file does not hold."""
-    name, _, lines = entry.partition(":")
-    if name not in sources:
-        return [f"`{entry}` opens with no source id; one of {', '.join(sources) or 'none, since the contract lists no source'}"]
-    span = re.fullmatch(r"(\d+)(?:-(\d+))?", lines)
-    if lines and not (span and 1 <= int(span.group(1)) <= int(span.group(2) or span.group(1))):
-        return [f"`{entry}` must end with a line or a range of lines, such as `{name}:7` or `{name}:7-15`"]
-    path = None if root is None or "://" in sources[name]["path"] else root / sources[name]["path"]
-    if span and path is not None and path.is_file() and int(span.group(2) or span.group(1)) > len(path.read_text(errors="replace").splitlines()):
-        return [f"`{entry}` names a line past the end of `{sources[name]['path']}`"]
-    return []
-
-
-def fits(value, form):
-    """True when VALUE has the shape FORM asks."""
-    if form in ("text", "code"):
-        return isinstance(value, str) and bool(value.strip())
-    if form == "number":
-        return isinstance(value, (int, float)) and not isinstance(value, bool) or isinstance(value, str) and bool(value.strip())
-    if form == "list":
-        return isinstance(value, list) and bool(value) and all(isinstance(entry, str) for entry in value)
-    if form == "table":
-        return (isinstance(value, dict) and set(value) == {"columns", "rows"} and isinstance(value["columns"], list) and bool(value["columns"])
-                and all(isinstance(name, str) for name in value["columns"]) and isinstance(value["rows"], list)
-                and all(isinstance(row, list) and len(row) == len(value["columns"]) and all(isinstance(cell, (str, int, float)) and not isinstance(cell, bool) for cell in row)
-                        for row in value["rows"]))
-    return isinstance(value, list) and bool(value) and all(
-        isinstance(entry, dict) and isinstance(entry.get("name"), str) and set(entry) <= {"name", "note", "children"} and isinstance(entry.get("note", ""), str)
-        and ("children" not in entry or fits(entry["children"], "tree")) for entry in value)
-
-
-def tag_items(kind, tag):
-    """The items a record of KIND with TAG may hold: its tag's own, then the ones common to the kind."""
-    return {item["name"]: item for item in TAGS[kind].get(tag, {}).get("items", []) + TAGS["common"][kind]}
-
-
 def placed(value, where, skipped=()):
     """Every string VALUE holds, at any depth, but those whose identity is in SKIPPED, each as (where, text)."""
     if id(value) in skipped:
@@ -260,7 +224,7 @@ def breaks(contract, root=None):
                 found.append((where, "tag-known", f"`{record['tag']}` is no {catalogue} tag; one of {', '.join(TAGS[catalogue])}"))
             elif kind == "edges" and record["level"] in levels and (record["tag"] in PLAN_EDGES) != (levels[record["level"]]["kind"] == "plan"):
                 found.append((where, "tag-known", f"`{record['tag']}` does not fit a {levels[record['level']]['kind']} level; a plan's edge is one of {', '.join(PLAN_EDGES)}, an interaction's any other"))
-            items = tag_items(catalogue, record["tag"])
+            items = tag_items(TAGS, catalogue, record["tag"])
             for name, value in record.get("info", {}).items():
                 if name not in items:
                     found.append((where, "info-item", f"`{name}` is no item of `{record['tag']}`; one of {', '.join(items)}"))
@@ -379,7 +343,7 @@ def prose_breaks(contract, records):
     labelled = [(kind, record) for kind in ("nodes", "edges", "tasks", "milestones") for record in records[kind]]
     labels = {record["id"]: record["label"] for _, record in labelled}
     quoted = {id(value) for kind, catalogue in (("nodes", "node"), ("edges", "edge"), ("tasks", "task")) for record in records[kind]
-              for name, value in record.get("info", {}).items() if tag_items(catalogue, record["tag"]).get(name, {}).get("form") == "code"}
+              for name, value in record.get("info", {}).items() if tag_items(TAGS, catalogue, record["tag"]).get(name, {}).get("form") == "code"}
     edge_labels = {id(edge["label"]) for edge in records["edges"]}
     said = []
     said += placed(contract.get("purpose"), "purpose")

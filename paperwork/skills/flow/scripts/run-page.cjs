@@ -34,10 +34,10 @@
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
+const { check, same, python } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZE = [1440, 900];
 const STEPS = ["interaction", "plan"];
 const asked = process.argv.slice(2);
@@ -46,9 +46,7 @@ if (asked.some((word) => !STEPS.includes(word))) {
   process.exit(2);
 }
 
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "flow-page-"));
-const python = (script, ...args) => spawnSync("python3", [script, ...args], { encoding: "utf8" });
 
 function make(name) { // the page of one fixture contract, and its contract
   const fixture = { name, source: path.join(ROOT, "fixtures", name + ".json"), built: path.join(scratch, name + ".html") };
@@ -75,7 +73,6 @@ const quiet = (page, where) => {
 };
 const carded = (page, id, where) => page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id, { timeout: 5000 })
   .catch(() => { throw new Error(`${where}: no card for ${id} came`); });
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const shownLevel = (page) => page.evaluate(() => [...document.querySelectorAll("#crumbs [aria-current]")].map((crumb) => crumb.dataset.level)[0]);
 
 const drawn = (page) => page.evaluate(() => { // what the shown level draws, as boxes in the stage's own pixels

@@ -166,6 +166,7 @@ const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
+const { check, same, python } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
 const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
@@ -176,12 +177,10 @@ if (asked.some((word) => !STEPS.includes(word))) {
   process.exit(2);
 }
 
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "system-page-"));
 const examples = fs.readdirSync(path.join(ROOT, "examples")).filter((name) => fs.existsSync(path.join(ROOT, "examples", name, "contract.json"))).sort()
   .map((name) => ({ name, source: path.join(ROOT, "examples", name, "contract.json"), kept: path.join(ROOT, "examples", name, "page.html"), built: path.join(scratch, name + ".html") }));
 const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
-const python = (script, ...args) => spawnSync("python3", [script, ...args], { encoding: "utf8" });
 const UNFOLD = "import json, pathlib, sys; sys.path.insert(0, sys.argv[1]); from contract_copies import copies; print(json.dumps(dict(copies(pathlib.Path(sys.argv[2])))))";
 
 let launches = 0;
@@ -240,7 +239,6 @@ const view = (page) => page.evaluate(() => {
     playing: document.getElementById("play").classList.contains("show"), step: document.getElementById("play").classList.contains("show") ? dots.findIndex((dot) => dot.classList.contains("now")) : null, marked: marked ? marked.dataset.id : null,
   };
 });
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // What is wrong with the level the page shows, or nothing: the one test of a level that diagram and sweep share.
 const drawn = (page, level) => page.evaluate((level) => {
@@ -1920,7 +1918,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       check(at === there, `a click on the chip for ${property} in the card of ${id} shows the level ${at}, not ${there}`);
       if (!jittered) jittered = await jitter(page, property, clicked);
       if (!stilled && await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return !!(one && one.closest("#stage [data-id], #stage [data-edge]")); }, clicked))
-        stilled = await rested(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
+        stilled = await clickedResting(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
@@ -1941,7 +1939,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   check(faded.some((one) => one.dim), `with the card of ${copy.node} kept no record holding badges is dimmed, so a dimmed record's badges are untested`);
   for (const one of faded) check(one.own ? one.shown === 1 : !one.dim || one.shown <= 0.75, `with the card of ${copy.node} kept the badges of ${one.dim ? "the dimmed " : ""}${one.id} show at opacity ${one.shown.toFixed(2)}`);
 }
-async function rested(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
+async function clickedResting(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
   await page.mouse.move(x, y);
   await page.goto("about:blank");
   await page.goto("file://" + example.built + hash);
