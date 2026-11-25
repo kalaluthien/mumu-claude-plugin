@@ -1,5 +1,6 @@
 """The record card, with its badges, and the search palette a paperwork page draws: the markup, style and code a page script pastes into
-its page, the code before the page's own, which calls `paperworkCard` and `paperworkSearch` (see `record-card.js` and `record-search.js`)."""
+its page: the style of `record-card.css` and `record-search.css` before the page's own, and the code of `record-card.js` and
+`record-search.js` before the page's, which calls `paperworkCard` and `paperworkSearch`."""
 import pathlib
 
 HERE = pathlib.Path(__file__).resolve().parent
