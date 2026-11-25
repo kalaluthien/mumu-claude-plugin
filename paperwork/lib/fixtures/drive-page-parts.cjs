@@ -22,8 +22,11 @@ if (!(mode === "own" && file && !word || mode === "system" && file && word && sa
   process.exit(2);
 }
 const check = (condition, reason) => { if (!condition) throw new Error(reason); };
-// the class alone shows nothing: the palette is seen once its style makes it opaque and takes the pointer
-const opened = (page) => page.waitForFunction(() => { const box = document.querySelector("#palette.show"); return box && getComputedStyle(box).opacity === "1" && getComputedStyle(box).pointerEvents !== "none"; },
+// the class alone shows nothing: the palette is seen once its style makes it opaque, takes the pointer and stands where its box is, unscaled and unshifted
+const opened = (page) => page.waitForFunction(() => {
+  const box = document.querySelector("#palette.show"), drawn = box && box.getBoundingClientRect();
+  return box && getComputedStyle(box).opacity === "1" && getComputedStyle(box).pointerEvents !== "none" && Math.abs(drawn.width - box.offsetWidth) < 0.5 && Math.abs(drawn.top - box.offsetTop) < 0.5;
+},
   null, { timeout: 2000 }).catch(() => null);
 const heading = (page) => page.waitForFunction(() => document.querySelector("#card.show h2") && document.querySelector("#card.show h2").textContent, null, { timeout: 4000 })
   .then((handle) => handle.jsonValue()).catch(() => null);

@@ -124,10 +124,11 @@
 //            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of each one whose label
 //            is tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
 //            kind, each once, and a click on each chip shows that property's card headed by its title on the level of the first
-//            record it names, still so once the pointer has rested where it clicked, and while the pointer has moved 2 px or
-//            less from there no record it comes over raises a card, though one moved 3 px does; an area's card lists no such
-//            row; and with the node's card kept, each badge of a record dimmed around it shows at 0.75 opacity or less, the
-//            node's own at full, printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
+//            record it names, still so once the pointer has rested where it clicked, and so when a pointer resting on the chip
+//            since its page loaded clicks it unmoved and shakes 1 px, and while the pointer has moved 2 px or less from there no
+//            record it comes over raises a card, though one moved 2.5 px does; an area's card lists no such row; and with the
+//            node's card kept, each badge of a record dimmed around it shows at 0.75 opacity or less, the node's own at full,
+//            printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
 //   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
 //            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, no edge label shows a border, and
 //            no count outside the badges, such as the play bar's, takes a badge's ring or rounding.
@@ -1878,7 +1879,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
     return rows;
   });
   const names = { holds: "holds", unknown: "unknown", broken: "broken", gap: "gaps" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
-  let jittered = false;
+  let jittered = false, stilled = false;
   const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
   await shown.context().close();
   const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, ...tucked]; // every tucked label's badges, since a lit label moves to a free place
@@ -1918,10 +1919,13 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       const there = copy.homes[property]; // a property is seen on the level of the first record it names
       check(at === there, `a click on the chip for ${property} in the card of ${id} shows the level ${at}, not ${there}`);
       if (!jittered) jittered = await jitter(page, property, clicked);
+      if (!stilled && await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return !!(one && one.closest("#stage [data-id], #stage [data-edge]")); }, clicked))
+        stilled = await rested(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
   }
+  check(stilled, "no chip has a record under it once its card leaves, so a click by a resting pointer is untested");
   const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.area}` }), rows = await listed(page); // an area holds a property but shows no badge and lists no count row
   check(!(await page.locator(`#stage [data-id="${copy.area}"] .count`).count()), `the area ${copy.area} shows a badge`);
   check(!Object.values(names).some((name) => name in rows), `the card of the area ${copy.area} lists a row of ${Object.values(names).filter((name) => name in rows)}`);
@@ -1937,6 +1941,24 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   check(faded.some((one) => one.dim), `with the card of ${copy.node} kept no record holding badges is dimmed, so a dimmed record's badges are untested`);
   for (const one of faded) check(one.own ? one.shown === 1 : !one.dim || one.shown <= 0.75, `with the card of ${copy.node} kept the badges of ${one.dim ? "the dimmed " : ""}${one.id} show at opacity ${one.shown.toFixed(2)}`);
 }
+async function rested(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
+  await page.mouse.move(x, y);
+  await page.goto("about:blank");
+  await page.goto("file://" + example.built + hash);
+  await settled(page);
+  const chip = page.locator(`#card .ref[data-ref="${property}"]`);
+  for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.evaluate(() => document.querySelector("#card footer .turn").click()); // a click by script, since the pointer must not move
+  const spot = await chip.first().boundingBox();
+  check(spot && Math.abs(spot.x + spot.width / 2 - x) < 1 && Math.abs(spot.y + spot.height / 2 - y) < 1, `the chip for ${property} stands elsewhere once its page loads again`);
+  await page.mouse.down();
+  await page.mouse.up();
+  await settled(page);
+  await page.mouse.move(Math.trunc(x) + 1, Math.trunc(y)); // a pixel from where the click landed, the page's click spot being whole pixels
+  await page.clock.fastForward(900);
+  await settled(page);
+  check(await page.evaluate(CARDED, property), `a pointer resting on the chip for ${property} since its page loaded, clicking it and shaking 1 px, shows no card for ${property}`);
+  return true;
+}
 async function jitter(page, property, [x, y]) { // a hand still on the chip it clicked shakes by a pixel or two and raises no card from what it comes over, yet a real move does
   const node = await page.evaluate(() => { const one = document.querySelector("#stage .node[data-id]"); return one && one.dataset.id; });
   check(node, `the level of ${property} shows no node to come over`);
@@ -1948,10 +1970,10 @@ async function jitter(page, property, [x, y]) { // a hand still on the chip it c
   await page.clock.fastForward(900);
   await settled(page);
   check(await page.evaluate(CARDED, property), `a pointer moved 2 px from the chip for ${property} it clicked raised a card from what it came over`);
-  await over(3);
+  await over(2.5);
   await page.clock.fastForward(900);
   await settled(page);
-  check(await page.evaluate(CARDED, node), `a pointer moved 3 px from the chip for ${property} it clicked raised no card for the node ${node} it came over`);
+  check(await page.evaluate(CARDED, node), `a pointer moved 2.5 px from the chip for ${property} it clicked raised no card for the node ${node} it came over`);
   return true;
 }
 async function counts(browser) {
