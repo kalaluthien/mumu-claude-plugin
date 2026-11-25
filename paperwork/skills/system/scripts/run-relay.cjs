@@ -30,6 +30,7 @@ const { spawn, spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
 const SERVER = path.join(ROOT, "scripts", "serve-relay.py");
+const RUNTIME = path.resolve(ROOT, "..", "..", "lib", "relay-runtime.js");
 const QUIET = 1.5;
 const BLOCK = (id) => new RegExp(`(<script type="application/json" id="${id}">)([\\s\\S]*?)(</script>)`);
 
@@ -122,7 +123,7 @@ async function fileStep(browser, pagePath) {
   const exported = JSON.parse(fs.readFileSync(await download.path(), "utf8"));
   check(download.suggestedFilename() === "changes.json" && exported.length === 2, "Export did not download both changes as changes.json");
   check(!errors.length, `the page threw: ${errors.join("; ")}`);
-  const runtime = fs.readFileSync(path.join(ROOT, "assets", "page-runtime.js"), "utf8");
+  const runtime = fs.readFileSync(RUNTIME, "utf8");
   const bare = {
     "no blocks": "",
     "broken blocks": '<script type="application/json" id="page-data">{not json</script><script type="application/json" id="page-threads">{"threads": []}</script>',
@@ -421,7 +422,7 @@ async function verifyMode() {
       check(checked.stdout.trim() === "follows", `check-page.py printed: ${checked.stdout.trim()}`);
     });
     await run("runtime", async () => {
-      const runtime = fs.readFileSync(path.join(ROOT, "assets", "page-runtime.js"), "utf8").trim();
+      const runtime = fs.readFileSync(RUNTIME, "utf8").trim();
       const open = html.indexOf("<!-- relay runtime -->");
       const close = html.indexOf("<!-- /relay runtime -->");
       check(open >= 0 && close > open && html.slice(open, close).includes(runtime), "page.html lacks the runtime between its markers");
