@@ -4,7 +4,8 @@
 //                               shows its card with a chip per property; a click on the gap's chip shows the gap's card headed by its title;
 //                               `/` opens search, where the second node's Korean alias and its name typed on a Korean layout each list it
 //                               first, and Enter shows its card
-//   system <page.html> <word>   a system page: the pointer resting on its first node shows a card whose heading starts with WORD
+//   system <page.html> <word>   a system page: the pointer resting on its first node shows a card whose heading starts with WORD, every badge
+//                               group on the page carries `data-mark` WORD, and every hit `/` lists for a query carries it too
 //
 // usage: drive-page-parts.cjs own <page.html>
 // usage: drive-page-parts.cjs system <page.html> <word>
@@ -48,6 +49,15 @@ async function system(page) {
   await page.hover("#stage .node");
   const shown = await heading(page);
   check(shown && shown.startsWith(word), `the card's heading reads ${JSON.stringify(shown)}`);
+  const groups = await page.$$eval(".counts", (all) => all.map((one) => one.dataset.mark || ""));
+  check(groups.length && groups.every((one) => one === word), `of ${groups.length} badge groups, ${groups.filter((one) => one !== word).length} are not lib's`);
+  await page.mouse.move(1, 1);
+  await page.keyboard.press("/");
+  check(await page.waitForSelector("#palette.show", { timeout: 2000 }).catch(() => null), "`/` opened no search");
+  await page.fill("#query", "a");
+  const hits = await page.waitForFunction(() => { const all = [...document.querySelectorAll("#hits .hit[data-hit]")]; return all.length && all.map((one) => one.dataset.mark || ""); }, null, { timeout: 2000 })
+    .then((handle) => handle.jsonValue()).catch(() => null);
+  check(hits && hits.every((one) => one === word), hits ? `of ${hits.length} hits, ${hits.filter((one) => one !== word).length} are not lib's` : "the query `a` listed no hit");
 }
 
 async function main() {

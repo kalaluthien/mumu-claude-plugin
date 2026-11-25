@@ -5,8 +5,9 @@ usage: replay-page-parts.py
 
 page parts: a scratch page holding only lib's card and search parts, two boxes of its own and a contract of two nodes, one edge, a
 property that holds and a gap on the first node; `drive-page-parts.cjs own` checks its badges, card, chips and search.
-system reach: on a copy of the plugin whose lib card heads each card with a marked word, system's `make-page.py` builds the first
-example's page, where `drive-page-parts.cjs system` finds the word in a node's card heading; no file of `skills/system/` outside its
+system reach: on a copy of the plugin whose lib card heads each card with a marked word and whose lib parts mark each badge group and
+search hit they draw, system's `make-page.py` builds the first example's page, where `drive-page-parts.cjs system` finds the word in a
+node's card heading, on every badge group and on every hit a search lists; no file of `skills/system/` outside its
 examples may hold the card or search code itself.
 It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
@@ -107,6 +108,12 @@ def system_reach():
         if not part.is_file() or heading not in part.read_text():
             return found + [f"the plugin holds no lib/record-card.js drawing a card heading by `{heading}`"]
         part.write_text(part.read_text().replace(heading, heading + f'"{MARK} ", '))
+        for name, point, marked in (("record-card.js", 'make("span", { class: "counts", "data-for": id }', f'make("span", {{ class: "counts", "data-for": id, "data-mark": "{MARK}" }}'),
+                                    ("record-search.js", "row.dataset.hit = entry.id;", f'row.dataset.hit = entry.id; row.dataset.mark = "{MARK}";')):
+            source = (copied / "lib" / name).read_text()
+            if source.count(point) != 1:
+                return found + [f"lib/{name} holds no single `{point}` to mark"]
+            (copied / "lib" / name).write_text(source.replace(point, marked))
         example = sorted((copied / "skills" / "system" / "examples").glob("*/contract.json"))[0]
         page = pathlib.Path(scratch) / "page.html"
         built = subprocess.run([sys.executable, str(copied / "skills" / "system" / "scripts" / "make-page.py"), str(example), str(page)], capture_output=True, text=True)
