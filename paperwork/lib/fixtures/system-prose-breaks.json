@@ -1,0 +1,6174 @@
+[
+ {
+  "fault": "written as is",
+  "set": [],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a formula in a node's label",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "label"
+    ],
+    "Checker $x$"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/label: formula: `Checker $x$` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "a formula in a term",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "term"
+    ],
+    "contract $x$"
+   ]
+  ],
+  "lines": [
+   "terms/1/term: formula: `contract $x$` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "a formula outside the drawn subset",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at $\\foo x$ per run."
+   ]
+  ],
+  "lines": [
+   "purpose: formula: `\\foo x` in `Rebuild a system at $\\foo x$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "Korean in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "시스템 스킬"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `시스템 스킬` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "Korean in a node's label",
+  "set": [
+   [
+    [
+     "nodes",
+     "catalogue",
+     "label"
+    ],
+    "태그 목록"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/catalogue/label: name-form: the label `태그 목록` opens in lower case or with an article; a node's or an area's label opens with a capital and no article, such as `Checker` or `Three jobs`",
+   "levels/skill/nodes/catalogue/label: name-english: `태그 목록` holds Korean; a title, a label and a term stay English, and only a description may be Korean",
+   "catalogue: alias-words: the alias `태그 목록` is also catalogue; an alias leads a search to one record, so write a word no other name holds, or take it out"
+  ]
+ },
+ {
+  "fault": "Korean in a term",
+  "set": [
+   [
+    [
+     "terms",
+     1,
+     "term"
+    ],
+    "영역"
+   ]
+  ],
+  "lines": [
+   "terms/2/term: name-english: `영역` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "a particle of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는 계약으로 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}는 계약으로 시스템을 다시 만듭니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a sentence closing outside 니다",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약으로 시스템을 다시 만든다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `계약으로 시스템을 다시 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "a space before a particle",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a Korean code quote closing in a full stop",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`끝. 다음`을 그대로 씁니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "an avoided word that is a term but for case",
+  "set": [
+   [
+    [
+     "terms",
+     1,
+     "term"
+    ],
+    "Region"
+   ],
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "region"
+    ]
+   ]
+  ],
+  "lines": [
+   "term contract: term-words: `region` is the term `Region` and a word to avoid for `contract`; one word names one concept"
+  ]
+ },
+ {
+  "fault": "an avoided word in a description",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "specification"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one specification."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one specification.` says `specification` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word and a label in a code item",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "specification"
+    ]
+   ],
+   [
+    [
+     "nodes",
+     "extract",
+     "info",
+     "schedule"
+    ],
+    "run the Checker on each specification"
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a label after the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Checker accepts."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Checker accepts.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a two-word label written bare",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system Tag catalogue lists."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system Tag catalogue lists.` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label spelling another label",
+  "set": [
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Run of the Checker"
+   ]
+  ],
+  "lines": [
+   "write: text-plain: the label of `write` spells the label of `checker`, so a new name for `checker` would leave it stale; give it words of its own"
+  ]
+ },
+ {
+  "fault": "two labels in one text",
+  "set": [
+   [
+    [
+     "nodes",
+     "extract",
+     "label"
+    ],
+    "Reconciliation"
+   ],
+   [
+    [
+     "nodes",
+     "catalogue",
+     "label"
+    ],
+    "Tag list"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Reconciliation and the Tag list feed."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Reconciliation and ` spells the label of `extract`; name it as `{extract}`, so a new name reaches this text",
+   "purpose: text-plain: `Rebuild a system the Reconciliation and ` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "an open backtick",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one `contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system from one `contract.` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "an id that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {nobody}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for {nobody}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, as markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for <{nobody}>."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for <{nobody}>.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a <b>system</b> from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<b>` in `Rebuild a <b>system</b> from one contrac` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a label shown as markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <{checker}> does."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<Checker>` in `Rebuild a system as <{checker}> does.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in #ff0000 from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#ff0000` in `Rebuild a system in #ff0000 from one con` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value as a CSS property",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system drawn with color: red."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `color: r` in `Rebuild a system drawn with color: red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value in three hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in #f00 from one contract."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#f00` in `Rebuild a system in #f00 from one contra` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup left open",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system that ends in <script"
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<script` in `Rebuild a system that ends in <script` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "Korean letters alone in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system ㅋ skill"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `The system ㅋ skill` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "a two-word label with two spaces",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Tag  catalogue lists."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Tag  catalogue list` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label after the and an id",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the {subject} Checker accepts."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the {subject} Checker a` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label inside a longer label",
+  "set": [
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Checker run"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the checker run feeds."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the checker run feeds.` spells the label of `write`; name it as `{write}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "`은` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}은 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}은 계약을 읽습니다.` writes `은` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`는` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}는 계약을 읽습니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`이` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}이 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}이 계약을 읽습니다.` writes `이` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`가` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}가 계약을 읽습니다.` writes `가` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`을` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}을 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}을 계약을 읽습니다.` writes `을` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`를` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}를 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}를 계약을 읽습니다.` writes `를` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`과` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}과 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}과 계약을 읽습니다.` writes `과` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`와` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}와 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}와 계약을 읽습니다.` writes `와` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`으로` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}으로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}으로 계약을 읽습니다.` writes `으로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`로` of one form after a name",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{reader}로 계약을 읽습니다.` writes `로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a space before `은`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 은 읽습니다.` puts a space before a particle in `` 은`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `는`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 는 읽습니다.` puts a space before a particle in `` 는`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `가`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 가 읽습니다.` puts a space before a particle in `` 가`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `을`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 을 읽습니다.` puts a space before a particle in `` 을`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `를`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 를 읽습니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `의`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 의 읽습니다.` puts a space before a particle in `` 의`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에 읽습니다.` puts a space before a particle in `` 에`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `와`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 와 읽습니다.` puts a space before a particle in `` 와`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `과`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 과 읽습니다.` puts a space before a particle in `` 과`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `도`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 도 읽습니다.` puts a space before a particle in `` 도`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `로`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 로 읽습니다.` puts a space before a particle in `` 로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `으로`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 으로 읽습니다.` puts a space before a particle in `` 으로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에서`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에서 읽습니다.` puts a space before a particle in `` 에서`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에게`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "`contract` 에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: ``contract` 에게 읽습니다.` puts a space before a particle in `` 에게`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle after an English word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "contract 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `contract 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `t 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle closing the text",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "다시 만들 때 읽는 것은 `contract` 를"
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `다시 만들 때 읽는 것은 `contract` 를` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a digit that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {nobody2}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody2}` in `Rebuild a system for {nobody2}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a hyphen that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for {no-body}."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{no-body}` in `Rebuild a system for {no-body}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id that names nothing, quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system for `{nobody}`."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{nobody}` in `Rebuild a system for `{nobody}`.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word after a hyphen",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the pre-validator reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word before a hyphen",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the validator-run reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word inside a word",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the prevalidators read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word holding a hyphen and a digit, as an id",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "edit-2"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from {edit-2}."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word holding a hyphen and a digit",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "edit-2"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from edit-2 runs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from edit-2 runs.` says `edit-2` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two scripts, plural",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "키 API"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from 키 APIs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from 키 APIs.` says `키 API` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two scripts",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "API 키"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "API 키를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `API 키를 읽습니다.` says `API 키` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word of two words across a line",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "buy order"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one buy\norder."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one buy",
+   "order.` says `buy order` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: an avoided word quoted",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "validator"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the `validator` reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a comma",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{contract} 를, 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `{contract} 를, 다시 만듭니다.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a full stop",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "다시 만드는 것은 {contract} 를."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `다시 만드는 것은 {contract} 를.` closes a sentence outside `니다`; a Korean description is in the formal polite form",
+   "purpose: korean-text: `다시 만드는 것은 {contract} 를.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{contract} 를다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a bracket",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}는(은) 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a Korean letter",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "{reader}이라는 독자가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a full stop inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약을 읽는다.다음에 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: two sentences, the second plain",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "계약을 읽습니다. 시스템을 만든다."
+   ]
+  ],
+  "lines": [
+   "purpose: korean-text: `계약을 읽습니다. 시스템을 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "the edge case: a title over 40 letters holding Korean",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system skill that rebuilds any system 스킬"
+   ]
+  ],
+  "lines": [
+   "title: name-english: `The system skill that rebuilds any syste` holds Korean; a title, a label and a term stay English, and only a description may be Korean"
+  ]
+ },
+ {
+  "fault": "the edge case: a text over 40 letters with markup",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one long contract with <b>bold</b>."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<b>` in `Rebuild a system from one long contract ` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup over 30 letters",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <div class=\"a-very-long-class-name-here\"> shows."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<div class=\"a-very-long-class-na` in `Rebuild a system as <div class=\"a-very-l` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup of exactly 31 letters",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <abcdefghijklmnopqrstuvwxyz12345> shows."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<abcdefghijklmnopqrstuvwxyz12345>` in `Rebuild a system as <abcdefghijklmnopqrs` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a closing tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as </b> ends."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `</b>` in `Rebuild a system as </b> ends.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a comment tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <!-- note --> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<!-- note -->` in `Rebuild a system as <!-- note --> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a processing tag",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as <?xml?> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<?xml?>` in `Rebuild a system as <?xml?> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a tag after a space",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as < b> says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `< b>` in `Rebuild a system as < b> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a less-than sign",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system when a < 3."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as `<b>` shows."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a colour quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system in `#ff0000`."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as issue #123 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of five hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #abcde says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of seven hex digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #abcdef1 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of three digits and a letter",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as #12a says."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#12a` in `Rebuild a system as #12a says.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a size inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system as 12pxs says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a position without digits",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system where x = y."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS word without a colon",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system of one colour and one border."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label opening the text",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "The Checker rebuilds a system."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `The Checker rebuilds a system.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the in capitals",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system THE CHECKER reads."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system THE CHECKER reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the across a line",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the\nChecker reads."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the",
+   "Checker reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a one-word label without the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label as an id beside the",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the {checker} reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label inside a word",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Checkers read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after a hyphen",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the pre-Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in the title",
+  "set": [
+   [
+    [
+     "title"
+    ],
+    "The system $x$ skill"
+   ]
+  ],
+  "lines": [
+   "title: formula: `The system $x$ skill` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in a display",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at $$\\foo x$$ per run."
+   ]
+  ],
+  "lines": [
+   "purpose: formula: `\\foo x` in `Rebuild a system at $$\\foo x$$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula quoted",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system at `$\\foo x$` per run."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup around an id that names nothing",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from a <{ghost}b> file."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `{ghost}` in `Rebuild a system from a <{ghost}b> file.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup opening before an id",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a per<son of {checker} file."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `<son of {checker} file.` in `Rebuild a per<son of {checker} file.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a label holding brackets",
+  "set": [
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Check (fast) pass"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system the Check (fast) pass feeds."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system the Check (fast) pass f` spells the label of `write`; name it as `{write}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a two-word label inside a longer one",
+  "set": [
+   [
+    [
+     "nodes",
+     "catalogue",
+     "label"
+    ],
+    "Tag store"
+   ],
+   [
+    [
+     "nodes",
+     "write",
+     "label"
+    ],
+    "Big Tag store"
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild Big Tag store from one file."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild Big Tag store from one file.` spells the label of `write`; name it as `{write}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: an open backtick in a text over 40 letters",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one long `contract that never closes."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `Rebuild a system from one long `contract` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS property with a space before its colon",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with color : red."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `color : r` in `Rebuild a system with color : red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a bad formula after a good one",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild $x$ systems at $\\foo y$ cost."
+   ]
+  ],
+  "lines": [
+   "purpose: formula: `\\foo y` in `Rebuild $x$ systems at $\\foo y$ cost.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "a formula outside the drawn subset, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system at $\\foo x$ per run."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: formula: `\\foo x` in `Rebuild a system at $\\foo x$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "a formula outside the drawn subset, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system at $\\foo x$ per run."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: formula: `\\foo x` in `Rebuild a system at $\\foo x$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "a particle of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}는 계약으로 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}는 계약으로 시스템을 다시 만듭니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a particle of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}는 계약으로 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}는 계약으로 시스템을 다시 만듭니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a sentence closing outside 니다, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "계약으로 시스템을 다시 만든다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `계약으로 시스템을 다시 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "a sentence closing outside 니다, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "계약으로 시스템을 다시 만든다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `계약으로 시스템을 다시 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "a space before a particle, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a Korean code quote closing in a full stop, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`끝. 다음`을 그대로 씁니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a Korean code quote closing in a full stop, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`끝. 다음`을 그대로 씁니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "a label after the, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the Checker accepts."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system the Checker accepts.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label after the, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the Checker accepts."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system the Checker accepts.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a two-word label written bare, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system Tag catalogue lists."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system Tag catalogue lists.` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a two-word label written bare, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system Tag catalogue lists."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system Tag catalogue lists.` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "an open backtick, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system from one `contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system from one `contract.` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "an open backtick, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system from one `contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system from one `contract.` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system for {nobody}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{nobody}` in `Rebuild a system for {nobody}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system for {nobody}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{nobody}` in `Rebuild a system for {nobody}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, as markup, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system for <{nobody}>."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{nobody}` in `Rebuild a system for <{nobody}>.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an id that names nothing, as markup, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system for <{nobody}>."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{nobody}` in `Rebuild a system for <{nobody}>.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a <b>system</b> from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<b>` in `Rebuild a <b>system</b> from one contrac` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a <b>system</b> from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<b>` in `Rebuild a <b>system</b> from one contrac` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a label shown as markup, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as <{checker}> does."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<Checker>` in `Rebuild a system as <{checker}> does.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a label shown as markup, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as <{checker}> does."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<Checker>` in `Rebuild a system as <{checker}> does.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system in #ff0000 from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `#ff0000` in `Rebuild a system in #ff0000 from one con` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system in #ff0000 from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `#ff0000` in `Rebuild a system in #ff0000 from one con` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value as a CSS property, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system drawn with color: red."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `color: r` in `Rebuild a system drawn with color: red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value as a CSS property, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system drawn with color: red."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `color: r` in `Rebuild a system drawn with color: red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value in three hex digits, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system in #f00 from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `#f00` in `Rebuild a system in #f00 from one contra` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a drawing value in three hex digits, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system in #f00 from one contract."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `#f00` in `Rebuild a system in #f00 from one contra` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup left open, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system that ends in <script"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<script` in `Rebuild a system that ends in <script` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "markup left open, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system that ends in <script"
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<script` in `Rebuild a system that ends in <script` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "a two-word label with two spaces, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the Tag  catalogue lists."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system the Tag  catalogue list` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a two-word label with two spaces, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the Tag  catalogue lists."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system the Tag  catalogue list` spells the label of `catalogue`; name it as `{catalogue}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label after the and an id, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the {subject} Checker accepts."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system the {subject} Checker a` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "a label after the and an id, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the {subject} Checker accepts."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system the {subject} Checker a` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "`은` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}은 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}은 계약을 읽습니다.` writes `은` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`은` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}은 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}은 계약을 읽습니다.` writes `은` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`는` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}는 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}는 계약을 읽습니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`는` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}는 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}는 계약을 읽습니다.` writes `는` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`이` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}이 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}이 계약을 읽습니다.` writes `이` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`이` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}이 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}이 계약을 읽습니다.` writes `이` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`가` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}가 계약을 읽습니다.` writes `가` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`가` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}가 계약을 읽습니다.` writes `가` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`을` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}을 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}을 계약을 읽습니다.` writes `을` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`을` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}을 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}을 계약을 읽습니다.` writes `을` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`를` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}를 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}를 계약을 읽습니다.` writes `를` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`를` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}를 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}를 계약을 읽습니다.` writes `를` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`과` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}과 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}과 계약을 읽습니다.` writes `과` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`과` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}과 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}과 계약을 읽습니다.` writes `과` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`와` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}와 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}와 계약을 읽습니다.` writes `와` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`와` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}와 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}와 계약을 읽습니다.` writes `와` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`으로` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}으로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}으로 계약을 읽습니다.` writes `으로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`으로` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}으로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}으로 계약을 읽습니다.` writes `으로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`로` of one form after a name, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{reader}로 계약을 읽습니다.` writes `로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "`로` of one form after a name, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}로 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{reader}로 계약을 읽습니다.` writes `로` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"
+  ]
+ },
+ {
+  "fault": "a space before `은`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 은 읽습니다.` puts a space before a particle in `` 은`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `은`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 은 읽습니다.` puts a space before a particle in `` 은`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `는`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 는 읽습니다.` puts a space before a particle in `` 는`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `는`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 는 읽습니다.` puts a space before a particle in `` 는`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `가`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 가 읽습니다.` puts a space before a particle in `` 가`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `가`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 가 읽습니다.` puts a space before a particle in `` 가`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `을`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 을 읽습니다.` puts a space before a particle in `` 을`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `을`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 을 읽습니다.` puts a space before a particle in `` 을`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `를`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 를 읽습니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `를`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 를 읽습니다.` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `의`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 의 읽습니다.` puts a space before a particle in `` 의`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `의`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 의 읽습니다.` puts a space before a particle in `` 의`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 에 읽습니다.` puts a space before a particle in `` 에`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 에 읽습니다.` puts a space before a particle in `` 에`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `와`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 와 읽습니다.` puts a space before a particle in `` 와`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `와`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 와 읽습니다.` puts a space before a particle in `` 와`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `과`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 과 읽습니다.` puts a space before a particle in `` 과`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `과`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 과 읽습니다.` puts a space before a particle in `` 과`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `도`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 도 읽습니다.` puts a space before a particle in `` 도`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `도`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 도 읽습니다.` puts a space before a particle in `` 도`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `로`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 로 읽습니다.` puts a space before a particle in `` 로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `로`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 로 읽습니다.` puts a space before a particle in `` 로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `으로`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 으로 읽습니다.` puts a space before a particle in `` 으로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `으로`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 으로 읽습니다.` puts a space before a particle in `` 으로`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에서`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 에서 읽습니다.` puts a space before a particle in `` 에서`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에서`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 에서 읽습니다.` puts a space before a particle in `` 에서`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에게`, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "`contract` 에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: ``contract` 에게 읽습니다.` puts a space before a particle in `` 에게`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before `에게`, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "`contract` 에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: ``contract` 에게 읽습니다.` puts a space before a particle in `` 에게`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle after an English word, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "contract 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `contract 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `t 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle after an English word, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "contract 를 읽어 시스템을 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `contract 를 읽어 시스템을 다시 만듭니다.` puts a space before a particle in `t 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle closing the text, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "다시 만들 때 읽는 것은 `contract` 를"
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `다시 만들 때 읽는 것은 `contract` 를` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "a space before a particle closing the text, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "다시 만들 때 읽는 것은 `contract` 를"
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `다시 만들 때 읽는 것은 `contract` 를` puts a space before a particle in `` 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a digit that names nothing, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system for {nobody2}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{nobody2}` in `Rebuild a system for {nobody2}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a digit that names nothing, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system for {nobody2}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{nobody2}` in `Rebuild a system for {nobody2}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a hyphen that names nothing, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system for {no-body}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{no-body}` in `Rebuild a system for {no-body}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id holding a hyphen that names nothing, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system for {no-body}."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{no-body}` in `Rebuild a system for {no-body}.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id that names nothing, quoted, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system for `{nobody}`."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{nobody}` in `Rebuild a system for `{nobody}`.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an id that names nothing, quoted, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system for `{nobody}`."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{nobody}` in `Rebuild a system for `{nobody}`.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a comma, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{contract} 를, 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `{contract} 를, 다시 만듭니다.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a comma, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{contract} 를, 다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `{contract} 를, 다시 만듭니다.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a full stop, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "다시 만드는 것은 {contract} 를."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `다시 만드는 것은 {contract} 를.` closes a sentence outside `니다`; a Korean description is in the formal polite form",
+   "levels/skill/nodes/checker/purpose: korean-text: `다시 만드는 것은 {contract} 를.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a full stop, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "다시 만드는 것은 {contract} 를."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `다시 만드는 것은 {contract} 를.` closes a sentence outside `니다`; a Korean description is in the formal polite form",
+   "levels/skill/about: korean-text: `다시 만드는 것은 {contract} 를.` puts a space before a particle in `} 를`; a particle joins the word before it"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a word, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{contract} 를다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle before a word, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{contract} 를다시 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a bracket, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}는(은) 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a bracket, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}는(은) 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a Korean letter, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "{reader}이라는 독자가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a particle of one form before a Korean letter, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "{reader}이라는 독자가 계약을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a full stop inside a word, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "계약을 읽는다.다음에 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a full stop inside a word, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "계약을 읽는다.다음에 만듭니다."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: two sentences, the second plain, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "계약을 읽습니다. 시스템을 만든다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: korean-text: `계약을 읽습니다. 시스템을 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "the edge case: two sentences, the second plain, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "계약을 읽습니다. 시스템을 만든다."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: korean-text: `계약을 읽습니다. 시스템을 만든다.` closes a sentence outside `니다`; a Korean description is in the formal polite form"
+  ]
+ },
+ {
+  "fault": "the edge case: a text over 40 letters with markup, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system from one long contract with <b>bold</b>."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<b>` in `Rebuild a system from one long contract ` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a text over 40 letters with markup, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system from one long contract with <b>bold</b>."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<b>` in `Rebuild a system from one long contract ` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup over 30 letters, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as <div class=\"a-very-long-class-name-here\"> shows."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<div class=\"a-very-long-class-na` in `Rebuild a system as <div class=\"a-very-l` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup over 30 letters, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as <div class=\"a-very-long-class-name-here\"> shows."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<div class=\"a-very-long-class-na` in `Rebuild a system as <div class=\"a-very-l` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup of exactly 31 letters, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as <abcdefghijklmnopqrstuvwxyz12345> shows."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<abcdefghijklmnopqrstuvwxyz12345>` in `Rebuild a system as <abcdefghijklmnopqrs` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup of exactly 31 letters, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as <abcdefghijklmnopqrstuvwxyz12345> shows."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<abcdefghijklmnopqrstuvwxyz12345>` in `Rebuild a system as <abcdefghijklmnopqrs` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a closing tag, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as </b> ends."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `</b>` in `Rebuild a system as </b> ends.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a closing tag, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as </b> ends."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `</b>` in `Rebuild a system as </b> ends.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a comment tag, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as <!-- note --> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<!-- note -->` in `Rebuild a system as <!-- note --> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a comment tag, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as <!-- note --> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<!-- note -->` in `Rebuild a system as <!-- note --> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a processing tag, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as <?xml?> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<?xml?>` in `Rebuild a system as <?xml?> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a processing tag, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as <?xml?> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<?xml?>` in `Rebuild a system as <?xml?> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a tag after a space, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as < b> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `< b>` in `Rebuild a system as < b> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a tag after a space, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as < b> says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `< b>` in `Rebuild a system as < b> says.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a less-than sign, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system when a < 3."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a less-than sign, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system when a < 3."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup quoted, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as `<b>` shows."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup quoted, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as `<b>` shows."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a colour quoted, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system in `#ff0000`."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a colour quoted, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system in `#ff0000`."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of digits, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as issue #123 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of digits, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as issue #123 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of five hex digits, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as #abcde says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of five hex digits, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as #abcde says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of seven hex digits, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as #abcdef1 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of seven hex digits, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as #abcdef1 says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of three digits and a letter, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as #12a says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `#12a` in `Rebuild a system as #12a says.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a hash of three digits and a letter, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as #12a says."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `#12a` in `Rebuild a system as #12a says.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a size inside a word, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system as 12pxs says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a size inside a word, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system as 12pxs says."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a position without digits, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system where x = y."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a position without digits, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system where x = y."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS word without a colon, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system of one colour and one border."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS word without a colon, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system of one colour and one border."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label opening the text, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "The Checker rebuilds a system."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `The Checker rebuilds a system.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label opening the text, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "The Checker rebuilds a system."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `The Checker rebuilds a system.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the in capitals, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system THE CHECKER reads."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system THE CHECKER reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the in capitals, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system THE CHECKER reads."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system THE CHECKER reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the across a line, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the\nChecker reads."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system the",
+   "Checker reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after the across a line, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the\nChecker reads."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system the",
+   "Checker reads.` spells the label of `checker`; name it as `{checker}`, so a new name reaches this text"
+  ]
+ },
+ {
+  "fault": "the edge case: a one-word label without the, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a one-word label without the, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label as an id beside the, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the {checker} reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label as an id beside the, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the {checker} reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label inside a word, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the Checkers read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label inside a word, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the Checkers read."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after a hyphen, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system the pre-Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a label after a hyphen, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system the pre-Checker reads."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in a display, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system at $$\\foo x$$ per run."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: formula: `\\foo x` in `Rebuild a system at $$\\foo x$$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula in a display, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system at $$\\foo x$$ per run."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: formula: `\\foo x` in `Rebuild a system at $$\\foo x$$ per run.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula quoted, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system at `$\\foo x$` per run."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: a formula quoted, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system at `$\\foo x$` per run."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "the edge case: markup around an id that names nothing, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system from a <{ghost}b> file."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `{ghost}` in `Rebuild a system from a <{ghost}b> file.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup around an id that names nothing, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system from a <{ghost}b> file."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `{ghost}` in `Rebuild a system from a <{ghost}b> file.` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup opening before an id, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a per<son of {checker} file."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `<son of {checker} file.` in `Rebuild a per<son of {checker} file.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: markup opening before an id, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a per<son of {checker} file."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `<son of {checker} file.` in `Rebuild a per<son of {checker} file.` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: an open backtick in a text over 40 letters, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system from one long `contract that never closes."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `Rebuild a system from one long `contract` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "the edge case: an open backtick in a text over 40 letters, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system from one long `contract that never closes."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `Rebuild a system from one long `contract` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS property with a space before its colon, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild a system with color : red."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: text-plain: `color : r` in `Rebuild a system with color : red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a CSS property with a space before its colon, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild a system with color : red."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: text-plain: `color : r` in `Rebuild a system with color : red.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the edge case: a bad formula after a good one, in a node's purpose",
+  "set": [
+   [
+    [
+     "nodes",
+     "checker",
+     "purpose"
+    ],
+    "Rebuild $x$ systems at $\\foo y$ cost."
+   ]
+  ],
+  "lines": [
+   "levels/skill/nodes/checker/purpose: formula: `\\foo y` in `Rebuild $x$ systems at $\\foo y$ cost.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "the edge case: a bad formula after a good one, in a level's about",
+  "set": [
+   [
+    [
+     "levels",
+     "skill",
+     "about"
+    ],
+    "Rebuild $x$ systems at $\\foo y$ cost."
+   ]
+  ],
+  "lines": [
+   "levels/skill/about: formula: `\\foo y` in `Rebuild $x$ systems at $\\foo y$ cost.`: `\\foo` is outside the subset; write it with fractions, super- and subscripts, roots, Greek letters, relations, sums and the other large operators (`\\prod`, `\\int`, `\\lim`), the signs `\\cdot`, `\\times`, `\\pm`, set and logic operators and `\\infty`, functions such as `\\log`, `\\text{...}` and spaces only, or quote it between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로써`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로써 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로써 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에게서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에게서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에게서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이라면`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이라면 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이라면 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `입니다`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세입니다 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세입니다 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이며`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이며 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이며 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이나`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이나 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이나 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이란`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이란 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이란 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이든`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이든 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이든 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `으로`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세으로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세으로 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에게`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에게 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에게 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `까지`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세까지 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세까지 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `부터`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세부터 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세부터 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `처럼`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세처럼 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세처럼 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `보다`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세보다 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세보다 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `라는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세라는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세라는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `라고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세라고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세라고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로서`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로서 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로서 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로써`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로써 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로써 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `은`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세은 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세은 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `는`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세는 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세는 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `이`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세이 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세이 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `가`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세가 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세가 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `을`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세을 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세을 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `를`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세를 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세를 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `의`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세의 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세의 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `에`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세에 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세에 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `와`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세와 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세와 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `과`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세과 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세과 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `도`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세도 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세도 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `만`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세만 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세만 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `로`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세로 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세로 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `며`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세며 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세며 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `고`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세고 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세고 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `나`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세나 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세나 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `란`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세란 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세란 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided Korean word before `든`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "명세"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "명세든 읽습니다."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `명세든 읽습니다.` says `명세` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "the CSS property `color`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with color: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `color: 1` in `Rebuild a system with color: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `background`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with background: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `background: 1` in `Rebuild a system with background: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `background-color`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with background-color: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `background-color: 1` in `Rebuild a system with background-color: ` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `left`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with left: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `left: 1` in `Rebuild a system with left: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `top`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with top: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `top: 1` in `Rebuild a system with top: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `right`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with right: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `right: 1` in `Rebuild a system with right: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `bottom`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with bottom: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `bottom: 1` in `Rebuild a system with bottom: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `width`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with width: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `width: 1` in `Rebuild a system with width: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `height`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with height: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `height: 1` in `Rebuild a system with height: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `margin`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with margin: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `margin: 1` in `Rebuild a system with margin: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `padding`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with padding: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `padding: 1` in `Rebuild a system with padding: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-size`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-size: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-size: 1` in `Rebuild a system with font-size: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-family`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-family: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-family: 1` in `Rebuild a system with font-family: 1 set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `font-weight`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with font-weight: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `font-weight: 1` in `Rebuild a system with font-weight: 1 set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `border`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with border: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `border: 1` in `Rebuild a system with border: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `opacity`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with opacity: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `opacity: 1` in `Rebuild a system with opacity: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the CSS property `z-index`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with z-index: 1 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `z-index: 1` in `Rebuild a system with z-index: 1 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `rgb(1, 2, 3)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with rgb(1, 2, 3) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `rgb(` in `Rebuild a system with rgb(1, 2, 3) set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `rgba(1, 2, 3, 1)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with rgba(1, 2, 3, 1) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `rgba(` in `Rebuild a system with rgba(1, 2, 3, 1) s` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `hsl(1, 2%, 3%)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with hsl(1, 2%, 3%) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `hsl(` in `Rebuild a system with hsl(1, 2%, 3%) set` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `hsla(1, 2%, 3%, 1)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with hsla(1, 2%, 3%, 1) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `hsla(` in `Rebuild a system with hsla(1, 2%, 3%, 1)` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `oklch(1 2 3)`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with oklch(1 2 3) set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `oklch(` in `Rebuild a system with oklch(1 2 3) set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `12px`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with 12px set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `12px` in `Rebuild a system with 12px set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `1.5px`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with 1.5px set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `1.5px` in `Rebuild a system with 1.5px set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `x = 3`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with x = 3 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `x = 3` in `Rebuild a system with x = 3 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `y=-4`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with y=-4 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `y=-4` in `Rebuild a system with y=-4 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `#abc`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with #abc set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#abc` in `Rebuild a system with #abc set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "the drawing value `#a0b1c2`",
+  "set": [
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system with #a0b1c2 set."
+   ]
+  ],
+  "lines": [
+   "purpose: text-plain: `#a0b1c2` in `Rebuild a system with #a0b1c2 set.` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"
+  ]
+ },
+ {
+  "fault": "an avoided word written `box`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one box."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one box.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxs`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxs."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one boxs.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxes`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxes."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one boxes.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `Boxes`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one Boxes."
+   ]
+  ],
+  "lines": [
+   "purpose: term-words: `Rebuild a system from one Boxes.` says `box` for the term `contract`; one concept keeps one word, so write `contract`, or quote the subject's own word between backticks"
+  ]
+ },
+ {
+  "fault": "an avoided word written `boxed`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one boxed."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ },
+ {
+  "fault": "an avoided word written `box-like`",
+  "set": [
+   [
+    [
+     "terms",
+     0,
+     "avoid"
+    ],
+    [
+     "box"
+    ]
+   ],
+   [
+    [
+     "purpose"
+    ],
+    "Rebuild a system from one box-like."
+   ]
+  ],
+  "lines": [
+   "ok"
+  ]
+ }
+]

@@ -22,7 +22,8 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
 from contract_levels import nested  # noqa: E402
-from tex_mathml import SUBSET, formulas, mathml, unformulated  # noqa: E402
+from contract_prose import KOREAN, MARKUP, REFERENCE, shown, text_breaks, wording_breaks  # noqa: E402
+from tex_mathml import SUBSET  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 CATALOGUE = json.loads((HERE.parent / "assets" / "tags.json").read_text())
@@ -31,18 +32,8 @@ KINDS = ("property", "invariant", "fact", "gap", "assumption", "constraint", "co
 STRENGTHS = ("must", "should", "may")
 STATUSES = ("holds", "broken", "unknown")
 BASES = ("observed", "documented", "inferred")
-REFERENCE = re.compile(r"\{([a-z0-9-]+)\}")
 OWN = re.compile(r"[./_\d]|[a-z][A-Z]")
-STYLE = re.compile(r"#(?:[0-9a-fA-F]{6}|(?=[0-9a-fA-F]{0,2}[a-fA-F])[0-9a-fA-F]{3})\b|\b(?:rgba?|hsla?|oklch)\(|\b\d+(?:\.\d+)?px\b|\b[xy]\s*=\s*-?\d"
-                   r"|\b(?:color|background|background-color|left|top|right|bottom|width|height|margin|padding|font-size|font-family|font-weight|border|opacity|z-index)\s*:\s*\S")
-MARKUP = re.compile(r"<\s*[A-Za-z/!?][^<>]{0,30}>?")
-PARTICLE = (r"(?:(?:이라는|이라고|으로서|으로써|에서는|에서도|에게서|으로는|으로도|이라면|입니다|이며|이고|이나|이란|이든|으로|에서|에게|에는|에도|까지|부터|처럼|보다|라는|라고|로서|로써|로는|로도"
-            r"|은|는|이|가|을|를|의|에|와|과|도|만|로|며|고|나|란|든)(?![가-힣]))?")
-KOREAN = re.compile(r"[ㄱ-ㆎ가-힣]")
 ARTICLE = re.compile(r"^(?:an?|the)\s+", re.IGNORECASE)
-PAIRED = re.compile(r"\}(은|는|이|가|을|를|과|와|으로|로)(?![가-힣(])")
-ENDING = re.compile(r"([가-힣]+)\.(?=\s|$)")
-APART = re.compile(r"(?:[}`]|[A-Za-z])\s+(?:은|는|가|을|를|의|에|와|과|도|로|으로|에서|에게)(?=[\s.,]|$)")
 WEAK = {"a", "an", "the"}
 BARE = WEAK | {"at", "by", "for", "from", "in", "of", "on", "to", "with"}
 FAULTS = ("missing", "illegal", "redundant", "overloaded", "contradictory", "unknown")
@@ -124,11 +115,6 @@ def items(contract, name):
     return sum(1 for element in elements(contract) if name in element.get("info", {}))
 
 
-def shown(text, labels):
-    """TEXT with each `{id}` replaced by the label of the record it names."""
-    return REFERENCE.sub(lambda match: labels.get(match.group(1), match.group(0)), text)
-
-
 def worded(contract, quoted):
     """Each text of CONTRACT that says something of the subject, and so may name a node, as (where, text): every text but an id, a label of a node or an area,
     the contract's title, a term, a source's own words and an item of the code form, whose identities QUOTED holds."""
@@ -168,17 +154,6 @@ def placed(value, where="", skipped=()):
     if isinstance(value, list):
         value = {entry["id"] if isinstance(entry, dict) and isinstance(entry.get("id"), str) else k + 1: entry for k, entry in enumerate(value)}
     return [pair for key, part in value.items() for pair in placed(part, f"{where}/{key}", skipped)] if isinstance(value, dict) else []
-
-
-def spelling(word):
-    """A pattern for WORD as a text may say it: its parts whatever the space between them, a Korean word alone or with a particle after it,
-    any other with a plural ending, and never inside a longer word."""
-    return whole(word, PARTICLE if re.search(r"[가-힣]$", word) else r"(?:e?s)?")
-
-
-def whole(words, ending="", prefix=""):
-    """A pattern for WORDS after PREFIX, whatever the space between them, then ENDING, never inside a longer word."""
-    return r"(?<![\w-])" + prefix + r"\s+".join(re.escape(word) for word in words.split()) + ending + r"(?![\w-])"
 
 
 def tag_items(kind, tag):
@@ -420,24 +395,7 @@ def breaks(contract, root=None):
     labels = {element["id"]: element["label"] for element in elements(contract)}
     quoted = {id(value) for level in contract["levels"] for kind in ("area", "node", "edge") for element in level.get(kind + "s", [])
               for name, value in element.get("info", {}).items() if tag_items(kind, element["tag"]).get(name, {}).get("form") == "code"}
-    for where, text in placed(contract, skipped=quoted):
-        for tex, display in formulas(text):
-            try:
-                mathml(tex, display)
-            except ValueError as error:
-                found.append((where, "formula", f"`{tex}` in `{text[:40]}`: {error}; write it with {SUBSET} only, or quote it between backticks"))
-        text = unformulated(text)
-        if re.sub(r"```", "", text).count("`") % 2 or text.count("```") % 2:
-            found.append((where, "text-plain", f"`{text[:40]}` opens a backtick it never closes; close the quote, since the page shows an open one as a mark"))
-        for name in REFERENCE.findall(text):
-            if name not in labels:
-                found.append((where, "text-plain", f"`{{{name}}}` in `{text[:40]}` names no node, edge or area, the records a text can show by a label; quote the subject's own braces or markup in an item of the code form"))
-        markup = MARKUP.search(re.sub(r"`[^`]*`", "", text)) or MARKUP.search(re.sub(r"`[^`]*`", "", shown(text, labels)))
-        style = STYLE.search(re.sub(r"`[^`]*`", "", text))
-        if style:
-            found.append((where, "text-plain", f"`{style.group(0)}` in `{text[:40]}` reads as a colour, a size or a position; the page's code decides how a thing is drawn, so say what it is, or quote the subject's own value between backticks or in an item of the code form"))
-        if markup:
-            found.append((where, "text-plain", f"`{markup.group(0)}` in `{text[:40]}` reads as markup; the page's code decides how a text is drawn, so write a placeholder or the subject's own markup between backticks or in an item of the code form"))
+    found += text_breaks(placed(contract, skipped=quoted), labels)
     named = [element for element in elements(contract) if "from" not in element]
     for level in contract["levels"]:
         for kind in ("areas", "nodes"):
@@ -455,50 +413,10 @@ def breaks(contract, root=None):
                 label = element["label"]
                 if label != label.strip() or (kind != "edges" and (label.endswith(".") or REFERENCE.search(label))):
                     found.append((f"levels/{level['id']}/{kind}/{element['id']}/label", "text-plain", f"the label `{label}` holds a space at an end or, on a node or an area, a full stop at its end or `{{id}}`; a label is the bare words that name its record"))
-    # a label is spelt after `the` in any case, or as written when it holds two words; one word as written opens many a sentence
-    spelt = sorted(((re.compile(whole(element["label"], prefix=r"the\s+"), re.IGNORECASE), re.compile(whole(element["label"]) if len(element["label"].split()) > 1 else "(?!)"), element["id"])
-                    for element in named if element["label"].split()), key=lambda pair: -len(pair[0].pattern))
-    for after_article, _, name in spelt:
-        for element in named:
-            if element["id"] != name and after_article.search(element["label"]):
-                found.append((element["id"], "text-plain", f"the label of `{element['id']}` spells the label of `{name}`, so a new name for `{name}` would leave it stale; give it words of its own"))
-    said = worded(contract, quoted)
-    for where, text in said:
-        rest = re.sub(r"`[^`]*`|\{[a-z0-9-]+\}", "", text)
-        for after_article, written, name in spelt:
-            rest, count = after_article.subn(" ", rest)
-            rest, more = written.subn(" ", rest)
-            if count or more:
-                found.append((where, "text-plain", f"`{text[:40]}` spells the label of `{name}`; name it as `{{{name}}}`, so a new name reaches this text"))
     names = [("title", contract["title"])] + [(f"levels/{level['id']}/{kind}/{element['id']}/label", element["label"])
                                               for level in contract["levels"] for kind in ("areas", "nodes") for element in level.get(kind, [])]
-    terms = {entry["term"].casefold(): entry["term"] for entry in contract.get("terms", [])}
-    for where, name in names + [(f"terms/{k + 1}/term", entry["term"]) for k, entry in enumerate(contract.get("terms", []))]:
-        if formulas(name):
-            found.append((where, "formula", f"`{name[:40]}` holds a formula; the title, an area's or a node's label and a term draw no formula, so write it in words"))
-    for where, name in names + [(f"terms/{k + 1}/term", entry["term"]) for k, entry in enumerate(contract.get("terms", []))] + [pair for pair in said if pair[0].endswith(("/title", "/label"))]:
-        if KOREAN.search(name):
-            found.append((where, "name-english", f"`{name[:40]}` holds Korean; a title, a label and a term stay English, and only a description may be Korean"))
-    avoided = sorted(((word, entry["term"]) for entry in contract.get("terms", []) for word in entry.get("avoid", [])), key=lambda pair: -len(pair[0]))
-    for word, term in avoided:
-        if word.casefold() in terms:
-            found.append((f"term {term}", "term-words", f"`{word}` is the term `{terms[word.casefold()]}` and a word to avoid for `{term}`; one word names one concept"))
-    for where, text in said:
-        if KOREAN.search(text) and not where.endswith(("/title", "/label")):
-            bare = re.sub(r"`[^`]*`", "`", text)
-            paired, apart = PAIRED.search(bare), APART.search(bare)
-            if paired:
-                found.append((where, "korean-text", f"`{text[:40]}` writes `{paired.group(1)}` after a name; a new label may end in another sound, so write both forms, such as `은(는)`, `을(를)` or `(으)로`, or a particle of one form"))
-            if any(not ending.endswith("니다") for ending in ENDING.findall(bare)):
-                found.append((where, "korean-text", f"`{text[:40]}` closes a sentence outside `니다`; a Korean description is in the formal polite form"))
-            if apart:
-                found.append((where, "korean-text", f"`{text[:40]}` puts a space before a particle in `{apart.group(0)}`; a particle joins the word before it"))
-    for where, text in said + names:
-        rest = re.sub(r"`[^`]*`|\{[a-z0-9-]+\}", " ", text)
-        for word, term in avoided:
-            rest, count = re.subn(spelling(word), " ", rest, flags=re.IGNORECASE)
-            if count and word.casefold() not in terms:
-                found.append((where, "term-words", f"`{text[:40]}` says `{word}` for the term `{term}`; one concept keeps one word, so write `{term}`, or quote the subject's own word between backticks"))
+    found += wording_breaks(worded(contract, quoted), names, [(element["id"], element["label"]) for element in named],
+                            [(f"terms/{k + 1}/term", f"term {entry['term']}", entry) for k, entry in enumerate(contract.get("terms", []))])
     found += alias_breaks(contract)
     all_edges = {edge['id']: edge for edge in edges(contract)}
     for item in contract.get("properties", []):
