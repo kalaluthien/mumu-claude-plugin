@@ -12,16 +12,16 @@ A subagent is an `Agent` call of a Claude Code session.
 
 ## Tier of a worker
 
-Lean to the cheapest row that fits: `mid` (sonnet) builds to a known approach, `light` (haiku) does a fixed edit, and `deep` (opus) and `open` (fable) are kept for a design not yet settled and hard judgement. Take the first row that fits, its effort raised to `high` for a high risk. One test splits `open` from `deep`: the owner's words and the repository say what done is and how to reach it, or they do not.
+Try the tiers cheapest first, `light`, `mid`, `deep`, `open`, and take the first whose root fits, at effort `medium`, raised to `high` for a high risk. The rows are exclusive: the owner's words and the repository say what done is and how to reach it (`light`, `mid`), or only the code settles it (`deep`), or nothing does (`open`).
 
-| tier | model | effort | the root |
-| --- | --- | --- | --- |
-| `light` | `haiku` | `medium` | is a mechanical edit to a fixed spec |
-| `open` | `fable` | `medium` | has no known answer or leaves its meaning open, needs a migration strategy that is not yet chosen (its order, its rollback), or is a UX or UI design with no layout words |
-| `deep` | `opus` | `medium` | needs a design that only reading the code settles, or a split into tasks whose order is a judgement, such as the order of a migration's steps |
-| `mid` | `sonnet` | `medium` | is any other work, a known approach across several tasks included |
+| tier | model | the root |
+| --- | --- | --- |
+| `light` | `haiku` | is a mechanical edit to a fixed spec |
+| `mid` | `sonnet` | builds to a known approach, across several tasks too, with no design or order left to judge |
+| `deep` | `opus` | needs a design that only reading the code settles, or a split into tasks whose order is a judgement, such as the order of a migration's steps |
+| `open` | `fable` | has no known answer or leaves its meaning open, needs a migration strategy not yet chosen (its order, its rollback), or is a UX or UI design with no layout words |
 
-A tier is a lean, not a cap: a worker moves up one tier, `mid` to `deep` to `open`, when the work proves harder, as the manager's **Swap up** says.
+A tier is a lean, not a cap: a worker moves up one tier, `light` to `mid` to `deep` to `open`, when the work proves harder, as the manager's **Swap up** says.
 
 ## Tier by work
 

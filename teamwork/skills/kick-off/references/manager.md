@@ -32,7 +32,7 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 - **Task review**: when a worker tells you a task's url, review it at once while the worker builds; for an eval-heavy task, `decide` first that the full test suite runs before the evals, since a suite failing last voids them. Review a task for one thing, that its Goal reads its root's words ambitiously, never narrowed in its words or in its scope; its criteria are the judge's to check.
 
   `decide` the gap on the task and `tell` the worker; ask the owner only when you cannot judge. A wider option the worker offers changes the owner's intent: hand it to the owner as a follow-up.
-- **Swap up**: a `BLOCKED:` of a `mid` or `deep` worker that a criterion failed twice the same way or a judge returned `fix` three times, moves its tasks to a worker one tier up. Do it in this turn:
+- **Swap up**: a `BLOCKED:` of a `light`, `mid` or `deep` worker that a criterion failed twice the same way or a judge returned `fix` three times, moves its tasks to a worker one tier up. Do it in this turn:
   1. `branch` `<task>-<model>-worker` from the old worker's branch, so the new one keeps its commits.
   2. `decide` on each task it holds: the swap, the old branch, with `--holders <task>-<model>-worker`.
   3. `start` that worker with the usual kick-off arguments at the tier above, since the board holds the rest.
