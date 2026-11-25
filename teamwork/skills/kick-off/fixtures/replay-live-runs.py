@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Check that a check starting live sessions replays its saved transcript and stops at its cap, with a stub `claude` that logs each session it starts, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
+"""Check that a check starting live sessions replays its saved transcript and stops at its cap, in a sandbox whose stub `claude` logs each session it starts, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-live-runs.py [--case <name>]   (no argument: every one in turn)
 - replay: a fix to the judging stage starts no new session, a change to a watched file starts one, and a body that runs `claude -p` unwatched or past its first stage is refused by check-criteria.py
 - cap: a fifth session with no `live runs` decision starts nothing, and a run past the task's `live runs` count starts no session, fails the check and prints the `BLOCKED due` line"""
 import json
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
 
 LIB = pathlib.Path(__file__).resolve().parents[3] / "lib"
 sys.path.insert(0, str(LIB))
@@ -21,22 +18,17 @@ BODY = "## Goal\n\nProbe the replay.\nPath: caller: probe-worker; before: filing
 JUDGE = "import sys\nprint('PASS' if 'verdict' in sys.stdin.read() else 'FAIL')\n"
 
 
-def setup():
-    """(work folder, repository, environment) with a committed `app/` and `judge.py`, and a `claude` that logs one line per session."""
-    work = pathlib.Path(tempfile.mkdtemp(prefix="live-runs-"))
-    repository = work / "repo"
-    (repository / "app").mkdir(parents=True)
-    (repository / "app" / "main.txt").write_text("one\n")
-    (repository / "judge.py").write_text("import sys\nprint('FAIL')\n")
-    bin_folder = work / "bin"
-    bin_folder.mkdir()
-    stub = replay_probe.write_text(bin_folder, "claude", f'#!/bin/sh\necho started >> {work}/claude.log\necho verdict\n')
-    stub.chmod(0o755)
-    environment = {**os.environ, **replay_probe.IDENTITY, "PATH": f"{bin_folder}:{os.environ['PATH']}", "HOME": str(work)}
-    for argv in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "probe"]):
-        replay_probe.sh("git", *argv, cwd=repository, environment=environment)
+def setup(work):
+    """A sandbox in WORK whose repository holds a committed `app/` and `judge.py`, with a `claude` that logs one line per session."""
+    box = replay_probe.Sandbox(work)
+    (box.repository / "app").mkdir()
+    (box.repository / "app" / "main.txt").write_text("one\n")
+    (box.repository / "judge.py").write_text("import sys\nprint('FAIL')\n")
+    replay_probe.write_text(box.bin, "claude", f'#!/bin/sh\necho started >> {work}/claude.log\necho verdict\n').chmod(0o755)
+    box.git("add", "-A")
+    box.git("commit", "-qm", "probe")
     (work / "body.md").write_text(BODY)
-    return work, repository, environment
+    return box
 
 
 def sessions(work):
@@ -44,9 +36,10 @@ def sessions(work):
     return len(log.read_text().split()) if log.exists() else 0
 
 
-def case_replay():
-    work, repository, environment = setup()
-    run = lambda: replay_probe.run_python(SCRIPTS / "run-criteria.py", repository, environment, work / "body.md")
+def case_replay(work):
+    box = setup(work)
+    repository = box.repository
+    run = lambda: box.python(SCRIPTS / "run-criteria.py", work / "body.md")
     first = run()
     if sessions(work) != 1 or "| fail |" not in first.stdout:
         return replay_probe.fail(f"the first run should start one session and fail on the buggy judge: {sessions(work)} sessions, {first.stdout!r}")
@@ -77,7 +70,7 @@ def case_replay():
     if sessions(work) != 4 or "BLOCKED due: live runs reached the cap of 4" not in fifth.stdout:
         return replay_probe.fail(f"with no `live runs` decision the fifth session should not start: {sessions(work)} sessions, {fifth.stdout!r}")
     (work / "grep.md").write_text(BODY.replace("`claude -p hello | python3 judge.py`", "`git grep -c 'claude -p' app | cat`"))
-    lint = lambda criterion: replay_probe.run_python(SCRIPTS / "check-criteria.py", repository, environment, work / criterion)
+    lint = lambda criterion: box.python(SCRIPTS / "check-criteria.py", work / criterion)
     for name, text in (("unwatched.md", BODY.replace("watches: app; ", "")), ("late.md", BODY.replace("claude -p hello | python3 judge.py", "echo x | claude -p hello"))):
         (work / name).write_text(text)
         refused = lint(name)
@@ -92,11 +85,12 @@ def case_replay():
     return 0
 
 
-def case_cap():
-    work, repository, environment = setup()
+def case_cap(work):
+    box = setup(work)
+    repository = box.repository
     (repository / "judge.py").write_text(JUDGE)
     task = {"body": BODY, "trusted": True, "comments": [{"body": "DECIDED: cap it.\n", "fields": {"live_runs": 1}, "trusted": True}]}
-    run = lambda: subprocess.run([sys.executable, str(SCRIPTS / "run-criteria.py"), "-"], cwd=repository, env=environment, input=json.dumps(task), capture_output=True, text=True)
+    run = lambda: box.python(SCRIPTS / "run-criteria.py", "-", input=json.dumps(task))
     first = run()
     (repository / "app" / "main.txt").write_text("two\n")
     second = run()
@@ -114,10 +108,10 @@ def main(args):
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2
-    if CASES[args[1]]():
-        return 1
-    print("PASS")
-    return 0
+    with replay_probe.scratch("live-runs-") as work:
+        if CASES[args[1]](work):
+            return 1
+    return replay_probe.Cases().finish()
 
 
 if __name__ == "__main__":

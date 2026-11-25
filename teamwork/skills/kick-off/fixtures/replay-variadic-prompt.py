@@ -6,7 +6,6 @@ usage: replay-variadic-prompt.py
 - accepted: a prompt first, or after `--`, prints nothing"""
 import pathlib
 import sys
-import tempfile
 
 LIB = pathlib.Path(__file__).resolve().parents[3] / "lib"
 sys.path.insert(0, str(LIB))
@@ -32,25 +31,23 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="variadic-prompt-"))
-    for number, (command, flag) in enumerate(CASES):
-        body = work / f"body-{number}.md"
-        body.write_text(BODY.format(command=command))
-        done = replay_probe.run_python(SCRIPTS / "check-criteria.py", work, {}, "--task", "99999", str(body))
-        out = done.stdout
-        if done.stderr or done.returncode != (1 if flag else 0):
-            return replay_probe.fail(f"{command!r} gave exit {done.returncode} and stderr {done.stderr!r}")
-        if flag and flag != "--" and "put the prompt first or after `--`" not in out:
-            return replay_probe.fail(f"{command!r} printed no hint: {out!r}")
-        if flag == "--" and "no prompt after --" not in out:
-            return replay_probe.fail(f"{command!r} should be refused for its bare --: {out!r}")
-        if flag and flag != "--" and f"prompt swallowed by {flag}" not in out:
-            return replay_probe.fail(f"{command!r} should be refused naming {flag}: {out!r}")
-        if not flag and "swallowed" in out:
-            return replay_probe.fail(f"{command!r} should pass: {out!r}")
-    print("PASS")
-    return 0
-
+    with replay_probe.scratch("variadic-prompt-") as work:
+        environment = replay_probe.isolated(work)
+        for number, (command, flag) in enumerate(CASES):
+            body = replay_probe.write_text(work, f"body-{number}.md", BODY.format(command=command))
+            done = replay_probe.sh(sys.executable, SCRIPTS / "check-criteria.py", "--task", "99999", body, cwd=work, environment=environment, check=False)
+            out = done.stdout
+            if done.stderr or done.returncode != (1 if flag else 0):
+                return replay_probe.fail(f"{command!r} gave exit {done.returncode} and stderr {done.stderr!r}")
+            if flag and flag != "--" and "put the prompt first or after `--`" not in out:
+                return replay_probe.fail(f"{command!r} printed no hint: {out!r}")
+            if flag == "--" and "no prompt after --" not in out:
+                return replay_probe.fail(f"{command!r} should be refused for its bare --: {out!r}")
+            if flag and flag != "--" and f"prompt swallowed by {flag}" not in out:
+                return replay_probe.fail(f"{command!r} should be refused naming {flag}: {out!r}")
+            if not flag and "swallowed" in out:
+                return replay_probe.fail(f"{command!r} should pass: {out!r}")
+    return replay_probe.Cases().finish()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start workers against a fake herdr (fake-herdr/herdr beside this file) whose start times out. Print `ok <case>` or `fail <case>: <detail>` per case,
+"""Start workers in a sandbox whose fake herdr times out their start. Print `ok <case>` or `fail <case>: <detail>` per case,
 then `PASS` or `FAIL`, and exit 1 on any failure:
 - `late`: an agent that comes up in its pane after herdr stopped waiting is given its name and its kick-off, and the start exits 0;
 - `never`: with no agent in the pane the start exits 1, says the session is not live and got no kick-off, and sends no prompt;
@@ -11,48 +11,41 @@ then `PASS` or `FAIL`, and exit 1 on any failure:
 - `subfolder`: `.github/plan-release.py`, when the repository has one, names the same tags from a plugin's folder as from the top.
 
 usage: replay-start-timeout.py"""
-import json
-import os
 import pathlib
 import re
 import subprocess
 import sys
-import tempfile
 
-HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 KICKOFF = "Run the teamwork:kick-off skill with these arguments: "
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    if not ok:
-        failed.append(name)
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="start-timeout-")).resolve()
-    state, log = work / "state.json", work / "log"
-    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_FAKE_HERDR_LOG": str(log),
-                   "TEAMWORK_START_SESSION_TIMEOUT": "4"}
+    cases = replay_probe.Cases()
+    with replay_probe.scratch("start-timeout-") as work:
+        box = replay_probe.Sandbox(work)
+        test(box, cases.step)
+    return cases.finish()
 
+
+def test(box, step):
     def start(name, limit="4"):
-        state.write_text(json.dumps({"n": 10, "tabs": [], "agents": [
-            {"name": "teamwork-manager", "pane_id": "w1:p2", "tab_id": "w1:t2", "workspace_id": "w1", "agent": "claude", "agent_status": "idle", "interactive_ready": True}]}))
-        log.write_text("")
-        done = subprocess.run([str(ROOT / "skills/kick-off/scripts/start-session.py"), name, "/tmp", f"worker {name} manager teamwork-manager https://example.com/1", "--model", "haiku", "--effort", "medium"],
-                              cwd=work, env={**environment, "TEAMWORK_START_SESSION_TIMEOUT": limit}, capture_output=True, text=True)
-        calls = [json.loads(line) for line in log.read_text().splitlines()]
-        return done, calls, json.loads(state.read_text())["agents"]
+        box.herdr([replay_probe.agent("teamwork-manager", 2)])
+        box.calls.unlink(missing_ok=True)
+        done = box.run([ROOT / "skills/kick-off/scripts/start-session.py", name, box.repository, f"worker {name} manager teamwork-manager https://example.com/1",
+                        "--model", "haiku", "--effort", "medium"], TEAMWORK_START_SESSION_TIMEOUT=limit)
+        return done, box.herdr_calls(), box.herdr_state()["agents"]
 
     def looked(done):
         """Whether the pane lookup a failed start names runs."""
         command = re.search(r"`(herdr [^`]+)`", done.stderr)
-        return bool(command) and subprocess.run(command[1].split(), env=environment, capture_output=True, text=True).returncode == 0
+        return bool(command) and box.run(command[1].split()).returncode == 0
 
     done, calls, agents = start("late-worker")
     prompts = [call[3] for call in calls if call[:2] == ["agent", "prompt"]]
@@ -87,8 +80,6 @@ def main(args):
         answers = [subprocess.run([sys.executable, str(plan), *revisions], cwd=folder, capture_output=True, text=True) for folder in (ROOT.parent, ROOT)]
         told = [(answer.returncode, answer.stdout, answer.stderr) for answer in answers]
         step("subfolder", len(revisions) == 2 and told[0] == told[1] and ROOT.name in told[0][1] + told[0][2], told)
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
 
 
 if __name__ == "__main__":

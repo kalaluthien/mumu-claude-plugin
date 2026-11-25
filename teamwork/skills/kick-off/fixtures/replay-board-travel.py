@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay how the board ref `refs/teamwork-blackboard` travels on each installed git, in temporary repositories, and run the commands that board.md's `Local only` bullet prints.
+"""Replay how the board ref `refs/teamwork-blackboard` travels on each installed git, in scratch repositories under an isolated environment, and run the commands that board.md's `Local only` bullet prints.
 Print `ok <git> <case>` or `fail <git> <case>: <what it saw>` per case, then `PASS` as the last line when all hold, else `FAIL`; exit 1 on any fail.
 - clone, fetch, push: a plain clone, fetch or push leaves the ref behind but brings the branches
 - push-own-name, push-under-refs: a push to a ref directly under `refs/` is refused with `funny refname`, one to `refs/foo/bar` is not
@@ -9,36 +9,28 @@ Print `ok <git> <case>` or `fail <git> <case>: <what it saw>` per case, then `PA
 
 usage: replay-board-travel.py [git...]
 With no git named, it runs `git` on PATH and `/usr/bin/git`."""
-import os
 import pathlib
 import re
 import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 BOARD_DOC = ROOT / "skills" / "kick-off" / "references" / "adapters" / "board.md"
 REF = "refs/teamwork-blackboard"
 SAYS = ("a plain clone, fetch or push leaves `refs/teamwork-blackboard` behind", "push --mirror` skips it", "deletes it from a remote that holds it", "funny refname", "directly under `refs/`")
 CLAIMS_SEND = re.compile(r"\b(?:sends?|travels)\b", re.I)
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
-    if not ok:
-        failed.append(name)
-
 
 def bullet_text():
     return next((line for line in BOARD_DOC.read_text().splitlines() if line.startswith("- **Local only**")), "")
 
 
-def replay(git, work, commands):
-    env = {**os.environ, "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null",
-           "GIT_AUTHOR_NAME": "a", "GIT_AUTHOR_EMAIL": "a@a", "GIT_COMMITTER_NAME": "a", "GIT_COMMITTER_EMAIL": "a@a"}
+def replay(git, work, commands, step):
+    env = replay_probe.isolated(work)
 
     def run(*argv, cwd=work):
         return subprocess.run([git, *argv], cwd=cwd, env=env, capture_output=True, text=True)
@@ -112,15 +104,14 @@ def main(args):
     gits = args or sorted({shutil.which("git"), "/usr/bin/git"} - {None}, key=lambda path: path != shutil.which("git"))
     bullet = bullet_text()
     commands = re.findall(r"`(git [^`]+)`", bullet)
+    cases = replay_probe.Cases()
     for git in gits:
-        work = pathlib.Path(tempfile.mkdtemp(prefix="board-travel-"))
-        replay(git, work, commands)
-        shutil.rmtree(work)
+        with replay_probe.scratch("board-travel-") as work:
+            replay(git, work, commands, cases.step)
     missing = [phrase for phrase in SAYS if phrase not in bullet]
     claims = CLAIMS_SEND.findall(bullet)
-    step("doc-words", not missing and not claims, (missing, claims))
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    cases.step("doc-words", not missing and not claims, (missing, claims))
+    return cases.finish()
 
 
 if __name__ == "__main__":

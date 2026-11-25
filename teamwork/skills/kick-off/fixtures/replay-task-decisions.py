@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Check typed decisions on a board, writing only through use-board.py and reading through its `read`, and print `ok <case>` or
-`fail <case>: <what it saw>` per case; exit 1 on any fail. git runs every case; nodes the pane's, from task
-nodes written here by hand. The git board trusts every comment, so pane-untrusted there marks one of the board's own
-decision comments untrusted, as an outsider's is marked, before the rows are laid out.
+`fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail. git runs every case, in a scratch repository whose
+manager and worker live in a fake herdr, its heartbeat lines printed by print-team-gaps.py; nodes the pane's, from task nodes written here by hand.
+A record written past use-board.py's checks, and the pane's rows where a script prints none, are made by the plugin's lib in a process of the
+scratch repository's own. The git board trusts every comment, so pane-untrusted there marks one of the board's own decision comments untrusted,
+as an outsider's is marked, before the rows are laid out.
 - record-fields, record-event, record-supersedes, record-unknown-supersedes, record-answers-elsewhere, record-answers-own: `decide`
   stores a decision `read` prints back, its `--answers` an open question on its own task
 - authority-refuses, authority-unquoted, authority-comment, authority-owner, authority-manager: who may supersede an owner decision;
@@ -21,30 +23,29 @@ decision comments untrusted, as an outsider's is marked, before the rows are lai
 
 usage: replay-task-decisions.py [--board <git|nodes>]   (no argument: both in turn)"""
 import json
-import os
 import pathlib
 import re
 import subprocess
 import sys
-import tempfile
 import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-sys.path.insert(0, str(ROOT / "lib"))
+LIB = ROOT / "lib"
+sys.path.insert(0, str(LIB))
 import replay_probe  # noqa: E402
-import task_state  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
+GAPS = ROOT / "monitors" / "print-team-gaps.py"
 LONG = "probe only the sandbox repository and keep every raw response it sends as a fixture beside the probe"
-failures = []
+HEARTBEAT = re.compile(r"^(?:question|answer|superseded twice|one-way|route) #(\d+)")
+cases = replay_probe.Cases()
 
 
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:400]}", flush=True)
-    if not ok:
-        failures.append(name)
+def evaluate(code):
+    """The JSON value the last line of CODE prints, run with the plugin's lib in the sandbox's repository and environment."""
+    return sandbox.evaluate(f"import json\n{code}")
 
 
 def body(parts=()):
@@ -53,13 +54,11 @@ def body(parts=()):
 
 
 def use(*argv):
-    return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
+    return sandbox.python(USE, *map(str, argv))
 
 
 def write(text):
-    path = work / f"text-{time.monotonic_ns()}.md"
-    path.write_text(text)
-    return path
+    return replay_probe.write_text(sandbox.work, "text.md", text)
 
 
 def file(title, parts=(), depends=()):
@@ -87,15 +86,14 @@ def ask(number, question, owner=False):
 
 def stored(number, record):
     """The url of RECORD, a comment's `{"text", ...fields}`, written straight to the board as NUMBER's next comment, past every check `use-board.py` makes."""
-    import board_git
-    import board_records
-    store = board_git.STORE
+    return evaluate(f"""import board_git, board_records
+store = board_git.STORE
 
-    def change():
-        position = len(board_records.comment_paths(store, number)) + 1
-        store.stage(f"{board_records.home(store, number)}/comments/{position:04d}.json", json.dumps(record))
-        return f"{store.url(board_records.home(store, number))}#comment-{position}"
-    return store.write(change)
+def change():
+    position = len(board_records.comment_paths(store, {number})) + 1
+    store.stage(f"{{board_records.home(store, {number})}}/comments/{{position:04d}}.json", {json.dumps(record)!r})
+    return f"{{store.url(board_records.home(store, {number}))}}#comment-{{position}}"
+print(json.dumps(store.write(change)))""")
 
 
 def index(number):
@@ -113,7 +111,7 @@ def asked(number):
 
 
 def comments(number):
-    return len(board.fresh(number)["comments"])
+    return evaluate(f"import board\nprint(len(board.fresh({number})['comments']))")
 
 
 def refused(name, number, call, *said):
@@ -121,7 +119,7 @@ def refused(name, number, call, *said):
     before = comments(number)
     done = call()
     text = done.stderr if isinstance(done, subprocess.CompletedProcess) else f"posted {done}"
-    step(name, isinstance(done, subprocess.CompletedProcess) and done.returncode == 2 and all(word in text for word in said) and comments(number) == before, text)
+    cases.step(name, isinstance(done, subprocess.CompletedProcess) and done.returncode == 2 and all(word in text for word in said) and comments(number) == before, text)
 
 
 def record_cases():
@@ -130,22 +128,22 @@ def record_cases():
     first = decide(root, "use the git board")
     full = decide(root, "use the git board", door="one-way", supersedes=first, answers=question)
     line = next((line for line in index(root).splitlines() if f"({full})" in line), "")
-    step("record-fields", all(part in line for part in (f"#{root} probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}")), index(root))
+    cases.step("record-fields", all(part in line for part in (f"#{root} probe-manager, one-way: use the git board", f"supersedes {first}", f"answers {question}")), index(root))
     event = use("hold", root, "--holders", "probe-worker").stdout.strip()
     report = post(root, "--reported", "probe findings")
-    step("record-event", event not in bound(root) and report not in bound(root) and bound(root) == [full], index(root))
+    cases.step("record-event", event not in bound(root) and report not in bound(root) and bound(root) == [full], index(root))
     part = file("Probe a part")
     parent = file("Probe a parent", parts=[part])
     ruled = decide(parent, "keep the parent's rule")
     replaced = decide(part, "the part's rule replaces it", supersedes=ruled)
-    step("record-supersedes", isinstance(replaced, str) and ruled not in bound(parent) and ruled not in bound(part) and replaced in bound(part), [index(parent), index(part)])
+    cases.step("record-supersedes", isinstance(replaced, str) and ruled not in bound(parent) and ruled not in bound(part) and replaced in bound(part), [index(parent), index(part)])
     refused("record-unknown-supersedes", other, lambda: decide(other, "replace another tree's rule", supersedes=ruled), ruled, "no decision")
     child = file("Probe an asked part")
     asking = file("Probe an asking parent", parts=[child])
     asked_url = ask(asking, "which cache")
     refused("record-answers-elsewhere", child, lambda: decide(child, "keep the cache", answers=asked_url), asked_url, f"#{asking}")
     answered = decide(asking, "keep the cache", answers=asked_url)
-    step("record-answers-own", isinstance(answered, str) and asked(asking) == [], index(asking))
+    cases.step("record-answers-own", isinstance(answered, str) and asked(asking) == [], index(asking))
 
 
 def authority_cases():
@@ -155,18 +153,18 @@ def authority_cases():
     refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "quotes no words")
     refused("authority-comment", task, lambda: use("comment", task, "--reported", "an external service is fine", "--text", write("DECIDED: an external service is fine\n")), "--decision")
     again = decide(task, "only the sandbox service", by="owner", door="one-way", supersedes=owner, quote="the sandbox is fine")
-    step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))
+    cases.step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))
     managed = file("Probe a manager's task")
     first = decide(managed, "build it in Python")
     second = decide(managed, "build it in TypeScript", supersedes=first)
-    step("authority-manager", isinstance(second, str) and bound(managed) == [second], index(managed))
+    cases.step("authority-manager", isinstance(second, str) and bound(managed) == [second], index(managed))
     asking = file("Probe a question to the owner")
     question = ask(asking, "may the sync run", owner=True)
     refused("authority-owner-question", asking, lambda: decide(asking, "the sync may run", answers=question), question, "asks the owner")
     stored(asking, {"text": "DECIDED: the sync may run\n", "decision": "the sync may run", "by": "probe-manager", "answers": question})
     kept = asked(asking) == [question]
     answer = decide(asking, "the sync may run", by="owner", answers=question, quote="yes, run it")
-    step("authority-owner-answers", kept and isinstance(answer, str) and asked(asking) == [], index(asking))
+    cases.step("authority-owner-answers", kept and isinstance(answer, str) and asked(asking) == [], index(asking))
 
 
 def binding_cases():
@@ -175,45 +173,41 @@ def binding_cases():
     root = file("Probe a binding root", parts=[middle])
     on_root, on_middle, on_left, on_right = (decide(n, f"rule on the {place}") for n, place in ((root, "root"), (middle, "middle"), (left, "left"), (right, "right")))
     seen = bound(left)
-    step("binding-ancestors", {on_root, on_middle, on_left} <= set(seen) and on_right not in seen, index(left))
+    cases.step("binding-ancestors", {on_root, on_middle, on_left} <= set(seen) and on_right not in seen, index(left))
     use("resolve", root, "--summary", "probe stopped", "--not-planned")
-    step("binding-stopped-root", bound(left) == [] and bound(root) == [], index(left))
+    cases.step("binding-stopped-root", bound(left) == [] and bound(root) == [], index(left))
     task = file("Probe a question")
     question = ask(task, "which width counts")
     use("hold", task, "--holders", "probe-worker")
-    step("binding-event-keeps-question", asked(task) == [question], index(task))
+    cases.step("binding-event-keeps-question", asked(task) == [question], index(task))
     other = ask(task, "which height counts")
     decide(task, "any height counts", answers=other)
     # a decision naming another question leaves this one open
     named_other = asked(task) == [question]
     decide(task, "24 to 80 columns count", answers=question)
-    step("binding-answered", named_other and asked(task) == [], index(task))
+    cases.step("binding-answered", named_other and asked(task) == [], index(task))
     gated = file("Probe a one-way door")
     worker = decide(gated, "drop the cache", by="probe-worker", door="one-way")
     waited = worker not in bound(gated)
     decide(gated, "drop the cache")
-    step("binding-one-way-waits", waited and worker in bound(gated), index(gated))
+    cases.step("binding-one-way-waits", waited and worker in bound(gated), index(gated))
     held = file("Probe a door over a manager's rule")
     rule = decide(held, "keep the cache")
     pending = decide(held, "drop the cache", by="probe-worker", door="one-way", supersedes=rule)
     kept = bound(held) == [rule]
     followed = decide(held, "drop the cache", supersedes=pending)
-    step("binding-one-way-supersedes", kept and bound(held) == [followed], index(held))
+    cases.step("binding-one-way-supersedes", kept and bound(held) == [followed], index(held))
     handed = file("Probe a successor's follow")
     door = decide(handed, "drop the index", by="probe-worker", door="one-way")
     decide(handed, "drop the index", by="probe-manager-next")
-    step("binding-successor", door in bound(handed), index(handed))
+    cases.step("binding-successor", door in bound(handed), index(handed))
 
 
 def heartbeat(numbers):
-    """The manager's heartbeat decision lines on NUMBERS."""
-    import team_gaps
-    team_gaps.sessions = lambda: ([{"name": "probe-manager"}], {})
-    team_gaps.tabs, team_gaps.crowding, team_gaps.members = (lambda workspace: []), (lambda me, listed: []), (lambda me, listed: [])
-    found = [task for task in board.tasks("open") if task["number"] in numbers]
-    data = {"found": found, "everything": found, "prs": [], "outside": [], "feed": [], "links": []}
-    lines = team_gaps.manager_actions({"name": "probe-manager", "workspace_id": ""}, [], data)
-    return [line for line in lines if line.startswith(("question ", "answer ", "superseded twice ", "one-way ", "route "))]
+    """The manager's heartbeat decision lines on NUMBERS, as print-team-gaps.py prints them in one poll."""
+    done = sandbox.python(GAPS, "--polls", "1", pane="w1:p1")
+    lines = [line for line in done.stdout.splitlines() if (found := HEARTBEAT.match(line)) and int(found.group(1)) in numbers]
+    return lines if done.returncode == 0 else [f"exit {done.returncode}: {done.stderr}"]
 
 
 def route_cases():
@@ -222,11 +216,11 @@ def route_cases():
     parent = file("Probe a parent of a blocked part", parts=(part,))
     routed = lambda numbers: {int(found) for found in re.findall(r"^route #(\d+)", "\n".join(heartbeat(numbers)), re.M)}
     before = routed({blocker, waiter, part, parent})
-    step("route-own-depends", waiter not in before and blocker in before, before)
-    step("route-parts-blocked", parent not in before and part not in before, before)
+    cases.step("route-own-depends", waiter not in before and blocker in before, before)
+    cases.step("route-parts-blocked", parent not in before and part not in before, before)
     use("resolve", blocker, "--summary", "probe done")
     after = routed({waiter, part, parent})
-    step("route-after-close", {waiter, part, parent} <= after, after)
+    cases.step("route-after-close", {waiter, part, parent} <= after, after)
 
 
 def heartbeat_cases():
@@ -234,25 +228,25 @@ def heartbeat_cases():
     ask(earlier, "may the sync run", owner=True)
     time.sleep(1.1)  # the boards stamp to the second
     ask(later, "may the pane change", owner=True)
-    lines = heartbeat({later, earlier})
-    order = [int(found) for found in re.findall(r"^question #(\d+)", "\n".join(lines), re.M)]
-    step("heartbeat-open-question", order == [earlier, later], lines)
     task = file("Probe a twice superseded rule")
     rule = decide(task, "cache for an hour")
     decide(task, "cache for a day", supersedes=rule)
     decide(task, "cache for a week", supersedes=rule)
-    step("heartbeat-twice-superseded", any(line.startswith(f"superseded twice #{task}: {rule}") for line in heartbeat({task})), heartbeat({task}))
     gated = file("Probe an unfollowed door")
     worker = decide(gated, "drop the index", by="probe-worker", door="one-way")
-    step("heartbeat-one-way", any(line.startswith(f"one-way #{gated}: probe-worker's {worker}") for line in heartbeat({gated})), heartbeat({gated}))
     redone = file("Probe a door its worker replaced")
     dropped = decide(redone, "drop the cache", by="probe-worker", door="one-way")
     decide(redone, "keep the cache", by="probe-worker", supersedes=dropped)
     asker = file("Probe a worker's question")
     asked_url = ask(asker, "which cache")
-    answer_line = next((line for line in heartbeat({asker}) if line.startswith(f"answer #{asker}:")), "")
-    step("heartbeat-answer-line", "`decide`" in answer_line and f"--answers {asked_url}" in answer_line, heartbeat({asker}))
-    step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in heartbeat({redone})), heartbeat({redone}))
+    lines = heartbeat({later, earlier, task, gated, redone, asker})
+    order = [int(found) for found in re.findall(r"^question #(\d+)", "\n".join(lines), re.M) if int(found) in (later, earlier)]
+    cases.step("heartbeat-open-question", order == [earlier, later], lines)
+    cases.step("heartbeat-twice-superseded", any(line.startswith(f"superseded twice #{task}: {rule}") for line in lines), lines)
+    cases.step("heartbeat-one-way", any(line.startswith(f"one-way #{gated}: probe-worker's {worker}") for line in lines), lines)
+    answer_line = next((line for line in lines if line.startswith(f"answer #{asker}:")), "")
+    cases.step("heartbeat-answer-line", "`decide`" in answer_line and f"--answers {asked_url}" in answer_line, lines)
+    cases.step("heartbeat-one-way-superseded", not any(line.startswith(f"one-way #{redone}:") for line in lines), lines)
 
 
 def event_cases():
@@ -260,8 +254,8 @@ def event_cases():
     questions = [ask(task, "may the sync run", owner=True), ask(task, "which cache")]
     stored(task, {"text": "DECIDED: both settled\n", "answers": questions})
     settled = use("read", task).stdout
-    shapes = [task_state.invalid({"text": "DECIDED: x\n", "answers": value}) for value in (questions, ["x"])]
-    step("event-answers", "open questions: 0" in settled and "binding decisions: 0" in settled and shapes[0] is None and shapes[1], [settled, shapes])
+    shapes = evaluate(f"import task_state\nprint(json.dumps([task_state.invalid({{'text': 'DECIDED: x\\n', 'answers': value}}) for value in {[questions, ['x']]!r}]))")
+    cases.step("event-answers", "open questions: 0" in settled and "binding decisions: 0" in settled and shapes[0] is None and shapes[1], [settled, shapes])
 
 
 def block(lines, number, strip=True):
@@ -273,20 +267,20 @@ def block(lines, number, strip=True):
 
 def pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untrusted):
     """The pane's lines: LISTED at the pane's width, NARROW at 24 columns, UNTRUSTED_LINES with UNTRUSTED's decision marked untrusted."""
-    step("pane-question", "? may the sync run" in block(listed, asker), block(listed, asker))
+    cases.step("pane-question", "? may the sync run" in block(listed, asker), block(listed, asker))
     marks = [line for line in block(listed, decider) if line.startswith("◆ ")]
     timed = [re.sub(r"^◆ \[\d\d/\d\d \d\d:\d\d\] ", "◆ ", line) for line in marks]  # each decision opens with its time, which the run's clock sets
-    step("pane-every-decision", timed == ["◆ rule four", "◆ rule three", "◆ rule two", "◆ rule one"] and marks[0] != timed[0]
+    cases.step("pane-every-decision", timed == ["◆ rule four", "◆ rule three", "◆ rule two", "◆ rule one"] and marks[0] != timed[0]
          and "more decided" not in "\n".join(block(listed, decider)) and "..." not in "\n".join(block(listed, decider)), block(listed, decider))
     cut = block(narrow, cutter, strip=False)
     start = next((i for i, line in enumerate(cut) if "◆ " in line), len(cut))
     shown = cut[start:start + 3]
     mark = cut[start].find("◆") if shown else 0
     # a decision's later lines sit 2 cells right of its mark, so they read as its own
-    step("pane-cut", len(shown) == 3 and shown[2].endswith("…") and all(line[mark:mark + 2] == "  " and line[mark + 2] != " " for line in shown[1:])
+    cases.step("pane-cut", len(shown) == 3 and shown[2].endswith("…") and all(line[mark:mark + 2] == "  " and line[mark + 2] != " " for line in shown[1:])
          and "beside the probe" not in "\n".join(cut), cut)
     if untrusted:
-        step("pane-untrusted", not any(line.startswith("◆ ") for line in block(untrusted_lines, untrusted)), block(untrusted_lines, untrusted))
+        cases.step("pane-untrusted", not any(line.startswith("◆ ") for line in block(untrusted_lines, untrusted)), block(untrusted_lines, untrusted))
 
 
 def board_pane():
@@ -298,16 +292,16 @@ def board_pane():
         decide(decider, f"rule {word}", by="owner", door="one-way", quote=f"rule {word}")
     decide(cutter, LONG, by="owner", door="one-way", quote="only the sandbox")
     outsider = decide(untrusted, "probe the team's board", by="owner", door="one-way", quote="probe ours")
-    listed = subprocess.run([sys.executable, str(LIST), "probe"], capture_output=True, text=True).stdout.splitlines()
-    narrow = subprocess.run([sys.executable, str(LIST), "probe", "--width", "24"], capture_output=True, text=True).stdout.splitlines()
-    import task_board
-    nodes = board.tree(None)
-    for node in nodes:
-        for comment in node["comments"]["nodes"]:
-            comment["trusted"] = comment["url"] != outsider
-    untrusted_lines = list(task_board.lines(task_board.board(nodes), task_board.PANE_WIDTH))
+    listed = sandbox.python(LIST, "probe").stdout.splitlines()
+    narrow = sandbox.python(LIST, "probe", "--width", "24").stdout.splitlines()
+    untrusted_lines = evaluate(f"""import board, task_board
+nodes = board.tree(None)
+for node in nodes:
+    for comment in node["comments"]["nodes"]:
+        comment["trusted"] = comment["url"] != {outsider!r}
+print(json.dumps(list(task_board.lines(task_board.board(nodes), task_board.PANE_WIDTH))))""")
     pane_cases(listed, narrow, untrusted_lines, asker, decider, cutter, untrusted)
-    step("pane-question-next-line", "? which width counts" in block(listed, later), block(listed, later))
+    cases.step("pane-question-next-line", "? which width counts" in block(listed, later), block(listed, later))
 
 
 def node(number, comments=()):
@@ -328,76 +322,57 @@ def nodes_pane():
     nodes = [node(1, [comment(1, 1, "BLOCKED: may the sync run\n", asks="owner")]),
              node(2, [owner_decision(2, k, f"rule {word}") for k, word in enumerate(("one", "two", "three", "four"), 1)]),
              node(3, [owner_decision(3, 1, LONG)]), node(4, [owner_decision(4, 1, "probe the team's board", association="NONE")])]
-    path = work / "nodes.json"
-    path.write_text(json.dumps(nodes))
-    listed = subprocess.run([sys.executable, str(LIST), "--nodes", str(path)], capture_output=True, text=True).stdout.splitlines()
-    narrow = subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--width", "24"], capture_output=True, text=True).stdout.splitlines()
+    path = replay_probe.write_text(sandbox.work, "nodes.json", json.dumps(nodes))
+    listed = sandbox.python(LIST, "--nodes", path).stdout.splitlines()
+    narrow = sandbox.python(LIST, "--nodes", path, "--width", "24").stdout.splitlines()
     pane_cases(listed, narrow, None, 1, 2, 3, None)
-    import task_board
-    import task_state
-    original, parses = task_state.records, [0]
+    many = [replay_probe.write_text(sandbox.work, f"many-{count}.json", json.dumps([node(n, [comment(n, k % 10, f"DECIDED: rule {k}") for k in range(20)])
+                                                                                    for n in range(1, count + 1)])) for count in (40, 80)]
+    # the parses one draw makes, counted by wrapping the parse in the drawing process
+    small, large = evaluate(f"""import board, pathlib, task_board, task_state
+original, parses = task_state.records, [0]
 
-    def counted(task):
-        parses[0] += 1
-        return original(task)
+def counted(task):
+    parses[0] += 1
+    return original(task)
 
-    def draw(count):
-        parses[0] = 0
-        task_board.board(board.tree(None, [node(n, [comment(n, k % 10, f"DECIDED: rule {k}") for k in range(20)]) for n in range(1, count + 1)]))
-        return parses[0]
+def draw(path):
+    parses[0] = 0
+    task_board.board(board.tree(None, json.loads(pathlib.Path(path).read_text())))
+    return parses[0]
 
-    task_state.records = counted
-    try:
-        small, large = draw(40), draw(80)
-    finally:
-        task_state.records = original
-    step("pane-linear", large <= 2.5 * small, f"{small} parses for 40 tasks, {large} for 80")
-    later = work / "deferred.json"
-    later.write_text(json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\ndeferred: waits on the probe\n", holders=[])])]))
-    drawn = subprocess.run([sys.executable, str(LIST), "--nodes", str(later)], capture_output=True, text=True).stdout.splitlines()
-    step("row-no-deferral", any(line.startswith("#1 ") for line in drawn) and not any("deferred" in line or "no holder" in line for line in drawn), drawn)
+task_state.records = counted
+print(json.dumps([draw(path) for path in {list(map(str, many))!r}]))""")
+    cases.step("pane-linear", large <= 2.5 * small, f"{small} parses for 40 tasks, {large} for 80")
+    later = replay_probe.write_text(sandbox.work, "deferred.json", json.dumps([node(1, [comment(1, 1, "DECIDED: later\n\ndeferred: waits on the probe\n", holders=[])])]))
+    drawn = sandbox.python(LIST, "--nodes", later).stdout.splitlines()
+    cases.step("row-no-deferral", any(line.startswith("#1 ") for line in drawn) and not any("deferred" in line or "no holder" in line for line in drawn), drawn)
     finished = [node(n, [comment(n, 1, text)] if text else []) for n, text in ((1, "REPORTED: batch landed; next step: probe the pane"), (2, ""))]
     for parent in finished[:2]:
         part = node(parent["number"] + 10)
         part.update({"state": "CLOSED", "stateReason": "COMPLETED", "parent": {"number": parent["number"]}})
         parent["body"] = body((part["number"],))
         finished.append(part)
-    done = work / "finished.json"
-    done.write_text(json.dumps(finished))
-    shown = {row["number"]: row["lines"]["notes"] for row in json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(done), "--json"],
-                                                                                       capture_output=True, text=True).stdout or "[]")}
-    step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
-    rows = json.loads(subprocess.run([sys.executable, str(LIST), "--nodes", str(path), "--json"], capture_output=True, text=True).stdout or "[]")
+    done = replay_probe.write_text(sandbox.work, "finished.json", json.dumps(finished))
+    shown = {row["number"]: row["lines"]["notes"] for row in json.loads(sandbox.python(LIST, "--nodes", done, "--json").stdout or "[]")}
+    cases.step("row-finished-parent", "next step: probe the pane" in shown.get(1, []) and shown.get(2) == [], shown)
+    rows = json.loads(sandbox.python(LIST, "--nodes", path, "--json").stdout or "[]")
     pane = (ROOT / "hooks" / "draw-task-pane.tsx").read_text()
-    step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(task.number, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
+    cases.step("row-one-color", rows and not any("kind" in row for row in rows) and 'numeral(task.number, label, spans(\'title\', 0), numberColor)' in pane, [sorted(row) for row in rows[:1]])
 
 
 def main(args):
-    global work, board
+    global sandbox
     if not args:
         return replay_probe.run_every(__file__, "--board", ("git", "nodes"))
     if len(args) != 2 or args[0] != "--board" or args[1] not in ("git", "nodes"):
         print(__doc__, file=sys.stderr)
         return 2
-    kind = args[1]
-    work = pathlib.Path(tempfile.mkdtemp(prefix="task-decisions-"))
-    os.environ.update({"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config")})
-    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
-    os.chdir(work / "repo")
-    import board  # noqa: E402  read here, since it reads the board set above when it loads
-
-    if kind == "nodes":
-        nodes_pane()
-        return 1 if failures else 0
-    record_cases()
-    authority_cases()
-    binding_cases()
-    heartbeat_cases()
-    event_cases()
-    route_cases()
-    board_pane()
-    return 1 if failures else 0
-
+    with replay_probe.scratch("task-decisions-") as work:
+        sandbox = replay_probe.Sandbox(work, [replay_probe.agent("probe-manager", 1), replay_probe.agent("probe-worker", 2)])
+        for kind in (nodes_pane,) if args[1] == "nodes" else (record_cases, authority_cases, binding_cases, heartbeat_cases, event_cases, route_cases, board_pane):
+            kind()
+    return cases.finish()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

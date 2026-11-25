@@ -16,6 +16,9 @@ import re
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
+
 KICK_OFF = pathlib.Path(__file__).resolve().parents[1]
 REFERENCES = KICK_OFF / "references"
 ROOT = KICK_OFF.parents[2]
@@ -98,8 +101,7 @@ def main(args):
             problems.append(f"{name} is named for the {prefix} but protocol.md, which every role reads, reaches it")
     problems += broken(set(readers) | shared | {(KICK_OFF / "SKILL.md").resolve()})
     problems += misplaced_scripts()
-    print("PASS" if not problems else "FAIL: " + "; ".join(problems))
-    return 1 if problems else 0
+    return replay_probe.fail("; ".join(problems)) if problems else replay_probe.Cases().finish()
 
 
 if __name__ == "__main__":

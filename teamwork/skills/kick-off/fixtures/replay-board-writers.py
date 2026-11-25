@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start 8 processes that comment on one task and file tasks at once on a throwaway git board, then count every record.
+"""Start 8 processes that comment on one task and file tasks at once on a scratch git board, then count every record.
 
 usage: replay-board-writers.py [--case concurrent|unguarded]   (no argument: every one in turn)
 
@@ -8,15 +8,13 @@ usage: replay-board-writers.py [--case concurrent|unguarded]   (no argument: eve
 - `unguarded`: runs the same scenario on a copy of the board code whose `update-ref` drops its old-value argument, and prints `PASS`
   only when the scenario then finds a lost record, which shows that argument is what keeps the records.
 
-Each case prints a line per finding, then `PASS` or `FAIL`."""
+Each case prints a line per finding, then `PASS` or `FAIL`, and exits 1 on `FAIL`."""
 import collections
 import json
-import os
 import pathlib
 import shutil
 import subprocess
 import sys
-import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
@@ -40,15 +38,12 @@ done
 """
 
 
-def git(repository, *args):
-    return subprocess.run(["git", "-C", str(repository), *args], capture_output=True, text=True, check=True).stdout
-
-
-def run_writers(use, work, repository):
+def run_writers(use, box):
     """Returns the findings, each a sentence; none means every record is there once."""
-    environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "USE": str(use), "WORK": str(work)}
-    (work / "seed").write_text("The task the writers comment on.\n")
-    subprocess.run([sys.executable, str(use), "file", "--title", "Seed", "--body", str(work / "seed")], cwd=repository, env=environment, capture_output=True, check=True)
+    work, repository, git = box.work, box.repository, box.git
+    environment = {**box.environment, "USE": str(use), "WORK": str(work)}
+    replay_probe.write_text(work, "seed", "The task the writers comment on.\n")
+    box.python(use, "file", "--title", "Seed", "--body", work / "seed")
     running = [subprocess.Popen(["sh", "-c", WRITER_SCRIPT.format(writer=i, comments=COMMENTS, filings=FILINGS)], cwd=repository, env=environment) for i in range(WRITERS)]
     for process in running:
         process.wait()
@@ -59,9 +54,9 @@ def run_writers(use, work, repository):
         if errors.exists() and errors.read_text().strip():
             findings.append(f"writer {i} reported: {errors.read_text().strip().splitlines()[0]}")
 
-    paths = git(repository, "ls-tree", "-r", "--name-only", REF).split()
-    read = lambda path: git(repository, "show", f"{REF}:{path}")
-    comments = collections.Counter(read(path).strip() for path in paths if path.startswith("1/comments/"))
+    paths = git("ls-tree", "-r", "--name-only", REF).split()
+    read = lambda path: git("show", f"{REF}:{path}")
+    comments = collections.Counter(json.loads(read(path))["text"].removeprefix("REPORTED: ").strip() for path in paths if path.startswith("1/comments/"))
     titles = collections.Counter(json.loads(read(path))["title"] for path in paths if path.endswith("/task.json") and path != "1/task.json")
     for kind, found, expected in (("comment", comments, {f"w{i}-c{k}" for i in range(WRITERS) for k in range(1, COMMENTS + 1)}),
                                   ("task", titles, {f"w{i}-t{k}" for i in range(WRITERS) for k in range(1, FILINGS + 1)})):
@@ -72,7 +67,7 @@ def run_writers(use, work, repository):
         if doubled:
             findings.append(f"{len(doubled)} {kind}s are on the board twice, such as {doubled[0]}")
 
-    history = [line.split() for line in git(repository, "rev-list", "--parents", REF).splitlines()]
+    history = [line.split() for line in git("rev-list", "--parents", REF).splitlines()]
     forks = [line[0] for line in history if len(line) > 2]
     expected_commits = 1 + WRITERS * (COMMENTS + FILINGS)
     if forks:
@@ -89,10 +84,8 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     case = args[1]
-    work = pathlib.Path(tempfile.mkdtemp(prefix="board-writers-"))
-    try:
-        repository = work / "repo"
-        subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    with replay_probe.scratch("board-writers-") as work:
+        box = replay_probe.Sandbox(work)
         use = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
         if case == "unguarded":
             copy = work / "unguarded"
@@ -101,19 +94,15 @@ def main(args):
             board_git = copy / "lib" / "board_git.py"
             text = board_git.read_text()
             if GUARDED not in text:
-                print(f"the board code no longer holds `{GUARDED}`, so the unguarded copy cannot be made")
-                print("FAIL")
-                return 0
+                return replay_probe.fail(f"the board code no longer holds `{GUARDED}`, so the unguarded copy cannot be made")
             board_git.write_text(text.replace(GUARDED, UNGUARDED))
             use = copy / "skills" / "kick-off" / "scripts" / "use-board.py"
-        findings = run_writers(use, work, repository)
-        for finding in findings:
-            print(finding)
-        print("PASS" if bool(findings) == (case == "unguarded") else "FAIL")
-        return 0
-    finally:
-        shutil.rmtree(work, ignore_errors=True)
-
+        findings = run_writers(use, box)
+    for finding in findings:
+        print(finding)
+    passed = bool(findings) == (case == "unguarded")
+    print("PASS" if passed else "FAIL")
+    return 0 if passed else 1
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

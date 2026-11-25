@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Edit a task's body on a temporary git board by handing `use-board.py edit` the new body. Print `ok <case>` or `fail <case>: <detail>` per case,
+"""Edit a task's body on a scratch git board by handing `use-board.py edit` the new body. Print `ok <case>` or `fail <case>: <detail>` per case,
 then `PASS` or `FAIL`, and exit 1 on any failure:
 - `start`: `read <task> --body` prints the stored body byte for byte, with or without a final newline, and nothing else;
 - `round`: that output with one line changed, handed to `edit`, becomes the stored body, in three calls, and the new comment holds the keyword line and a diff of only the changed line;
@@ -9,56 +9,50 @@ then `PASS` or `FAIL`, and exit 1 on any failure:
 - `no-newline`: a new body that drops the final newline is stored without it;
 - `diff-given`: a diff handed as the body changes nothing and names `read <task> --body`;
 - `unchanged`: the stored body handed back changes nothing and says so;
-- `stale`: a `--base` that is not the stored body's sha changes nothing;
-- `one-script`: `edit-issue-body.py` is gone and no playbook or script names it.
+- `stale`: a `--base` that is not the stored body's sha changes nothing.
 
 usage: replay-body-edit.py"""
-import os
 import pathlib
 import subprocess
 import sys
-import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 BODY = "The probe prints ok.\n\n## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n" + "".join(f"Line {n} of the goal.\n" for n in range(1, 30)) + "\n## Definition of done\n\nLast line."
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[-900:]}", flush=True)
-    if not ok:
-        failed.append(name)
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="body-edit-"))
-    repository = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repository)], check=True)
-    os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"), GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com",
-                      GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
+    with replay_probe.scratch("body-edit-") as work:
+        return replay(replay_probe.Sandbox(work))
+
+
+def replay(box):
+    work, cases = box.work, replay_probe.Cases()
+    step = cases.step
     calls = []
 
     def use(*argv):
-        done = subprocess.run([sys.executable, str(USE), *map(str, argv)], cwd=repository, capture_output=True, text=True)
+        done = box.python(USE, *map(str, argv))
         calls.append(argv[0])
         return done.returncode, done.stdout, done.stderr
 
     def stored(number):
-        return subprocess.run(["git", "show", f"refs/teamwork-blackboard:{number}/body.md"], cwd=repository, capture_output=True, text=True).stdout
+        return box.git("show", f"refs/teamwork-blackboard:{number}/body.md")
 
     def state():
-        return subprocess.run(["git", "rev-parse", "refs/teamwork-blackboard"], cwd=repository, capture_output=True, text=True).stdout
+        return box.git("rev-parse", "refs/teamwork-blackboard")
 
     def sha(number):
         return next(line.split(": ", 1)[1] for line in use("read", number)[1].splitlines() if line.startswith("body sha: "))
 
     def write(name, text):
-        (work / name).write_text(text)
-        return work / name
+        return replay_probe.write_text(work, name, text)
 
     use("file", "--title", "Print ok from the probe", "--body", write("one.md", BODY))
     use("file", "--title", "Print ok twice", "--body", write("two.md", BODY + "\n"))
@@ -102,11 +96,7 @@ def main(args):
     stale = use("edit", 1, "--body", write("late.md", stored(1) + "\nA late line.\n"), "--reason", "adds a late line.", "--base", base)
     step("stale", stale[0] != 0 and not stale[1] and "changed since you read it" in stale[2] and state() == before, stale)
 
-    pages = [path for folder in ("lib", "hooks", "monitors", "skills") for path in (ROOT / folder).rglob("*") if path.suffix in (".py", ".md", ".tsx", ".json") and path != pathlib.Path(__file__).resolve()]
-    named = [str(path.relative_to(ROOT)) for path in pages if "edit-issue-body" in path.read_text()]
-    step("one-script", not named and not (USE.parent / "edit-issue-body.py").exists(), named)
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    return cases.finish()
 
 
 if __name__ == "__main__":

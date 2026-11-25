@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Call every teamwork script that takes words with `--help` and with an unknown `--x` at each word position of a valid call, on a throwaway git board and a stand-in herdr, and list each call that is not refused as AGENTS.md's Script form says.
+"""Call every teamwork script that takes words with `--help` and with an unknown `--x` at each word position of a valid call, on a throwaway git board in the fixtures' sandbox, with the fake herdr, and list each call that is not refused as AGENTS.md's Script form says.
 
 usage: replay-option-calls.py [root]
 
 A call is refused when the script exits 2, prints `usage:` on stderr and nothing on stdout, and leaves the folder, the git refs and worktrees, and the herdr call log as they were. Prints one `option <script>: <call> gave <answer>` line per call not refused, and a script that takes words but has no valid call in CALLS, then a summary line `<n> scripts, <n> calls, <n> not refused`, and exits 0 only when none failed."""
 import concurrent.futures
-import os
 import pathlib
 import re
-import subprocess
 import sys
-import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE.parents[2] / "lib"))
+import replay_probe  # noqa: E402
+
 PLUGIN = "teamwork"
 UNKNOWN = ("--help", "--x")
 # the valid calls of each script, each word either a file the sandbox holds (`body`, `diff`) or a name; an option goes in at every position
@@ -31,6 +31,7 @@ CALLS = {
     "skills/kick-off/references/estimation/scripts/list-task-durations.py": [["--from-json", "body"]],
     "skills/kick-off/references/manager/scripts/print-scope-folder.py": [["name"], ["--me"]],
     "skills/kick-off/scripts/print-steering.py": [["key"]],
+    "monitors/print-team-gaps.py": [["--polls", "1"]],
     "skills/kick-off/references/recall/scripts/recall-work.py": [["words", "--path", "file", "--before", "2026-01-01", "--top", "3"]],
     "skills/kick-off/scripts/remove-worktree.py": [["name", "other"]],
     "skills/kick-off/references/adapters/session-herdr/scripts/rename-session.py": [["name"]],
@@ -67,37 +68,23 @@ def takes_words(path):
     return bool(docstring and re.search(rf"^(?:usage:[ \t]*(?:python3?[ \t]+)?)?[ \t]*(?:\S*/)?{name}[ \t]+\S", docstring.group(1), re.M))
 
 
-def run(command, **options):
-    return subprocess.run(command, capture_output=True, text=True, timeout=30, **options)
-
-
 def build_sandbox(root, work):
-    """A git repository with a board holding task 1, a home, and a PATH with the stand-in herdr first."""
-    repository, home = work / "repository", work / "home"
-    repository.mkdir()
-    home.mkdir()
-    state = work / "herdr-state.json"
-    state.write_text('{"n": 0, "tabs": [], "workspaces": [], "agents": []}')
+    """The sandbox of WORK, whose repository holds the files the calls name and a board holding task 1."""
+    sandbox = replay_probe.Sandbox(work)
     for name, text in (("body", "A body.\n"), ("diff", "--- a\n+++ b\n@@ -1 +1 @@\n-A\n+B\n"), ("file", "x\n")):
-        (repository / name).write_text(text)
-    git = ["git", "-C", str(repository), "-c", "user.name=x", "-c", "user.email=x@x"]
-    run(git + ["init", "-q", "-b", "main"])
-    run(git + ["commit", "-q", "--allow-empty", "-m", "start"])
-    environment = {"PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HOME": str(home), "CLAUDE_CONFIG_DIR": str(home / "claude"),
-                   "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_FAKE_HERDR_LOG": str(work / "herdr-log"), "PYTHONDONTWRITEBYTECODE": "1"}
-    seeded = run([sys.executable, str(root / PLUGIN / "skills/kick-off/scripts/use-board.py"), "file", "--title", "Seed the board", "--body", "body"], cwd=repository, env=environment)
+        replay_probe.write_text(sandbox.repository, name, text)
+    seeded = sandbox.python(root / PLUGIN / "skills/kick-off/scripts/use-board.py", "file", "--title", "Seed the board", "--body", "body", timeout=30)
     if seeded.returncode:
         sys.exit(f"replay-option-calls: the throwaway board did not start: {seeded.stderr.strip()}")
-    return repository, environment
+    return sandbox
 
 
-def snapshot(repository, work):
-    """What a call could change: files, refs, worktrees and the herdr call log."""
+def snapshot(sandbox):
+    """What a call could change: files, the herdr call log among them, refs and worktrees."""
+    work = sandbox.work
     files = sorted((str(path.relative_to(work)), path.stat().st_size, path.stat().st_mtime_ns) for path in work.rglob("*")
                    if ".git" not in path.relative_to(work).parts[:2] and path.is_file())
-    git = lambda *args: run(["git", "-C", str(repository), *args]).stdout
-    log = work / "herdr-log"
-    return files, git("for-each-ref"), git("worktree", "list"), log.read_text() if log.exists() else ""
+    return files, sandbox.git("for-each-ref"), sandbox.git("worktree", "list")
 
 
 def calls_with_option(words):
@@ -112,19 +99,16 @@ def calls_with_option(words):
 def replay_script(root, path):
     """The calls made on one script and the lines of those not refused, run in a sandbox of its own so scripts replay side by side."""
     failures, called = [], 0
-    with tempfile.TemporaryDirectory() as folder:
-        work = pathlib.Path(folder)
-        repository, environment = build_sandbox(root, work)
+    with replay_probe.scratch("option-calls-") as work:
+        sandbox = build_sandbox(root, work)
         for words in CALLS[path]:
             for call in calls_with_option(words):
-                before = snapshot(repository, work)
+                before = snapshot(sandbox)
                 called += 1
-                try:
-                    answered = run([sys.executable, str(root / PLUGIN / path), *call], cwd=repository, env=environment, stdin=subprocess.DEVNULL)
-                    answer = (f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
-                              else "a change to the folder, refs or herdr calls" if snapshot(repository, work) != before else "")
-                except subprocess.TimeoutExpired:
-                    answer = "no answer in 30 s"
+                answered = sandbox.python(root / PLUGIN / path, *call, timeout=30)
+                answer = ("no answer in 30 s" if answered.returncode is None
+                          else f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
+                          else "a change to the folder, refs or herdr calls" if snapshot(sandbox) != before else "")
                 if answer:
                     failures.append(f"option {PLUGIN}/{path}: {' '.join(call)} gave {answer}")
     return called, failures

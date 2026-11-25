@@ -1,79 +1,83 @@
 #!/usr/bin/env python3
-"""Replay the cleanup of a branch merged by a real GitHub pull request, read only. A scratch repository, whose `origin` is a bare repository beside it, holds as a local worker
-branch the head of the newest merged pull request of `kalaluthien/mumu-claude-plugin` whose branch name has no slash, and `GH_REPO` points `gh pr list` at that repository.
-Print `PASS`, else `FAIL: <what differed>` and exit 1. Nothing is written to GitHub: the calls are `gh pr list` and `git fetch`.
+"""Replay the cleanup of a worker's branch that a pull request merged as a squash, offline: a scratch repository, whose `origin` is a bare repository beside it, holds the worker
+`probe-worker`'s worktree and branch, whose commit the squash left off `main`, `GH_REPO` names a GitHub repository and the `gh` stand-in answers `gh pr list` with that merge.
+Print `PASS`, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-pull-request-cleanup.py
 It checks two things on one scratch repository:
-- heartbeat: the manager's heartbeat line names the pull request as merged by its worker, which holds nothing open
-- cleanup: remove-worktree.py removes the worker's worktree and branch, though a squash merge left the branch commits off `main`, and the heartbeat then names no merge of that worker, since the old pull request holds nothing to clean"""
-import os
+- heartbeat: the manager's heartbeat, `print-team-gaps.py --polls 1`, names the pull request as merged by its worker, which holds nothing open
+- cleanup: remove-worktree.py removes the worker's worktree and branch, here and on `origin`, though the squash left the branch commit off `main`, and the heartbeat then names
+  no merge of that worker, since the old pull request holds nothing to clean"""
 import pathlib
 import sys
-import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 
-SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-LIB = pathlib.Path(__file__).resolve().parents[3] / "lib"
-REPO = "kalaluthien/mumu-claude-plugin"
-sh = replay_probe.sh
+PLUGIN = pathlib.Path(__file__).resolve().parents[3]
+SCRIPTS = PLUGIN / "skills" / "kick-off" / "scripts"
+NUMBER, WORKER = 7, "probe-worker"
+TEAM = (replay_probe.agent("probe-manager", 1, "working"), replay_probe.agent(WORKER, 2))
 
 
-def setup():
-    """A scratch repository on `main` with a worktree of the newest merged pull request's head branch; its folder, environment, branch and pull request number."""
-    work = pathlib.Path(tempfile.mkdtemp(prefix="pull-request-cleanup-"))
-    replay_probe.write_git_config(work)
-    environment = {**os.environ, "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), "GH_REPO": REPO}
-    repository, origin = work / "repo", work / "origin.git"
-    sh("git", "init", "-q", repository, cwd=work, environment=environment)
-    (repository / "a.txt").write_text("base\n")
-    sh("git", "add", "-A", cwd=repository, environment=environment)
-    sh("git", "commit", "-q", "-m", "base", cwd=repository, environment=environment)
-    sh("git", "init", "-q", "--bare", origin, cwd=work, environment=environment)
-    sh("git", "remote", "add", "origin", origin, cwd=repository, environment=environment)
-    sh("git", "push", "-q", "-u", "origin", "main", cwd=repository, environment=environment)
-    listing = sh("gh", "pr", "list", "--state", "merged", "--search", "sort:updated-desc", "--limit", "30", "--json", "number,headRefName", "--jq",
-                 '[.[] | select(.headRefName | contains("/") | not)][0] | "\\(.number) \\(.headRefName)"',
-                 cwd=repository, environment=environment).stdout.split()
-    number, branch = listing
-    sh("git", "fetch", "-q", "--depth", "1", f"https://github.com/{REPO}.git", f"refs/pull/{number}/head", cwd=repository, environment=environment, timeout=300)
-    tree = repository / ".claude" / "worktrees" / branch
-    sh("git", "worktree", "add", "-q", "-b", branch, tree, "FETCH_HEAD", cwd=repository, environment=environment)
-    return repository, environment, branch, number
+def setup(work):
+    """A sandbox whose repository and `origin` hold `main` with the worker's change squashed into it and the worker's own branch, which `gh` lists as the merged pull request."""
+    sandbox = replay_probe.Sandbox(work, TEAM)
+    sandbox.environment["GH_REPO"] = "owner/repository"
+    origin = work / "origin.git"
+    sandbox.git("init", "-q", "--bare", origin, cwd=work)
+    sandbox.git("remote", "add", "origin", origin)
+    sandbox.git("push", "-q", "-u", "origin", "main")
+    tree = sandbox.repository / ".claude" / "worktrees" / WORKER
+    sandbox.git("worktree", "add", "-q", "-b", WORKER, tree, "main")
+    replay_probe.write_text(tree, "a.txt", "work\n")
+    sandbox.git("add", "a.txt", cwd=tree)
+    sandbox.git("commit", "-q", "-m", "work", cwd=tree)
+    sandbox.git("push", "-q", "origin", WORKER, cwd=tree)
+    sandbox.git("merge", "-q", "--squash", WORKER)
+    sandbox.git("commit", "-q", "-m", f"Work (#{NUMBER})")
+    sandbox.git("push", "-q", "origin", "main")
+    head = sandbox.git("rev-parse", WORKER).strip()
+    sandbox.gh([{"number": NUMBER, "headRefName": WORKER, "headRefOid": head, "mergedAt": "2026-01-05T09:00:00Z", "updatedAt": "2026-01-05T09:00:00Z"}])
+    return sandbox, tree
 
 
-def check():
+def heartbeat(sandbox):
+    done = sandbox.python(PLUGIN / "monitors" / "print-team-gaps.py", "--polls", "1", pane="w1:p1", timeout=60, TEAMWORK_MONITOR_POLL=0)
+    return done.stdout + done.stderr if done.returncode is not None else f"no exit in 60 s: {done.stdout}{done.stderr}"
+
+
+def check(work):
     """The first thing that differs from a merged pull request's cleanup, else None."""
-    repository, environment, branch, number = setup()
-    code = ("import sys; sys.path.insert(0, sys.argv[1]); import landing, team_gaps; "
-            "pulls = landing.pulls('closed', limit=team_gaps.PULL_LIMIT); "
-            "listed = [{'name': sys.argv[2], 'pane_id': 'w1:p2', 'agent_status': 'idle'}]; "
-            "print('\\n'.join(team_gaps.team_lines([sys.argv[2]], listed, {'prs': pulls, 'everything': []}, {}, {}, team_gaps.Reread({}))))")
-    lines = sh(sys.executable, "-c", code, LIB, branch, cwd=repository, environment=environment).stdout
-    if f"merged #{number} by {branch}: it holds nothing open" not in lines:
-        return f"no merged line for pull request #{number} of {branch}: {lines.strip()}"
-    done = replay_probe.run_python(SCRIPTS / "remove-worktree.py", repository, environment, branch)
-    left = sh("git", "branch", "--list", branch, cwd=repository, environment=environment).stdout.strip()
-    if left or (repository / ".claude" / "worktrees" / branch).exists():
-        return f"pull request #{number} is merged on GitHub but {branch} was kept: {done.stdout.strip()}{done.stderr.strip()}"
+    sandbox, tree = setup(work)
+    if replay_probe.sh("git", "merge-base", "--is-ancestor", WORKER, "main", cwd=sandbox.repository, environment=sandbox.environment, check=False).returncode == 0:
+        return f"{WORKER}'s commit is on main, so the squash merge checks nothing"
+    lines = heartbeat(sandbox)
+    if f"merged #{NUMBER} by {WORKER}: it holds nothing open" not in lines:
+        return f"no merged line for pull request #{NUMBER} of {WORKER}: {lines.strip()}"
+    done = sandbox.python(SCRIPTS / "remove-worktree.py", WORKER)
+    left = sandbox.git("branch", "--list", WORKER).strip() + sandbox.git("ls-remote", "--heads", "origin", WORKER).strip()
+    if left or tree.exists():
+        return f"pull request #{NUMBER} is merged but {WORKER} was kept ({left or tree}): {done.stdout.strip()}{done.stderr.strip()}"
     # the branch is gone, so the pull request is history: a worker of that name, as a later one may be, has nothing merged to clean
-    again = sh(sys.executable, "-c", code, LIB, branch, cwd=repository, environment=environment).stdout
+    again = heartbeat(sandbox)
     if "merged #" in again:
-        return f"the cleaned branch {branch} is still named merged: {again.strip()}"
+        return f"the cleaned branch {WORKER} is still named merged: {again.strip()}"
+    if not any(call.startswith("pr list") for call in sandbox.gh_calls()):
+        return f"no `gh pr list` was made, so the merge was never read from the pull requests: {sandbox.gh_calls()}"
+    return None
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    try:
-        why = check()
-    except RuntimeError as e:
-        why = str(e)[-400:]
-    print(f"FAIL: {why}" if why else "PASS")
-    return 1 if why else 0
+    with replay_probe.scratch("pull-request-cleanup-") as work:
+        try:
+            why = check(work)
+        except RuntimeError as e:
+            why = str(e)[-400:]
+    return replay_probe.fail(why) if why else replay_probe.Cases().finish()
 
 
 if __name__ == "__main__":

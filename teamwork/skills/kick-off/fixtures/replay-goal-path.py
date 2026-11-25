@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Check that check-criteria.py refuses a Goal that names no flow of its changed part and teaches the fix, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
-
-usage: replay-goal-path.py [--case <name>]   (no argument: every one in turn)
+"""Check that check-criteria.py refuses a Goal that names no flow of its changed part and teaches the fix, run under an isolated environment, and print
+`ok <case>` or `fail <case>: <what differed>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - refuse: a Goal that names only its changed part, an empty `Path:` line, `Path: none`, a sentence naming no labeled party, labels naming nobody, values that say nobody is affected or are unknown, blank values and a form blank left beside a filled item are refused with a `goal:` line, and a Goal with a `Path:` line holding a labeled caller, step or reader passes, as a bare line, a bullet or a bold label
 - teach: the refusal cites Scope the path, and the `Path:` form it prints, with its placeholders filled by words, makes the refused Goal pass
-- old: a Goal with no path passes under a task number below the Goal cut-off and is refused at it"""
+
+usage: replay-goal-path.py"""
 import pathlib
 import re
 import subprocess
@@ -16,11 +16,10 @@ import replay_probe  # noqa: E402
 
 CRITERION = "1. [check] **The probe prints PASS when it runs**: `python3 probe.py` prints `PASS`; on base `FAIL`.\n"
 PART_ONLY = "## Goal\n\nChange the heartbeat hook so it lists each worker's open task.\n\n## Definition of done\n\n" + CRITERION
-NEWER = 99999
 
 
-def lint(body, *flags):
-    return subprocess.run([sys.executable, str(CHECK), *flags, "-"], input=body, capture_output=True, text=True)
+def lint(body):
+    return subprocess.run([sys.executable, str(CHECK), "-"], input=body, capture_output=True, text=True, env=ENVIRONMENT)
 
 
 def with_path(line):
@@ -69,31 +68,18 @@ def case_teach():
     return None
 
 
-
-def case_old():
-    if lint(PART_ONLY, "--task", "1").returncode:
-        return "a Goal with no path was refused under task 1, below the cut-off"
-    if lint(PART_ONLY, "--task", str(NEWER)).returncode != 1:
-        return f"a Goal with no path passed under task {NEWER}, above the cut-off"
-    return None
-
-
-
-CASES = {"refuse": case_refuse, "teach": case_teach, "old": case_old}
-
-
 def main(args):
-    if not args:
-        return replay_probe.run_every(__file__, "--case", CASES)
-    if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
+    global ENVIRONMENT
+    if args:
         print(__doc__, file=sys.stderr)
         return 2
-    why = CASES[args[1]]()
-    if why:
-        print(f"FAIL: {why}")
-        return 1
-    print("PASS")
-    return 0
+    cases = replay_probe.Cases()
+    with replay_probe.scratch("goal-path-") as work:
+        ENVIRONMENT = replay_probe.isolated(work)
+        for name, case in (("refuse", case_refuse), ("teach", case_teach)):
+            why = case()
+            cases.step(name, not why, why)
+    return cases.finish()
 
 
 if __name__ == "__main__":

@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 """File a root and a task, make the task the root's part by a body edit and the root wait on it by `depend`, set holders, ask by BLOCKED, answer by DECIDED, edit the
-body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the composed state of each task it filed and the board lines, numbers and urls replaced
-by names, so a change that moves the protocol shows in the text. The board is a temporary repository.
+body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the head of `use-board.py read` for each task it filed and the board `list-task-board.py` draws, numbers and urls replaced
+by names, so a change that moves the protocol shows in the text. The board is a scratch repository whose holder is a live session of the fake herdr.
 
 usage: replay-board-scenario.py"""
-import os
 import pathlib
 import re
-import subprocess
 import sys
-import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 USE = HERE.parent / "scripts" / "use-board.py"
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+LIST = HERE.parents[2] / "hooks" / "list-task-board.py"
+sys.path.insert(0, str(HERE.parents[2] / "lib"))
 import replay_probe  # noqa: E402
 import usage_parser  # noqa: E402
 
@@ -21,15 +19,18 @@ names = {}  # the number each task got, by the name the output uses
 
 
 def use(*argv):
-    return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True, check=True).stdout.strip()
+    done = box.python(USE, *map(str, argv))
+    if done.returncode:
+        sys.exit(f"replay-board-scenario: use-board.py {' '.join(map(str, argv))}: {done.stderr.strip()}")
+    return done.stdout.strip()
 
 
 def text(name, body):
-    return replay_probe.write_text(work, name, body)
+    return replay_probe.write_text(box.work, name, body)
 
 
-def filed(name, title, body, labels=()):
-    names[int(use("file", "--title", title, "--body", text(name, body), *[option for label in labels for option in ("--label", label)]).rsplit("/", 1)[1])] = name
+def filed(name, title, body):
+    names[int(use("file", "--title", title, "--body", text(name, body)).rsplit("/", 1)[1])] = name
 
 
 def number(name):
@@ -38,75 +39,64 @@ def number(name):
 
 def plain(out):
     """OUT with each url one word and each task number its name."""
-    return re.sub(r"#(\d+)", lambda match: "#" + names.get(int(match.group(1)), match.group(1)), re.sub(r"(?:https|(?:git\+)?file)://\S+", "<url>", out))
+    return re.sub(r"(#|parent: )(\d+)", lambda match: match.group(1) + names.get(int(match.group(2)), match.group(2)), re.sub(r"(?:https|(?:git\+)?file)://\S+", "<url>", out))
 
 
 def show(step):
     print(f"step {step}")
     for task_number, name in sorted(names.items(), key=lambda item: item[1]):
-        record = board.fresh(task_number)
-        state = task_state.compose(record, board.blockers(task_number))
-        parent = names.get(record["parent"])
-        criteria = [(criterion["kind"], criterion["name"], bool(criterion["met"])) for criterion in state["done"]]
-        print(plain(f"{name}: {record['state']} labels={sorted(record['labels'])} parent={parent} holders={state['holders']} waits={state['waits']} comments={len(record['comments'])} criteria={criteria}"))
-    nodes = board.tree(None)
-    if nodes is None:
-        sys.exit("replay-board-scenario: the board read failed")
-    print(plain("\n".join(task_board.lines(task_board.board([node for node in nodes if node["number"] in names])))))
+        print(plain(use("read", task_number).split("\n\n", 1)[0]))
+    print(plain(box.python(LIST, "").stdout.rstrip()))
+
+
+def sha_of(name):
+    return re.search(r"body sha: (\w+)", use("read", number(name))).group(1)
+
+
+def body_of(name):
+    return use("read", number(name), "--body") + "\n"
 
 
 def link(name, added, why):
     """Appends ADDED to NAME's body through `use-board.py edit`, the one way a part is linked."""
-    old = board.fresh(number(name))["body"]
-    use("edit", number(name), "--body", text(f"{name}-link.md", old.rstrip("\n") + "\n" + added), "--reason", why, "--base", board.body_sha(old))
-
-
-TASK = "## Goal\n\nProbe the board.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
+    use("edit", number(name), "--body", text(f"{name}-link.md", body_of(name).rstrip("\n") + "\n" + added), "--reason", why, "--base", sha_of(name))
 
 
 def main(args):
-    global work, board, task_board, task_state
+    global box
     usage_parser.parser(__doc__).parse_args(args)
-    work = pathlib.Path(tempfile.mkdtemp(prefix="board-scenario-"))
-    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
-    os.chdir(work / "repo")
-    os.environ["HOME"] = str(work)
-    # imported here, since they read the board and folder set above when they load
-    import board
-    import task_board
-    import task_state
-
-    filed("root", "Probe the board root", "Probe the board by a root.\n")
-    filed("task", "Probe the board task", TASK)
-    show("file")
-    link("root", f"\n## Definition of done\n\n1. [task] #{number('task')} Probe the board task\n", "the task is the root's part")
-    show("part")
-    use("depend", number("root"), "--depends", number("task"))
-    show("order")
-    use("hold", number("task"), "--holders", "probe-worker")
-    show("hold")
-    use("label", number("task"), "--label", "probe")
-    show("label-add")
-    use("label", number("task"), "--label", "probe", "--remove")
-    show("label-remove")
-    asked = use("comment", number("task"), "--blocked", "which sample proves the probe", "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
-    show("ask")
-    use("decide", number("task"), "--decision", "use the first sample", "--text", text("answer.md", 'The owner said "use the first".\n'), "--by", "owner", "--answers", asked)
-    show("answer")
-    old = board.fresh(number("task"))["body"]
-    use("edit", number("task"), "--body", text("edit.md", old.replace("Probe the board.", "Probe the board twice.")), "--reason", "probe the body edit", "--base", board.body_sha(old))
-    show("edit")
-    use("resolve", number("task"), "--summary", "probe landed")
-    show("resolve-task")
-    use("title", number("root"), "--title", "Probe the board again")
-    show("retitle")
-    use("reopen", number("root"))
-    show("reopen")
-    filed("follow-up", "Probe the board follow-up", TASK)
-    link("root", f"2. [task] #{number('follow-up')} Probe the board follow-up\n", "a follow-up part")
-    show("part-again")
-    use("resolve", number("follow-up"), "--summary", "follow-up landed")
-    show("resolve-again")
+    with replay_probe.scratch("board-scenario-") as work:
+        box = replay_probe.Sandbox(work, [replay_probe.agent("probe-worker", 4)])
+        filed("root", "Probe the board root", "Probe the board by a root.\n")
+        filed("task", "Probe the board task", replay_probe.BODY)
+        show("file")
+        link("root", f"\n## Definition of done\n\n1. [task] #{number('task')} Probe the board task\n", "the task is the root's part")
+        show("part")
+        use("depend", number("root"), "--depends", number("task"))
+        show("order")
+        use("hold", number("task"), "--holders", "probe-worker")
+        show("hold")
+        use("label", number("task"), "--label", "probe")
+        show("label-add")
+        use("label", number("task"), "--label", "probe", "--remove")
+        show("label-remove")
+        asked = use("comment", number("task"), "--blocked", "which sample proves the probe", "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
+        show("ask")
+        use("decide", number("task"), "--decision", "use the first sample", "--text", text("answer.md", 'The owner said "use the first".\n'), "--by", "owner", "--answers", asked)
+        show("answer")
+        use("edit", number("task"), "--body", text("edit.md", body_of("task").replace("Do it.", "Do it twice.")), "--reason", "probe the body edit", "--base", sha_of("task"))
+        show("edit")
+        use("resolve", number("task"), "--summary", "probe landed")
+        show("resolve-task")
+        use("title", number("root"), "--title", "Probe the board again")
+        show("retitle")
+        use("reopen", number("root"))
+        show("reopen")
+        filed("follow-up", "Probe the board follow-up", replay_probe.BODY)
+        link("root", f"2. [task] #{number('follow-up')} Probe the board follow-up\n", "a follow-up part")
+        show("part-again")
+        use("resolve", number("follow-up"), "--summary", "follow-up landed")
+        show("resolve-again")
     return 0
 
 

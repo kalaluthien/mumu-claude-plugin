@@ -1,94 +1,59 @@
 #!/usr/bin/env python3
-"""Replay a manager's team losing its last worker and starting one again, on a temporary repository with a git board and the fake herdr beside this file, with the real heartbeat monitor running throughout, and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`.
+"""Replay a manager's team losing its last worker and starting one again, on a scratch repository with a git board and the fake herdr, with the real heartbeat monitor running throughout for a set number of polls, and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`.
 
-Each cycle files an open task nobody holds while the manager has no worker (the second cycle with a sentinel alone), which the heartbeat must not print, then starts a worker, after which it must print that task's `route` line and again the first task's. A last case has the worker report on a root and leave at once, which the heartbeat must still feed to the manager.
+Each cycle files an open task nobody holds while the manager has no worker (the second cycle with a sentinel alone), which the heartbeat must not print in the polls after it, then starts a worker, after which it must print that task's `route` line and again the first task's. A last case has the worker report on a root and leave at once, which the heartbeat must still feed to the manager before its polls end.
 
 usage: replay-heartbeat-tie.py [--only off | --only on | --mutant] [--verbose]
 `--only off` judges the quiet cases alone; `--only on` judges the resuming cases, which count only after the quiet ones passed, since a monitor that never stopped has nothing to resume; with neither, all cases are judged.
 `--mutant` runs the monitor with its tie to live workers cut out, and prints `PASS` only when the cases fail on that copy and pass on the real one, which shows the cases fail when the tie is removed."""
-import json
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
-import time
 
-HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
+USE_BOARD = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 TIE = "team_names.watching(me, listed)"  # the gate the mutant replaces
-POLL = "0.3"
-QUIET_SECONDS = 4  # about 13 polls, in which a monitor that still watched would print the task
-RESUME_SECONDS = 30
+POLLS = 50  # about twice the polls the steps below take, each of which waits on polls, never on a clock
+QUIET_POLLS = 4  # whole polls in which a monitor that still watched would print the task
 VERBOSE = False
-
-
-def agent(name, pane, status="idle"):
-    return {"name": name, "pane_id": f"w1:p{pane}", "tab_id": f"w1:t{pane}", "workspace_id": "w1", "agent": "claude", "agent_status": status, "interactive_ready": True}
 
 
 def trial(monitor):
     """The cases of one run of MONITOR as {case: (passed, what it saw)}."""
-    work = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-tie-"))
-    repository, state, log = work / "repo", work / "herdr.json", work / "monitor.log"
-    environment = {**os.environ, **replay_probe.IDENTITY, "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"),
-                   "TEAMWORK_FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1", "TEAMWORK_MONITOR_POLL": POLL}
-    replay_probe.write_git_config(work)
-    repository.mkdir()
-    for argv in (["init", "-q", "-b", "main"], ["commit", "-q", "--allow-empty", "-m", "start"]):
-        subprocess.run(["git", *argv], cwd=repository, check=True, env=environment, capture_output=True)
+    with replay_probe.scratch("heartbeat-tie-") as work:
+        manager, worker = replay_probe.agent("x-manager", 1, "working"), replay_probe.agent("t-worker", 2)
+        sandbox = replay_probe.Sandbox(work, [manager, worker])
 
-    def team(*agents):
-        state.write_text(json.dumps({"n": 20, "agents": list(agents), "tabs": [{"tab_id": each["tab_id"], "workspace_id": "w1", "label": each["name"]} for each in agents]}))
+        def file(title):
+            done = sandbox.python(USE_BOARD, "file", "--title", title, "--body", replay_probe.write_text(work, "body.md", f"{title}.\n"), "--label", "scope:x", pane="w1:p1")
+            if VERBOSE:
+                print(f"$ use-board.py file {title}\n{done.stdout}{done.stderr}", file=sys.stderr)
+            return done.stdout.strip().rsplit("/", 1)[-1].removesuffix(".json")
 
-    def file(title):
-        body = replay_probe.write_text(work, "body.md", f"{title}.\n")
-        done = subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "file", "--title", title, "--body", str(body), "--label", "scope:x"], cwd=repository, env=environment, capture_output=True, text=True)
-        if VERBOSE:
-            print(f"$ use-board.py file {title}\n{done.stdout}{done.stderr}", file=sys.stderr)
-        return done.stdout.strip().rsplit("/", 1)[-1].removesuffix(".json")
+        def printed(number):
+            return live.text().count(f"route #{number} ")
 
-    def printed(number):
-        return f"route #{number} " in log.read_text()
-
-    def wait_for(number, seconds, again=None):
-        """Whether the task's `route` line shows within SECONDS, and with AGAIN, a task printed before, that task's line shows more often than the count AGAIN holds."""
-        deadline = time.time() + seconds
-        done = lambda: printed(number) and (again is None or log.read_text().count(f"route #{again[0]} ") > again[1])
-        while time.time() < deadline and not done():
-            time.sleep(0.2)
-        return done()
-
-    manager = agent("x-manager", 1, "working")
-    cases = {}
-    team(manager, agent("t-worker", 2))
-    first = file("Tie a first task")
-    live = replay_probe.start_as_pane([sys.executable, monitor], "w1:p1", environment, work / "stand-in", repository, log.open("w"))
-    try:
-        cases["start"] = (wait_for(first, RESUME_SECONDS), log.read_text())
-        for cycle, others in ((1, []), (2, [agent("t-sentinel", 3)])):  # a sentinel is no worker, so it keeps the heartbeat off too
-            before = log.read_text().count(f"route #{first} ")
-            team(manager, *others)  # the last worker is gone
-            time.sleep(1)  # more than a poll, so the monitor has seen the empty team
-            number = file(f"Tie task {cycle}")
-            time.sleep(QUIET_SECONDS)
-            cases[f"off-{cycle}"] = (not printed(number), log.read_text())
-            team(manager, *others, agent("t-worker", 2))  # a worker starts
-            cases[f"on-{cycle}"] = (wait_for(number, RESUME_SECONDS, (first, before)), log.read_text())  # a gap printed before the stop prints again
-        # the worker reports on a root and is gone before the next poll, which the one last read still feeds
-        subprocess.run([str(ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"), "comment", first, "--reported", "the tie root landed."], cwd=repository, env={**environment, "HERDR_PANE_ID": "w1:p2"}, capture_output=True)
-        team(manager)
-        deadline = time.time() + RESUME_SECONDS
-        while time.time() < deadline and f"feed #{first} " not in log.read_text():
-            time.sleep(0.2)
-        cases["off-last-feed"] = (f"feed #{first} " in log.read_text(), log.read_text())
-    finally:
-        live.kill()
-        live.wait()
+        first = file("Tie a first task")
+        cases = {}
+        with sandbox.monitor("w1:p1", POLLS, work / "monitor.log", monitor) as live:
+            cases["start"] = (live.until(lambda: printed(first)), live.text())
+            for cycle, others in ((1, []), (2, [replay_probe.agent("t-sentinel", 3)])):  # a sentinel is no worker, so it keeps the heartbeat off too
+                before = printed(first)
+                sandbox.herdr([manager, *others])  # the last worker is gone
+                live.polls(1)
+                number = file(f"Tie task {cycle}")
+                cases[f"off-{cycle}"] = (live.polls(QUIET_POLLS) and not printed(number), live.text())
+                sandbox.herdr([manager, *others, worker])  # a worker starts
+                cases[f"on-{cycle}"] = (live.until(lambda: printed(number) and printed(first) > before), live.text())  # a gap printed before the stop prints again
+            # the worker reports on a root and is gone before the next poll, which the one last read still feeds
+            sandbox.python(USE_BOARD, "comment", first, "--reported", "the tie root landed.", pane="w1:p2")
+            sandbox.herdr([manager])
+            fed = live.until(lambda: f"feed #{first} " in live.text())
+            code = live.end()
+            cases["off-last-feed"] = (fed and code == 0, f"exit {code} after {POLLS} polls: {live.text()}")
     return cases
 
 
@@ -101,15 +66,14 @@ def verdict(cases, only):
 
 def show(cases):
     for name, (passed, saw) in cases.items():
-        print(f"ok {name}" if passed else f"fail {name}: {saw.strip()}", flush=True)
+        print(f"ok {name}" if passed else f"fail {name}: {' '.join(saw.split())[-1500:]}", flush=True)
 
 
-def mutant_monitor():
-    """A copy of the monitor with the tie replaced by a constant true, beside a link to the plugin's lib, which the monitor finds by its own path."""
+def mutant_monitor(folder):
+    """A copy of the monitor in FOLDER with the tie replaced by a constant true, beside a link to the plugin's lib, which the monitor finds by its own path."""
     source = MONITOR.read_text()
     if TIE not in source:
         return None
-    folder = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-mutant-"))
     (folder / "monitors").mkdir()
     (folder / "lib").symlink_to(ROOT / "lib")
     copy = folder / "monitors" / MONITOR.name
@@ -130,22 +94,22 @@ def main(args):
     if only not in (None, "off", "on") or flags not in ([], ["--mutant"]) or flags and only:
         print(__doc__, file=sys.stderr)
         return 2
+    cases = replay_probe.Cases()
     if flags:
-        copy = mutant_monitor()
-        if copy is None:
-            print(f"fail mutant: {MONITOR.name} holds no {TIE}, so nothing can be cut out")
-            print("FAIL")
-            return 1
-        real, cut = trial(MONITOR), trial(copy)
+        with replay_probe.scratch("heartbeat-mutant-") as folder:
+            copy = mutant_monitor(folder)
+            if copy is None:
+                cases.step("mutant", False, f"{MONITOR.name} holds no {TIE}, so nothing can be cut out")
+                return cases.finish()
+            real, cut = trial(MONITOR), trial(copy)
         show(cut)
-        ok = all(passed for passed, _ in real.values()) and not all(passed for passed, _ in cut.values())
-        print("PASS" if ok else "FAIL")
-        return 0 if ok else 1
+        cases.step("mutant", all(passed for passed, _ in real.values()) and not all(passed for passed, _ in cut.values()),
+                   "the cases did not pass on the real monitor and fail on the cut copy")
+        return cases.finish()
     chosen = verdict(trial(MONITOR), only)
-    show(chosen)
-    ok = all(passed for passed, _ in chosen.values())
-    print("PASS" if ok else "FAIL")
-    return 0 if ok else 1
+    for name, (passed, saw) in chosen.items():
+        cases.step(name, passed, saw)
+    return cases.finish()
 
 
 if __name__ == "__main__":

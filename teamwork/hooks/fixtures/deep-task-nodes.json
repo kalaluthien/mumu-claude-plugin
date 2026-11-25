@@ -3,7 +3,7 @@
   "number": 10,
   "title": "Let the owner steer the team from one pane",
   "url": "u/10",
-  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the tasks pane at narrow widths\n",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the tasks pane at narrow widths\n4. [task] #20 Replay the cycle check on the recorded responses\n",
   "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
@@ -70,14 +70,17 @@
   "number": 13,
   "title": "Refuse a cycle before any link is written",
   "url": "u/13",
-  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #14 Probe GitHub's dependency API for cycle refusal\n\n\n```teamwork\ndepends on: #14\n```\n",
+  "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #14 Probe GitHub's dependency API for cycle refusal\n",
   "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": []
-  }
+  },
+  "depends": [
+   14
+  ]
  },
  {
   "number": 14,
@@ -109,7 +112,7 @@
   "number": 16,
   "title": "Draw the graph in the tasks pane at narrow widths",
   "url": "u/16",
-  "body": "## Goal\n\nx\n\n```teamwork\ndepends on: #11 #12\n```\n",
+  "body": "## Goal\n\nx\n",
   "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
@@ -130,7 +133,11 @@
      }
     }
    ]
-  }
+  },
+  "depends": [
+   9,
+   12
+  ]
  },
  {
   "number": 9,
@@ -159,5 +166,56 @@
   "comments": {
    "nodes": []
   }
+ },
+ {
+  "number": 18,
+  "title": "Say why a task waits",
+  "url": "u/18",
+  "body": "## Goal\n\nx",
+  "depends": [
+   9
+  ],
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 19,
+  "title": "Keep a long title readable when the pane wraps it beside the blocked-by text it draws after the title",
+  "url": "u/19",
+  "body": "## Goal\n\nx",
+  "depends": [
+   15
+  ],
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  }
+ },
+ {
+  "number": 20,
+  "title": "Replay the cycle check on the recorded responses",
+  "url": "u/20",
+  "body": "## Goal\n\nx",
+  "depends": [
+   15,
+   9
+  ],
+  "authorAssociation": "OWNER",
+  "labels": {
+   "nodes": []
+  },
+  "comments": {
+   "nodes": []
+  },
+  "state": "CLOSED",
+  "stateReason": "COMPLETED"
  }
 ]

@@ -9,15 +9,15 @@ usage: replay-hook-guards.py
 - github: each spelling of a `gh` issue write, with `gh` quoted, escaped or by its path, or a bundled `-fbody=x` or `-iXPOST`, is denied; reads, a quoted `gh` that is only an
   argument, an empty word, and a write to a pull request pass, with no error on stderr
 - quotes: a call with no command, a null one or a command of 30000 quotes, and a command with an escaped quote inside quotes, or any of a few hundred generated from quotes, escapes, heredocs and joiners, ends 0 with nothing on stderr, never raises or hangs
-- order: a session whose name ends in no role gets no answer and no `ps` run, by the hook or by `list-sessions.py --me`, while the worker's own run does call `ps`"""
+- order: a session whose name ends in no role gets no answer and no `ps` run, by the hook or by `list-sessions.py --me`, while the worker's own run does call `ps`
+- reminder: a `use-board.py` write gets the playbook's Reminder on its first call in a session, nothing on a second, and the Reminder again in another session
+- install: a SessionStart with no `herdr` on PATH gets a `systemMessage` naming where to install it, and none with herdr on PATH"""
 import json
 import os
 import random
 import pathlib
 import shutil
-import subprocess
 import sys
-import tempfile
 
 TIMEOUT = 20  # seconds a hook call may take, since a hook that loops must fail the runner, not hang it
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
@@ -26,6 +26,7 @@ import replay_probe  # noqa: E402
 PLUGIN = pathlib.Path(__file__).resolve().parents[2]
 ROUTE = PLUGIN / "hooks" / "route-event.py"
 LIST_SESSIONS = PLUGIN / "skills" / "kick-off" / "scripts" / "list-sessions.py"
+USE_BOARD = PLUGIN / "skills" / "kick-off" / "scripts" / "use-board.py"
 GONE = f"{PLUGIN}/skills/kick-off/scripts/gone-script.py"
 STALE = f"{PLUGIN}/scripts/use-board.py"
 # a command and whether it is denied
@@ -67,29 +68,21 @@ READS = ("cat <<EOF | cat\ngh issue create\nEOF", "gh api repos/o/r/pulls -f bod
          "gh issue list", "gh issue view 1", "gh api repos/o/r/issues", "gh api repos/o/r/issues -XGET", "gh api repos/o/r/issues -iXGET -f state=open",
          "gh api repos/o/r/issues --method GET -f state=open", "echo \"gh\" issue create -t x", "\"gh issue\" create", "echo \"\"; gh issue list", "gh api repos/o/r/pulls -fbody=x", "gh api repos/o/r/pulls/1/comments -iFbody=\"see issues\"",
          "\"\" issue create", "echo ok")
-failed = []
 
 
-def step(name, problem):
-    print(f"fail {name}: {problem}" if problem else f"ok {name}", flush=True)
-    failed.extend([name] if problem else [])
-
-
-def ask(stubs, name, command, cwd):
-    """(the hook's decoded answer, its exit status, its stderr) to COMMAND as a worker called NAME."""
-    event = {"hook_event_name": "PreToolUse", "cwd": str(cwd), "tool_input": {"command": command}}
-    environment = {**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}
-    argv = replay_probe.as_claude([ROUTE], ["--name", name], pathlib.Path(stubs).parent / "stand-in")
-    try:
-        done = subprocess.run(argv, input=json.dumps(event), capture_output=True, text=True, env=environment, timeout=TIMEOUT, cwd=PLUGIN)  # from a folder that is not the event's, so a relative path must be read from the event's
-    except subprocess.TimeoutExpired:
+def ask(sandbox, command, cwd, event=None, **variables):
+    """(the hook's decoded answer, its exit status, its stderr) to COMMAND, or to EVENT when given, from the session in pane w1:p1, run from the plugin's folder,
+    not the event's, so a relative path must be read from the event's."""
+    event = event or {"hook_event_name": "PreToolUse", "cwd": str(cwd), "tool_input": {"command": command}}
+    done = sandbox.run([ROUTE], "w1:p1", cwd=PLUGIN, input=json.dumps(event), timeout=TIMEOUT, **variables)
+    if done.returncode is None:
         return {}, 124, f"no answer within {TIMEOUT} seconds"
     return (json.loads(done.stdout) if done.stdout.strip() else {}).get("hookSpecificOutput", {}), done.returncode, done.stderr
 
 
-def verdict(stubs, command, denied, cwd, mention=None):
+def verdict(sandbox, command, denied, cwd, mention=None):
     """What differs from the expected answer to COMMAND: it is denied, and names MENTION in its reason, or it passes; None when nothing."""
-    hook, status, error = ask(stubs, "t-worker", command, cwd)
+    hook, status, error = ask(sandbox, command, cwd)
     if status or error:
         return f"{command!r} ended {status}: {error.strip()[-200:]}"
     got = hook.get("permissionDecision") == "deny"
@@ -98,87 +91,99 @@ def verdict(stubs, command, denied, cwd, mention=None):
     return mention and mention not in hook.get("permissionDecisionReason", "") and f"{command!r} was denied without naming {mention}" or None
 
 
-def setup():
-    work = pathlib.Path(tempfile.mkdtemp(prefix="hook-guards-"))
-    stubs = replay_probe.fake_herdr(work, [{"pane_id": "p1", "name": "t-worker"}])
-    (work / "sub").mkdir()
-    os.environ["HOME"] = str(work)  # so `~/teamwork/gone-script.py` names a folder here
-    (work / "teamwork").mkdir()
-    (work / "teamwork" / "present-script.py").write_text("print('here')\n")
-    (work / "sub" / "teamwork").mkdir()
-    (work / "sub" / "teamwork" / "present-script.py").write_text("print('here')\n")
-    return work, stubs
+def setup(work):
+    """A worker's sandbox, its home holding `teamwork/present-script.py`, so `~/teamwork/gone-script.py` names a folder there, and `sub/teamwork/present-script.py` in its folder."""
+    sandbox = replay_probe.Sandbox(work, [replay_probe.agent("t-worker", 1)])
+    for folder in (sandbox.home / "teamwork", work / "sub" / "teamwork"):
+        folder.mkdir(parents=True)
+        replay_probe.write_text(folder, "present-script.py", "print('here')\n")
+    return sandbox
 
 
-def missing(work, stubs):
+def missing(sandbox, work):
     for command, denied in MISSING:
-        answer = verdict(stubs, command, denied, work, mention="gone-script.py" if denied and "gone" in command else None)
+        answer = verdict(sandbox, command, denied, work, mention="gone-script.py" if denied and "gone" in command else None)
         if answer:
             return answer
-    hook = ask(stubs, "t-worker", f"python3 {STALE}", work)[0]
+    hook = ask(sandbox, f"python3 {STALE}", work)[0]
     named = f"{PLUGIN}/skills/kick-off/scripts/use-board.py"
-    only = ask(stubs, "t-worker", f"python3 {GONE}", work)[0]
+    only = ask(sandbox, f"python3 {GONE}", work)[0]
     return None if named in hook.get("permissionDecisionReason", "") and "nothing; find it" in only.get("permissionDecisionReason", "") \
         else f"the denial named {hook.get('permissionDecisionReason')!r} and {only.get('permissionDecisionReason')!r}"
 
 
-def github(work, stubs):
-    return next(filter(None, [verdict(stubs, command, True, work) for command in WRITES] + [verdict(stubs, command, False, work) for command in READS]), None)
+def github(sandbox, work):
+    return next(filter(None, [verdict(sandbox, command, True, work) for command in WRITES] + [verdict(sandbox, command, False, work) for command in READS]), None)
 
 
 PIECES = ("git commit -m ", "echo ", "gh issue list ", "python3 ", "\"", "'", "\\\"", "\\", "say \\\"hi\\\" there", "a\\\"b", "<<EOF\n", "\nEOF\n", "<<'X'\n", "\nX", "&&", ";", "|", "||", "&", "$(", ")", "`", "(", "{", "}", "!", " ", "\n", "#", ">", "2>&1", "<",
           "then ", "do ", "env ", "timeout 5 ", "gh ", "\\gh ", "g'h' ", "-fbody=x ", "api ", "-m ", "-c ", "-X dev ", f"{GONE} ", "~/x.py ", "$HOME ", "${", "$", "=")
 
 
-def quotes(work, stubs):
+def quotes(sandbox, work):
     """Every command of escaped quotes and of PIECES put together at random ends 0 with nothing on stderr."""
     commands = ['git commit -m "say \\"hi\\" there"', 'echo "a\\"b"', "echo 'a\\'b'", 'gh issue list --jq "\\"x\\""', 'python3 -c "print(\\"hi\\")"', 'echo "a\\"', "echo \"\\\"\""]
     chance = random.Random(1491)
     commands += ["".join(chance.choice(PIECES) for _ in range(chance.randint(1, 12))) for _ in range(150)]
     commands += ["\"" * 30000, "'" * 30001, "$(" * 3000, "\"$(a)" * 3000, "eval " * 3000, "`" * 30000, "\\" * 30001 + "\"", "(" * 30000]
     for command in commands:
-        hook, status, error = ask(stubs, "t-worker", command, work)
+        hook, status, error = ask(sandbox, command, work)
         if status or error:
             return f"{command!r} ended {status}: {error.strip()[-200:]}"
     for tool_input in ({"command": None}, {}, None):
-        event = {"hook_event_name": "PreToolUse", "cwd": str(work), "tool_input": tool_input}
-        done = subprocess.run(replay_probe.as_claude([ROUTE], ["--name", "t-worker"], pathlib.Path(stubs).parent / "stand-in"), input=json.dumps(event), capture_output=True, text=True,
-                              env={**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}, timeout=TIMEOUT)
+        done = sandbox.run([ROUTE], "w1:p1", cwd=PLUGIN, input=json.dumps({"hook_event_name": "PreToolUse", "cwd": str(work), "tool_input": tool_input}), timeout=TIMEOUT)
         if done.returncode or done.stderr or done.stdout.strip():
             return f"a Bash call with tool_input {tool_input!r} ended {done.returncode}: {done.stderr.strip()[-200:]}{done.stdout.strip()[-200:]}"
     return None
 
 
-def order(work, stubs):
+def order(sandbox, work):
     """The `ps` a session's name check runs, logged by a stand-in first on `PATH`."""
     log = work / "ps.log"
-    stub = replay_probe.write_text(stubs, "ps", f'#!/bin/sh\necho "$@" >> {log}\nexec {shutil.which("ps")} "$@"\n')
-    stub.chmod(0o755)
+    replay_probe.write_text(sandbox.bin, "ps", f'#!/bin/sh\necho "$@" >> {log}\nexec {shutil.which("ps")} "$@"\n').chmod(0o755)
     outcomes = []
     for name in ("t-worker", "t-probe"):
-        replay_probe.fake_herdr(work, [{"pane_id": "p1", "name": name}])
+        sandbox.herdr([replay_probe.agent(name, 1)])
         log.write_text("")
-        hook, status, error = ask(stubs, name, "gh issue create -t x", work)
+        hook, status, error = ask(sandbox, "gh issue create -t x", work)
         asked = bool(log.read_text().strip())
         log.write_text("")
-        environment = {**os.environ, "PATH": f"{stubs}:{os.environ['PATH']}", "HERDR_PANE_ID": "p1"}
-        listed = subprocess.run(replay_probe.as_claude([sys.executable, LIST_SESSIONS, "--me"], ["--name", name], work / "stand-in"), capture_output=True, text=True, env=environment, timeout=TIMEOUT)
+        listed = sandbox.python(LIST_SESSIONS, "--me", pane="w1:p1", timeout=TIMEOUT)
         outcomes.append((name, hook.get("permissionDecision"), asked, listed.stdout.strip(), bool(log.read_text().strip()), status or error))
+    sandbox.herdr([replay_probe.agent("t-worker", 1)])
+    (sandbox.bin / "ps").unlink()
     expected = [("t-worker", "deny", True, "t-worker", True, 0), ("t-probe", None, False, "", False, 0)]
     return None if [(*one[:5], one[5] or 0) for one in outcomes] == expected else f"each of the worker and the unroled session gave {outcomes}, not {expected}"
+
+
+def reminder(sandbox, work):
+    """A board write's Reminder comes on its first call in a session and not on a second, and comes again in another session."""
+    event = lambda session: {"hook_event_name": "PreToolUse", "cwd": str(work), "session_id": session, "tool_input": {"command": f"python3 {USE_BOARD} comment 5 --text x"}}
+    said = [ask(sandbox, None, work, event(session), TMPDIR=work)[0].get("additionalContext", "") for session in ("s-one", "s-one", "s-two")]
+    return None if said[0].startswith("Reminder:") and not said[1] and said[2] == said[0] else f"three calls, the second in the same session, were answered {said}"
+
+
+def install(sandbox, work):
+    """A SessionStart with no herdr on PATH tells the person to install it; with herdr on PATH it does not. The router runs by this python, since a folder
+    dropped from PATH for holding a herdr may hold python3 too."""
+    bare = os.pathsep.join(folder for folder in sandbox.environment["PATH"].split(os.pathsep) if not os.access(os.path.join(folder, "herdr"), os.X_OK))
+    start = {"hook_event_name": "SessionStart", "cwd": str(work), "source": "startup"}
+    said = [json.loads(sandbox.run([sys.executable, ROUTE], "w1:p1", cwd=PLUGIN, input=json.dumps(start), timeout=TIMEOUT, **path).stdout or "{}").get("systemMessage", "")
+            for path in ({"PATH": bare}, {})]
+    return None if "`herdr` is not installed" in said[0] and not said[1] else f"with no herdr and with herdr on PATH the SessionStart said {said}"
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work, stubs = setup()
-    step("missing", missing(work, stubs))
-    step("github", github(work, stubs))
-    step("quotes", quotes(work, stubs))
-    step("order", order(work, stubs))
-    print("FAIL hook guards" if failed else "PASS hook guards")
-    return 1 if failed else 0
+    cases = replay_probe.Cases("hook guards")
+    with replay_probe.scratch("hook-guards-") as work:
+        sandbox = setup(work)
+        for name, case in (("missing", missing), ("github", github), ("quotes", quotes), ("order", order), ("reminder", reminder), ("install", install)):
+            problem = case(sandbox, work)
+            cases.step(name, not problem, problem)
+    return cases.finish()
 
 
 if __name__ == "__main__":

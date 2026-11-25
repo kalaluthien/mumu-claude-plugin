@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Print `PASS tier order` when the tier table of the agent adapter runs `light`, `mid`, `deep`, `open` with no effort column and
-the manager's Swap up names every tier below `open`, else `FAIL: <what differed>`.
+the manager's Swap up names every tier below `open`, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-tier-order.py"""
 import pathlib
 import re
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 REFERENCES = pathlib.Path(__file__).resolve().parents[1] / "references"
 ORDER = ["light", "mid", "deep", "open"]
@@ -20,17 +23,15 @@ def main(args):
     header = re.search(r"^\| tier \|.*$", section, re.M)
     rows = re.findall(r"^\| `(\w+)` \|", section, re.M)
     if not header or "effort" in header.group(0):
-        print("FAIL: tier table missing or has an effort column")
-    elif rows != ORDER:
-        print(f"FAIL: rows run {rows}, not {ORDER}")
-    else:
-        swap = re.search(r"\*\*Swap up\*\*: a `BLOCKED:` of an? ([^\n]*?) worker", (REFERENCES / "manager.md").read_text())
-        named = re.findall(r"`(\w+)`", swap.group(1)) if swap else []
-        if named != ORDER[:-1]:
-            print(f"FAIL: Swap up names {named}, not {ORDER[:-1]}")
-        else:
-            print("PASS tier order")
-    return 0
+        return replay_probe.fail("tier table missing or has an effort column")
+    if rows != ORDER:
+        return replay_probe.fail(f"rows run {rows}, not {ORDER}")
+    swap = re.search(r"\*\*Swap up\*\*: a `BLOCKED:` of an? ([^\n]*?) worker", (REFERENCES / "manager.md").read_text())
+    named = re.findall(r"`(\w+)`", swap.group(1)) if swap else []
+    if named != ORDER[:-1]:
+        return replay_probe.fail(f"Swap up names {named}, not {ORDER[:-1]}")
+    return replay_probe.Cases("tier order").finish()
 
 
-sys.exit(main(sys.argv[1:]))
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

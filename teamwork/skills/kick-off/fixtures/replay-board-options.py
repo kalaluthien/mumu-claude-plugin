@@ -20,37 +20,29 @@ import contextlib
 import importlib.util
 import io
 import json
-import os
 import pathlib
 import re
 import shlex
-import subprocess
 import sys
-import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 PLUGIN = HERE.parents[2]
+sys.path.insert(0, str(PLUGIN / "lib"))
+import replay_probe  # noqa: E402
+
 SCRIPTS = HERE.parent / "scripts"
 USE = SCRIPTS / "use-board.py"
 SCHEMA = json.loads((HERE.parent / "assets" / "board-record-schema.json").read_text())
-BODY = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 WRITES = ("comment", "decide", "hold", "depend", "file", "edit", "title", "resolve", "label", "reopen")
 SPELLED = re.compile(r"use-board\.py[ \t]+(" + "|".join(WRITES) + r")\b([^`\n]*)")
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    if not ok:
-        failed.append(name)
 
 
 def use(*argv):
-    return subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
+    return box.python(USE, *map(str, argv))
 
 
 def ref():
-    return subprocess.run(["git", "rev-parse", "-q", "--verify", "refs/teamwork-blackboard"], capture_output=True, text=True).stdout.strip()
+    return replay_probe.sh("git", "rev-parse", "-q", "--verify", "refs/teamwork-blackboard", cwd=box.repository, environment=box.environment, check=False).stdout.strip()
 
 
 def strings(path):
@@ -78,7 +70,7 @@ def words_of(spelled):
     return shlex.split(re.sub(r"\[|\]|\.\.\.|…", " ", text))
 
 
-def named_docs():
+def named_docs(step):
     spec = importlib.util.spec_from_file_location("use_board", USE)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -106,11 +98,10 @@ def named_docs():
     step("named-docs", not wrong and checked >= 10, wrong or f"only {checked} spelled writes found")
 
 
-def named_lint():
+def named_lint(step):
     check = [sys.executable, str(SCRIPTS / "check-criteria.py")]
-    good = subprocess.run([*check, "--reason", "add the probe's second case"], capture_output=True, text=True)
-    bad = subprocess.run([*check, "--reason", "DECIDED: add the probe"], capture_output=True, text=True)
-    old = subprocess.run([*check, "--edit-line", "DECIDED: add the probe"], capture_output=True, text=True)
+    good, bad, old = (box.run([*check, *argv]) for argv in (["--reason", "add the probe's second case"], ["--reason", "DECIDED: add the probe"],
+                                                             ["--edit-line", "DECIDED: add the probe"]))
     step("named-lint", (good.returncode, good.stdout) == (0, "") and bad.returncode == 1 and "write:" in bad.stdout and "--reason" in bad.stdout and old.returncode == 2,
          [(done.returncode, done.stdout[:200]) for done in (good, bad, old)])
 
@@ -119,25 +110,27 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="board-options-"))
-    repository = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repository)], check=True)
-    os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"), PYTHONDONTWRITEBYTECODE="1")
-    os.chdir(repository)
+    with replay_probe.scratch("board-options-") as work:
+        return replay(work)
+
+
+def replay(work):
+    global box
+    box = replay_probe.Sandbox(work, [replay_probe.agent("a-worker", 1), replay_probe.agent("b-worker", 2)])
+    cases = replay_probe.Cases()
+    step = cases.step
 
     def written(name, text):
-        path = work / name
-        path.write_text(text)
-        return path
+        return replay_probe.write_text(work, name, text)
 
-    body, rest = written("body.md", BODY), written("rest.md", "More on it.\n")
+    body, rest = written("body.md", replay_probe.BODY), written("rest.md", "More on it.\n")
     first, second = (use("file", "--title", title, "--body", body, "--label", "probe").stdout.strip() for title in ("Seed the board", "Wait for the probe"))
     number, other = (re.search(r"(\d+)$", url).group(1) if url else "" for url in (first, second))
     sha = re.search(r"body sha: (\w+)", use("read", number).stdout).group(1) if number else ""
     calls = [("comment", number, "--reported", "probe findings", "--text", rest),
              ("comment", number, "--blocked", "which probe runs first?", "--asks", "owner", "--option", "the fast one", "--option", "the slow one"),
              ("decide", number, "--decision", "ship the probe today", "--text", rest, "--by", "a-manager", "--holders", "a-worker"),
-             ("edit", number, "--body", written("new.md", BODY + "2. [check] **The probe works when it runs twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n"),
+             ("edit", number, "--body", written("new.md", replay_probe.BODY + "2. [check] **The probe works when it runs twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n"),
               "--reason", "add the second run", "--base", sha),
              ("title", number, "--title", "Seed the probe board"), ("label", number, "--label", "second"), ("hold", number, "--holders", "a-worker b-worker"),
              ("depend", number, "--depends", other), ("resolve", other, "--summary", "the probe landed", "--text", rest), ("reopen", other),
@@ -146,9 +139,9 @@ def main(args):
     shown = use("read", number).stdout
     full = use("read", number, "--full").stdout
     keys = set()
-    for name in subprocess.run(["git", "ls-tree", "-r", "--name-only", "refs/teamwork-blackboard"], capture_output=True, text=True).stdout.split():
+    for name in box.git("ls-tree", "-r", "--name-only", "refs/teamwork-blackboard").split():
         if name.endswith(".json") and "/comments/" in f"/{name}":
-            keys |= set(json.loads(subprocess.run(["git", "show", f"refs/teamwork-blackboard:{name}"], capture_output=True, text=True).stdout))
+            keys |= set(json.loads(box.git("show", f"refs/teamwork-blackboard:{name}")))
     lines = ["REPORTED: probe findings", "BLOCKED: which probe runs first?", "1. the fast one", "DECIDED: ship the probe today", "DECIDED: add the second run",
              "#" + number + " Seed the probe board", "labels: probe, second", "holders: a-worker b-worker", f"depends: #{other}"]
     step("named-writes", first and second and all(answer.returncode == 0 for _, answer in done) and all(line in shown for line in lines)
@@ -167,7 +160,7 @@ def main(args):
         step(name, not seen, "; ".join(seen))
 
     sha = re.search(r"body sha: (\w+)", use("read", number).stdout).group(1)
-    new = written("newer.md", BODY + "3. [check] **The probe works when it runs three times**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
+    new = written("newer.md", replay_probe.BODY + "3. [check] **The probe works when it runs three times**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
     refused("refused-missing", [(("edit", number, "--body", new, "--reason", "add a run"), "--base"), (("edit", number, "--body", new, "--base", sha), "--reason"),
                                 (("edit", number, "--reason", "add a run", "--base", sha), "--body"), (("decide", number, "--by", "a-manager"), "--decision"),
                                 (("resolve", number), "--summary"), (("file", "--body", body), "--title"),
@@ -187,10 +180,9 @@ def main(args):
                                   (("read", number, "--body", "--full"), "--body"),
                                   (("title", "the-probe", "--title", "Seed it again"), "its number or its url"),
                                   (("edit", number, new, "DECIDED: add a run", "--base", sha), "--body")])
-    named_docs()
-    named_lint()
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    named_docs(step)
+    named_lint(step)
+    return cases.finish()
 
 
 if __name__ == "__main__":

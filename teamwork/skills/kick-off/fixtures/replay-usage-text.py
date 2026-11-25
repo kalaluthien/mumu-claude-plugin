@@ -12,25 +12,15 @@ usage: replay-usage-text.py"""
 import importlib.util
 import pathlib
 import re
-import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "lib"))
+import replay_probe  # noqa: E402
+
 USE = ROOT / "skills" / "kick-off" / "scripts" / "use-board.py"
 # the usage with each verb's rules written into it took 3,820 characters
 MOST = 1600
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:600]}", flush=True)
-    if not ok:
-        failed.append(name)
-
-
-def call(*argv):
-    done = subprocess.run([sys.executable, str(USE), *argv], capture_output=True, text=True)
-    return done.returncode, done.stdout, done.stderr
 
 
 def usage_of(said):
@@ -42,34 +32,42 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    code, out, said = call("no-such-verb")
-    usage = usage_of(said)
-    step("short", code == 2 and not out and usage.count("usage: use-board.py ") > 1 and len(usage) < MOST, (code, len(usage), out))
+    cases = replay_probe.Cases()
+    with replay_probe.scratch("usage-text-") as work:
+        sandbox = replay_probe.Sandbox(work)
 
-    spec = importlib.util.spec_from_file_location("use_board", USE)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    lines = {}
-    for line in re.findall(r"^usage: use-board\.py (.*)$", usage, re.M):
-        lines.setdefault(line.split()[0], []).append(line)
-    step("one-line", set(lines) == set(module.VERBS) and all(len(found) == 1 for found in lines.values()), sorted(set(lines) ^ set(module.VERBS)))
+        def call(*argv):
+            done = sandbox.python(USE, *argv)
+            return done.returncode, done.stdout, done.stderr
 
-    stray = {verb: sorted(set(re.findall(r"--[a-z-]+", " ".join(lines.get(verb, [])))) ^ {flag for flag, _ in flags}) for verb, (_, _, flags) in module.VERBS.items()}
-    step("options", not any(stray.values()), {verb: found for verb, found in stray.items() if found})
+        code, out, said = call("no-such-verb")
+        usage = usage_of(said)
+        cases.step("short", code == 2 and not out and usage.count("usage: use-board.py ") > 1 and len(usage) < MOST, (code, len(usage), out))
 
-    unread = {verb: call(verb, *(["1"] if by_place else []), *[word for flag, keywords in flags if keywords.get("required") or flag in ("--blocked",) for word in (flag, "x")],
-                         "--no-such-option") for verb, (_, by_place, flags) in module.VERBS.items()}
-    named = {verb: (code, out, usage_of(said), "--no-such-option" in said) for verb, (code, out, said) in unread.items()}
-    step("unread", all(answer == (2, "", usage, True) for answer in named.values()), [verb for verb, answer in named.items() if answer != (2, "", usage, True)])
+        # the script's own table of verbs and options, which no call prints whole
+        spec = importlib.util.spec_from_file_location("use_board", USE)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        lines = {}
+        for line in re.findall(r"^usage: use-board\.py (.*)$", usage, re.M):
+            lines.setdefault(line.split()[0], []).append(line)
+        cases.step("one-line", set(lines) == set(module.VERBS) and all(len(found) == 1 for found in lines.values()), sorted(set(lines) ^ set(module.VERBS)))
 
-    helped = [call("comment", "--help"), call("comment", "1", "-h"), call("--help")]
-    step("help", all(code == 2 and not out and usage_of(said) == usage and "is no option" in said for code, out, said in helped), [said[:200] for _, _, said in helped])
+        stray = {verb: sorted(set(re.findall(r"--[a-z-]+", " ".join(lines.get(verb, [])))) ^ {flag for flag, _ in flags}) for verb, (_, _, flags) in module.VERBS.items()}
+        cases.step("options", not any(stray.values()), {verb: found for verb, found in stray.items() if found})
 
-    pages = "".join(path.read_text() for path in (ROOT / "skills" / "kick-off" / "references").rglob("*.md"))
-    unexplained = sorted({flag for _, _, flags in module.VERBS.values() for flag, _ in flags if not re.search(re.escape(flag) + r"(?![a-z-])", pages)})
-    step("explained", not unexplained, unexplained)
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+        unread = {verb: call(verb, *(["1"] if by_place else []), *[word for flag, keywords in flags if keywords.get("required") or flag in ("--blocked",) for word in (flag, "x")],
+                             "--no-such-option") for verb, (_, by_place, flags) in module.VERBS.items()}
+        named = {verb: (code, out, usage_of(said), "--no-such-option" in said) for verb, (code, out, said) in unread.items()}
+        cases.step("unread", all(answer == (2, "", usage, True) for answer in named.values()), [verb for verb, answer in named.items() if answer != (2, "", usage, True)])
+
+        helped = [call("comment", "--help"), call("comment", "1", "-h"), call("--help")]
+        cases.step("help", all(code == 2 and not out and usage_of(said) == usage and "is no option" in said for code, out, said in helped), [said[:200] for _, _, said in helped])
+
+        pages = "".join(path.read_text() for path in (ROOT / "skills" / "kick-off" / "references").rglob("*.md"))
+        unexplained = sorted({flag for _, _, flags in module.VERBS.values() for flag, _ in flags if not re.search(re.escape(flag) + r"(?![a-z-])", pages)})
+        cases.step("explained", not unexplained, unexplained)
+        return cases.finish()
 
 
 if __name__ == "__main__":

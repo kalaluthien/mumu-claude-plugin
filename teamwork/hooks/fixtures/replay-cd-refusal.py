@@ -14,15 +14,11 @@ usage: replay-cd-refusal.py
 import json
 import os
 import pathlib
-import signal
-import subprocess
 import sys
-import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "lib"))
 import replay_probe  # noqa: E402
 
-ROUTE = pathlib.Path(__file__).resolve().parents[1] / "route-event.py"
 SPELLINGS = ("cd -P {live}/teamwork", "cd -L -- {live}/teamwork", "builtin cd {live}/teamwork", "command cd {live}/teamwork", "pushd -n {live}/teamwork",
              "LIVE={live}/teamwork; cd $LIVE", "export LIVE={live} && cd \"$LIVE/teamwork\"", "cd \"$TEAMWORK_LIVE_FOLDER/teamwork\"", "L={live}/teamwork; cd ${{L}}",
              "L={live}/teamwork; cd ${{L}}/.", "L={live}/teamwork; echo \"x; L=/tmp;\"; cd $L", "L={live}/teamwork; echo 'x; L=/tmp;'; cd $L", "L={live}/teamwork; # y; L=/tmp;\ncd $L",
@@ -51,65 +47,64 @@ QUOTED = (("echo $'cd {live}/teamwork && ls'", False), ("git commit -m \"fix && 
           ("echo $(cd {live}/teamwork && ls)", True), ("echo \"$(cd {live}/teamwork && ls)\"", True), ("cat <<'EOF'\ncd sub\nEOF\ncd ../.. && ls", True))
 
 
-def setup():
-    work = pathlib.Path(tempfile.mkdtemp(prefix="cd-refusal-"))
-    live = work.resolve() / "live"
-    (live / "teamwork").mkdir(parents=True)
+def setup(work):
+    """A sandbox whose repository is the live checkout, a worktree in it and the links a cd may take into it; and the variables naming it."""
+    sandbox = replay_probe.Sandbox(work, [replay_probe.agent("t-worker", 1)])
+    live = sandbox.repository
+    (live / "teamwork").mkdir()
     (live / "teamwork" / "note.txt").write_text("the live note\nthe second line\n")
-    for command in (["init", "-q"], ["add", "-A"], ["-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "first"]):
-        subprocess.run(["git", *command], cwd=live, check=True, capture_output=True)
+    sandbox.git("add", "-A")
+    sandbox.git("commit", "-q", "-m", "first")
     worktree = live / ".claude" / "worktrees" / "w"
-    worktree.mkdir(parents=True)
-    os.environ["TEAMWORK_LIVE_FOLDER"] = str(live)
+    (worktree / "sub").mkdir(parents=True)
     (live / "teamwork" / "out").symlink_to(work / "alias" / "..")  # a link out of the live checkout, whose `..` a plain cd reads as the folder it stands in
     (worktree / "link").symlink_to(live / "teamwork")  # a link inside the worktree to a folder of the live checkout, whose `..` a `cd -P` takes to the live checkout
     (work / "alias").symlink_to(live)  # the live checkout under another name, which a cd enters as well
-    os.environ["TEAMWORK_LIVE_ALIAS"] = str(work / "alias")
-    stubs = replay_probe.fake_herdr(work, [{"pane_id": "p1", "name": "t-worker"}])
-    return stubs, live, worktree
+    return sandbox, live, worktree, {"TEAMWORK_LIVE_FOLDER": live, "TEAMWORK_LIVE_ALIAS": work / "alias"}
 
 
-def hook_reason(stubs, worktree, command):
-    event = {"hook_event_name": "PreToolUse", "cwd": str(worktree), "tool_input": {"command": command}}
-    hook = replay_probe.route_event(ROUTE, event, stubs, "t-worker").get("hookSpecificOutput", {})
+def answer(sandbox, variables, cwd, command):
+    """The hook's answer to COMMAND run from CWD, which may not be on disk, so the hook runs from the sandbox's folder."""
+    return sandbox.route({"hook_event_name": "PreToolUse", "cwd": str(cwd), "tool_input": {"command": command}}, cwd=sandbox.work, **variables)
+
+
+def hook_reason(sandbox, variables, worktree, command):
+    hook = answer(sandbox, variables, worktree, command).get("hookSpecificOutput", {})
     if "allow" in json.dumps(hook):
         return f"allowed: {json.dumps(hook)[:200]}"
     return hook.get("permissionDecision") == "deny" and hook.get("permissionDecisionReason", "")
 
 
 FOLLOWERS = ("git ls-files", "cat note.txt", "git ls-remote .", "gh api repos/x/y", "touch new.txt")
-failed = []
-
-
-def step(name, problem):
-    print(f"fail {name}: {problem}" if problem else f"ok {name}", flush=True)
-    failed.extend([name] if problem else [])
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    signal.alarm(300)  # a hook that loops ends the runner, which would otherwise wait for it
-    stubs, live, worktree = setup()
-    (worktree / "sub").mkdir()
-    swapped = str(live).swapcase()  # the live checkout under another letter case, the same folder where the file system ignores case
-    entering = [f"{spelling} && {follower}" for spelling in SPELLINGS[:1] for follower in FOLLOWERS] + [f"{spelling} && git ls-files" for spelling in SPELLINGS[1:]]
-    entering += [f"cd {swapped}/teamwork && git ls-files"] * os.path.isdir(swapped)
-    entering += [text for text in BLOCKED] + [f"{opening} git ls-files; {closer}" for opening, closer in BLOCKS]
-    said = {command: hook_reason(stubs, worktree, command.format(live=live)) for command in entering}
-    step("denied", next((f"{command!r} " + (said[command] if said[command] else "was not denied") for command in entering
-                         if not said[command] or said[command].startswith("allowed") or not all(text in said[command] for text in (f"stands in {worktree}", "--repository <folder>", "git -C <folder>"))), None))
-    step("chain", next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in CHAINS
-                        if bool(hook_reason(stubs, worktree, command)) != denied), None))
-    step("quoted", next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
-                         if bool(hook_reason(stubs, worktree, command)) != denied), None))
-    ghost = pathlib.Path(os.sep + "gone-checkout") / ".claude" / "worktrees" / "w"  # a checkout that is not on disk is read by its written path
-    step("gone", None if hook_reason(stubs, ghost, "cd /gone-checkout/teamwork && ls") and not hook_reason(stubs, ghost, "cd /tmp && ls") else "a cd into a checkout that is gone was not refused, or a cd out of it was")
-    step("inside", next((f"{command!r} got {got}" for command in ("cd sub && ls", "cd /tmp && ls", f"cd {worktree}/sub && git status")
-                         if (got := replay_probe.route_event(ROUTE, {"hook_event_name": "PreToolUse", "cwd": str(worktree), "tool_input": {"command": command}}, stubs, "t-worker"))), None))
-    print("FAIL cd never allowed" if failed else "PASS cd never allowed")
-    return 1 if failed else 0
+    cases = replay_probe.Cases("cd never allowed")
+    with replay_probe.scratch("cd-refusal-") as work:
+        sandbox, live, worktree, variables = setup(work)
+        reason = lambda cwd, command: hook_reason(sandbox, variables, cwd, command)
+        swapped = str(live).swapcase()  # the live checkout under another letter case, the same folder where the file system ignores case
+        entering = [f"{spelling} && {follower}" for spelling in SPELLINGS[:1] for follower in FOLLOWERS] + [f"{spelling} && git ls-files" for spelling in SPELLINGS[1:]]
+        entering += [f"cd {swapped}/teamwork && git ls-files"] * os.path.isdir(swapped)
+        entering += [text for text in BLOCKED] + [f"{opening} git ls-files; {closer}" for opening, closer in BLOCKS]
+        said = {command: reason(worktree, command.format(live=live)) for command in entering}
+        problem = next((f"{command!r} " + (said[command] if said[command] else "was not denied") for command in entering
+                        if not said[command] or said[command].startswith("allowed") or not all(text in said[command] for text in (f"stands in {worktree}", "--repository <folder>", "git -C <folder>"))), None)
+        cases.step("denied", not problem, problem)
+        problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in CHAINS if bool(reason(worktree, command)) != denied), None)
+        cases.step("chain", not problem, problem)
+        problem = next((f"{command!r} " + ("was not denied" if denied else "was denied") for command, denied in ((text.format(live=live), denied) for text, denied in QUOTED)
+                        if bool(reason(worktree, command)) != denied), None)
+        cases.step("quoted", not problem, problem)
+        ghost = pathlib.Path(os.sep + "gone-checkout") / ".claude" / "worktrees" / "w"  # a checkout that is not on disk is read by its written path
+        cases.step("gone", reason(ghost, "cd /gone-checkout/teamwork && ls") and not reason(ghost, "cd /tmp && ls"), "a cd into a checkout that is gone was not refused, or a cd out of it was")
+        problem = next((f"{command!r} got {got}" for command in ("cd sub && ls", "cd /tmp && ls", f"cd {worktree}/sub && git status")
+                        if (got := answer(sandbox, variables, worktree, command))), None)
+        cases.step("inside", not problem, problem)
+    return cases.finish()
 
 
 if __name__ == "__main__":

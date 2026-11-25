@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Replay malformed and good text and options through the board's write scripts on a scratch git board, printing `ok <case>`
-or `fail <case>: <what it saw>` per case and exiting 1 on any failure. A refusing case passes when every write exits 2,
+"""Replay malformed and good text and options through the board's write scripts on a scratch git board, whose holders live in a fake herdr,
+printing `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`, and exiting 1 on any failure. A refusing case passes when every write exits 2,
 the message names a fix and the board is unchanged; an `unstored-` case when every write exits 2 saying nothing was written, the board unchanged;
 an `accept-` case when every write exits 0 and the board changed. Cases:
 - `fence-*`: a `teamwork` or a `decision` fence at a line's start in a filed body, a comment, a decision, a summary or an edited body;
@@ -10,24 +10,22 @@ an `accept-` case when every write exits 0 and the board changed. Cases:
 - `heading-*`: a section heading misspelt or repeated;
 - `edit-*`: a new body or `--reason` `use-board.py edit` is given;
 - `unstored-*`: a holder's or a decider's name that board-record-schema.json refuses;
-- `accept-*`: text and options that must still post, a bare `--blocked` or `--reported` taking its line from `--text`, and `accept-scenarios`, the output of replay-team-scenarios.py holding only `ok` lines;
+- `accept-*`: text and options that must still post, and a bare `--blocked` or `--reported` taking its line from `--text`;
 - `stored-decision`: a `decide` with `--one-way`, `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` whose keys the schema all names, and `read` shows each;
 - `stored-question`: a `comment --asks owner` with two `--option` keeps them as `options`, and `read` numbers them and says the task waits on the owner;
 - `url-names-task`: `read` and `comment` take the url `file` printed as they take the number.
 
 usage: replay-input-form.py [--only <case>,...]"""
 import json
-import os
 import pathlib
 import re
-import subprocess
 import sys
-import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+LIB = HERE.parents[2] / "lib"
 SCRIPTS = HERE.parent / "scripts"
-sys.path.insert(0, str(ROOT / "lib"))
+sys.path.insert(0, str(LIB))
+import replay_probe  # noqa: E402
 
 BASE = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 TEAMWORK = "\n```teamwork\nholders: a-worker\n```\n"
@@ -85,13 +83,7 @@ ACCEPTED = {
     "accept-bare-line": [("call", "comment", "probe findings\n\nMore.\n", "--reported"), ("call", "comment", "BLOCKED: which one?\n", "--blocked")],
     "accept-keyword-put-first": [("decide", "ship the probe today\n", *BY), ("resolve", "the probe landed\n")],
 }
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {str(detail).strip()}", flush=True)
-    if not ok:
-        failed.append(name)
+REF = "refs/teamwork-blackboard"
 
 
 def main(args):
@@ -99,21 +91,26 @@ def main(args):
     if args and only is None:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="input-form-"))
-    repository = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repository)], check=True)
-    os.environ.update(HOME=str(work), CLAUDE_CONFIG_DIR=str(work / "home"))
-    os.chdir(repository)
-    import board
-    import board_git
+    with replay_probe.scratch("input-form-") as work:
+        return replay(replay_probe.Sandbox(work, [replay_probe.agent("a-worker", 2), replay_probe.agent("b-worker", 3)]), only)
+
+
+def replay(sandbox, only):
+    work, cases = sandbox.work, replay_probe.Cases()
     counter = iter(range(10 ** 6))
 
     def snapshot():
-        return [(each["number"], each["body"], each["state"], each["depends"], [(note["body"], note.get("fields")) for note in each["comments"]]) for each in board_git.tasks("all")]
+        """The board's commit, which every write moves."""
+        return sandbox.run(["git", "rev-parse", "-q", "--verify", REF]).stdout
 
     def prepare(spec):
-        """The task SPEC writes to, filed straight on the board so even a body the guard refuses is there; its number, None for a `file`."""
-        return board_git.file("A task", spec[1] if spec[0] == "edit" else BASE, []) if spec[0] != "file" else None
+        """The task SPEC writes to, its number, None for a `file`; a body the guard refuses, as an older version wrote it, filed straight on the board."""
+        if spec[0] == "file":
+            return None
+        text = spec[1] if spec[0] == "edit" else BASE
+        if text == BASE:
+            return int(use("file", "--title", "A task", "--body", written(BASE)).stdout.strip().rsplit("/", 1)[1])
+        return sandbox.evaluate(f"import board_git; print(board_git.file('A task', {text!r}, []))")
 
     def written(text):
         path = work / f"text-{next(counter)}.md"
@@ -121,7 +118,7 @@ def main(args):
         return path
 
     def use(*argv):
-        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], capture_output=True, text=True)
+        return sandbox.python(SCRIPTS / "use-board.py", *map(str, argv))
 
     def keyed(verb, number, text, *options):
         """Posts TEXT as VERB: its first line, minus a keyword, to the verb's line option and the rest to `--text`."""
@@ -134,10 +131,9 @@ def main(args):
         """Runs one write SPEC on the board; the completed process."""
         verb, *rest = spec
         if verb == "edit":
-            before, after, line = rest
-            body = work / f"edit-{next(counter)}.md"
-            body.write_text(after)
-            return use("edit", number, "--body", body, "--reason", line, "--base", board.body_sha(before))
+            _, after, line = rest
+            sha = re.search(r"^body sha: (\S+)$", use("read", number).stdout, re.M).group(1)
+            return use("edit", number, "--body", written(after), "--reason", line, "--base", sha)
         if verb == "call":
             word, text, *options = rest
             return use(word, number, *options, *([] if text is None else ["--text", written(text)]))
@@ -159,15 +155,15 @@ def main(args):
             done = write(spec, number)
             changed = snapshot() != before
             seen += [] if holds(done, changed) else [f"{' '.join(map(str, spec[:1] + spec[2:]))}: exit {done.returncode}, board changed {changed}: {done.stdout}{done.stderr}"]
-        step(name, not seen, "; ".join(seen))
+        cases.step(name, not seen, "; ".join(seen))
 
     def stored(number, position):
         """The record the board keeps as NUMBER's comment at POSITION, as its file holds it."""
-        shown = subprocess.run(["git", "show", f"{board_git.REF}:{number}/comments/{position:04d}.json"], capture_output=True, text=True)
+        shown = sandbox.run(["git", "show", f"{REF}:{number}/comments/{position:04d}.json"])
         return json.loads(shown.stdout or "{}")
 
     def stored_decision():
-        number = board_git.file("A task", BASE, [])
+        number = prepare(("comment", None))
         question = keyed("comment", number, "BLOCKED: which one?\n").stdout.strip()
         decided = keyed("decide", number, "DECIDED: ship the probe today\n\nIt is ready.\n", *BY, "--one-way", "--answers", question, "--holders", "a-worker b-worker", "--live-runs", "2")
         url, record, read = decided.stdout.strip(), stored(number, 2), use("read", number).stdout
@@ -175,15 +171,15 @@ def main(args):
                   "holders": ["a-worker", "b-worker"], "live_runs": 2}
         shows = ["state: OPEN, held\n", "holders: a-worker b-worker\n", "binding decisions: 1\n", f"- #{number} a-manager, one-way: ship the probe today ({url}); answers {question}\n", "open questions: 0\n",
                  f"--- {url} (by: a-manager; answers: {question}; one way; holders: a-worker b-worker; live runs: 2)\n"]
-        step("stored-decision", decided.returncode == 0 and record == wanted and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows),
+        cases.step("stored-decision", decided.returncode == 0 and record == wanted and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows),
              f"exit {decided.returncode} {decided.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
 
     def stored_question():
-        number = board_git.file("A task", BASE, [])
+        number = prepare(("comment", None))
         asked = keyed("comment", number, "BLOCKED: which one?\n", "--asks", "owner", *TWO)
         url, record, read = asked.stdout.strip(), stored(number, 1), use("read", number).stdout
         shows = ["state: OPEN, waits on the owner\n", "open questions: 1\n", f"- #{number} to the owner: which one? ({url})\n", f"--- {url} (asks: owner)\nBLOCKED: which one?\n\n1. the first\n2. the second\n"]
-        step("stored-question", asked.returncode == 0 and record == {"text": "BLOCKED: which one?\n", "asks": "owner", "options": ["the first", "the second"]}
+        cases.step("stored-question", asked.returncode == 0 and record == {"text": "BLOCKED: which one?\n", "asks": "owner", "options": ["the first", "the second"]}
              and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows), f"exit {asked.returncode} {asked.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
 
     def url_names_task():
@@ -193,7 +189,7 @@ def main(args):
         posted = keyed("comment", url, "REPORTED: probe findings\n")
         held = use("hold", url, "--holders", "a-worker")
         by_url, by_number = use("read", url), use("read", number)
-        step("url-names-task", url.startswith("git+file://") and posted.stdout.strip() == f"{url}#comment-1" and held.stdout.strip() == f"{url}#comment-2"
+        cases.step("url-names-task", url.startswith("git+file://") and posted.stdout.strip() == f"{url}#comment-1" and held.stdout.strip() == f"{url}#comment-2"
              and by_url.returncode == 0 and by_url.stdout == by_number.stdout and f"#{number} A task\n" in by_url.stdout and "REPORTED: probe findings" in by_url.stdout
              and "holders: a-worker\n" in by_url.stdout, f"{url}\n{posted.stdout}{posted.stderr}{held.stdout}{held.stderr}{by_url.stdout}{by_url.stderr}")
 
@@ -206,11 +202,7 @@ def main(args):
     for name, case in (("stored-decision", stored_decision), ("stored-question", stored_question), ("url-names-task", url_names_task)):
         if not only or name in only:
             case()
-    if not only or "accept-scenarios" in only:
-        replay = subprocess.run([sys.executable, str(HERE / "replay-team-scenarios.py")], capture_output=True, text=True, timeout=900)
-        stray = [line for line in (replay.stdout + replay.stderr).splitlines() if line.strip() and not line.startswith("ok ")]
-        step("accept-scenarios", not stray and replay.returncode == 0, "\n".join(stray) or f"exit {replay.returncode}")
-    return 1 if failed else 0
+    return cases.finish()
 
 
 if __name__ == "__main__":

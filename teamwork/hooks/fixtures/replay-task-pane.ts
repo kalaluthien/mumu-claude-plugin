@@ -10,6 +10,8 @@
 // With no argument, it checks deep-task-nodes.json and deep-decision-nodes.json beside it and prints `PASS` when both are `same`, else `FAIL <file>` for each, exit 1.
 // usage: bun teamwork/hooks/fixtures/replay-task-pane.ts [<nodes-file> [--styled | --search <regex>... --press <text>... --columns <n> --fresh]]
 import { drawPane, handlers, on, store } from './stand-in-modules.ts'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 
 if (process.argv.length === 2) {
   const failed = ['deep-task-nodes.json', 'deep-decision-nodes.json']
@@ -23,8 +25,18 @@ if (nodes.startsWith('-')) {
   process.exit(2)
 }
 const lister = `${import.meta.dir}/../list-task-board.py`
+// the lister keeps a recorded holder only while herdr lists it, so it runs with a home of its own and the fake herdr listing every holder the nodes record, never this machine's sessions
+const work = mkdtempSync(`${tmpdir()}/task-pane-`)
+process.on('exit', () => rmSync(work, { recursive: true, force: true }))
+const holders = [...new Set((JSON.parse(readFileSync(nodes, 'utf8')) as { comments: { nodes: { fields?: { holders?: string[] } }[] } }[])
+  .flatMap(node => node.comments.nodes.flatMap(comment => comment.fields?.holders ?? [])))]
+const agents = holders.map((name, k) => ({ name, pane_id: `w1:p${k + 2}`, tab_id: `w1:t${k + 2}`, workspace_id: 'w1', agent: 'claude', agent_status: 'idle', interactive_ready: true }))
+writeFileSync(`${work}/herdr.json`, JSON.stringify({ n: 20, agents, tabs: agents.map(agent => ({ tab_id: agent.tab_id, workspace_id: 'w1', label: agent.name })) }))
+const env = { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(HERDR_|CLAUDE|TEAMWORK_|GH_|GIT_)/.test(key))), HOME: work, CLAUDE_CONFIG_DIR: `${work}/.claude`,
+  PATH: `${import.meta.dir}/../../skills/kick-off/fixtures/fake-herdr:${process.env.PATH}`, TEAMWORK_FAKE_HERDR_STATE: `${work}/herdr.json`,
+  TEAMWORK_FAKE_HERDR_REFUSED: `${work}/refused.log`, PYTHONDONTWRITEBYTECODE: '1' }
 const listed = (...args: string[]) => {
-  const run = Bun.spawnSync(['python3', lister, '--nodes', nodes, ...args])
+  const run = Bun.spawnSync(['python3', lister, '--nodes', nodes, ...args], { env })
   if (run.exitCode !== 0) throw new Error(`list-task-board.py ${args.join(' ')} exited ${run.exitCode}: ${run.stderr}`)
   return run.stdout.toString()
 }
@@ -52,7 +64,7 @@ const $ = {
     run: async (argv: string[]) => {
       if (argv[0].endsWith('list-sessions.py')) return { exitCode: 0, stdout: 'probe-manager\n' }
       if (argv[0].endsWith('print-task-markdown.py')) {
-        const run = Bun.spawnSync(['python3', `${import.meta.dir}/../print-task-markdown.py`, '--nodes', nodes, argv[1]])
+        const run = Bun.spawnSync(['python3', `${import.meta.dir}/../print-task-markdown.py`, '--nodes', nodes, argv[1]], { env })
         return { exitCode: run.exitCode, stdout: run.stdout.toString(), stderr: run.stderr.toString() }
       }
       reads++
@@ -156,4 +168,5 @@ if (searching) {
     lines.forEach(line => console.log(`${number}|${line}`))
   })
 } else if (process.argv[3] === '--styled') console.log(styled(lastPane).join('\n'))
+else if (existsSync(`${work}/refused.log`)) differ(`the fake herdr refused ${readFileSync(`${work}/refused.log`, 'utf8').trim()}`)
 else console.log('same')

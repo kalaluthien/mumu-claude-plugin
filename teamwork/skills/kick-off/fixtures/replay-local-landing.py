@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Land a worker's change by use-landing.py in a temporary repository whose `origin` is a bare repository beside it, with a `gh` on PATH that logs each call and fails,
+"""Land a worker's change by use-landing.py in a scratch repository whose `origin` is a bare repository beside it, with the `gh` stand-in, which logs each call and fails,
 and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn)
@@ -13,213 +13,200 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - conflict-marker: a change whose file adds a leftover `|||||||` conflict marker line is refused with its file and line, and nothing moves, while one that adds a Markdown `=======` heading underline merges
 - dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
-import os
 import pathlib
 import sys
-import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-sh = replay_probe.sh
+LANDING = SCRIPTS.parent / "references" / "adapters" / "landing-git" / "scripts" / "use-landing.py"
 
 
-def setup(remote=True):
-    work = pathlib.Path(tempfile.mkdtemp(prefix="local-landing-"))
-    stub = replay_probe.stub_gh(work)
-    (work / "gh.log").write_text("")
-    replay_probe.write_git_config(work)
-    environment = {**dict(os.environ), "PATH": f"{stub}:{os.environ['PATH']}", "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
-    repository, origin = work / "repo", work / "origin.git"
-    sh("git", "init", "-q", repository, cwd=work, environment=environment)
-    (repository / "a.txt").write_text("base\n")
-    (repository / "a b.txt").write_text("base\n")
-    sh("git", "add", "-A", cwd=repository, environment=environment)
-    sh("git", "commit", "-q", "-m", "base", cwd=repository, environment=environment)
+def setup(work, remote=True):
+    """A sandbox whose repository holds `a.txt` and `a b.txt`, pushed to a bare `origin` at `sandbox.origin` when REMOTE."""
+    sandbox = replay_probe.Sandbox(work, commit=False)
+    sandbox.origin = work / "origin.git"
+    for name in ("a.txt", "a b.txt"):
+        replay_probe.write_text(sandbox.repository, name, "base\n")
+    sandbox.git("add", "-A")
+    sandbox.git("commit", "-q", "-m", "base")
     if remote:
-        sh("git", "init", "-q", "--bare", origin, cwd=work, environment=environment)
-        sh("git", "remote", "add", "origin", origin, cwd=repository, environment=environment)
-        sh("git", "push", "-q", "-u", "origin", "main", cwd=repository, environment=environment)
-    return work, repository, origin, environment
+        sandbox.git("init", "-q", "--bare", sandbox.origin, cwd=work)
+        sandbox.git("remote", "add", "origin", sandbox.origin)
+        sandbox.git("push", "-q", "-u", "origin", "main")
+    return sandbox
 
 
-def worker(work, repository, environment, name="b.txt", text="work\n"):
-    tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
-    (tree / name).write_text(text)
-    sh("git", "add", "-A", cwd=tree, environment=environment)
-    sh("git", "commit", "-q", "-m", "work", cwd=tree, environment=environment)
-    (work / "body.md").write_text("Probe change. Closes #1.\n")
-    sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "change", "probe-worker", "Probe change", work / "body.md", cwd=tree, environment=environment)
-    return tree, sh("git", "rev-parse", "HEAD", cwd=tree, environment=environment).stdout.strip()
+def script(sandbox, path, *argv, cwd=None, check=False):
+    """The run of the plugin script PATH; a failed one raises RuntimeError when CHECK."""
+    done = sandbox.python(path, *argv, cwd=cwd)
+    if check and done.returncode:
+        raise RuntimeError(f"{pathlib.Path(path).name} {' '.join(map(str, argv))}: {done.stdout}{done.stderr}")
+    return done
 
 
-def rev(path, ref, environment):
-    return sh("git", "rev-parse", "--verify", "-q", ref, cwd=path, environment=environment, check=False).stdout.strip()
+def worker(sandbox, name="b.txt", text="work\n"):
+    tree = pathlib.Path(script(sandbox, SCRIPTS / "add-worktree.py", "probe-worker", "main", check=True).stdout.strip())
+    commit_in(sandbox, tree, name, text, "work")
+    replay_probe.write_text(sandbox.work, "body.md", "Probe change. Closes #1.\n")
+    script(sandbox, LANDING, "change", "probe-worker", "Probe change", sandbox.work / "body.md", cwd=tree, check=True)
+    return tree, rev(sandbox, tree, "HEAD")
 
 
-def change_state(repository, environment):
-    file = repository / ".teamwork" / "changes" / "1.json"
+def commit_in(sandbox, tree, name, text, message):
+    replay_probe.write_text(tree, name, text)
+    sandbox.git("add", "-A", cwd=tree)
+    sandbox.git("commit", "-q", "-m", message, cwd=tree)
+
+
+def rev(sandbox, path, ref):
+    return replay_probe.sh("git", "rev-parse", "--verify", "-q", ref, cwd=path, environment=sandbox.environment, check=False).stdout.strip()
+
+
+def bases(sandbox):
+    return rev(sandbox, sandbox.repository, "main"), rev(sandbox, sandbox.origin, "refs/heads/main")
+
+
+def change_state(sandbox):
+    file = sandbox.repository / ".teamwork" / "changes" / "1.json"
     return json.loads(file.read_text())["state"] if file.exists() else None
 
 
-def merged(work, repository, origin, environment, tree, head):
-    return sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "1", head, cwd=tree, environment=environment, check=False)
+def merged(sandbox, tree, head, number="1"):
+    return script(sandbox, LANDING, "merge", number, head, cwd=tree)
 
 
-def case_pushes():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment)
-    run = merged(work, repository, origin, environment, tree, head)
+def case_pushes(work):
+    sandbox = setup(work)
+    tree, head = worker(sandbox)
+    run = merged(sandbox, tree, head)
     if run.returncode:
         return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
     commit = run.stdout.strip()
-    if rev(origin, "refs/heads/main", environment) != commit or rev(repository, "main", environment) != commit:
-        return replay_probe.fail(f"origin main {rev(origin, 'refs/heads/main', environment)[:9]}, local main {rev(repository, 'main', environment)[:9]}, merge printed {commit[:9]}")
-    if not (repository / "b.txt").exists() or change_state(repository, environment) != "CLOSED":
+    if bases(sandbox) != (commit, commit):
+        return replay_probe.fail(f"local and origin main {bases(sandbox)}, merge printed {commit[:9]}")
+    if not (sandbox.repository / "b.txt").exists() or change_state(sandbox) != "CLOSED":
         return replay_probe.fail("the checkout lacks the merged file, or the change is still open")
     return 0
 
 
-def case_push_refused():
-    work, repository, origin, environment = setup()
-    hook = origin / "hooks" / "pre-receive"
-    hook.write_text("#!/bin/sh\necho 'no pushes today' >&2\nexit 1\n")
-    hook.chmod(0o755)
-    tree, head = worker(work, repository, environment)
-    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    run = merged(work, repository, origin, environment, tree, head)
+def case_push_refused(work):
+    sandbox = setup(work)
+    replay_probe.write_text(sandbox.origin / "hooks", "pre-receive", "#!/bin/sh\necho 'no pushes today' >&2\nexit 1\n").chmod(0o755)
+    tree, head = worker(sandbox)
+    before = bases(sandbox)
+    run = merged(sandbox, tree, head)
     if run.returncode != 1 or "no pushes today" not in run.stderr:
         return replay_probe.fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
-    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    if before != after or (repository / "b.txt").exists() or change_state(repository, environment) != "OPEN":
-        return replay_probe.fail(f"the base here, the remote's base or the change moved: {before} -> {after}, change {change_state(repository, environment)}")
+    if before != bases(sandbox) or (sandbox.repository / "b.txt").exists() or change_state(sandbox) != "OPEN":
+        return replay_probe.fail(f"the base here, the remote's base or the change moved: {before} -> {bases(sandbox)}, change {change_state(sandbox)}")
     return 0
 
 
-def case_no_gh():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment)
-    run = merged(work, repository, origin, environment, tree, head)
-    if run.returncode:
-        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
-    removed = sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False)
-    calls = (work / "gh.log").read_text().strip()
-    if calls:
-        return replay_probe.fail(f"gh was called: {calls} (remove-worktree exit {removed.returncode}: {removed.stderr.strip()[-200:]})")
-    return 0
-
-
-def case_no_origin():
-    work, repository, origin, environment = setup(remote=False)
-    tree, head = worker(work, repository, environment)
-    run = merged(work, repository, origin, environment, tree, head)
-    if run.returncode or rev(repository, "main", environment) != run.stdout.strip() or not (repository / "b.txt").exists():
+def case_no_gh(work, remote=True):
+    sandbox = setup(work, remote)
+    tree, head = worker(sandbox)
+    run = merged(sandbox, tree, head)
+    if run.returncode or rev(sandbox, sandbox.repository, "main") != run.stdout.strip() or not (sandbox.repository / "b.txt").exists():
         return replay_probe.fail(f"merge exited {run.returncode}: {run.stdout}{run.stderr}")
-    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False)
-    calls = (work / "gh.log").read_text().strip()
-    if calls:
-        return replay_probe.fail(f"gh was called: {calls}")
+    removed = script(sandbox, SCRIPTS / "remove-worktree.py", "probe-worker")
+    if sandbox.gh_calls():
+        return replay_probe.fail(f"gh was called: {sandbox.gh_calls()} (remove-worktree exit {removed.returncode}: {removed.stderr.strip()[-200:]})")
     return 0
 
 
-def case_swap_retired():
-    work, repository, origin, environment = setup()
-    old, _ = worker(work, repository, environment)
-    new = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-opus-worker", "probe-worker", cwd=repository, environment=environment).stdout.strip())
-    (new / "c.txt").write_text("more\n")
-    sh("git", "add", "-A", cwd=new, environment=environment)
-    sh("git", "commit", "-q", "-m", "more", cwd=new, environment=environment)
-    sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "change", "probe-opus-worker", "Successor change", work / "body.md", cwd=new, environment=environment)
-    head = rev(new, "HEAD", environment)
-    run = sh(sys.executable, SCRIPTS.parent / "references/adapters/landing-git/scripts" / "use-landing.py", "merge", "2", head, cwd=new, environment=environment, check=False)
+def case_no_origin(work):
+    return case_no_gh(work, remote=False)
+
+
+def case_swap_retired(work):
+    sandbox = setup(work)
+    old, _ = worker(sandbox)
+    new = pathlib.Path(script(sandbox, SCRIPTS / "add-worktree.py", "probe-opus-worker", "probe-worker", check=True).stdout.strip())
+    commit_in(sandbox, new, "c.txt", "more\n", "more")
+    script(sandbox, LANDING, "change", "probe-opus-worker", "Successor change", work / "body.md", cwd=new, check=True)
+    run = merged(sandbox, new, rev(sandbox, new, "HEAD"), "2")
     if run.returncode:
         return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()}")
-    sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", "probe-opus-worker", cwd=repository, environment=environment, check=False)
-    left = sh("git", "branch", "--list", "probe-*", cwd=repository, environment=environment).stdout.strip()
+    script(sandbox, SCRIPTS / "remove-worktree.py", "probe-worker", "probe-opus-worker")
+    left = sandbox.git("branch", "--list", "probe-*").strip()
     if left or old.exists() or new.exists():
         return replay_probe.fail(f"branches {left!r} or worktrees left after the successor merged")
     return 0
 
 
-def case_dirty_base():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment, name="a b.txt")
-    (repository / "a b.txt").write_text("mine, not committed\n")
-    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    run = merged(work, repository, origin, environment, tree, head)
-    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    if run.returncode != 1 or before != after or change_state(repository, environment) != "OPEN" or (repository / "a b.txt").read_text() != "mine, not committed\n":
-        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
+def case_dirty_base(work):
+    sandbox = setup(work)
+    tree, head = worker(sandbox, name="a b.txt")
+    (sandbox.repository / "a b.txt").write_text("mine, not committed\n")
+    before = bases(sandbox)
+    run = merged(sandbox, tree, head)
+    if run.returncode != 1 or before != bases(sandbox) or change_state(sandbox) != "OPEN" or (sandbox.repository / "a b.txt").read_text() != "mine, not committed\n":
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {bases(sandbox)}")
     return 0
 
 
-def case_conflict_marker():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment, text="work\n||||||| parent of 1234567 (work)\n<<<<<<< HEAD\n")
-    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    run = merged(work, repository, origin, environment, tree, head)
-    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
-    if run.returncode != 1 or "b.txt:2" not in run.stderr or before != after or change_state(repository, environment) != "OPEN":
-        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
-    return case_underline()
-
-
-def case_underline():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment, name="b.md", text="Title\n=======\ntext\n")
-    run = merged(work, repository, origin, environment, tree, head)
+def case_conflict_marker(work):
+    sandbox = setup(work / "marker")
+    tree, head = worker(sandbox, text="work\n||||||| parent of 1234567 (work)\n<<<<<<< HEAD\n")
+    before = bases(sandbox)
+    run = merged(sandbox, tree, head)
+    if run.returncode != 1 or "b.txt:2" not in run.stderr or before != bases(sandbox) or change_state(sandbox) != "OPEN":
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {bases(sandbox)}")
+    sandbox = setup(work / "underline")
+    tree, head = worker(sandbox, name="b.md", text="Title\n=======\ntext\n")
+    run = merged(sandbox, tree, head)
     if run.returncode:
         return replay_probe.fail(f"a Markdown heading underline was refused: {run.stderr.strip()[-200:]}")
     return 0
 
 
-def rebased(edit):
-    work, repository, origin, environment = setup()
-    tree, approved = worker(work, repository, environment)
-    (repository / "c.txt").write_text("base moved\n")
-    sh("git", "add", "-A", cwd=repository, environment=environment)
-    sh("git", "commit", "-q", "-m", "moved", cwd=repository, environment=environment)
-    sh("git", "push", "-q", "origin", "main", cwd=repository, environment=environment)
-    sh("git", "rebase", "-q", "main", cwd=tree, environment=environment)
+def rebased(work, edit):
+    sandbox = setup(work)
+    tree, approved = worker(sandbox)
+    commit_in(sandbox, sandbox.repository, "c.txt", "base moved\n", "moved")
+    sandbox.git("push", "-q", "origin", "main")
+    sandbox.git("rebase", "-q", "main", cwd=tree)
     if edit:
         (tree / "b.txt").write_text(edit)
-        sh("git", "commit", "-q", "-a", "--amend", "--no-edit", cwd=tree, environment=environment)
-    return merged(work, repository, origin, environment, tree, approved), repository, environment
+        sandbox.git("commit", "-q", "-a", "--amend", "--no-edit", cwd=tree)
+    return merged(sandbox, tree, approved), sandbox
 
 
-def case_rebased():
-    run, repository, environment = rebased(None)
-    if run.returncode or not (repository / "b.txt").exists() or change_state(repository, environment) != "CLOSED":
+def case_rebased(work):
+    run, sandbox = rebased(work / "same", None)
+    if run.returncode or not (sandbox.repository / "b.txt").exists() or change_state(sandbox) != "CLOSED":
         return replay_probe.fail(f"a rebase with the same diff: merge exited {run.returncode}: {run.stderr.strip()}")
-    for edit in ("other work\n", "  work\n"):
-        run, repository, environment = rebased(edit)
-        if run.returncode != 1 or "judge the tip again" not in run.stderr or change_state(repository, environment) != "OPEN":
+    for n, edit in enumerate(("other work\n", "  work\n")):
+        run, sandbox = rebased(work / str(n), edit)
+        if run.returncode != 1 or "judge the tip again" not in run.stderr or change_state(sandbox) != "OPEN":
             return replay_probe.fail(f"a rebase that changed the diff to {edit!r}: merge exited {run.returncode}: {run.stdout}{run.stderr}")
     return 0
 
 
-def case_owned_branches():
-    work, repository, origin, environment = setup()
-    tree, head = worker(work, repository, environment)
-    if merged(work, repository, origin, environment, tree, head).returncode:
+def case_owned_branches(work):
+    sandbox = setup(work)
+    tree, head = worker(sandbox)
+    if merged(sandbox, tree, head).returncode:
         return replay_probe.fail("the worker's change did not merge")
     for branch in ("probe-worker-docs", "probe-worker-two-words", "probe-workers"):
-        sh("git", "branch", branch, "main", cwd=repository, environment=environment)
-        sh("git", "push", "-q", "origin", branch, cwd=repository, environment=environment)
-    sh("git", "checkout", "-q", "-b", "probe-worker-wip", cwd=repository, environment=environment)
-    sh("git", "commit", "-q", "--allow-empty", "-m", "wip", cwd=repository, environment=environment)
-    sh("git", "checkout", "-q", "main", cwd=repository, environment=environment)
-    out = sh(sys.executable, SCRIPTS / "remove-worktree.py", "probe-worker", cwd=repository, environment=environment, check=False).stdout
-    local = set(sh("git", "branch", "--format=%(refname:short)", cwd=repository, environment=environment).stdout.split())
-    remote = set(sh("git", "branch", "--format=%(refname:short)", cwd=origin, environment=environment).stdout.split())
+        sandbox.git("branch", branch, "main")
+        sandbox.git("push", "-q", "origin", branch)
+    sandbox.git("checkout", "-q", "-b", "probe-worker-wip")
+    sandbox.git("commit", "-q", "--allow-empty", "-m", "wip")
+    sandbox.git("checkout", "-q", "main")
+    out = script(sandbox, SCRIPTS / "remove-worktree.py", "probe-worker").stdout
+    local = set(sandbox.git("branch", "--format=%(refname:short)").split())
+    remote = set(sandbox.git("branch", "--format=%(refname:short)", cwd=sandbox.origin).split())
     if local != {"main", "probe-workers", "probe-worker-wip"} or remote != {"main", "probe-workers", "probe-worker-two-words"} \
             or "branch probe-worker-wip kept, unmerged commits" not in out or "origin branch probe-worker-two-words kept, not a worker branch name" not in out:
         return replay_probe.fail(f"local {sorted(local)}, origin {sorted(remote)}; printed {out.strip()}")
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased, "conflict-marker": case_conflict_marker, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased,
+         "conflict-marker": case_conflict_marker, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
 
 
 def main(args):
@@ -228,13 +215,13 @@ def main(args):
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2
-    try:
-        if CASES[args[1]]():
-            return 1
-    except RuntimeError as e:
-        return replay_probe.fail(str(e)[-400:])
-    print("PASS")
-    return 0
+    with replay_probe.scratch("local-landing-") as work:
+        try:
+            if CASES[args[1]](work):
+                return 1
+        except RuntimeError as e:
+            return replay_probe.fail(str(e)[-400:])
+    return replay_probe.Cases().finish()
 
 
 if __name__ == "__main__":

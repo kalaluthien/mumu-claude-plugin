@@ -1,134 +1,121 @@
 #!/usr/bin/env python3
-"""Replay owner additions to a held task on a git board in a temporary repository, with a `gh` on `PATH` that logs each call and fails, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
+"""Replay owner additions to a held task on a git board in a scratch repository, with a `gh` on `PATH` that logs each call and fails, and print `PASS` as the last line when the case holds, else `FAIL: <what differed>` and exit 1.
 
 usage: replay-additions.py [--case <name>]   (no argument: every one in turn)
 - path: an addition recorded by `decide` leaves the body as it was and shows in `list-additions.py`; a worker's `edit --base` folds it; an edit whose `--base` names the old body is refused with the board unchanged; nothing is left unfolded
 - prefix: with twenty additions recorded, a fold that names the last leaves the other nineteen listed, since `#comment-2` starts `#comment-21`
 - writes: three additions take fewer board writes by the path the playbooks give than by one body edit and one precheck comment per addition"""
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 
 SCRIPTS = pathlib.Path(__file__).resolve().parents[1] / "scripts"
-BODY = "## Goal\n\nProbe the pane.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
+LISTER = "../references/worker/scripts/list-additions.py"
+BODY = replay_probe.BODY
 ADDED = ("drop the releases line", "show the blocker on the title", "hide closed blockers")
 
 
-def setup():
-    work = pathlib.Path(tempfile.mkdtemp(prefix="additions-"))
-    repository = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repository)], check=True)
-    stub = replay_probe.stub_gh(work)
-    environment = {**os.environ, "HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "home"), "PATH": f"{stub}:{os.environ['PATH']}"}
-    (work / "body.md").write_text(BODY)
-    made = run(environment, repository, "use-board.py", "file", "--title", "Probe the pane", "--body", work / "body.md")
+def setup(work):
+    """(sandbox, number) of a task filed and held on a scratch board in WORK."""
+    box = replay_probe.Sandbox(work, [replay_probe.agent("probe-worker", 1)])
+    made = run(box, "use-board.py", "file", "--title", "Probe the pane", "--body", replay_probe.write_text(work, "body.md", BODY))
     number = made.stdout.strip().rsplit("/", 1)[-1]
-    run(environment, repository, "use-board.py", "hold", number, "--holders", "probe-worker")
-    return work, repository, environment, number
+    run(box, "use-board.py", "hold", number, "--holders", "probe-worker")
+    return box, number
 
 
-def run(environment, repository, script, *argv):
-    return replay_probe.run_python(SCRIPTS / script, repository, environment, *argv)
+def run(box, script, *argv):
+    return box.python(SCRIPTS / script, *map(str, argv))
 
 
-def commits(repository):
-    return int(subprocess.run(["git", "rev-list", "--count", "refs/teamwork-blackboard"], cwd=repository, capture_output=True, text=True).stdout)
+def commits(box):
+    return int(box.git("rev-list", "--count", "refs/teamwork-blackboard"))
 
 
-def body(repository, number):
-    return subprocess.run(["git", "show", f"refs/teamwork-blackboard:{number}/body.md"], cwd=repository, capture_output=True, text=True).stdout
+def body(box, number):
+    return box.git("show", f"refs/teamwork-blackboard:{number}/body.md")
 
 
-def owner_says(work, environment, repository, number, wish):
-    path = work / "owner.md"
-    path.write_text(f"> {wish}\n")
-    done = run(environment, repository, "use-board.py", "decide", number, "--decision", wish, "--text", path, "--by", "owner")
-    return done.stdout.strip().splitlines()[-1] if done.returncode == 0 else fail_with(done)
+def owner_says(box, number, wish):
+    done = run(box, "use-board.py", "decide", number, "--decision", wish, "--text", replay_probe.write_text(box.work, "owner.md", f"> {wish}\n"), "--by", "owner")
+    if done.returncode:
+        raise SystemExit(replay_probe.fail(f"exit {done.returncode}: {(done.stdout + done.stderr).strip()[-300:]}"))
+    return done.stdout.strip().splitlines()[-1]
 
 
-def fail_with(done):
-    raise SystemExit(f"FAIL: exit {done.returncode}: {(done.stdout + done.stderr).strip()[-300:]}")
-
-
-def body_file(work, new):
+def body_file(box, new):
     """The file of NEW, the body an edit hands over."""
-    path = work / "edit.md"
-    path.write_text(new)
-    return path
+    return replay_probe.write_text(box.work, "edit.md", new)
 
 
-def sha_of(environment, repository, script, number):
-    found = run(environment, repository, script, *(["read"] if script == "use-board.py" else []), number).stdout
+def sha_of(box, script, number):
+    found = run(box, script, *(["read"] if script == "use-board.py" else []), number).stdout
     return next(line.split("body sha: ")[1].strip() for line in found.splitlines() if "body sha: " in line)
 
 
-def check(environment, repository, work, ok, why):
-    log = work / "gh.log"
-    if log.exists():
-        raise SystemExit(f"FAIL: a task step called gh: {log.read_text().strip()[:200]}")
+def check(box, ok, why):
+    if box.gh_calls():
+        raise SystemExit(replay_probe.fail(f"a task step called gh: {box.gh_calls()[0][:200]}"))
     if not ok:
-        raise SystemExit(f"FAIL: {why}")
+        raise SystemExit(replay_probe.fail(why))
 
 
-def case_path(work, repository, environment, number):
-    first = sha_of(environment, repository, "use-board.py", number)
-    url = owner_says(work, environment, repository, number, ADDED[0])
-    listed = run(environment, repository, "../references/worker/scripts/list-additions.py", number)
-    check(environment, repository, work, listed.returncode == 0 and url in listed.stdout and "not in the body: 1" in listed.stdout and sha_of(environment, repository, "../references/worker/scripts/list-additions.py", number) == first and body(repository, number) == BODY,
+def case_path(work, box, number):
+    first = sha_of(box, "use-board.py", number)
+    url = owner_says(box, number, ADDED[0])
+    listed = run(box, LISTER, number)
+    check(box, listed.returncode == 0 and url in listed.stdout and "not in the body: 1" in listed.stdout and sha_of(box, LISTER, number) == first and body(box, number) == BODY,
           f"a recorded addition must leave the body alone and be listed once, got {listed.stdout!r}")
-    folded = BODY.replace("Probe the pane.", f"Probe the pane; the owner said: {ADDED[0]}.")
-    done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, folded), "--reason", f"folds {url}", "--base", first)
-    check(environment, repository, work, done.returncode == 0 and body(repository, number) == folded and "not in the body: 0" in run(environment, repository, "../references/worker/scripts/list-additions.py", number).stdout,
+    folded = BODY.replace("Do it.", f"Do it; the owner said: {ADDED[0]}.")
+    done = run(box, "use-board.py", "edit", number, "--body", body_file(box, folded), "--reason", f"folds {url}", "--base", first)
+    check(box, done.returncode == 0 and body(box, number) == folded and "not in the body: 0" in run(box, LISTER, number).stdout,
           f"the worker's fold must apply and leave nothing unfolded: {done.stderr.strip()[-200:]}")
-    before = commits(repository)
-    stale = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, BODY), "--reason", "put back the old body", "--base", first)
-    check(environment, repository, work, stale.returncode != 0 and commits(repository) == before and body(repository, number) == folded,
-          f"an edit based on the old body must be refused with nothing written: exit {stale.returncode}, {commits(repository) - before} commits added")
+    before = commits(box)
+    stale = run(box, "use-board.py", "edit", number, "--body", body_file(box, BODY), "--reason", "put back the old body", "--base", first)
+    check(box, stale.returncode != 0 and commits(box) == before and body(box, number) == folded,
+          f"an edit based on the old body must be refused with nothing written: exit {stale.returncode}, {commits(box) - before} commits added")
 
 
-def case_prefix(work, repository, environment, number):
-    urls = [owner_says(work, environment, repository, number, f"wish {k}") for k in range(20)]
-    sha = sha_of(environment, repository, "../references/worker/scripts/list-additions.py", number)
-    folded = BODY.replace("Probe the pane.", "Probe the pane; wish 19.")
-    done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, folded), "--reason", f"folds {urls[-1]}", "--base", sha)
-    listed = run(environment, repository, "../references/worker/scripts/list-additions.py", number).stdout
-    check(environment, repository, work, done.returncode == 0 and "not in the body: 19" in listed and all(url in listed for url in urls[:-1]) and urls[-1] not in listed,
+def case_prefix(work, box, number):
+    urls = [owner_says(box, number, f"wish {k}") for k in range(20)]
+    sha = sha_of(box, LISTER, number)
+    folded = BODY.replace("Do it.", "Do it; wish 19.")
+    done = run(box, "use-board.py", "edit", number, "--body", body_file(box, folded), "--reason", f"folds {urls[-1]}", "--base", sha)
+    listed = run(box, LISTER, number).stdout
+    check(box, done.returncode == 0 and "not in the body: 19" in listed and all(url in listed for url in urls[:-1]) and urls[-1] not in listed,
           f"folding the last of twenty must leave the other nineteen listed, got {listed[:300]!r}")
 
 
-def precheck(work, environment, repository, number):
-    return run(environment, repository, "use-board.py", "comment", number, "--reported", "criteria at the head pass")
+def precheck(box, number):
+    return run(box, "use-board.py", "comment", number, "--reported", "criteria at the head pass")
 
 
-def case_writes(work, repository, environment, number):
-    old_start = commits(repository)
+def case_writes(work, box, number):
+    old_start = commits(box)
     text = BODY
     for wish in ADDED:  # one decision, one manager edit, one worker edit and one precheck comment per addition
-        url = owner_says(work, environment, repository, number, wish)
+        url = owner_says(box, number, wish)
         for who in ("manager", "worker"):
-            text_new = text.replace("Probe the pane", f"Probe the pane ({who} {wish})", 1)
-            done = run(environment, repository, "use-board.py", "edit", number, "--body", body_file(work, text_new), "--reason", f"{who} folds {url}", "--base", sha_of(environment, repository, "use-board.py", number))
-            check(environment, repository, work, done.returncode == 0, f"edit: {done.stderr.strip()[-200:]}")
+            text_new = text.replace("Do it", f"Do it ({who} {wish})", 1)
+            done = run(box, "use-board.py", "edit", number, "--body", body_file(box, text_new), "--reason", f"{who} folds {url}", "--base", sha_of(box, "use-board.py", number))
+            check(box, done.returncode == 0, f"edit: {done.stderr.strip()[-200:]}")
             text = text_new
-        precheck(work, environment, repository, number)
-    old = commits(repository) - old_start
-    other_work, other_repo, other_env, other = setup()
-    start = commits(other_repo)
-    urls = [owner_says(other_work, other_env, other_repo, other, wish) for wish in ADDED]
-    listed = run(other_env, other_repo, "../references/worker/scripts/list-additions.py", other)
-    sha = sha_of(other_env, other_repo, "../references/worker/scripts/list-additions.py", other)
-    folded = BODY.replace("Probe the pane.", "Probe the pane; " + "; ".join(ADDED) + ".")
-    done = run(other_env, other_repo, "use-board.py", "edit", other, "--body", body_file(other_work, folded), "--reason", f"folds {' '.join(urls)}", "--base", sha)
-    precheck(other_work, other_env, other_repo, other)
-    new = commits(other_repo) - start
-    check(other_env, other_repo, other_work, listed.returncode == 0 and done.returncode == 0 and "not in the body: 0" in run(other_env, other_repo, "../references/worker/scripts/list-additions.py", other).stdout,
+        precheck(box, number)
+    old = commits(box) - old_start
+    other_box, other = setup(work / "other")
+    start = commits(other_box)
+    urls = [owner_says(other_box, other, wish) for wish in ADDED]
+    listed = run(other_box, LISTER, other)
+    sha = sha_of(other_box, LISTER, other)
+    folded = BODY.replace("Do it.", "Do it; " + "; ".join(ADDED) + ".")
+    done = run(other_box, "use-board.py", "edit", other, "--body", body_file(other_box, folded), "--reason", f"folds {' '.join(urls)}", "--base", sha)
+    precheck(other_box, other)
+    new = commits(other_box) - start
+    check(other_box, listed.returncode == 0 and done.returncode == 0 and "not in the body: 0" in run(other_box, LISTER, other).stdout,
           f"the new path must fold all three: {done.stderr.strip()[-200:]}")
-    check(environment, repository, work, new < old, f"the new path took {new} board writes, the old {old}")
+    check(box, new < old, f"the new path took {new} board writes, the old {old}")
     print(f"three additions: {old} board writes by one edit and one precheck each, {new} by one fold")
 
 
@@ -141,9 +128,9 @@ def main(args):
     if len(args) != 2 or args[0] != "--case" or args[1] not in CASES:
         print(__doc__, file=sys.stderr)
         return 2
-    CASES[args[1]](*setup())
-    print("PASS")
-    return 0
+    with replay_probe.scratch("additions-") as work:
+        CASES[args[1]](work, *setup(work / "first"))
+    return replay_probe.Cases().finish()
 
 
 if __name__ == "__main__":

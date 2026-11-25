@@ -11,11 +11,11 @@
 - `outside`: a missing file outside the export, which no change adds, is a `wrong base`.
 
 usage: replay-base-rows.py"""
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints PASS; meets: the caller's need.\n\n"
@@ -35,21 +35,16 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="base-rows-"))
-    os.environ.update(HOME=str(work), GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com", GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
-    (work / "old.py").write_text("print('oops')\n")
-    for argv in (["init", "-q", "-b", "main"], ["add", "."], ["commit", "-q", "-m", "base"]):
-        subprocess.run(["git", *argv], cwd=work, check=True, capture_output=True)
-    wrong = []
-    for case, (command, quote, row) in CASES.items():
-        body = work.parent / f"{work.name}-{case}.md"
-        body.write_text(BODY.format(command=command, quote=quote))
-        done = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
-        print(f"ok {case}" if f"| {row} |" in done.stdout else f"fail {case}: {' '.join((done.stdout + done.stderr).split())[:400]}", flush=True)
-        wrong += [case] * (f"| {row} |" not in done.stdout)
-    print("FAIL" if wrong else "PASS")
-    return 1 if wrong else 0
-
+    cases = replay_probe.Cases()
+    with replay_probe.scratch("base-rows-") as work:
+        box = replay_probe.Sandbox(work, commit=False)
+        replay_probe.write_text(box.repository, "old.py", "print('oops')\n")
+        box.git("add", ".")
+        box.git("commit", "-q", "-m", "base")
+        for case, (command, quote, row) in CASES.items():
+            done = box.python(SCRIPT, "--base", "--ref", "main", replay_probe.write_text(work, f"{case}.md", BODY.format(command=command, quote=quote)))
+            cases.step(case, f"| {row} |" in done.stdout, done.stdout + done.stderr)
+    return cases.finish()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

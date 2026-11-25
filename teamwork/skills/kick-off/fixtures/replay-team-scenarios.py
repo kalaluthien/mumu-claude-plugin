@@ -1,60 +1,39 @@
 #!/usr/bin/env python3
-"""Replay the team in varied scenarios on a temporary git board and the fake herdr beside this file, and print `ok <scenario>`, or `fail <scenario>: <the output that failed>`.
+"""Replay the team in varied scenarios, each in a scratch repository with a git board and the fake herdr, each run under a stand-in `claude` started
+as the session its pane holds; print `ok <scenario>` or `fail <scenario>: <the output that failed>` per scenario, then `PASS` or `FAIL`, and exit 1
+on any failure.
 
 usage: replay-team-scenarios.py [--only <scenario>,...] [--verbose]
-`--verbose` also prints each run's output. TEAMWORK_FAKE_HERDR_BREAK=accept makes the fake herdr take every prompt and wait, so the scenarios that
-prove a send can fail must then fail."""
+`--verbose` also prints each run's output."""
 import json
-import os
 import pathlib
 import re
-import subprocess
 import sys
-import tempfile
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import replay_probe  # noqa: E402
 import usage_parser  # noqa: E402
 
-HERE = pathlib.Path(__file__).resolve().parent
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-SCRIPTS = HERE.parent / "scripts"
-GROUPS = []  # the process group of each run, which a scenario that starts a monitor checks is gone
+SCRIPTS = ROOT / "skills" / "kick-off" / "scripts"
+ADAPTERS = ROOT / "skills" / "kick-off" / "references" / "adapters"
+TELL = ADAPTERS / "message-herdr" / "scripts" / "tell-session.py"
+RENAME = ADAPTERS / "session-herdr" / "scripts" / "rename-session.py"
+agent = replay_probe.agent
+VERBOSE = False
 
 
-def agent(name, pane, status, workspace="w1"):
-    return {"name": name, "pane_id": f"{workspace}:p{pane}", "tab_id": f"{workspace}:t{pane}", "workspace_id": workspace,
-            "agent": "codex" if name.endswith("codex") else "claude", "agent_status": status, "interactive_ready": True}
-
-
-def herdr(*agents):
-    """A fake herdr state file holding AGENTS, each with its tab."""
-    state = pathlib.Path(tempfile.mkstemp(prefix="fake-herdr-", suffix=".json")[1])
-    state.write_text(json.dumps({"n": 10, "agents": list(agents),
-                                 "tabs": [{"tab_id": listed["tab_id"], "workspace_id": listed["workspace_id"], "label": listed["name"]} for listed in agents]}))
-    return state
-
-
-def run(argv, state, pane=None, event=None, seconds=120, cwd=None, **environment):
-    environment = {**os.environ, "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state),
-           "TEAMWORK_MONITOR_POLL": "1000", **({"HERDR_PANE_ID": pane} if pane else {}), **environment}
-    process = replay_probe.Group([str(argument) for argument in argv], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, cwd=cwd)
-    GROUPS.append(process.pid)
-    try:
-        out, _ = process.communicate(event and json.dumps(event), timeout=seconds)
-        code = process.returncode
-    except subprocess.TimeoutExpired:  # the heartbeat runs until killed, with the stand-in `claude` that wraps it
-        process.kill()
-        out, code = process.communicate()[0], None
+def run(box, argv, pane=None, seconds=120, **options):
+    """(exit code, stdout and stderr) of ARGV run in BOX from PANE; None for a run past SECONDS."""
+    done = box.run(argv, pane, timeout=seconds, **options)
     if VERBOSE:
-        print(f"$ {' '.join(map(str, argv))}\n{out}", file=sys.stderr)
-    return code, out
+        print(f"$ {' '.join(map(str, argv))}\n{done.stdout}{done.stderr}", file=sys.stderr)
+    return done.returncode, done.stdout + done.stderr
 
 
-def hook(state, pane, event, cwd=None, **environment):
-    name = next((listed["name"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["pane_id"] == pane), "none")
-    code, out = run(replay_probe.as_claude([ROOT / "hooks" / "route-event.py"], ["--name", name], pathlib.Path(state).with_suffix(".stand-in")), state, pane, event, cwd=cwd, **environment)
+def hook(box, pane, event, **options):
+    code, out = run(box, [replay_probe.ROUTER], pane, input=json.dumps(event), **options)
     try:
         output = json.loads(out)
     except ValueError:
@@ -63,19 +42,29 @@ def hook(state, pane, event, cwd=None, **environment):
         or output.get("reason") or out
 
 
-def heartbeat(state, pane, seconds=40, cwd=None, **environment):
-    argv = replay_probe.as_pane([ROOT / "monitors" / "print-team-gaps.py"], pane, {"TEAMWORK_FAKE_HERDR_STATE": str(state)}, pathlib.Path(state).with_suffix(".stand-in"))
-    return run(argv, state, pane, seconds=seconds, cwd=cwd, **environment)[1]
+def heartbeat(box, pane):
+    """The lines the monitor prints in PANE over two polls."""
+    return run(box, [ROOT / "monitors" / "print-team-gaps.py", "--polls", "2"], pane, seconds=60, TEAMWORK_MONITOR_POLL="0.2")[1]
 
 
-def tell(state, name, text="hi"):
-    note = pathlib.Path(tempfile.mkstemp(suffix=".md")[1])
-    note.write_text(text)
-    return run([SCRIPTS.parent / "references/adapters/message-herdr/scripts" / "tell-session.py", name, note], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")
+def tell(box, name, note=None):
+    return run(box, [TELL, name, note or replay_probe.write_text(box.work, "note.md", "hi")], TEAMWORK_TELL_SESSION_TIMEOUT="5")
 
 
-def status(state, name):
-    return next(listed["agent_status"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["name"] == name)
+def start(box, pane, name, args, *flags):
+    return run(box, [SCRIPTS / "start-session.py", name, box.repository, args, "--model", "haiku", "--effort", "low", *flags], pane, seconds=30)
+
+
+def listed(box, name):
+    return next((each for each in box.herdr_state()["agents"] if each["name"] == name), {})
+
+
+def workspaces(box):
+    return {tab["workspace_id"] for tab in box.herdr_state()["tabs"]}
+
+
+def tabs(box):
+    return len(box.herdr_state()["tabs"])
 
 
 def lines_about(text, name):
@@ -85,275 +74,214 @@ def lines_about(text, name):
 TEAM = (agent("teamwork-manager", 1, "idle"), agent("protocol-split-worker", 2, "idle"), agent("fixture-asking-worker", 3, "idle"))
 
 
-def git_team():
+def git_team(box):
     """A manager with two workers on a git board: its start and heartbeat name the idle worker once, with what it holds, and the asking one by its `answer` line; a worker with an open goal is stopped once."""
-    state = herdr(*TEAM)
-    work = pathlib.Path(tempfile.mkdtemp(prefix="git-team-"))
-    repository = work / "repo"
-    subprocess.run(["git", "init", "-q", str(repository)], check=True)
-    environment = {"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "claude")}
+    box.herdr(TEAM)
 
     def use(*argv):
-        return subprocess.run([sys.executable, str(SCRIPTS / "use-board.py"), *map(str, argv)], cwd=repository, capture_output=True, text=True,
-                              env={**os.environ, **environment, "HERDR_PANE_ID": "w1:p1", "TEAMWORK_FAKE_HERDR_STATE": str(state), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}"}).stdout.strip()
-
-    def text(name, body):
-        path = work / name
-        path.write_text(body)
-        return path
+        return box.python(SCRIPTS / "use-board.py", *argv, pane="w1:p1").stdout.strip()
 
     def filed(title):
-        return int(use("file", "--title", title, "--body", text("body.md", "Probe the team.\n")).rsplit("/", 1)[1])
+        return int(use("file", "--title", title, "--body", replay_probe.write_text(box.work, "body.md", "Probe the team.\n")).rsplit("/", 1)[1])
 
     first, asked, held_one, held_two = (filed(f"Probe the team's {word} task") for word in ("first", "asked", "held", "other"))
     for number, name in ((asked, "fixture-asking-worker"), (held_one, "protocol-split-worker"), (held_two, "protocol-split-worker")):
         use("hold", number, "--holders", name)
     use("comment", asked, "--blocked", "may the probe run")
-    start = hook(state, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""}, cwd=repository, **environment)
-    stop = hook(state, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""}, cwd=repository, **environment)
-    beat = heartbeat(state, "w1:p1", cwd=repository, **environment)
+    began = hook(box, "w1:p1", {"hook_event_name": "SessionStart", "session_id": ""})
+    stop = hook(box, "w1:p2", {"hook_event_name": "Stop", "stop_hook_active": False, "transcript_path": ""})
+    beat = heartbeat(box, "w1:p1")
     held = f"holds #{held_two} #{held_one}"
-    for out in (start, beat):
+    for out in (began, beat):
         # the asking worker waits on its manager, so its line is the manager's `answer`, not an `idle`
         if [line.split(":")[0] for line in lines_about(out, "protocol-split-worker")] != ["idle protocol-split-worker"] or held not in out \
                 or lines_about(out, "idle fixture-asking-worker") or not any(line.startswith(f"answer #{asked}:") for line in out.splitlines()):
             return False, out
-    return "Your goal still waits on you" in stop and f"#{held_one}" in stop, "\n".join([start, stop, beat])
+    return "Your goal still waits on you" in stop and f"#{held_one}" in stop, "\n".join([began, stop, beat])
 
 
-def git_board():
-    """The protocol on a git board: a task filed, made a part, made to wait, held by a live worker, asked, answered, edited, resolved and reopened reads back as written."""
-    code, out = run([HERE / "replay-board-scenario.py"], herdr(*TEAM, agent("probe-worker", 4, "idle")))
-    steps = dict(re.findall(r"^step (\S+)\n((?:(?!step ).*\n?)*)", out, re.M))
-    ok = code == 0 and "holders=['probe-worker']" in steps.get("hold", "") and "parent=root" in steps.get("part", "") \
-        and "waits=blocked by #task" in steps.get("order", "") and "task: CLOSED" in steps.get("resolve-task", "") \
-        and "root: CLOSED" in steps.get("resolve-task", "") and "root: OPEN" in steps.get("reopen", "") \
-        and "follow-up: OPEN labels=[] parent=root" in steps.get("part-again", "") and "root: CLOSED" in steps.get("resolve-again", "")
-    return ok, out
-
-
-def git_landing():
-    """Two workers' changes landed in a repository with no remote: every step of replay-landing-scenario.py is ok."""
-    code, out = run([HERE / "replay-landing-scenario.py"], herdr(*TEAM))
-    return code == 0 and "fail" not in out, out
-
-
-def herdr_receiver(status_now, expect_code, expect):
+def herdr_receiver(box, status_now, expect_code, expect):
     """A non-Claude receiver in STATUS_NOW told by tell-session.py."""
-    state = herdr(agent("protocol-split-worker", 1, "working"), agent("receiver-codex", 2, status_now))
-    code, out = tell(state, "receiver-codex")
+    box.herdr([agent("protocol-split-worker", 1, "working"), agent("receiver-codex", 2, status_now)])
+    code, out = tell(box, "receiver-codex")
     return code == expect_code and re.search(expect, out) is not None, out
 
 
-def tell_claude():
+def tell_claude(box):
     """A Claude receiver, idle or working, told by tell-session.py with a text file or with a second argument that is no file: refused within 2 s, naming SendMessage, and never prompted."""
-    state = herdr(agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working"))
+    box.herdr([agent("protocol-split-worker", 1, "working"), agent("idle-worker", 2, "idle"), agent("busy-worker", 3, "working")])
     outs = []
     for name, before in (("idle-worker", "idle"), ("busy-worker", "working")):
-        for call in (lambda: tell(state, name), lambda: run([SCRIPTS.parent / "references/adapters/message-herdr/scripts" / "tell-session.py", name, "not a file"], state, TEAMWORK_TELL_SESSION_TIMEOUT="5")):
+        for note in (None, "not a file"):
             started = time.time()
-            code, out = call()
+            code, out = tell(box, name, note)
             outs.append(out)
-            if code != 1 or time.time() - started > 2 or "SendMessage" not in out or status(state, name) != before:
+            if code != 1 or time.time() - started > 2 or "SendMessage" not in out or listed(box, name)["agent_status"] != before:
                 return False, "\n".join(outs)
     return True, "\n".join(outs)
 
 
-def send_failed():
+def send_failed(box):
     """A send herdr refuses says why, and nothing reaches the receiver."""
-    state = herdr(agent("protocol-split-worker", 1, "working"), agent("refuse-codex", 2, "idle"))
-    code, out = tell(state, "refuse-codex")
-    ok = code == 1 and "not delivered to refuse-codex: agent_pane_closed" in out and status(state, "refuse-codex") == "idle"
-    return ok, out
+    box.herdr([agent("protocol-split-worker", 1, "working"), agent("refuse-codex", 2, "idle")])
+    code, out = tell(box, "refuse-codex")
+    return code == 1 and "not delivered to refuse-codex: agent_pane_closed" in out and listed(box, "refuse-codex")["agent_status"] == "idle", out
 
 
-def group_runs(group):
-    try:
-        os.killpg(group, 0)
-        return True
-    except ProcessLookupError:
-        return False
-
-
-def monitor_restart():
+def monitor_restart(box):
     """The heartbeat stopped and started again names each gap it named before, none lost and none twice."""
-    state = herdr(*TEAM)
-    project = pathlib.Path(tempfile.mkdtemp(prefix="monitor-restart-"))
-    subprocess.run(["git", "init", "-q"], cwd=project, check=True)
-    first, second = (heartbeat(state, "w1:p1", cwd=project).splitlines() for _ in range(2))
-    left = [pid for pid in GROUPS if group_runs(pid)]
-    return bool(first) and sorted(first) == sorted(second) and len(set(first)) == len(first) and bool(GROUPS) and not left, "\n".join(first + ["-- restart --"] + second + [f"left running: {left}"] * bool(left))
+    box.herdr(TEAM)
+    first, second = (heartbeat(box, "w1:p1").splitlines() for _ in range(2))
+    return bool(first) and sorted(first) == sorted(second) and len(set(first)) == len(first), "\n".join(first + ["-- restart --"] + second)
 
 
-def two_managers():
+def two_managers(box):
     """Two managers of two projects in one workspace: neither is told to close the other, each is told to move to a workspace of its own,
     and a successor misnamed is refused."""
-    state = herdr(*TEAM, agent("other-manager", 4, "idle"), agent("other-task-worker", 5, "idle"))
-    outs = {pane: hook(state, pane, {"hook_event_name": "SessionStart", "session_id": ""}) for pane in ("w1:p1", "w1:p4")}
+    box.herdr([*TEAM, agent("other-manager", 4, "idle"), agent("other-task-worker", 5, "idle")])
+    outs = {pane: hook(box, pane, {"hook_event_name": "SessionStart", "session_id": ""}) for pane in ("w1:p1", "w1:p4")}
     ok = all([line.split(":")[0] for line in lines_about(output, other)] == ["shared workspace"] and f"`start` `{me}-next` with `succeed {me}`" in output for output, me, other in
              ((outs["w1:p1"], "teamwork-manager", "other-manager"), (outs["w1:p4"], "other-manager", "teamwork-manager")))
-    code, out = start(state, "w1:p1", "third-manager", "succeed teamwork-manager")
+    code, out = start(box, "w1:p1", "third-manager", "succeed teamwork-manager")
     return ok and code == 1 and "not named teamwork-manager-next" in out, "\n".join([*outs.values(), out])
 
 
-def start(state, pane, name, args, *flags):
-    return run([SCRIPTS / "start-session.py", name, "/tmp", args, "--model", "haiku", "--effort", "low", *flags], state, pane, seconds=30)
-
-
-def workspace_of(state, name):
-    return next((listed["workspace_id"] for listed in json.loads(pathlib.Path(state).read_text())["agents"] if listed["name"] == name), None)
-
-
-def workspaces(state):
-    return {tab["workspace_id"] for tab in json.loads(pathlib.Path(state).read_text())["tabs"]}
-
-
-def worker_placement():
+def worker_placement(box):
     """A worker and a sentinel started from a pane in another workspace land in their manager's; one naming a manager not live
     is refused with nothing opened, and no placement flag is taken."""
-    state = herdr(*TEAM, agent("other-task-worker", 1, "idle", "w2"))
-    before = workspaces(state)
-    outs = [start(state, "w2:p1", "place-task-worker", "worker place-task-worker manager teamwork-manager x"),
-            start(state, "w2:p1", "place-duty-sentinel", "sentinel place-duty-sentinel manager teamwork-manager x")]
-    tabs_before = len(json.loads(state.read_text())["tabs"])
-    refused = [start(state, "w1:p1", "lost-task-worker", "worker lost-task-worker manager gone-manager x"),
-               *(start(state, "w1:p1", "flag-task-worker", "worker flag-task-worker manager teamwork-manager x", *flags)
+    box.herdr([*TEAM, agent("other-task-worker", 1, "idle", "w2")])
+    before = workspaces(box)
+    outs = [start(box, "w2:p1", "place-task-worker", "worker place-task-worker manager teamwork-manager x"),
+            start(box, "w2:p1", "place-duty-sentinel", "sentinel place-duty-sentinel manager teamwork-manager x")]
+    tabs_before = tabs(box)
+    refused = [start(box, "w1:p1", "lost-task-worker", "worker lost-task-worker manager gone-manager x"),
+               *(start(box, "w1:p1", "flag-task-worker", "worker flag-task-worker manager teamwork-manager x", *flags)
                  for flags in (["--team"], ["--beside", "teamwork-manager"]))]
-    ok = all(code == 0 for code, _ in outs) and workspace_of(state, "place-task-worker") == workspace_of(state, "place-duty-sentinel") == "w1" \
-        and workspaces(state) == before and len(json.loads(state.read_text())["tabs"]) == tabs_before \
+    ok = all(code == 0 for code, _ in outs) and listed(box, "place-task-worker").get("workspace_id") == listed(box, "place-duty-sentinel").get("workspace_id") == "w1" \
+        and workspaces(box) == before and tabs(box) == tabs_before \
         and refused[0][0] == 1 and "gone-manager is not live" in refused[0][1] and all(code == 2 for code, _ in refused[1:])
     return ok, "\n".join(out for _, out in outs + refused)
 
 
-def worker_workspace():
+def worker_workspace(box):
     """A name ending in one role whose kick-off arguments name another is refused with nothing opened, since a worker or sentinel
     read as a manager would get a workspace of its own outside its team."""
-    state = herdr(*TEAM)
-    before, tabs_before = workspaces(state), len(json.loads(state.read_text())["tabs"])
-    refused = [start(state, "w1:p1", "stray-task-worker", "manager stray-task-worker"),
-               start(state, "w1:p1", "stray-duty-sentinel", "teamwork-manager"),
-               start(state, "w1:p1", "stray-other-manager", "worker stray-other-manager manager teamwork-manager x")]
-    ok = all(code == 2 and "kick-off arguments start a" in out for code, out in refused) \
-        and workspaces(state) == before and len(json.loads(state.read_text())["tabs"]) == tabs_before
+    box.herdr(TEAM)
+    before, tabs_before = workspaces(box), tabs(box)
+    refused = [start(box, "w1:p1", "stray-task-worker", "manager stray-task-worker"),
+               start(box, "w1:p1", "stray-duty-sentinel", "teamwork-manager"),
+               start(box, "w1:p1", "stray-other-manager", "worker stray-other-manager manager teamwork-manager x")]
+    ok = all(code == 2 and "kick-off arguments start a" in out for code, out in refused) and workspaces(box) == before and tabs(box) == tabs_before
     return ok, "\n".join(out for _, out in refused)
 
 
-def role_names():
+def role_names(box):
     """A session starts only under a name ending in a role suffix, however long its stem; any other name is refused with the allowed forms
     named and nothing opened, since the heartbeat lists a session by that suffix."""
-    state = herdr(*TEAM)
+    box.herdr(TEAM)
     long_stem = "x" * 40
-    allowed = [start(state, "w1:p1", f"{long_stem}-worker", f"worker {long_stem}-worker manager teamwork-manager x"),
-               start(state, "w1:p1", "duty-sentinel", "sentinel duty-sentinel manager teamwork-manager x"),
-               start(state, "w1:p1", "odd-manager", "odd"),
-               start(state, "w1:p1", "teamwork-manager-next", "succeed teamwork-manager")]
-    tabs_before = len(json.loads(state.read_text())["tabs"])
-    refused = [start(state, "w1:p1", "bare-task", "worker bare-task manager teamwork-manager x"),
-               start(state, "w1:p1", "bare-lead", "bare")]
+    allowed = [start(box, "w1:p1", f"{long_stem}-worker", f"worker {long_stem}-worker manager teamwork-manager x"),
+               start(box, "w1:p1", "duty-sentinel", "sentinel duty-sentinel manager teamwork-manager x"),
+               start(box, "w1:p1", "odd-manager", "odd"),
+               start(box, "w1:p1", "teamwork-manager-next", "succeed teamwork-manager")]
+    tabs_before = tabs(box)
+    refused = [start(box, "w1:p1", "bare-task", "worker bare-task manager teamwork-manager x"),
+               start(box, "w1:p1", "bare-lead", "bare")]
     ok = all(code == 0 for code, _ in allowed) and all(code == 2 and "<task>-worker" in out and "<manager>-next" in out for code, out in refused) \
-        and len(json.loads(state.read_text())["tabs"]) == tabs_before
+        and tabs(box) == tabs_before
     return ok, "\n".join(out for _, out in allowed + refused)
 
 
-def manager_placement():
+def manager_placement(box):
     """A manager opens a workspace of its own; a successor joins its predecessor's workspace, or opens its own when another project's
     manager shares that workspace."""
-    state = herdr(*TEAM, agent("crowded-manager", 1, "idle", "w3"), agent("other-manager", 2, "idle", "w3"))
-    outs = [start(state, "w1:p2", "fresh-manager", "fresh"),
-            start(state, "w1:p2", "teamwork-manager-next", "succeed teamwork-manager"),
-            start(state, "w1:p2", "crowded-manager-next", "succeed crowded-manager")]
-    placed = [workspace_of(state, name) for name in ("fresh-manager", "teamwork-manager-next", "crowded-manager-next")]
-    labels = {tab["workspace_id"]: tab["label"] for tab in json.loads(state.read_text())["tabs"]}
+    box.herdr([*TEAM, agent("crowded-manager", 1, "idle", "w3"), agent("other-manager", 2, "idle", "w3")])
+    outs = [start(box, "w1:p2", "fresh-manager", "fresh"),
+            start(box, "w1:p2", "teamwork-manager-next", "succeed teamwork-manager"),
+            start(box, "w1:p2", "crowded-manager-next", "succeed crowded-manager")]
+    placed = [listed(box, name).get("workspace_id") for name in ("fresh-manager", "teamwork-manager-next", "crowded-manager-next")]
+    labels = {tab["workspace_id"]: tab["label"] for tab in box.herdr_state()["tabs"]}
     ok = all(code == 0 for code, _ in outs) and placed[0] not in ("w1", "w3", None) and placed[1] == "w1" \
         and placed[2] not in ("w1", "w3", None, placed[0]) and labels.get(placed[0]) == "fresh-manager"
     return ok, "\n".join(out for _, out in outs) + f"\nplaced {placed}"
 
 
-def moved_me():
+def moved_me(box):
     """A session whose pane moved, its shell's HERDR_PANE_ID left naming another session's pane, still finds itself by its session id."""
-    state = herdr(dict(agent("teamwork-manager", 15, "idle", "w4"), agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9"))
-    project = pathlib.Path(tempfile.mkdtemp(prefix="moved-me-"))
-    (project / "teamwork").mkdir()
-    subprocess.run(["git", "init", "-q"], cwd=project, check=True)
-    me = replay_probe.as_claude([SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"], ["--name", "teamwork-manager"], pathlib.Path(state).with_suffix(".stand-in"))
-    code, out = run(me, state, "w9:p1", cwd=project, CLAUDE_CODE_SESSION_ID="moved-id")
+    (box.repository / "teamwork").mkdir()
+    me = [SCRIPTS.parent / "references/manager/scripts" / "print-scope-folder.py", "--me"]
+    box.herdr([agent("teamwork-manager", 15, "idle", "w4", agent_session={"value": "moved-id"}), agent("other-manager", 1, "idle", "w9")])
+    code, out = run(box, me, "w9:p1", claude=["--name", "teamwork-manager"], CLAUDE_CODE_SESSION_ID="moved-id")
     # with no session id listed, as for an agent herdr gives none, the pane it started in still finds it
-    unlisted = herdr(agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9"))
-    code_pane, out_pane = run(me, unlisted, "w4:p15", cwd=project, CLAUDE_CODE_SESSION_ID="moved-id")
+    box.herdr([agent("teamwork-manager", 15, "idle", "w4"), agent("other-manager", 1, "idle", "w9")])
+    code_pane, out_pane = run(box, me, "w4:p15", CLAUDE_CODE_SESSION_ID="moved-id")
     return code == code_pane == 0 and out.strip() == out_pane.strip() == "teamwork", out + out_pane
 
 
-def moved_close():
+def moved_close(box):
     """A session whose pane moves while it is closed still gets its dialog answered at its new pane, and closes."""
-    stuck = dict(agent("moving-worker", 1, "blocked", "w9"), screen="Background work is running", move="w4:p15", move_after=2)  # after the own check and the first read
-    state = herdr(*TEAM, stuck)
-    code, out = run([SCRIPTS / "close-session.py", "moving-worker"], state, "w1:p1", seconds=30, TEAMWORK_CLOSE_SESSION_TIMEOUT="5")
+    stuck = agent("moving-worker", 1, "blocked", "w9", screen="Background work is running", move="w4:p15", move_after=2)  # after the own check and the first read
+    box.herdr([*TEAM, stuck])
+    code, out = run(box, [SCRIPTS / "close-session.py", "moving-worker"], "w1:p1", seconds=30, TEAMWORK_CLOSE_SESSION_TIMEOUT="5")
     return code == 0 and "moving-worker exited" in out, out
 
 
-def moved_tell():
+def moved_tell(box):
     """A receiver whose pane moved after the read that found it still gets the text."""
-    state = herdr(*TEAM, dict(agent("moving-receiver-codex", 1, "idle", "w9"), move="w4:p15"))
-    code, out = tell(state, "moving-receiver-codex")
+    box.herdr([*TEAM, agent("moving-receiver-codex", 1, "idle", "w9", move="w4:p15")])
+    code, out = tell(box, "moving-receiver-codex")
     return code == 0 and out.strip() == "delivered to moving-receiver-codex", out
 
 
-def moved_answer():
+def moved_answer(box):
     """A tool prompt whose pane moved after the read that found it is still read and answered."""
     screen = "Bash command\n\nDo you want to proceed?\n❯ 1. Yes\n  2. No"
-    state = herdr(*TEAM, dict(agent("moving-asker-worker", 1, "blocked", "w9"), screen=screen, move="w4:p15"))
-    code, out = run([SCRIPTS / "answer-prompt.py", "moving-asker-worker", "1"], state, "w1:p1")
-    answered = next(listed.get("answered") for listed in json.loads(state.read_text())["agents"] if listed["name"] == "moving-asker-worker")
-    return code == 0 and answered == "1", out
+    box.herdr([*TEAM, agent("moving-asker-worker", 1, "blocked", "w9", screen=screen, move="w4:p15")])
+    code, out = run(box, [SCRIPTS / "answer-prompt.py", "moving-asker-worker", "1"], "w1:p1")
+    return code == 0 and listed(box, "moving-asker-worker").get("answered") == "1", out
 
 
 BOX = "─" * 20 + " teamwork-manager ─\n❯ {draft}\n" + "─" * 40 + "\n  -- INSERT --"
 
 
-def hinted_rename():
+def rename(box, session_id, seconds=60, **more):
+    """rename-session.py run by the manager in w9:p1, whose /rename the fake herdr records in the sandbox's transcript, as Claude Code does."""
+    box.herdr([agent("teamwork-manager", 1, "idle", "w9", agent_session={"value": session_id}, **more)])
+    return run(box, [RENAME, "renamed-manager"], "w9:p1", seconds=seconds, CLAUDE_CODE_SESSION_ID=session_id)
+
+
+def hinted_rename(box):
     """A box showing only Claude Code's dim hint, `Press up to edit queued messages`, is empty, so the session is renamed."""
-    home = tempfile.mkdtemp(prefix="fake-home-")
-    hint = BOX.format(draft="\x1b[2mPress up to edit queued messages\x1b[0m")
-    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "hint-id"}, screen=hint))
-    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
-                    CLAUDE_CODE_SESSION_ID="hint-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
+    code, out = rename(box, "hint-id", screen=BOX.format(draft="\x1b[2mPress up to edit queued messages\x1b[0m"))
     return code == 0 and out.strip() == "renamed to renamed-manager", out
 
 
-def kept_draft():
+def kept_draft(box):
     """A session whose prompt box holds an unsent draft is sent no `/rename`: the script says why it did not rename, and the draft stays."""
-    home = tempfile.mkdtemp(prefix="fake-home-")
-    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "draft-id"}, screen=BOX.format(draft="half a sentence")))
-    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=90,
-                    CLAUDE_CODE_SESSION_ID="draft-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
-    typed = (pathlib.Path(home) / "config" / "projects").exists()  # the fake herdr writes a transcript only for a typed `/rename`
+    code, out = rename(box, "draft-id", seconds=90, screen=BOX.format(draft="half a sentence"))
+    typed = (box.config / "projects").exists()  # the fake herdr writes a transcript only for a typed `/rename`
     return code == 1 and out.startswith("not renamed to renamed-manager: the prompt box holds an unsent draft") and not typed, out
 
 
-def moved_rename():
+def moved_rename(box):
     """A session whose pane moved after the read that found it is still renamed in herdr and in Claude Code."""
-    home = tempfile.mkdtemp(prefix="fake-home-")
-    state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15", screen=BOX.format(draft="")))
-    code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
-                    CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
-    return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
+    code, out = rename(box, "moved-id", move="w4:p15", screen=BOX.format(draft=""))
+    return code == 0 and out.strip() == "renamed to renamed-manager" and listed(box, "renamed-manager").get("workspace_id") == "w4", out
 
 
-def moved_start():
+def moved_start(box):
     """A started session whose pane moves before its kick-off is typed still takes its kick-off."""
-    state = herdr(*TEAM)
-    code, out = run([SCRIPTS / "start-session.py", "moving-slow-worker", "/tmp", "worker moving-slow-worker manager teamwork-manager x",
-                     "--model", "haiku", "--effort", "low"], state, "w1:p1", seconds=60, TEAMWORK_START_SESSION_TIMEOUT="10")
-    return code == 0 and "took its kick-off" in out and status(state, "moving-slow-worker") == "working", out
+    box.herdr(TEAM)
+    code, out = run(box, [SCRIPTS / "start-session.py", "moving-slow-worker", box.repository, "worker moving-slow-worker manager teamwork-manager x",
+                          "--model", "haiku", "--effort", "low"], "w1:p1", seconds=60, TEAMWORK_START_SESSION_TIMEOUT="10")
+    return code == 0 and "took its kick-off" in out and listed(box, "moving-slow-worker").get("agent_status") == "working", out
 
 
 SCENARIOS = {
     "git-team": git_team,
-    "git-board": git_board,
-    "git-landing": git_landing,
-    "herdr-idle": lambda: herdr_receiver("idle", 0, r"^delivered to receiver-codex$"),
-    "herdr-busy": lambda: herdr_receiver("working", 0, r"^delivered to receiver-codex after its turn$"),
-    "herdr-prompt": lambda: herdr_receiver("blocked", 1, r"^not delivered to receiver-codex: blocked at a tool prompt"),
+    "herdr-idle": lambda box: herdr_receiver(box, "idle", 0, r"^delivered to receiver-codex$"),
+    "herdr-busy": lambda box: herdr_receiver(box, "working", 0, r"^delivered to receiver-codex after its turn$"),
+    "herdr-prompt": lambda box: herdr_receiver(box, "blocked", 1, r"^not delivered to receiver-codex: blocked at a tool prompt"),
     "tell-claude": tell_claude,
     "send-failed": send_failed,
     "monitor-restart": monitor_restart,
@@ -373,10 +301,6 @@ SCENARIOS = {
 }
 
 
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {detail.strip()}", flush=True)
-
-
 def main(args):
     global VERBOSE
     parser = usage_parser.parser(__doc__)
@@ -384,12 +308,13 @@ def main(args):
     parser.add_argument("--verbose", action="store_true")
     options = parser.parse_args(args)
     VERBOSE = options.verbose
-    for name, scenario in SCENARIOS.items():
-        if options.only and name not in options.only.split(","):
-            continue
-        ok, out = scenario()
-        step(name, ok, out)
-    return 0
+    cases = replay_probe.Cases(only=[name for name in options.only.split(",") if name])
+    with replay_probe.scratch("team-scenarios-") as work:
+        for name, scenario in SCENARIOS.items():
+            if cases.wanted(name):
+                ok, out = scenario(replay_probe.Sandbox(work / name))
+                cases.step(name, ok, out)
+    return cases.finish()
 
 
 if __name__ == "__main__":

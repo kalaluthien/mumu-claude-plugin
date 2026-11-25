@@ -14,12 +14,13 @@
 
 usage: replay-hunk-groups.py"""
 import importlib.util
-import os
 import pathlib
 import random
 import subprocess
 import sys
-import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
@@ -27,12 +28,7 @@ BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: noth
 HUNKS = 30
 PIECES = ["a", "b", "", "x\x0cy", "t  ", "c\r", "d\x0bx", "e\x85", "same", "-dash", "+plus", "@@ at", "\\ slash"]
 PAIRS = 400
-results = {}
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    results[name] = ok
+RUN_SECONDS = 600  # a `--hunks` call runs the check once per revert
 
 
 def random_lines(generator):
@@ -40,22 +36,22 @@ def random_lines(generator):
     return "".join(piece + "\n" for piece in body[:-1]) + "".join(piece + generator.choice(["", "\n"]) for piece in body[-1:])
 
 
-def take_back_bytes():
-    """The pairs whose head, taken back, differs from their base."""
+def take_back_bytes(sandbox):
+    """The pairs whose head, taken back, differs from their base, each diffed by git in SANDBOX's environment."""
+    # a property of the script's own function over random files, which a run of the script reaches only through a check per pair
     spec = importlib.util.spec_from_file_location("run_criteria", SCRIPT)
     module = importlib.util.module_from_spec(spec)
-    sys.path.insert(0, str(SCRIPT.parents[3] / "lib"))
     spec.loader.exec_module(module)
     generator = random.Random(1450)
-    work = pathlib.Path(tempfile.mkdtemp(prefix="take-back-"))
+    work = sandbox.work / "take-back"
     for name in ("old", "new"):
-        (work / name).mkdir()
+        (work / name).mkdir(parents=True)
     wrong = []
     for _ in range(PAIRS):
         base, head = random_lines(generator), random_lines(generator)
         (work / "old" / "f").write_bytes(base.encode("latin-1"))
         (work / "new" / "f").write_bytes(head.encode("latin-1"))
-        diff = subprocess.run(["git", "diff", "--no-index", "-U0", "--src-prefix=a/", "--dst-prefix=b/", "old/f", "new/f"], cwd=work, capture_output=True).stdout
+        diff = subprocess.run(["git", "diff", "--no-index", "-U0", "--src-prefix=a/", "--dst-prefix=b/", "old/f", "new/f"], cwd=work, env=sandbox.environment, capture_output=True).stdout
         wrong += [(base, head)] * (module.take_back(head, [patch for _, _, patch in module.split_hunks(diff.decode("latin-1"))]) != base)
     return wrong
 
@@ -64,13 +60,14 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="hunk-groups-"))
-    log = work.parent / f"{work.name}-runs.log"
-    os.environ.update(HOME=str(work), GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com",
-                      GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
+    with replay_probe.scratch("hunk-groups-") as folder:
+        return replay(folder)
 
-    def git(*argv):
-        subprocess.run(["git", *argv], cwd=work, check=True, capture_output=True)
+
+def replay(folder):
+    cases = replay_probe.Cases()
+    sandbox = replay_probe.Sandbox(folder, commit=False)
+    work, git, log = sandbox.repository, sandbox.git, folder / "runs.log"
 
     git("init", "-q", "-b", "main")
     (work / "big.txt").write_text("".join(f"old {n}\nkeep {n}\n" for n in range(HUNKS)))
@@ -120,29 +117,28 @@ def main(args):
     # a run that leaves a line in the log is one where the big file is not whole, so a reverted run; the unneeded hunk is the middle one of small.txt
     command = (f"test $(grep -c '^new' big.txt) = {HUNKS} || echo big >> {log}; "
                f"test $(grep -c '^new' big.txt) = {HUNKS} && test $(grep -c '^new [4-7]$' half.txt) = 4 && test $(tail -n 4 dels.txt | grep -c '^gone') = 0 && test \"$(wc -c < nonl.txt | tr -d ' ')\" != 7 && (test -s added.txt || test ! -e added.txt) && grep -q '^a new' small.txt && grep -q '^c new' small.txt && (test ! -d d || touch d/stamp) && test ! -d d && test -L link2 && test \"$(readlink link)\" = new-target && test -x exe.sh && test -x run.sh && grep -q '^y' 한글.txt && test \"$(readlink ln)\" = 새-target && test $(wc -c < crlf.txt | tr -d ' ') = 6 && grep -q '^unneeded' \"d e/a b.txt\" && python3 c.py | grep -q new && echo ok")
-    body = work.parent / f"{work.name}-body.md"
+    body = folder / "body.md"
     body.write_text(BODY.format(command=command))
 
     def call(*options):
         log.write_text("")
-        done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "main", *options, str(body)], cwd=work, capture_output=True, text=True)
+        done = sandbox.python(SCRIPT, "--hunks", "--ref", "main", *options, body, timeout=RUN_SECONDS)
         return done.returncode, done.stdout, done.stderr, len(log.read_text().split())
 
     code, out, error, runs = call()
-    step("few-runs", runs <= 3 and "big.txt: 30 hunks not judged one by one" in out, (runs, out, error))
-    step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out and "link:" not in out and "a b.txt" not in out, (code, out, error))
-    step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
-    step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
-    step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))
-    step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out and "link2:1: unneeded hunk" in out and "run.sh:2: unneeded hunk" in out and "crlf.txt:2: unneeded hunk" in out, (code, out, error))
-    changed = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--name-only", "main...HEAD"], cwd=work, capture_output=True, text=True).stdout.split("\n")
-    step("names-korean", {"한글.txt", "ln"} <= set(changed) and "ln:" not in out and all(line.split(":")[0].isascii() for line in out.splitlines() if "unneeded" in line), (code, out, error))
+    cases.step("few-runs", runs <= 3 and "big.txt: 30 hunks not judged one by one" in out, (runs, out, error))
+    cases.step("names-unneeded", code == 1 and "small.txt:3: unneeded hunk" in out and "big.txt:" not in out.replace("big.txt: ", "") and "c.py:2: unneeded condition" in out and "small.txt:1" not in out and "small.txt:5" not in out and "gone.txt" not in out and "link:" not in out and "a b.txt" not in out, (code, out, error))
+    cases.step("names-whole", all(f"wide.txt:{2 * n + 1}: unneeded hunk" in out for n in range(HUNKS)), (code, out, error))
+    cases.step("names-half", all(f"half.txt:{2 * n + 1}: unneeded hunk" in out for n in range(4)) and "half.txt:9" not in out and "half.txt: 4 hunks not judged one by one" in out, (code, out, error))
+    cases.step("names-deletions", out.count("dels.txt:") == 5 and "dels.txt: 4 hunks not judged one by one" in out, (code, out, error))
+    cases.step("names-edges", "added.txt:1: unneeded hunk" in out and "nonl.txt:2: unneeded hunk" in out and "link2:1: unneeded hunk" in out and "run.sh:2: unneeded hunk" in out and "crlf.txt:2: unneeded hunk" in out, (code, out, error))
+    changed = git("-c", "core.quotepath=false", "diff", "--name-only", "main...HEAD").split("\n")
+    cases.step("names-korean", {"한글.txt", "ln"} <= set(changed) and "ln:" not in out and all(line.split(":")[0].isascii() for line in out.splitlines() if "unneeded" in line), (code, out, error))
     code, out, error, runs = call("--each")
-    step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
-    wrong = take_back_bytes()
-    step("takes-back-bytes", not wrong, wrong[:2])
-    print("PASS" if all(results.values()) else "FAIL")
-    return 0 if all(results.values()) else 1
+    cases.step("each-judges-all", runs == HUNKS and "small.txt:3: unneeded hunk" in out, (runs, code, out, error))
+    wrong = take_back_bytes(sandbox)
+    cases.step("takes-back-bytes", not wrong, wrong[:2])
+    return cases.finish()
 
 
 if __name__ == "__main__":

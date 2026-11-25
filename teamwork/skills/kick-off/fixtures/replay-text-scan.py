@@ -9,62 +9,48 @@ per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `session-once`: a check that starts a session runs it once, with no second run to strip its scans.
 
 usage: replay-text-scan.py"""
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria.py"
-BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints PASS; meets: the caller's need.\n\n"
-        "## Definition of done\n\n1. [check] **The probe prints PASS when it runs**: `{command}` prints `PASS`; on base `FAIL`.\n")
-results = {}
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    results[name] = ok
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="text-scan-"))
-    log = work.parent / f"{work.name}-sessions.log"
-    stand_in = work.parent / f"{work.name}-bin"
-    stand_in.mkdir()
-    (stand_in / "claude").write_text(f"#!/bin/sh\necho session >> {log}\n")
-    (stand_in / "claude").chmod(0o755)
-    os.environ.update(HOME=str(work), PATH=f"{stand_in}{os.pathsep}{os.environ['PATH']}", GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com",
-                      GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
-    (work / "README.md").write_text("hello\n")
-    (work / "tool.py").write_text("print('ok')\n")
-    for argv in (["init", "-q", "-b", "main"], ["add", "."], ["commit", "-q", "-m", "base"]):
-        subprocess.run(["git", *argv], cwd=work, check=True, capture_output=True)
+    cases = replay_probe.Cases()
+    with replay_probe.scratch("text-scan-") as work:
+        sandbox = replay_probe.Sandbox(work, commit=False)
+        log = work / "sessions.log"
+        replay_probe.write_text(sandbox.bin, "claude", f"#!/bin/sh\necho session >> '{log}'\n").chmod(0o755)
+        replay_probe.write_text(sandbox.repository, "README.md", "hello\n")
+        replay_probe.write_text(sandbox.repository, "tool.py", "print('ok')\n")
+        sandbox.git("add", ".")
+        sandbox.git("commit", "-q", "-m", "base")
 
-    def call(command):
-        log.write_text("")
-        body = work.parent / f"{work.name}-body.md"
-        body.write_text(BODY.format(command=command))
-        done = subprocess.run([sys.executable, str(SCRIPT), "--base", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
-        return done.returncode, done.stdout, done.stderr, len(log.read_text().split())
+        def call(command):
+            log.write_text("")
+            body = replay_probe.write_text(work, "body.md", replay_probe.BODY.replace("`basename PASS`", f"`{command}`"))
+            done = sandbox.python(SCRIPT, "--base", "--ref", "main", body)
+            return done.returncode, done.stdout, done.stderr, len(log.read_text().split())
 
-    code, out, error, _ = call("grep -q zzzq README.md && python3 tool.py >/dev/null && echo PASS || echo FAIL")
-    step("scan-named", code == 1 and "| text scan |" in out and "To fix a `text scan` row" in out, (code, out, error))
-    code, out, error, _ = call("python3 tool.py 2>/dev/null | grep -q zzzq && echo PASS || echo FAIL")
-    step("pipe-kept", code == 0 and "| base ok |" in out, (code, out, error))
-    code, out, error, _ = call("grep -q hello README.md && python3 missing.py 2>/dev/null && echo PASS || echo FAIL")
-    step("system-kept", code == 0 and "| base ok |" in out, (code, out, error))
-    code, out, error, _ = call("a=$(python3 tool.py | grep -c zzzq); test \"$a\" = 1 && echo PASS || echo FAIL")
-    step("value-kept", code == 0 and "| base ok |" in out, (code, out, error))
-    code, out, error, _ = call("python3 tool.py > made.txt; grep -q zzzq made.txt && echo PASS || echo FAIL")
-    step("written-kept", code == 0 and "| base ok |" in out, (code, out, error))
-    code, out, error, sessions = call("claude -p hi >/dev/null; grep -q zzzq README.md && echo PASS || echo FAIL")
-    step("session-once", code == 0 and "| base ok |" in out and sessions == 1, (code, sessions, out, error))
-    print("PASS" if all(results.values()) else "FAIL")
-    return 0 if all(results.values()) else 1
-
+        code, out, error, _ = call("grep -q zzzq README.md && python3 tool.py >/dev/null && echo PASS || echo FAIL")
+        cases.step("scan-named", code == 1 and "| text scan |" in out and "To fix a `text scan` row" in out, (code, out, error))
+        code, out, error, _ = call("python3 tool.py 2>/dev/null | grep -q zzzq && echo PASS || echo FAIL")
+        cases.step("pipe-kept", code == 0 and "| base ok |" in out, (code, out, error))
+        code, out, error, _ = call("grep -q hello README.md && python3 missing.py 2>/dev/null && echo PASS || echo FAIL")
+        cases.step("system-kept", code == 0 and "| base ok |" in out, (code, out, error))
+        code, out, error, _ = call("a=$(python3 tool.py | grep -c zzzq); test \"$a\" = 1 && echo PASS || echo FAIL")
+        cases.step("value-kept", code == 0 and "| base ok |" in out, (code, out, error))
+        code, out, error, _ = call("python3 tool.py > made.txt; grep -q zzzq made.txt && echo PASS || echo FAIL")
+        cases.step("written-kept", code == 0 and "| base ok |" in out, (code, out, error))
+        code, out, error, sessions = call("claude -p hi >/dev/null; grep -q zzzq README.md && echo PASS || echo FAIL")
+        cases.step("session-once", code == 0 and "| base ok |" in out and sessions == 1, (code, sessions, out, error))
+    return cases.finish()
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

@@ -15,13 +15,11 @@ usage: replay-location-arguments.py
 - forms: no playbook (`teamwork/**/*.md`), `hooks.json`, `monitors.json`, fixture or open task body of the board, read when the runner sits in a repository, holds a teamwork script run after a `cd` in the same command line,
   each hit listed with its file and line, or its task number and line"""
 import json
-import os
 import pathlib
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 PLUGIN = HERE.parents[2]
@@ -32,34 +30,18 @@ SCRIPTS = HERE.parent / "scripts"
 REFERENCES = HERE.parent / "references"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe runs in its worktree**: `sh -c 'git branch --show-current | sed s/probe-worker/PASS/'` prints `PASS`; on base `FAIL`.\n")
-failed = []
 
 
-def step(name, case, *argv):
-    """Runs CASE with ARGV and prints its result; a call of the case that exits nonzero, which `replay_probe.sh` raises, is the case's failure."""
-    try:
-        problem = case(*argv)
-    except (RuntimeError, OSError, ValueError) as e:
-        problem = e
-    print(f"fail {name}: {' '.join(str(problem).split())[:900]}" if problem else f"ok {name}", flush=True)
-    failed.extend([name] if problem else [])
-
-
-def setup():
-    """(work, the folder every call is made from, the scratch repository, the environment): the repository holds one commit and a second worktree of another worker."""
-    work = pathlib.Path(tempfile.mkdtemp(prefix="location-arguments-")).resolve()
-    stub = replay_probe.stub_gh(work)
-    replay_probe.write_git_config(work)
-    environment = {**{key: value for key, value in os.environ.items() if not key.startswith(("GIT_", "TEAMWORK_"))}, "PATH": f"{stub}:{os.environ['PATH']}", "HOME": str(work),
-                   "CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": str(work / "gitconfig")}
-    elsewhere, repository = work / "elsewhere", work / "repository"
+def setup(work):
+    """(the sandbox, the folder every call is made from): the sandbox's repository holds one commit and a second worktree of another worker."""
+    sandbox = replay_probe.Sandbox(work, commit=False)
+    elsewhere = work / "elsewhere"
     elsewhere.mkdir()
-    replay_probe.sh("git", "init", "-q", repository, cwd=work, environment=environment)
-    (repository / "a.txt").write_text("base\n")
-    replay_probe.sh("git", "add", "-A", cwd=repository, environment=environment)
-    replay_probe.sh("git", "commit", "-q", "-m", "base", cwd=repository, environment=environment)
-    replay_probe.sh("git", "worktree", "add", "-q", "-b", "other-worker", repository / ".claude" / "worktrees" / "other-worker", cwd=repository, environment=environment)
-    return work, elsewhere, repository, environment
+    replay_probe.write_text(sandbox.repository, "a.txt", "base\n")
+    sandbox.git("add", "-A")
+    sandbox.git("commit", "-q", "-m", "base")
+    sandbox.git("worktree", "add", "-q", "-b", "other-worker", sandbox.repository / ".claude" / "worktrees" / "other-worker")
+    return sandbox, elsewhere
 
 
 def trees(repository, environment):
@@ -68,7 +50,8 @@ def trees(repository, environment):
     return [pathlib.Path(line.split(" ", 1)[1]).resolve() for line in listed if line.startswith("worktree ")]
 
 
-def case_flow(work, elsewhere, repository, environment):
+def case_flow(sandbox, elsewhere):
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     def call(script, *argv, check=True):
         return replay_probe.sh(sys.executable, SCRIPTS / script, *argv, cwd=elsewhere, environment=environment, check=check)
 
@@ -140,8 +123,9 @@ def worker_with_commit(work, shared, git, name, environment):
     return tree
 
 
-def case_squash(work, elsewhere, repository, environment):
+def case_squash(sandbox, elsewhere):
     """Two workers whose branches a pull request merged as a squash, so `origin/HEAD` lacks their commits, are removed with their branches: one whose merge only the list of the newest closed pull requests gives, one whose merge only a lookup by its branch gives."""
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     shared, git = with_origin(work, "squash", environment)
     names = ("late-worker", "recent-worker")
     trees = [worker_with_commit(work, shared, git, name, environment) for name in names]
@@ -157,8 +141,9 @@ def case_squash(work, elsewhere, repository, environment):
     return None if not done.returncode and not left and not any(tree.exists() for tree in trees) else f"exit {done.returncode}, left {left}: {done.stdout[-300:]}{done.stderr[-300:]}"
 
 
-def case_removal(work, elsewhere, repository, environment):
+def case_removal(sandbox, elsewhere):
     """Two merged workers removed in one call from inside the first one's worktree, `git` counted by a stand-in first on `PATH`."""
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     shared, git = with_origin(work, "removal", environment)
 
     def add(name):
@@ -190,7 +175,8 @@ def case_removal(work, elsewhere, repository, environment):
     return None
 
 
-def case_names(work, elsewhere, repository, environment):
+def case_names(sandbox, elsewhere):
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     def call(script, *argv):
         return replay_probe.sh(sys.executable, SCRIPTS / script, *argv, "--repository", repository, cwd=elsewhere, environment=environment, check=False)
 
@@ -261,19 +247,18 @@ def old_form_hits(repository, environment):
     return hits
 
 
-def case_forms(work, elsewhere, repository, environment):
+def case_forms(sandbox, elsewhere):
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=HERE, capture_output=True, text=True).stdout.strip()
     hits = old_form_hits(pathlib.Path(top) if top else None, environment)
     return f"{len(hits)} calls run after a cd: {', '.join(hits)}" if hits else None
 
 
-def case_every(work, elsewhere, repository, environment):
+def case_every(sandbox, elsewhere):
     """Each script `flow` leaves out, run from ELSEWHERE as `<script> <arguments> --repository REPOSITORY`: its exit and a text only that repository's files or board give."""
-    state = work / "herdr-state.json"
-    state.write_text(json.dumps({"n": 10, "tabs": [], "agents": [
-        {"name": name, "pane_id": f"w1:p{at}", "tab_id": f"w1:t{at}", "workspace_id": "w1", "agent": "claude", "agent_status": "idle", "interactive_ready": True}
-        for at, name in ((2, "held-worker"), (3, "probe-manager"))]}))
-    environment = {**environment, "PATH": f"{HERE / 'fake-herdr'}:{environment['PATH']}", "TEAMWORK_FAKE_HERDR_STATE": str(state), "TEAMWORK_START_SESSION_TIMEOUT": "4"}
+    work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
+    sandbox.herdr([replay_probe.agent("held-worker", 2), replay_probe.agent("probe-manager", 3)], n=10)
+    environment = {**environment, "TEAMWORK_START_SESSION_TIMEOUT": "4"}
     (repository / "scopeprobe").mkdir()
     (repository / "scopeprobe" / "f.txt").write_text("in the scope folder\n")
     body = replay_probe.write_text(work, "change.md", "A change to land.\n")
@@ -321,11 +306,16 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work, elsewhere, repository, environment = setup()
-    for name, case in (("flow", case_flow), ("names", case_names), ("removal", case_removal), ("squash", case_squash), ("forms", case_forms), ("every", case_every)):
-        step(name, case, work, elsewhere, repository, environment)
-    print("FAIL location arguments" if failed else "PASS location arguments")
-    return 1 if failed else 0
+    cases = replay_probe.Cases("location arguments")
+    with replay_probe.scratch("location-arguments-") as work:
+        sandbox, elsewhere = setup(work)
+        for name, case in (("flow", case_flow), ("names", case_names), ("removal", case_removal), ("squash", case_squash), ("forms", case_forms), ("every", case_every)):
+            try:
+                problem = case(sandbox, elsewhere)
+            except (RuntimeError, OSError, ValueError) as e:  # a call of the case that exits nonzero, which `replay_probe.sh` raises, is the case's failure
+                problem = e
+            cases.step(name, not problem, problem)
+    return cases.finish()
 
 
 if __name__ == "__main__":

@@ -8,8 +8,42 @@ takes a prompt but never shows it, a `late` agent's start is refused `timeout` a
 agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list, or at every `period`th (`"flip": "blocked"` swaps blocked and working), and an agent with `move`, or one started with `moving` in its
 name, moves to that pane after the `move_after`th list that shows it (default the first). `pane list` lists each agent's pane, and a pane, tab or workspace close shuts every agent in it. A target no agent has is refused
 `agent_not_found`; with TEAMWORK_FAKE_HERDR_CONFIG set to a Claude config folder, a `/rename <name>` prompt is recorded in that folder's transcript, as
-Claude Code does. TEAMWORK_FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
+Claude Code does.
+It answers only the calls of CALLS, the ones the plugin makes, with their options; any other is refused as herdr refuses one, exit 1, and appended to
+the file TEAMWORK_FAKE_HERDR_REFUSED names, so a runner fails on a call the real herdr may not take."""
 import json, os, pathlib, sys
+
+# (verb, noun) -> (the positional words it takes, or a minimum as a negative count, and each option with how many values it takes)
+CALLS = {("agent", "list"): (0, {}), ("agent", "read"): (1, {"--source": 1, "--ansi": 0}),
+         ("agent", "start"): (1, {"--kind": 1, "--pane": 1, "--timeout": 1}), ("agent", "rename"): (2, {}), ("agent", "prompt"): (2, {}),
+         ("agent", "send-keys"): (-2, {}), ("agent", "wait"): (1, {"--until": 1, "--timeout": 1}),
+         ("pane", "read"): (1, {}), ("pane", "send-text"): (2, {}), ("pane", "rename"): (2, {}), ("pane", "list"): (0, {}), ("pane", "close"): (1, {}),
+         ("tab", "list"): (0, {"--workspace": 1}), ("tab", "create"): (0, {"--workspace": 1, "--cwd": 1, "--label": 1, "--no-focus": 0}),
+         ("tab", "rename"): (2, {}), ("tab", "close"): (1, {}),
+         ("workspace", "create"): (0, {"--cwd": 1, "--label": 1, "--no-focus": 0}), ("workspace", "close"): (1, {})}
+
+
+def known(argv):
+    """Whether ARGV is a call of CALLS with only its options, an `agent start` taking its command after `--`."""
+    if tuple(argv[:2]) not in CALLS:
+        return False
+    count, options = CALLS[tuple(argv[:2])]
+    words, rest = argv[2:], []
+    if argv[:2] == ["agent", "start"] and "--" in words:
+        words, rest = words[:words.index("--")], words[words.index("--") + 1:]
+    positional, at = [], 0
+    while at < len(words):
+        if words[at].startswith("--") and words[at] in options:
+            at += 1 + options[words[at]]
+            if at > len(words):
+                return False
+        elif words[at].startswith("--"):
+            return False
+        else:
+            positional.append(words[at])
+            at += 1
+    return (len(positional) >= -count if count < 0 else len(positional) == count) and (argv[:2] != ["agent", "start"] or bool(rest))
+
 
 state_path = pathlib.Path(os.environ["TEAMWORK_FAKE_HERDR_STATE"])
 state = json.loads(state_path.read_text())
@@ -17,8 +51,13 @@ argv = sys.argv[1:]
 with open(os.environ.get("TEAMWORK_FAKE_HERDR_LOG", os.devnull), "a") as log:
     log.write(json.dumps(argv) + "\n")
 code = 0
-BREAK = os.environ.get("TEAMWORK_FAKE_HERDR_BREAK") == "accept"
 ok = lambda result=None: print(json.dumps({"result": result or {}}))
+if not known(argv):
+    print(json.dumps({"error": {"code": "invalid_command", "message": f"herdr {' '.join(argv)}: no such command or option"}}))
+    print(f"error: herdr {' '.join(argv)}: no such command or option", file=sys.stderr)
+    with open(os.environ.get("TEAMWORK_FAKE_HERDR_REFUSED", os.devnull), "a") as refused:
+        refused.write(f"herdr {' '.join(argv)}\n")
+    sys.exit(1)
 
 
 def new_pane(workspace):
@@ -52,8 +91,6 @@ if head == ["agent", "list"]:
         if agent.get("ticks"):
             agent["ticks"] -= 1
             agent["agent_status"] = "working" if agent["ticks"] else "idle"
-elif head == ["pane", "get"]:
-    ok({"pane": {"pane_id": argv[2], "workspace_id": argv[2].split(":")[0]}})
 elif head == ["tab", "create"]:
     ok({"root_pane": new_pane(option("--workspace"))})
 elif head == ["workspace", "create"]:
@@ -79,7 +116,7 @@ elif head == ["agent", "start"]:
         state["agents"][-1].update(interactive_ready=False, agent_status="working", screen="Run the teamwork:kick-off skill with these arguments: worker " + argv[2])
     if not late:
         ok()
-elif head == ["agent", "read"] and by_pane(argv[2]) or head == ["pane", "read"]:
+elif head == ["agent", "read"] and by_pane(argv[2]) or head == ["pane", "read"]:  # a pane reads even with no agent in it, as start-session.py tells a reader
     print(by_pane(argv[2]).get("screen", ""))
 elif head[0] in ("agent", "pane") and head[1] in ("prompt", "send-keys", "read", "rename", "send-text") and not (by_pane(argv[2]) and not by_pane(argv[2]).get("hidden")):
     print(json.dumps({"error": {"code": "agent_not_found", "message": f"no agent {argv[2]}"}}))
@@ -99,10 +136,7 @@ elif head == ["agent", "prompt"]:
         transcript.parent.mkdir(parents=True, exist_ok=True)
         with transcript.open("a") as file:
             file.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")
-    if BREAK:
-        agent["agent_status"], agent["ticks"] = "working", 2
-        ok()
-    elif "refuse" in agent.get("name", ""):
+    if "refuse" in agent.get("name", ""):
         print(json.dumps({"error": {"code": "agent_pane_closed", "message": "pane closed"}}))
         code = 1
     elif agent.get("agent_status") == "blocked" or "unblock" in agent.get("name", "") and not agent.get("refused"):
@@ -130,7 +164,7 @@ elif head == ["agent", "wait"]:
     agent, until = by_pane(argv[2]), [argv[i + 1] for i, word in enumerate(argv) if word == "--until"]
     if agent.get("agent_status") == "working":  # its turn ends
         agent["agent_status"], agent["ticks"] = "idle", 0
-    if agent.get("agent_status") in until or BREAK:
+    if agent.get("agent_status") in until:
         ok({"agent": agent})
     else:
         print(json.dumps({"error": {"code": "timeout", "message": "wait timed out"}}))
@@ -143,7 +177,7 @@ elif head[1:] == ["close"] and head[0] in ("pane", "tab", "workspace"):  # a clo
     state["agents"] = [agent for agent in state["agents"] if agent[f"{head[0]}_id"] != argv[2]]
     state["tabs"] = [tab for tab in state["tabs"] if head[0] == "pane" or tab[f"{head[0]}_id"] != argv[2]]
     ok()
-else:  # renames, keys, closes
+else:  # a pane rename, which the fake does not show
     ok()
 temporary = state_path.with_suffix(f".{os.getpid()}")  # replaced whole, since callers run at once
 temporary.write_text(json.dumps(state))

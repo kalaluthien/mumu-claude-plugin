@@ -9,12 +9,8 @@
 
 usage: replay-wait-mark.py"""
 import json
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
-import time
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
@@ -23,27 +19,18 @@ import replay_probe  # noqa: E402
 
 USE = HERE.parent / "scripts" / "use-board.py"
 LIST = ROOT / "hooks" / "list-task-board.py"
-BODY = f"## Goal\n\nProbe an answered question.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{replay_probe.CHECK}"
-failures = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:400]}", flush=True)
-    if not ok:
-        failures.append(name)
+cases = replay_probe.Cases()
 
 
 def use(*argv):
-    done = subprocess.run([sys.executable, str(USE), *map(str, argv)], capture_output=True, text=True)
+    done = sandbox.python(USE, *map(str, argv))
     if done.returncode:
         raise SystemExit(f"replay-wait-mark: use-board.py {argv[0]} failed: {done.stderr}")
     return done.stdout.strip()
 
 
 def file(title):
-    path = work / f"body-{time.monotonic_ns()}.md"
-    path.write_text(BODY)
-    return int(use("file", "--title", title, "--body", path).rsplit("/", 1)[1])
+    return int(use("file", "--title", title, "--body", replay_probe.write_text(sandbox.work, "body.md", replay_probe.BODY)).rsplit("/", 1)[1])
 
 
 def ask(number, question, owner=False):
@@ -51,14 +38,13 @@ def ask(number, question, owner=False):
 
 
 def decide(number, text, answers="", by="probe-manager"):
-    quote = work / f"quote-{time.monotonic_ns()}.md"
-    quote.write_text("> the owner's words\n")
+    quote = replay_probe.write_text(sandbox.work, "quote.md", "> the owner's words\n")
     return use("decide", number, "--decision", text, *(("--text", quote) if by == "owner" else ()), "--by", by, *(("--answers", answers) if answers else ()))
 
 
 def row(number):
     """The pane row of task NUMBER, as list-task-board.py --json prints it."""
-    listed = json.loads(subprocess.run([sys.executable, str(LIST), "probe", "--json"], capture_output=True, text=True).stdout or "[]")
+    listed = json.loads(sandbox.python(LIST, "probe", "--json").stdout or "[]")
     return next((found for found in listed if found["number"] == number), {"wait": "no row", "questions": []})
 
 
@@ -74,69 +60,66 @@ def cleared(number):
 
 
 def signal_stamp():
-    import team_signal  # read here, since it reads the config folder set in main when it loads
-    return team_signal.stamp()
+    """The signal file's stamp, as the pane's lib reads it in the sandbox's environment."""
+    return sandbox.evaluate("import team_signal; print(team_signal.stamp())")
 
 
-def cases():
+def replay():
     task = file("Probe a plain answer")
     ask(task, "which cache")
-    step("keep-comment-only", marks(task) == ("", ["which cache"]), marks(task))
+    cases.step("keep-comment-only", marks(task) == ("", ["which cache"]), marks(task))
     use("comment", task, "--reported", "probe findings")
-    step("keep-comment-only-after", marks(task) == ("", ["which cache"]), marks(task))
+    cases.step("keep-comment-only-after", marks(task) == ("", ["which cache"]), marks(task))
     signal = signal_stamp()
     decide(task, "use the shared cache")
-    step("answer-no-answers", cleared(task), marks(task))
-    step("answer-signal", signal_stamp() > signal, f"stamp {signal} -> {signal_stamp()}")
+    cases.step("answer-no-answers", cleared(task), marks(task))
+    cases.step("answer-signal", signal_stamp() > signal, f"stamp {signal} -> {signal_stamp()}")
 
     owned = file("Probe an owner's question")
     ask(owned, "may the sync run", owner=True)
-    step("keep-owner", marks(owned)[0] == "waits on the owner", marks(owned))
+    cases.step("keep-owner", marks(owned)[0] == "waits on the owner", marks(owned))
     decide(owned, "run the sync", by="owner")
-    step("answer-owner", cleared(owned), marks(owned))
+    cases.step("answer-owner", cleared(owned), marks(owned))
 
     answered_by_owner = file("Probe an owner's decision")
     ask(answered_by_owner, "which cache")
     decide(answered_by_owner, "use the shared cache", by="owner")
-    step("answer-by-owner", cleared(answered_by_owner), marks(answered_by_owner))
+    cases.step("answer-by-owner", cleared(answered_by_owner), marks(answered_by_owner))
 
     own = file("Probe a worker's own decision")
     ask(own, "which cache")
     decide(own, "my design keeps one cache", by="probe-worker")
-    step("keep-worker-decision", marks(own) == ("", ["which cache"]), marks(own))
+    cases.step("keep-worker-decision", marks(own) == ("", ["which cache"]), marks(own))
     use("hold", own, "--holders", "probe-worker")
-    step("keep-event", marks(own) == ("", ["which cache"]), marks(own))
+    cases.step("keep-event", marks(own) == ("", ["which cache"]), marks(own))
 
     to_owner = file("Probe a manager on an owner's ask")
     ask(to_owner, "may the sync run", owner=True)
     decide(to_owner, "run the sync")
-    step("keep-owner-by-manager", marks(to_owner) == ("waits on the owner", ["may the sync run"]), marks(to_owner))
+    cases.step("keep-owner-by-manager", marks(to_owner) == ("waits on the owner", ["may the sync run"]), marks(to_owner))
 
     again = file("Probe a reposted question")
     asks = [ask(again, "may the sync run") for _ in range(3)]
     decide(again, "run the sync", answers=asks[-1])
-    step("answer-reposted", cleared(again), marks(again))
+    cases.step("answer-reposted", cleared(again), marks(again))
 
     two = file("Probe two questions")
     first, second = ask(two, "which width counts"), ask(two, "which height counts")
     decide(two, "any height counts", answers=second)
-    step("keep-other-question", marks(two) == ("", ["which width counts"]), marks(two))
+    cases.step("keep-other-question", marks(two) == ("", ["which width counts"]), marks(two))
     decide(two, "24 to 80 columns count", answers=first)
-    step("answer-both", cleared(two), marks(two))
+    cases.step("answer-both", cleared(two), marks(two))
 
 
 def main(args):
-    global work
+    global sandbox
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="wait-mark-"))
-    os.environ.update({"HOME": str(work), "CLAUDE_CONFIG_DIR": str(work / "config"), **replay_probe.IDENTITY})
-    subprocess.run(["git", "init", "-q", str(work / "repo")], check=True)
-    os.chdir(work / "repo")
-    cases()
-    print("FAIL" if failures else "PASS")
-    return 1 if failures else 0
+    with replay_probe.scratch("wait-mark-") as work:
+        sandbox = replay_probe.Sandbox(work)
+        replay()
+    return cases.finish()
 
 
 if __name__ == "__main__":

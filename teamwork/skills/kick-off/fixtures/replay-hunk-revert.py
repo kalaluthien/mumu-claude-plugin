@@ -24,34 +24,30 @@
   and exits 1.
 
 usage: replay-hunk-revert.py"""
-import os
 import pathlib
-import subprocess
 import sys
-import tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+import replay_probe  # noqa: E402
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "scripts" / "run-criteria.py"
 BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: nothing prints; after: it prints ok; meets: the caller's need.\n\n"
         "## Definition of done\n\n1. [check] **The probe prints ok when it runs**: `{command}` prints `ok`; on base nothing.\n")
-failed = []
-
-
-def step(name, ok, detail=""):
-    print(f"ok {name}" if ok else f"fail {name}: {' '.join(str(detail).split())[:900]}", flush=True)
-    if not ok:
-        failed.append(name)
+RUN_SECONDS = 600  # a `--hunks` call runs the checks once per revert
 
 
 def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    work = pathlib.Path(tempfile.mkdtemp(prefix="hunk-revert-"))
-    os.environ.update(HOME=str(work), GIT_AUTHOR_NAME="probe", GIT_AUTHOR_EMAIL="probe@example.com",
-                      GIT_COMMITTER_NAME="probe", GIT_COMMITTER_EMAIL="probe@example.com")
+    with replay_probe.scratch("hunk-revert-") as folder:
+        return replay(folder)
 
-    def git(*argv):
-        subprocess.run(["git", *argv], cwd=work, check=True, capture_output=True)
+
+def replay(folder):
+    cases = replay_probe.Cases()
+    sandbox = replay_probe.Sandbox(folder, commit=False)
+    work, git = sandbox.repository, sandbox.git
 
     git("init", "-q", "-b", "main")
     (work / "a.txt").write_text("old\n")
@@ -64,18 +60,18 @@ def main(args):
     git("commit", "-qam", "change")
 
     def call(command, *options, more=""):
-        body = work.parent / f"{work.name}-body.md"
+        body = folder / "body.md"
         body.write_text(BODY.format(command=command) + more)
-        done = subprocess.run([sys.executable, str(SCRIPT), *options, str(body)], cwd=work, capture_output=True, text=True)
+        done = sandbox.python(SCRIPT, *options, body, timeout=RUN_SECONDS)
         return done.returncode, done.stdout, done.stderr
 
     code, out, error = call("grep -q new a.txt && echo ok", "--hunks", "--ref", "main", more="2. [score] **The probe reads well**: sample: a.txt; rubric: yes 2, no 0.\n")
-    step("one-needed", code == 1 and "b.txt:2: unneeded hunk" in out and "a.txt" not in out.replace("hunks:", ""), (code, out, error))
+    cases.step("one-needed", code == 1 and "b.txt:2: unneeded hunk" in out and "a.txt" not in out.replace("hunks:", ""), (code, out, error))
     code, out, error = call("grep -q new a.txt && grep -q new b.txt && echo ok", "--hunks", "--ref", "main")
-    step("both-needed", code == 0 and "0 unneeded" in out and ": unneeded hunk" not in out, (code, out, error))
+    cases.step("both-needed", code == 0 and "0 unneeded" in out and ": unneeded hunk" not in out, (code, out, error))
     code, out, error = call("grep -q new a.txt && echo ok")
     lines = out.splitlines()
-    step("table-same", code == 0 and lines[0].startswith("REPORTED: criteria at ") and lines[2] == "| # | criterion | result | output | sha-256 |"
+    cases.step("table-same", code == 0 and lines[0].startswith("REPORTED: criteria at ") and lines[2] == "| # | criterion | result | output | sha-256 |"
          and lines[4].startswith("| 1 | The probe prints ok when it runs | pass | ok | ") and len(lines) == 5, (code, out, error))
     git("checkout", "-q", "-b", "lines")
     (work / "e.py").write_text("print('gone')\n")
@@ -89,9 +85,9 @@ def main(args):
     git("add", "-A")
     git("commit", "-qm", "lines")
     code, out, error = call("python3 c.py | grep -q new && test -s d.txt && test -s g.py && test ! -e e.py && echo ok", "--hunks", "--ref", "lines~1")
-    step("line-in-needed-hunk", code == 1 and "c.py:6: unneeded condition" in out and "c.py:4" not in out and "c.py:2" not in out and "g.py" not in out and "unneeded hunk" not in out and "d.txt" not in out, (code, out, error))
+    cases.step("line-in-needed-hunk", code == 1 and "c.py:6: unneeded condition" in out and "c.py:4" not in out and "c.py:2" not in out and "g.py" not in out and "unneeded hunk" not in out and "d.txt" not in out, (code, out, error))
     code, out, error = call("python3 c.py | grep -q new && test -s d.txt && test -s g.py && test ! -e e.py && python3 c.py x 2>&1 | grep -q refused && echo ok", "--hunks", "--ref", "lines~1")
-    step("condition-needed", code == 0 and "0 unneeded" in out and "1 conditions made False, 1 mutants made" in out, (code, out, error))
+    cases.step("condition-needed", code == 0 and "0 unneeded" in out and "1 conditions made False, 1 mutants made" in out, (code, out, error))
     git("checkout", "-q", "-b", "bound")
     (work / "h.py").write_text("import sys\nLIMIT = 7 if len(sys.argv) > 0 else 8\n")
     git("add", "h.py")
@@ -104,19 +100,19 @@ def main(args):
     git("add", "h.py", "fixtures")
     git("commit", "-qm", "bound")
     code, out, error = call("python3 fixtures/check-h.py 30 && echo ok", "--hunks", "--ref", "bound~1")
-    step("mutant-survives", code == 1 and "h.py:3: surviving mutant: no criterion fails when the number `10` becomes `0`" in out
+    cases.step("mutant-survives", code == 1 and "h.py:3: surviving mutant: no criterion fails when the number `10` becomes `0`" in out
          and "the number `2.0` becomes `0`" in out and "h.py:4: surviving mutant: no criterion fails when the number `0` becomes `1`" in out
          and "comparison" not in out and "fixtures/" not in out and "h.py:2" not in out and "5 mutants made" in out, (code, out, error))
     code, out, error = call("python3 fixtures/check-h.py 30 && python3 h.py 15 > out.txt && grep -qx small out.txt && echo ok", "--hunks", "--ref", "bound~1")
-    step("mutant-killed", code == 0 and "0 unneeded" in out and "5 mutants made" in out, (code, out, error))
+    cases.step("mutant-killed", code == 0 and "0 unneeded" in out and "5 mutants made" in out, (code, out, error))
     git("checkout", "-q", "change")
-    runs = work.parent / f"{work.name}-runs"
-    body = work.parent / f"{work.name}-two.md"
+    runs = folder / "runs"
+    body = folder / "two.md"
     body.write_text(BODY.format(command="grep -q new a.txt && echo ok")
                     + f"2. [check] **The probe counts its runs**: `echo run >> {runs} && {{ grep -q new b.txt || echo old; }} && echo ok` prints `ok`; on base nothing.\n")
-    done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "main", str(body)], cwd=work, capture_output=True, text=True)
+    done = sandbox.python(SCRIPT, "--hunks", "--ref", "main", body, timeout=RUN_SECONDS)
     count = runs.read_text().count("run") if runs.exists() else 0
-    step("first-break-stops", done.returncode == 0 and "0 unneeded" in done.stdout and count == 2, (done.returncode, count, done.stdout, done.stderr))
+    cases.step("first-break-stops", done.returncode == 0 and "0 unneeded" in done.stdout and count == 2, (done.returncode, count, done.stdout, done.stderr))
     git("checkout", "-q", "main")
     (work / "p" / "fixtures").mkdir(parents=True)
     replay = "import pathlib, subprocess, sys\nout = subprocess.run([sys.executable, str(pathlib.Path(__file__).parents[1] / 'tool.py')], capture_output=True, text=True).stdout\nsys.exit(0 if out == '{}\\n' else 1)\n"
@@ -139,12 +135,11 @@ def main(args):
     git("add", "-A")
     git("commit", "-qm", "scored")
     body.write_text(BODY.split("1. [check]")[0] + "1. [score] **The probe reads well**: sample: p/tool.py; rubric: yes 2, no 0.\n")
-    done = subprocess.run([sys.executable, str(SCRIPT), "--hunks", "--ref", "scored~1", str(body)], cwd=work, capture_output=True, text=True)
-    step("score-held-by-runner", done.returncode == 1 and "p/other.txt:1: unneeded hunk" in done.stdout and "p/fixtures/replay-broken.py:1: unneeded hunk" in done.stdout
+    done = sandbox.python(SCRIPT, "--hunks", "--ref", "scored~1", body, timeout=RUN_SECONDS)
+    cases.step("score-held-by-runner", done.returncode == 1 and "p/other.txt:1: unneeded hunk" in done.stdout and "p/fixtures/replay-broken.py:1: unneeded hunk" in done.stdout
          and all(f"p/{file}:1: unneeded hunk" in done.stdout for file in ("lib.py", "fixtures/helper.py", "fixtures/replay-deep/replay-deep.py"))
          and "p/tool.py" not in done.stdout and "notes" not in done.stdout and "fails at the head" not in done.stdout and "2 mutants made, 5 unneeded" in done.stdout, (done.returncode, done.stdout, done.stderr))
-    print("FAIL" if failed else "PASS")
-    return 1 if failed else 0
+    return cases.finish()
 
 
 if __name__ == "__main__":
