@@ -10,6 +10,7 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - swap-retired: a swapped-out worker's branch, the ancestor of its successor's merged branch, is removed with its worktree once the successor's change merges, and one branch is left
 - owned-branches: removing a worker removes each merged `<name>-<word>` branch it owns, here and on `origin`, keeps one with unmerged commits and an `origin` one of no worker branch name and says so, and leaves a branch of another name
 - rebased: a sha a judge approved still merges once a rebase onto a moved base left its diff the same, and is refused once the rebased branch changed its diff, by its text or by whitespace alone
+- conflict-marker: a change whose file adds a leftover `|||||||` conflict marker line is refused with its file and line, and nothing moves, while one that adds a Markdown `=======` heading underline merges
 - dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
 import json
 import os
@@ -43,9 +44,9 @@ def setup(remote=True):
     return work, repository, origin, environment
 
 
-def worker(work, repository, environment, name="b.txt"):
+def worker(work, repository, environment, name="b.txt", text="work\n"):
     tree = pathlib.Path(sh(sys.executable, SCRIPTS / "add-worktree.py", "probe-worker", "main", cwd=repository, environment=environment).stdout.strip())
-    (tree / name).write_text("work\n")
+    (tree / name).write_text(text)
     sh("git", "add", "-A", cwd=tree, environment=environment)
     sh("git", "commit", "-q", "-m", "work", cwd=tree, environment=environment)
     (work / "body.md").write_text("Probe change. Closes #1.\n")
@@ -153,6 +154,26 @@ def case_dirty_base():
     return 0
 
 
+def case_conflict_marker():
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment, text="work\n||||||| parent of 1234567 (work)\n<<<<<<< HEAD\n")
+    before = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    run = merged(work, repository, origin, environment, tree, head)
+    after = (rev(repository, "main", environment), rev(origin, "refs/heads/main", environment))
+    if run.returncode != 1 or "b.txt:2" not in run.stderr or before != after or change_state(repository, environment) != "OPEN":
+        return replay_probe.fail(f"merge exited {run.returncode}: {run.stderr.strip()[-200:]}; the bases moved {before} -> {after}")
+    return case_underline()
+
+
+def case_underline():
+    work, repository, origin, environment = setup()
+    tree, head = worker(work, repository, environment, name="b.md", text="Title\n=======\ntext\n")
+    run = merged(work, repository, origin, environment, tree, head)
+    if run.returncode:
+        return replay_probe.fail(f"a Markdown heading underline was refused: {run.stderr.strip()[-200:]}")
+    return 0
+
+
 def rebased(edit):
     work, repository, origin, environment = setup()
     tree, approved = worker(work, repository, environment)
@@ -198,7 +219,7 @@ def case_owned_branches():
     return 0
 
 
-CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
+CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased, "conflict-marker": case_conflict_marker, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
 
 
 def main(args):

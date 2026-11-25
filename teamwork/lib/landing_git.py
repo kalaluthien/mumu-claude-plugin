@@ -178,6 +178,15 @@ def same_diff(base, approved, head):
     return bool(approved) and change_text(base, approved) is not None and change_text(base, approved) == change_text(base, head)
 
 
+def conflict_markers(base, head):
+    """The `<file>:<line>` of each line HEAD adds since it left BASE that is a leftover merge conflict marker, as `git diff --check` finds them, but not a bare `=======`, which a Markdown heading underline also is
+    and which a real conflict never holds without its `<<<<<<<` or `>>>>>>>` line."""
+    fork = git("merge-base", base, head).stdout.strip()
+    found = git("diff", "--check", "--no-color", "--no-ext-diff", fork, head).stdout if fork else ""
+    places = [line.rsplit(":", 1)[0] for line in found.splitlines() if line.endswith(": leftover conflict marker")]
+    return [place for place in places if git("show", f"{head}:{place.rsplit(':', 1)[0]}").stdout.splitlines()[int(place.rsplit(":", 1)[1]) - 1].rstrip() != "======="]
+
+
 def merge(number, sha):
     """Squashes the change's head onto its base as one commit, only when SHA is its branch tip or a commit whose diff a rebase left the same, tags it as the repository's release hook asks, pushes both to
     `origin` when there is one, and fast-forwards the worktree that has the base checked out, which refuses rather than overwrites; the new commit's sha.
@@ -189,6 +198,8 @@ def merge(number, sha):
     # only a sha names what the judge approved; a branch name would follow the tip wherever it moved
     if not head or not re.fullmatch(r"[0-9a-f]{7,40}", sha) or tip(sha) != head and not same_diff(base, tip(sha), head):
         raise LookupError(f"change {number}: {sha} is not the tip of {entry['headRefName']} ({head and head[:9]}), and its diff is not the tip's; judge the tip again")
+    if markers := conflict_markers(base, head):
+        raise LookupError(f"change {number} adds a leftover merge conflict marker at {', '.join(markers[:5])}; resolve it and judge the tip again")
     # git then lists the main checkout as bare, so no worktree holds the base and a ref move would leave its files behind
     if bare_flagged():
         raise LookupError(f"change {number}: core.bare is true, so the checkout of {entry['base']} would stay behind the merge; run `git config core.bare false`")
