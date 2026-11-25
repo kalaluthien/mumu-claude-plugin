@@ -5,7 +5,7 @@ usage: replay-prose-checks.py
 
 prose checks: a stand-in contract of actors and calls gets one fault per check written into a copy, each in one call's note or label or one
 actor's name; the module must return one break of the rule system names it by, at that text's place, whose message quotes the text and names
-what in it broke the rule, and none for the contract as written or with a blank name.
+what in it broke the rule, none for the contract as written, with a blank name or with two closed fences, and one when a label follows `the` and an id holding a digit.
 system reach: system's checker must print, line for line, what it printed before lib held its prose checks for each fault
 `system-prose-breaks.json` plants in the self example, and lines of the digest `system-prose-fuzz.json` keeps for each contract its seed
 draws from the self example, the planted texts and a few pieces; and on a copy of the plugin whose module drops one check, the Korean sentence
@@ -87,6 +87,12 @@ def prose_checks():
     found = [f"the contract as written breaks {rule} at {where}" for where, rule, _ in breaks(CONTRACT)]
     blank = breaks(written(written(CONTRACT, "actors/shop/name", "  "), "calls/ask/note", "sends the (short) number to {store}"))
     found += [f"a blank name gave {[(place, kind) for place, kind, _ in blank]}, expected no break"] if blank else []
+    fenced = breaks(written(CONTRACT, "calls/ask/note", "sends ```the number``` and ```its date``` to {store}"))
+    found += [f"two closed fences gave {[(place, kind) for place, kind, _ in fenced]}, expected no break"] if fenced else []
+    numbered = json.loads(json.dumps(CONTRACT).replace('"store"', '"store-2"').replace("{store}", "{store-2}"))
+    joined = breaks(written(numbered, "calls/ask/note", "sends the {store-2} shop front number"))
+    found += [] if [(place, kind) for place, kind, _ in joined] == [("calls/ask/note", "text-plain")] else [
+        f"an id with a digit between `the` and a label gave {[(place, kind) for place, kind, _ in joined] or 'no break'}, expected one text-plain"]
     for where, text, rule, *said in FAULTS:
         got = breaks(written(CONTRACT, where, text))
         if [(place, kind) for place, kind, _ in got] != [(where, rule)]:

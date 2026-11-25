@@ -124,8 +124,10 @@
 //            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of each one whose label
 //            is tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
 //            kind, each once, and a click on each chip shows that property's card headed by its title on the level of the first
-//            record it names, still so once the pointer has rested where it clicked, and an area's card lists no such row,
-//            printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
+//            record it names, still so once the pointer has rested where it clicked, and while the pointer has moved 2 px or
+//            less from there no record it comes over raises a card, though one moved 3 px does; an area's card lists no such
+//            row; and with the node's card kept, each badge of a record dimmed around it shows at 0.75 opacity or less, the
+//            node's own at full, printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
 //   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
 //            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, no edge label shows a border, and
 //            no count outside the badges, such as the play bar's, takes a badge's ring or rounding.
@@ -1876,6 +1878,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
     return rows;
   });
   const names = { holds: "holds", unknown: "unknown", broken: "broken", gap: "gaps" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
+  let jittered = false;
   const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
   await shown.context().close();
   const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, ...tucked]; // every tucked label's badges, since a lit label moves to a free place
@@ -1904,7 +1907,8 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       const chip = page.locator(`#card .ref[data-ref="${property}"]`);
       for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.locator("#card footer .turn").click();
       check(await chip.count(), `the kept card of ${id} shows no chip for ${property}`);
-      await chip.first().click();
+      const spot = await chip.first().boundingBox(), clicked = [spot.x + spot.width / 2, spot.y + spot.height / 2];
+      await page.mouse.click(...clicked);
       await settled(page);
       await page.waitForTimeout(200); // the pointer that clicked rests over the diagram the card left, long enough for a hover to raise a card
       await page.clock.fastForward(900);
@@ -1913,6 +1917,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       check(head === copy.titles[property], `a click on the chip for ${property} in the card of ${id} shows the card ${head}, not one headed ${copy.titles[property]}`);
       const there = copy.homes[property]; // a property is seen on the level of the first record it names
       check(at === there, `a click on the chip for ${property} in the card of ${id} shows the level ${at}, not ${there}`);
+      if (!jittered) jittered = await jitter(page, property, clicked);
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
@@ -1921,6 +1926,33 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   check(!(await page.locator(`#stage [data-id="${copy.area}"] .count`).count()), `the area ${copy.area} shows a badge`);
   check(!Object.values(names).some((name) => name in rows), `the card of the area ${copy.area} lists a row of ${Object.values(names).filter((name) => name in rows)}`);
   await page.context().close();
+  const kept = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.node}` });
+  const faded = await kept.evaluate((node) => [...document.querySelectorAll("#stage .counts")].map((group) => { // each badge group's opacity as drawn, its holders' multiplied in
+    let shown = 1;
+    for (let at = group; at && at.id !== "stage"; at = at.parentElement) shown *= Number(getComputedStyle(at).opacity);
+    const holder = group.closest("[data-id], [data-edge]");
+    return { id: holder.dataset.id || holder.dataset.edge, dim: !!group.closest(".dim"), shown, own: holder.dataset.id === node };
+  }), copy.node);
+  await kept.context().close();
+  check(faded.some((one) => one.dim), `with the card of ${copy.node} kept no record holding badges is dimmed, so a dimmed record's badges are untested`);
+  for (const one of faded) check(one.own ? one.shown === 1 : !one.dim || one.shown <= 0.75, `with the card of ${copy.node} kept the badges of ${one.dim ? "the dimmed " : ""}${one.id} show at opacity ${one.shown.toFixed(2)}`);
+}
+async function jitter(page, property, [x, y]) { // a hand still on the chip it clicked shakes by a pixel or two and raises no card from what it comes over, yet a real move does
+  const node = await page.evaluate(() => { const one = document.querySelector("#stage .node[data-id]"); return one && one.dataset.id; });
+  check(node, `the level of ${property} shows no node to come over`);
+  const over = (dx) => page.evaluate(([x, y, dx, node]) => { // the pointer moved DX px from where it clicked, then coming over NODE, so only the distance tells
+    dispatchEvent(new PointerEvent("pointermove", { clientX: x + dx, clientY: y, bubbles: true }));
+    document.querySelector(`#stage [data-id="${node}"]`).dispatchEvent(new PointerEvent("pointerover", { clientX: x + dx, clientY: y, bubbles: true }));
+  }, [x, y, dx, node]);
+  await over(2);
+  await page.clock.fastForward(900);
+  await settled(page);
+  check(await page.evaluate(CARDED, property), `a pointer moved 2 px from the chip for ${property} it clicked raised a card from what it came over`);
+  await over(3);
+  await page.clock.fastForward(900);
+  await settled(page);
+  check(await page.evaluate(CARDED, node), `a pointer moved 3 px from the chip for ${property} it clicked raised no card for the node ${node} it came over`);
+  return true;
 }
 async function counts(browser) {
   const copy = tallied(), lines = [];

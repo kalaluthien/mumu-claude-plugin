@@ -7,8 +7,9 @@ page parts: a scratch page holding only lib's card and search parts, two boxes o
 property that holds and a gap on the first node; `drive-page-parts.cjs own` checks its badges, card, chips and search.
 system reach: on a copy of the plugin whose lib card heads each card with a marked word and whose lib parts mark each badge group and
 search hit they draw, system's `make-page.py` builds the first example's page, where `drive-page-parts.cjs system` finds the word in a
-node's card heading, on every badge group and on every hit a search lists; no file of `skills/system/` outside its
-examples may hold the card or search code itself.
+node's card heading, on every badge group and on every hit a search lists, and the words system hands the search as `SYSTEM_WORDS`
+says: the box's placeholder, the empty search's group headings, and the heading over the first record of each kind its id finds;
+no file of `skills/system/` outside its examples may hold the card or search code itself.
 It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
 import pathlib
@@ -78,6 +79,8 @@ body {{ margin: 0; font: 14px/20px sans-serif; }}
 """
 OWN = ("const spoken = piece =>", "const typed = text =>", "function measure(entry", "#card dl { margin", "#hits .hit { display")  # lines only the shared parts hold
 MARK = "MARKED"
+SYSTEM_WORDS = {"placeholder": "Search nodes, edges, scenarios and properties", "browse": ["Questions", "Scenarios", "Levels", "Properties"],
+                "kinds": {"levels": "Levels", "areas": "Areas", "nodes": "Nodes", "edges": "Edges", "scenarios": "Scenarios", "properties": "Properties", "questions": "Questions"}}
 
 
 def drive(*args):
@@ -119,7 +122,10 @@ def system_reach():
         built = subprocess.run([sys.executable, str(copied / "skills" / "system" / "scripts" / "make-page.py"), str(example), str(page)], capture_output=True, text=True)
         if built.returncode:
             return found + [f"make-page.py on the copy failed: {(built.stdout + built.stderr).strip()}"]
-        said = drive("system", str(page), MARK)
+        contract = json.loads(example.read_text())
+        words = pathlib.Path(scratch) / "words.json"
+        words.write_text(json.dumps({**SYSTEM_WORDS, "groups": [[contract[kind][0]["id"], contract[kind][0]["id"], heading] for kind, heading in SYSTEM_WORDS["kinds"].items()]}))
+        said = drive("system", str(page), MARK, str(words))
         if said != "PASS system":
             found.append(said)
     return found

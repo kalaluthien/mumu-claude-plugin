@@ -1,29 +1,38 @@
 #!/usr/bin/env node
 // Drive a page in a headless Chromium as a reader would, and print `PASS <mode>` or `FAIL <mode>: <reason>`.
-//   own <page.html>             the page replay-page-parts.py writes: the first box carries a ✓1 and a !1 badge; the pointer resting on it
-//                               shows its card with a chip per property; a click on the gap's chip shows the gap's card headed by its title;
-//                               `/` opens search, where the second node's Korean alias and its name typed on a Korean layout each list it
-//                               first, and Enter shows its card
-//   system <page.html> <word>   a system page: the pointer resting on its first node shows a card whose heading starts with WORD, every badge
-//                               group on the page carries `data-mark` WORD, and every hit `/` lists for a query carries it too
+//   own <page.html>             the page replay-page-parts.py writes: the first box carries a ✓1 and a !1 badge, read aloud as `1 holds` and
+//                               `1 gaps`; the pointer resting on it shows its card with a chip per property; a click on the gap's chip shows
+//                               the gap's card headed by its title; `/` shows search to the eye, where the second node's Korean alias, its
+//                               name and its name's first three letters typed on a Korean layout each list it first, and Enter shows its card
+//   system <page.html> <word> <words.json>
+//                               a system page: the pointer resting on its first node shows a card whose heading starts with WORD, every badge
+//                               group on the page carries `data-mark` WORD, and every hit `/` lists for a query carries it too; the search box
+//                               says WORDS.json's `placeholder`, the empty search heads its groups `browse` in order, and each `[query, id,
+//                               heading]` of its `groups` lists the record ID under HEADING
 //
 // usage: drive-page-parts.cjs own <page.html>
-// usage: drive-page-parts.cjs system <page.html> <word>
+// usage: drive-page-parts.cjs system <page.html> <word> <words.json>
+const fs = require("fs");
 const path = require("path");
 const { missing, launch } = require(path.join(__dirname, "..", "launch-browser.cjs"));
 
-const [mode, file, word] = process.argv.slice(2);
-if (!(mode === "own" && file && !word || mode === "system" && file && word) || process.argv.length > 5) {
-  console.error("usage: drive-page-parts.cjs own <page.html>\nusage: drive-page-parts.cjs system <page.html> <word>");
+const [mode, file, word, said] = process.argv.slice(2);
+if (!(mode === "own" && file && !word || mode === "system" && file && word && said) || process.argv.length > 6) {
+  console.error("usage: drive-page-parts.cjs own <page.html>\nusage: drive-page-parts.cjs system <page.html> <word> <words.json>");
   process.exit(2);
 }
 const check = (condition, reason) => { if (!condition) throw new Error(reason); };
+// the class alone shows nothing: the palette is seen once its style makes it opaque and takes the pointer
+const opened = (page) => page.waitForFunction(() => { const box = document.querySelector("#palette.show"); return box && getComputedStyle(box).opacity === "1" && getComputedStyle(box).pointerEvents !== "none"; },
+  null, { timeout: 2000 }).catch(() => null);
 const heading = (page) => page.waitForFunction(() => document.querySelector("#card.show h2") && document.querySelector("#card.show h2").textContent, null, { timeout: 4000 })
   .then((handle) => handle.jsonValue()).catch(() => null);
 
 async function own(page) {
   const badges = await page.$$eval('.box[data-id="intake"] .counts > .count', (all) => all.map((one) => one.textContent));
   check(badges.join(" ") === "✓1 !1", `the first box's badges read "${badges.join(" ")}"`);
+  const spoken = await page.$$eval('.box[data-id="intake"] .counts > .count', (all) => all.map((one) => one.getAttribute("aria-label")));
+  check(spoken.join(", ") === "1 holds, 1 gaps", `the first box's badges are read aloud as "${spoken.join(", ")}"`);
   await page.hover('.box[data-id="intake"]');
   check(await heading(page) === "Intake", "resting on the first box showed no card headed Intake");
   const chips = await page.$$eval("#card .ref", (all) => all.map((one) => one.dataset.ref));
@@ -31,10 +40,10 @@ async function own(page) {
   await page.click('#card .ref[data-ref="no-retry"]');
   check(await page.waitForFunction(() => document.querySelector("#card.show h2").textContent === "A failed intake is never retried", null, { timeout: 4000 }).catch(() => null),
     "a click on the gap's chip did not show the gap's card");
-  for (const query of ["원장", "ㅣㄷㅇㅎㄷㄱ"]) {
+  for (const query of ["원장", "ㅣㄷㅇㅎㄷㄱ", "ㅣㄷㅇ"]) { // three letters forgive no slip, so each key must read as pressed
     await page.mouse.move(1, 1);
     await page.keyboard.press("/");
-    check(await page.waitForSelector("#palette.show", { timeout: 2000 }).catch(() => null), "`/` opened no search");
+    check(await opened(page), "`/` showed no search");
     await page.fill("#query", query);
     const first = await page.waitForFunction(() => { const hit = document.querySelector('#hits .hit[aria-selected="true"]'); return hit && hit.dataset.hit; }, null, { timeout: 2000 })
       .then((handle) => handle.jsonValue()).catch(() => null);
@@ -51,9 +60,23 @@ async function system(page) {
   check(shown && shown.startsWith(word), `the card's heading reads ${JSON.stringify(shown)}`);
   const groups = await page.$$eval(".counts", (all) => all.map((one) => one.dataset.mark || ""));
   check(groups.length && groups.every((one) => one === word), `of ${groups.length} badge groups, ${groups.filter((one) => one !== word).length} are not lib's`);
+  const words = JSON.parse(fs.readFileSync(said, "utf8"));
   await page.mouse.move(1, 1);
   await page.keyboard.press("/");
-  check(await page.waitForSelector("#palette.show", { timeout: 2000 }).catch(() => null), "`/` opened no search");
+  check(await opened(page), "`/` showed no search");
+  const placeholder = await page.getAttribute("#query", "placeholder");
+  check(placeholder === words.placeholder, `the search box says ${JSON.stringify(placeholder)}`);
+  const browse = await page.$$eval("#hits h3", (all) => all.map((one) => one.textContent));
+  check(browse.join(", ") === words.browse.join(", "), `the empty search heads its groups ${browse.join(", ")}`);
+  for (const [query, id, title] of words.groups) {
+    await page.fill("#query", query);
+    const under = await page.waitForFunction((id) => { // the heading of the group the hit sits in
+      let at = document.querySelector(`#hits .hit[data-hit="${id}"]`);
+      while (at && at.tagName !== "H3") at = at.previousElementSibling;
+      return at && at.textContent;
+    }, id, { timeout: 2000 }).then((handle) => handle.jsonValue()).catch(() => null);
+    check(under === title, `the query ${query} lists ${id} ${under ? `under ${under}` : "nowhere"}, not under ${title}`);
+  }
   await page.fill("#query", "a");
   const hits = await page.waitForFunction(() => { const all = [...document.querySelectorAll("#hits .hit[data-hit]")]; return all.length && all.map((one) => one.dataset.mark || ""); }, null, { timeout: 2000 })
     .then((handle) => handle.jsonValue()).catch(() => null);
