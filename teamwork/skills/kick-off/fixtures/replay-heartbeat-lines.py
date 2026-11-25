@@ -32,17 +32,18 @@ work = pathlib.Path(tempfile.mkdtemp(prefix="heartbeat-lines-"))
 repository = work / "repo"
 STATE = work / "herdr.json"
 sys.path.insert(0, str(ROOT / "lib"))
+import claude_config  # noqa: E402
 import replay_probe  # noqa: E402
 
+TRANSCRIPTS = claude_config.folder() / "projects" / "-Users-hyungmokim-workspace-plugins"  # the owner's own, read before the sandbox replaces the folder
 os.environ.update({"CLAUDE_CONFIG_DIR": str(work / "claude"), "GIT_CONFIG_GLOBAL": str(work / "gitconfig"), **replay_probe.IDENTITY,
                    "TEAMWORK_FAKE_HERDR_STATE": str(STATE), "PATH": f"{HERE / 'fake-herdr'}:{os.environ['PATH']}", "HERDR_PANE_ID": "w1:p1"})
 failed = []
 passed = []
 QUIET = False
 VERBOSE = False
-# where each case was found: (the transcript under ~/.claude/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, the text it holds,
+# where each case was found: (the transcript under <config folder>/projects/-Users-hyungmokim-workspace-plugins/ by its first 8 characters, the text it holds,
 # how many monitor events carry that text); --cited counts them in the transcript
-TRANSCRIPTS = pathlib.Path("~/.claude/projects/-Users-hyungmokim-workspace-plugins").expanduser()
 SOURCES = {"idle-again": ("transcript 6a7e0b9a", "idle work-model-worker: holds", 15), "blocked-again": ("transcript 84bfcb25", "once the owner says so: \u254c\u254c\u254c\u254c", 2),
            "probe-quiet": ("transcript 6a7e0b9a", "probe-end-manager-49609", 3), "blocked-empty": ("transcript 6a7e0b9a", "Update installed", 1),
            "blocked-prompt": ("transcript 84bfcb25", "once the owner says so: \u254c\u254c\u254c\u254c", 2), "merged-later": ("transcript 6a7e0b9a", "merged #1190", 6),

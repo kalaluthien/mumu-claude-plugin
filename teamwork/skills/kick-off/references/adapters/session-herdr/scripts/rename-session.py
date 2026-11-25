@@ -11,6 +11,7 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 import agent  # noqa: E402
+import claude_config  # noqa: E402
 import session  # noqa: E402
 
 TRIES = 3
@@ -21,7 +22,7 @@ SETTLE = 8  # seconds Claude Code takes to record a name, measured at 1-6
 def recorded(session_id):
     """Every name Claude Code wrote for this session, oldest first."""
     names = []
-    for path in (pathlib.Path.home() / ".claude" / "projects").glob(f"*/{session_id}.jsonl"):
+    for path in (claude_config.folder() / "projects").glob(f"*/{session_id}.jsonl"):
         for line in path.read_text(errors="replace").splitlines():
             if line.startswith('{"type":"custom-title"'):
                 names.append(json.loads(line).get("customTitle"))

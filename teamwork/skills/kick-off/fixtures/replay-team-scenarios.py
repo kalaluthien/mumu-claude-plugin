@@ -316,7 +316,7 @@ def hinted_rename():
     hint = BOX.format(draft="\x1b[2mPress up to edit queued messages\x1b[0m")
     state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "hint-id"}, screen=hint))
     code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
-                    CLAUDE_CODE_SESSION_ID="hint-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
+                    CLAUDE_CODE_SESSION_ID="hint-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
     return code == 0 and out.strip() == "renamed to renamed-manager", out
 
 
@@ -325,8 +325,8 @@ def kept_draft():
     home = tempfile.mkdtemp(prefix="fake-home-")
     state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "draft-id"}, screen=BOX.format(draft="half a sentence")))
     code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=90,
-                    CLAUDE_CODE_SESSION_ID="draft-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
-    typed = (pathlib.Path(home) / ".claude" / "projects").exists()  # the fake herdr writes a transcript only for a typed `/rename`
+                    CLAUDE_CODE_SESSION_ID="draft-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
+    typed = (pathlib.Path(home) / "config" / "projects").exists()  # the fake herdr writes a transcript only for a typed `/rename`
     return code == 1 and out.startswith("not renamed to renamed-manager: the prompt box holds an unsent draft") and not typed, out
 
 
@@ -335,7 +335,7 @@ def moved_rename():
     home = tempfile.mkdtemp(prefix="fake-home-")
     state = herdr(dict(agent("teamwork-manager", 1, "idle", "w9"), agent_session={"value": "moved-id"}, move="w4:p15", screen=BOX.format(draft="")))
     code, out = run([SCRIPTS.parent / "references/adapters/session-herdr/scripts" / "rename-session.py", "renamed-manager"], state, "w9:p1", seconds=60,
-                    CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_HOME=home, HOME=home)
+                    CLAUDE_CODE_SESSION_ID="moved-id", TEAMWORK_FAKE_HERDR_CONFIG=home + "/config", CLAUDE_CONFIG_DIR=home + "/config", HOME=home)
     return code == 0 and out.strip() == "renamed to renamed-manager" and workspace_of(state, "renamed-manager") == "w4", out
 
 

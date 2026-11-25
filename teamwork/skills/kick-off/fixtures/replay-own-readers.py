@@ -4,9 +4,11 @@ herdr records as the worker's, under a stand-in `claude` started as the worker, 
 repository with a git board and the fake herdr beside this file. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `list-started`, `list-renamed`, `list-child`: `--me` prints the worker's name for the first two and nothing for the child;
 - `monitor-started`, `monitor-child`: the monitor prints the worker's `answered` line for the started worker and nothing for the child;
-- `rename-child`, `rename-started`: the child is refused as owning no session, while the started worker gets past that refusal.
+- `rename-child`, `rename-started`: the child is refused as owning no session, while the started worker gets past that refusal;
+- `rename-config`: `recorded()` finds the worker's title in a CLAUDE_CONFIG_DIR apart from HOME.
 
 usage: replay-own-readers.py"""
+import importlib.util
 import json
 import os
 import pathlib
@@ -112,6 +114,14 @@ def main(args):
     step("rename-child", code == 1 and "no herdr session owns this pane" in out, (code, out))
     code, out = run(RENAME, ["c-worker2"], STARTED, seconds=RENAME_SECONDS)
     step("rename-started", "no herdr session owns this pane" not in out, (code, out))
+    home = work / "home"
+    home.mkdir()
+    os.environ.update({"HOME": str(home), "CLAUDE_CONFIG_DIR": environment["CLAUDE_CONFIG_DIR"]})
+    spec = importlib.util.spec_from_file_location("rename_session", RENAME)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    transcript.write_text(json.dumps({"type": "custom-title", "customTitle": NAME, "sessionId": SESSION}, separators=(",", ":")) + "\n")
+    step("rename-config", module.recorded(SESSION) == [NAME], module.recorded(SESSION))
     print("PASS" if all(results.values()) else "FAIL")
     return 0 if all(results.values()) else 1
 

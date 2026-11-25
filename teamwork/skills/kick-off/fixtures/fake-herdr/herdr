@@ -7,7 +7,7 @@ A prompt to a `blocked` agent is refused `agent_blocked`, an `unblock` agent ref
 takes a prompt but never shows it, a `late` agent's start is refused `timeout` and it comes up unnamed in its pane two lists later, a `never` agent's start is refused `timeout` and nothing comes up, and a `refuse` agent refuses every prompt `agent_pane_closed`; `agent wait` ends a working
 agent's turn at once and times out on a blocked one, an agent with `flip` swaps idle and working at each list, or at every `period`th (`"flip": "blocked"` swaps blocked and working), and an agent with `move`, or one started with `moving` in its
 name, moves to that pane after the `move_after`th list that shows it (default the first). `pane list` lists each agent's pane, and a pane, tab or workspace close shuts every agent in it. A target no agent has is refused
-`agent_not_found`; with TEAMWORK_FAKE_HERDR_HOME set, a `/rename <name>` prompt is recorded in that home's transcript, as
+`agent_not_found`; with TEAMWORK_FAKE_HERDR_CONFIG set to a Claude config folder, a `/rename <name>` prompt is recorded in that folder's transcript, as
 Claude Code does. TEAMWORK_FAKE_HERDR_BREAK=accept takes every prompt and every wait instead."""
 import json, os, pathlib, sys
 
@@ -94,8 +94,8 @@ elif head == ["pane", "send-text"]:
     ok()
 elif head == ["agent", "prompt"]:
     agent = by_pane(argv[2])
-    if argv[3].startswith("/rename ") and os.environ.get("TEAMWORK_FAKE_HERDR_HOME") and agent.get("agent_session"):
-        transcript = pathlib.Path(os.environ["TEAMWORK_FAKE_HERDR_HOME"]) / ".claude" / "projects" / "fake" / f"{agent['agent_session']['value']}.jsonl"
+    if argv[3].startswith("/rename ") and os.environ.get("TEAMWORK_FAKE_HERDR_CONFIG") and agent.get("agent_session"):
+        transcript = pathlib.Path(os.environ["TEAMWORK_FAKE_HERDR_CONFIG"]) / "projects" / "fake" / f"{agent['agent_session']['value']}.jsonl"
         transcript.parent.mkdir(parents=True, exist_ok=True)
         with transcript.open("a") as file:
             file.write(json.dumps({"type": "custom-title", "customTitle": argv[3].split(" ", 1)[1]}, separators=(",", ":")) + "\n")
