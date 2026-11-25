@@ -60,3 +60,9 @@ def running_commands(session_id):
     mark = f" CLAUDE_CODE_SESSION_ID={session_id}"
     return [int(line.split()[0]) for line in listing.splitlines()
             if mark in line and "/monitors/print-team-gaps.py " not in line and seconds(line.split()[1]) < LIMIT_SECONDS]
+
+
+def heartbeat_running(session_id):
+    """Whether the heartbeat `print-team-gaps.py` runs under SESSION_ID, which a manager's watch needs while any task it routed is held."""
+    listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout
+    return any(f" CLAUDE_CODE_SESSION_ID={session_id}" in line and "/monitors/print-team-gaps.py" in line for line in listing.splitlines())
