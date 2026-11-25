@@ -166,6 +166,7 @@ const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
+const { check, same, python } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
 const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
@@ -176,12 +177,10 @@ if (asked.some((word) => !STEPS.includes(word))) {
   process.exit(2);
 }
 
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "system-page-"));
 const examples = fs.readdirSync(path.join(ROOT, "examples")).filter((name) => fs.existsSync(path.join(ROOT, "examples", name, "contract.json"))).sort()
   .map((name) => ({ name, source: path.join(ROOT, "examples", name, "contract.json"), kept: path.join(ROOT, "examples", name, "page.html"), built: path.join(scratch, name + ".html") }));
 const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
-const python = (script, ...args) => spawnSync("python3", [script, ...args], { encoding: "utf8" });
 const UNFOLD = "import json, pathlib, sys; sys.path.insert(0, sys.argv[1]); from contract_copies import copies; print(json.dumps(dict(copies(pathlib.Path(sys.argv[2])))))";
 
 let launches = 0;
@@ -240,7 +239,6 @@ const view = (page) => page.evaluate(() => {
     playing: document.getElementById("play").classList.contains("show"), step: document.getElementById("play").classList.contains("show") ? dots.findIndex((dot) => dot.classList.contains("now")) : null, marked: marked ? marked.dataset.id : null,
   };
 });
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 // What is wrong with the level the page shows, or nothing: the one test of a level that diagram and sweep share.
 const drawn = (page, level) => page.evaluate((level) => {

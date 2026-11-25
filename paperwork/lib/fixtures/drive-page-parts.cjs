@@ -15,13 +15,13 @@
 const fs = require("fs");
 const path = require("path");
 const { missing, launch } = require(path.join(__dirname, "..", "launch-browser.cjs"));
+const { check } = require(path.join(__dirname, "..", "check-step.cjs"));
 
 const [mode, file, word, said] = process.argv.slice(2);
 if (!(mode === "own" && file && !word || mode === "system" && file && word && said) || process.argv.length > 6) {
   console.error("usage: drive-page-parts.cjs own <page.html>\nusage: drive-page-parts.cjs system <page.html> <word> <words.json>");
   process.exit(2);
 }
-const check = (condition, reason) => { if (!condition) throw new Error(reason); };
 // the class alone shows nothing: the palette is seen once its style makes it opaque, takes the pointer and stands where its box is, unscaled and unshifted
 const opened = (page) => page.waitForFunction(() => {
   const box = document.querySelector("#palette.show"), drawn = box && box.getBoundingClientRect();

@@ -48,6 +48,11 @@
    "says": "the end-to-end run in a headless browser, and its --queue and --verify modes"
   },
   {
+   "id": "src-launch",
+   "path": "paperwork/lib/launch-browser.cjs",
+   "says": "where Playwright and the newest headless shell it installed are found"
+  },
+  {
    "id": "src-replay-check",
    "path": "paperwork/skills/system/fixtures/replay-check-page.py",
    "says": "the replay of the page checker on each fixture page and the starter"
@@ -1285,7 +1290,7 @@
     "src-skill:21",
     "src-skill:22",
     "src-skill:23",
-    "src-e2e:183"
+    "src-e2e:165"
    ],
    "basis": "documented"
   },
@@ -1545,7 +1550,7 @@
     "src-skill:8",
     "src-runtime:15",
     "src-check:85",
-    "src-e2e:162"
+    "src-e2e:144"
    ],
    "basis": "observed"
   },
@@ -1746,7 +1751,7 @@
     "src-runtime:15",
     "src-runtime:168",
     "src-runtime:222",
-    "src-e2e:115"
+    "src-e2e:97"
    ],
    "basis": "observed"
   },
@@ -3414,7 +3419,7 @@
    },
    "evidence": [
     "src-runtime:33",
-    "src-e2e:102"
+    "src-e2e:84"
    ],
    "basis": "observed"
   },
@@ -3440,7 +3445,7 @@
    "evidence": [
     "src-runtime:22",
     "src-runtime:49",
-    "src-e2e:284"
+    "src-e2e:266"
    ],
    "basis": "observed"
   },
@@ -3932,7 +3937,7 @@
     "src-e2e:12",
     "src-e2e:35",
     "src-e2e:38",
-    "src-e2e:468"
+    "src-e2e:450"
    ],
    "basis": "observed"
   },
@@ -3951,8 +3956,8 @@
     ]
    },
    "evidence": [
-    "src-e2e:32",
-    "src-e2e:46"
+    "src-launch:8",
+    "src-launch:10"
    ],
    "basis": "observed"
   },
@@ -3976,7 +3981,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:430"
+    "src-e2e:412"
    ],
    "basis": "observed"
   },
@@ -3999,7 +4004,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:90"
+    "src-e2e:72"
    ],
    "basis": "observed"
   },
@@ -4022,7 +4027,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:130"
+    "src-e2e:112"
    ],
    "basis": "observed"
   },
@@ -4046,8 +4051,8 @@
     "why": "a session acks in a later tool call than its edit, so the ack reaches a page that has already reloaded"
    },
    "evidence": [
-    "src-e2e:169",
-    "src-e2e:196"
+    "src-e2e:151",
+    "src-e2e:178"
    ],
    "basis": "observed"
   },
@@ -4079,7 +4084,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:224"
+    "src-e2e:206"
    ],
    "basis": "observed"
   },
@@ -4104,8 +4109,8 @@
     "why": "a form value recorded on blur redraws the badges, and the click that caused the blur must still open its panel"
    },
    "evidence": [
-    "src-e2e:269",
-    "src-e2e:295"
+    "src-e2e:251",
+    "src-e2e:277"
    ],
    "basis": "observed"
   },
@@ -4126,7 +4131,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:323",
+    "src-e2e:305",
     "src-e2e:44"
    ],
    "basis": "observed"
@@ -4154,7 +4159,7 @@
     ]
    },
    "evidence": [
-    "src-e2e:354"
+    "src-e2e:336"
    ],
    "basis": "observed"
   }
@@ -4737,7 +4742,7 @@
    },
    "evidence": [
     "src-starter:80",
-    "src-e2e:92"
+    "src-e2e:74"
    ]
   },
   {
@@ -4776,7 +4781,7 @@
     "protocol": "python3 serve-page-changes.py <page> --quiet 1.5"
    },
    "evidence": [
-    "src-e2e:67"
+    "src-e2e:49"
    ]
   },
   {
@@ -4790,7 +4795,7 @@
    },
    "evidence": [
     "src-replay-options:18",
-    "src-e2e:92"
+    "src-e2e:74"
    ]
   },
   {
@@ -5845,7 +5850,7 @@
     "condition": "no option"
    },
    "evidence": [
-    "src-e2e:433"
+    "src-e2e:415"
    ]
   },
   {
@@ -5858,7 +5863,7 @@
     "condition": "--queue `<folder>`"
    },
    "evidence": [
-    "src-e2e:431"
+    "src-e2e:413"
    ]
   },
   {
@@ -5871,7 +5876,7 @@
     "condition": "--verify `<folder>`"
    },
    "evidence": [
-    "src-e2e:432"
+    "src-e2e:414"
    ]
   },
   {
@@ -5885,7 +5890,7 @@
     "on-failure": "`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell` and exit 1"
    },
    "evidence": [
-    "src-e2e:435"
+    "src-e2e:417"
    ]
   },
   {
@@ -5899,7 +5904,7 @@
     "on-failure": "`FAIL queue: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:346"
+    "src-e2e:328"
    ]
   },
   {
@@ -5913,7 +5918,7 @@
     "on-failure": "`FAIL setup: <reason>`, the reason being the first line of the error"
    },
    "evidence": [
-    "src-e2e:421"
+    "src-e2e:403"
    ]
   },
   {
@@ -5926,7 +5931,7 @@
     "order": 1
    },
    "evidence": [
-    "src-e2e:445"
+    "src-e2e:427"
    ]
   },
   {
@@ -5939,7 +5944,7 @@
     "order": 2
    },
    "evidence": [
-    "src-e2e:446"
+    "src-e2e:428"
    ]
   },
   {
@@ -5952,7 +5957,7 @@
     "order": 3
    },
    "evidence": [
-    "src-e2e:447"
+    "src-e2e:429"
    ]
   },
   {
@@ -5965,7 +5970,7 @@
     "order": 4
    },
    "evidence": [
-    "src-e2e:448"
+    "src-e2e:430"
    ]
   },
   {
@@ -5978,7 +5983,7 @@
     "order": 5
    },
    "evidence": [
-    "src-e2e:449"
+    "src-e2e:431"
    ]
   },
   {
@@ -6268,9 +6273,9 @@
    ],
    "evidence": [
     "src-server:9",
-    "src-e2e:159",
-    "src-e2e:204",
-    "src-e2e:266"
+    "src-e2e:141",
+    "src-e2e:186",
+    "src-e2e:248"
    ]
   },
   {
@@ -6287,7 +6292,7 @@
    ],
    "evidence": [
     "src-relay-server:40",
-    "src-e2e:264"
+    "src-e2e:246"
    ]
   },
   {
@@ -6303,7 +6308,7 @@
    ],
    "evidence": [
     "src-relay-server:32",
-    "src-e2e:261"
+    "src-e2e:243"
    ]
   },
   {
@@ -6318,8 +6323,8 @@
    ],
    "evidence": [
     "src-relay-server:100",
-    "src-e2e:148",
-    "src-e2e:155"
+    "src-e2e:130",
+    "src-e2e:137"
    ]
   },
   {
@@ -6337,7 +6342,7 @@
    "evidence": [
     "src-relay-server:81",
     "src-relay-server:91",
-    "src-e2e:276"
+    "src-e2e:258"
    ]
   },
   {
@@ -6352,7 +6357,7 @@
     "pushes-reload"
    ],
    "evidence": [
-    "src-e2e:207"
+    "src-e2e:189"
    ]
   },
   {
@@ -6368,7 +6373,7 @@
    ],
    "evidence": [
     "src-relay-server:202",
-    "src-e2e:248"
+    "src-e2e:230"
    ]
   },
   {
@@ -6387,7 +6392,7 @@
    ],
    "evidence": [
     "src-relay-server:174",
-    "src-e2e:238"
+    "src-e2e:220"
    ]
   },
   {
@@ -6402,7 +6407,7 @@
    ],
    "evidence": [
     "src-relay-server:80",
-    "src-e2e:218"
+    "src-e2e:200"
    ]
   },
   {
@@ -6419,7 +6424,7 @@
    ],
    "evidence": [
     "src-runtime:21",
-    "src-e2e:289"
+    "src-e2e:271"
    ]
   },
   {
@@ -6434,7 +6439,7 @@
     "session-store"
    ],
    "evidence": [
-    "src-e2e:208"
+    "src-e2e:190"
    ]
   },
   {
@@ -6449,7 +6454,7 @@
    ],
    "evidence": [
     "src-runtime:68",
-    "src-e2e:305"
+    "src-e2e:287"
    ]
   },
   {
@@ -6464,7 +6469,7 @@
    ],
    "evidence": [
     "src-runtime:222",
-    "src-e2e:124"
+    "src-e2e:106"
    ]
   },
   {
@@ -6479,7 +6484,7 @@
     "holds-a"
    ],
    "evidence": [
-    "src-e2e:93"
+    "src-e2e:75"
    ]
   },
   {
@@ -6590,7 +6595,7 @@
    ],
    "evidence": [
     "src-skill:19",
-    "src-e2e:49"
+    "src-launch:13"
    ]
   },
   {
@@ -6637,7 +6642,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:184"
+    "src-e2e:166"
    ]
   },
   {
@@ -6771,7 +6776,7 @@
    "evidence": [
     "src-connect:6",
     "src-connect:20",
-    "src-e2e:93"
+    "src-e2e:75"
    ]
   },
   {
@@ -6819,7 +6824,7 @@
    ],
    "evidence": [
     "src-skill:10",
-    "src-e2e:184"
+    "src-e2e:166"
    ]
   },
   {

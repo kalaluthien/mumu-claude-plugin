@@ -26,4 +26,4 @@ async function launch() {
   }
 }
 
-module.exports = { missing, launch };
+module.exports = { PLAYWRIGHT, headlessShell, missing, launch };

@@ -20,16 +20,16 @@
 // Playwright is loaded from /private/tmp/relay-playwright/node_modules/playwright-core and the browser is the
 // newest headless shell Playwright installed, never an installed Google Chrome.
 const fs = require("fs");
-const http = require("http");
 const net = require("net");
 const os = require("os");
 const path = require("path");
 const readline = require("readline");
 const { spawn, spawnSync } = require("child_process");
-const { sleep, check, until } = require(path.join(__dirname, "..", "..", "..", "lib", "wait-until.cjs"));
+const { sleep, check, until } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
+const { request } = require(path.join(__dirname, "..", "..", "..", "lib", "send-request.cjs"));
+const { PLAYWRIGHT, headlessShell } = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 
 const ROOT = path.resolve(__dirname, "..");
-const PLAYWRIGHT = "/private/tmp/relay-playwright/node_modules/playwright-core";
 const SERVER = path.join(ROOT, "scripts", "serve-relay.py");
 const RUNTIME = path.resolve(ROOT, "..", "..", "lib", "relay-runtime.js");
 const QUIET = 1.5;
@@ -42,24 +42,6 @@ if (process.argv.length > 4 || process.argv.length === 3 || (process.argv.length
   process.exit(2);
 }
 const COMMENT = "Add a node Test after this one";
-
-function browserBinary() {
-  const cache = path.join(os.homedir(), "Library/Caches/ms-playwright");
-  const shells = fs.existsSync(cache) ? fs.readdirSync(cache).filter((name) => name.startsWith("chromium_headless_shell-")).sort() : [];
-  return shells.length ? path.join(cache, shells[shells.length - 1], "chrome-headless-shell-mac-arm64/chrome-headless-shell") : null;
-}
-
-function request(method, url, { headers = {}, body } = {}) {
-  return new Promise((resolve, reject) => {
-    const sent = http.request(url, { method, headers }, (response) => {
-      let text = "";
-      response.on("data", (chunk) => { text += chunk; });
-      response.on("end", () => resolve({ status: response.statusCode, text }));
-    });
-    sent.on("error", reject);
-    sent.end(body);
-  });
-}
 
 const python = (script, ...args) => spawnSync("python3", [path.join(ROOT, "scripts", script), ...args], { encoding: "utf8" });
 
@@ -313,8 +295,8 @@ async function outageStep(shared) {
 }
 
 async function openBrowser() {
-  const binary = browserBinary();
-  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
+  const binary = headlessShell();
+  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary) {
     throw new Error("install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell");
   }
   return require(PLAYWRIGHT).chromium.launch({ executablePath: binary });
@@ -430,8 +412,8 @@ async function verifyMode() {
 async function main() {
   if (MODE === "--queue") return queueMode();
   if (MODE === "--verify") return verifyMode();
-  const binary = browserBinary();
-  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary || !fs.existsSync(binary)) {
+  const binary = headlessShell();
+  if (!fs.existsSync(path.join(PLAYWRIGHT, "package.json")) || !binary) {
     console.log(`FAIL setup: install playwright-core into /private/tmp/relay-playwright and its chromium-headless-shell`);
     return 1;
   }
