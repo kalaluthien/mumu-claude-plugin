@@ -27,9 +27,10 @@
   "edges": [
     {"id": "asks-owner", "level": "lookup", "from": "browser-app", "to": "gateway", "label": "GET /v1/names/{name}", "tag": "call",
      "info": {"protocol": "HTTPS GET /v1/names/{name}", "timing": "the browser gives up after 5 seconds",
-       "errors": {"columns": ["status", "when"], "rows": [["404", "no one holds the name"], ["503", "{name-service} gives up"]]}}, "evidence": ["api-spec"], "basis": "documented"},
+       "errors": {"columns": ["status", "when"], "rows": [["404", "no one holds the name"], ["503", "{name-service} gives up"]]},
+       "work": {"columns": ["group", "change", "says"], "rows": [["registry", "new API", "serve the owner of a name, or 404 for a free one"], ["client-side", "logic change", "show a free name as one the reader may take"]]}}, "evidence": ["api-spec"], "basis": "documented"},
     {"id": "checks-name", "level": "lookup", "from": "gateway", "to": "gateway", "label": "check(name)", "tag": "call",
-     "info": {"protocol": "in-process", "why": "a malformed name is refused before any lookup"}, "evidence": ["api-spec"], "basis": "documented"},
+     "info": {"protocol": "in-process", "why": "a malformed name is refused before any lookup", "work": {"columns": ["group", "change", "says"], "rows": [["registry", "logic change", "refuse a name outside lowercase letters, digits and hyphens with 400"]]}}, "evidence": ["api-spec"], "basis": "documented"},
     {"id": "resolves-name", "level": "lookup", "from": "gateway", "to": "name-service", "label": "resolve(name)", "tag": "call", "opens": "inside-resolve",
      "info": {"protocol": "gRPC Resolve", "timing": "timeout 1 s"}, "evidence": ["runbook"], "basis": "documented"},
     {"id": "reads-shard", "level": "lookup", "from": "name-service", "to": "name-store", "label": "SELECT owner FROM names", "tag": "access",

@@ -58,7 +58,18 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .step { fill: var(--foreground); }
 .step-number { fill: var(--background); font: 700 11px/1 ui-sans-serif, system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
 .edge-codes { position: absolute; transform: translateX(-50%); color: var(--muted-foreground); white-space: nowrap; font: 400 11px/16px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.edge-work { position: absolute; transform: translateX(-50%); display: flex; gap: 4px; white-space: nowrap; }
+.work-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--group-edge); border-radius: 9999px; background: var(--group-fill); font: 500 11px/18px ui-sans-serif, system-ui, sans-serif; }
+.work-list { position: absolute; display: flex; flex-wrap: wrap; align-items: flex-start; gap: 24px; }
+.work-list section { min-width: 280px; max-width: 480px; padding-top: 8px; border-top: 3px solid var(--group-edge); }
+.work-list h2 { margin: 0 0 4px; font: 600 14px/20px ui-sans-serif, system-ui, sans-serif; }
+.work-list ol { margin: 0; padding: 0; list-style: none; }
+.work-row { display: grid; grid-template-columns: 20px auto 1fr; gap: 8px; padding: 4px 6px; border-radius: 6px; font-size: 13px; line-height: 20px; cursor: pointer; }
+.work-row:hover, .work-row.lit { background: var(--accent); }
+.work-step { width: 20px; height: 20px; border-radius: 50%; background: var(--foreground); color: var(--background); font: 700 11px/20px ui-sans-serif, system-ui, sans-serif; text-align: center; }
+.work-change { color: var(--muted-foreground); white-space: nowrap; }
 .edge-chips { position: absolute; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.edge-label.self, .edge-chips.self, .edge-codes.self, .edge-work.self { transform: none; }
 .chip { display: inline-flex; align-items: center; height: 16px; padding: 0 8px; border-radius: 9999px; background: var(--muted); color: var(--muted-foreground); font: 500 11px/16px ui-sans-serif, system-ui, sans-serif; }
 
 .fragment { fill: none; stroke: var(--muted-foreground); stroke-width: 1; }
@@ -67,6 +78,13 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
 .guard { position: absolute; padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--canvas) 85%, transparent); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
 
 .milestone { stroke: var(--foreground); stroke-width: 2; stroke-dasharray: 2 4; }
+.milestone-label.at-top { transform: translateX(-50%); }
+.task { position: absolute; height: 28px; padding: 0 12px; border: 2px solid var(--group-edge); border-radius: 6px; background: var(--group-fill); font-size: 13px; line-height: 24px; white-space: nowrap; }
+.task.critical { border: 3px solid var(--foreground); font-weight: 700; line-height: 22px; }
+.task-chips { position: absolute; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.arrow[data-tag="wait"] { stroke-dasharray: 2 4; }
+.edge.critical .arrow { stroke: var(--foreground); stroke-width: 3; }
+.edge.critical .head { fill: var(--foreground); }
 .milestone-label { position: absolute; padding: 0 8px; border-radius: 4px; background: var(--foreground); color: var(--background); font-size: 12px; line-height: 20px; font-weight: 600; white-space: nowrap; }
 
 .bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }

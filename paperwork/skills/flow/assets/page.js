@@ -1,7 +1,7 @@
 (() => {
   "use strict";
   const read = id => JSON.parse(document.getElementById(id).textContent);
-  const contract = read("page-data"), TAGS = read("page-tags"), FORMULAS = read("page-formulas");
+  const contract = read("page-data"), TAGS = read("page-tags"), FORMULAS = read("page-formulas"), ORDER = read("page-order");
   const $ = id => document.getElementById(id);
   const make = (name, attributes = {}, ...children) => {
     const element = document.createElement(name);
@@ -140,6 +140,9 @@
   const colour = node => `--group-fill: var(--group-fill-${groupIndex[node.group]}); --group-edge: var(--group-edge-${groupIndex[node.group]})`;
   const nodeBox = node => make("div", { class: "node", "data-id": node.id, "data-group": node.group, style: colour(node) },
     make("span", { class: "group" }, records[node.group].record.label), make("span", { class: "label" }, node.label));
+  const work = edge => { const table = (edge.info || {}).work; return table && Array.isArray(table.rows) ? table.rows.map(([group, change, says]) => ({ group, change, says })) : []; };
+  const edgeWork = edge => work(edge).length ? make("div", { class: "edge-work", "data-for": edge.id },
+    work(edge).map(one => make("span", { class: "work-pill", "data-group": one.group, style: colour(one) }, `${one.change} · ${records[one.group].record.label}`))) : null;
   const edgeCodes = edge => codes(edge).length ? make("div", { class: "edge-codes", "data-for": edge.id }, codes(edge).join(" · ")) : null;
   const edgeLabel = edge => make("div", { class: "edge-label", "data-id": edge.id }, edge.label, ...(edge.opens ? [make("span", { class: "opens-mark", "data-opens": edge.opens, title: `Open ${records[edge.opens].record.title}` }, "ref")] : []));
   const head = (x, y, toward) => draw("polygon", { class: "head", points: `${x},${y} ${x - 10 * toward},${y - 5} ${x - 10 * toward},${y + 5}` });
@@ -149,7 +152,7 @@
     const boxes = nodes.map(node => measure(nodeBox(node)));
     const index = Object.fromEntries(nodes.map((node, k) => [node.id, k]));
     const gaps = nodes.map((node, k) => k ? boxes[k - 1].w / 2 + boxes[k].w / 2 + GAP : 0);
-    const labels = edges.map(edge => Math.max(measure(edgeLabel(edge)).w, edgeCodes(edge) ? measure(edgeCodes(edge)).w : 0) + 24);
+    const labels = edges.map(edge => Math.max(...[edgeLabel(edge), edgeCodes(edge), edgeWork(edge)].filter(Boolean).map(part => measure(part).w)) + 24);
     for (let round = 0; round < 2; round++) for (const [k, edge] of edges.entries()) { // widen the gap an edge's name needs, at the last column it spans
       const from = Math.min(index[edge.from], index[edge.to]), to = Math.max(index[edge.from], index[edge.to]);
       const span = gaps.slice(from + 1, to + 1).reduce((sum, gap) => sum + gap, 0);
@@ -199,13 +202,17 @@
       group.append(draw("circle", { class: "step", cx: from, cy: self ? arrowY - 8 : arrowY, r: 9 }), draw("text", { class: "step-number", x: from, y: (self ? arrowY - 8 : arrowY) + 4 }, String(k + 1)));
       svg.append(group);
       const label = edgeLabel(edge);
-      label.style.left = (self ? from + 48 + labels[k] / 2 : (from + to) / 2) + "px"; label.style.top = (self ? arrowY - 30 : y) + "px";
+      const middle = self ? from + 48 : (from + to) / 2; // a self-call's parts start right of its loop, since its row may be wide
+      label.style.left = middle + "px"; label.style.top = (self ? arrowY - 30 : y) + "px";
       const chips = make("div", { class: "edge-chips", "data-for": edge.id }, make("span", { class: "chip" }, tagName(edge.tag)), counts(edge.id));
-      chips.style.left = (self ? from + 48 + labels[k] / 2 : (from + to) / 2) + "px"; chips.style.top = arrowY + (self ? 14 : 6) + "px"; // below a self-call's loop too
+      chips.style.left = middle + "px"; chips.style.top = arrowY + (self ? 14 : 6) + "px"; // below a self-call's loop too
       put(label, chips);
+      if (self) [label, chips].forEach(part => part.classList.add("self"));
       const written = edgeCodes(edge);
-      if (written) { written.style.left = chips.style.left; written.style.top = arrowY + (self ? 34 : 26) + "px"; put(written); }
-      y += ROW + (written ? 18 : 0) + (self ? 8 : 0);
+      if (written) { written.style.left = chips.style.left; written.style.top = arrowY + (self ? 34 : 26) + "px"; written.classList.toggle("self", self); put(written); }
+      const owed = edgeWork(edge);
+      if (owed) { owed.style.left = chips.style.left; owed.style.top = arrowY + (self ? 34 : 26) + (written ? 18 : 0) + "px"; owed.classList.toggle("self", self); put(owed); }
+      y += ROW + (written ? 18 : 0) + (owed ? 24 : 0) + (self ? 8 : 0);
       for (const one of fragments.filter(one => one.last === k).sort((a, b) => b.depth - a.depth)) { one.bottom = y; y += 8; }
       mark(k);
     }
@@ -235,7 +242,77 @@
       svg.prepend(draw("g", { class: "lifeline-hit", "data-for": node.id }, draw("line", { class: "lifeline", style: colour(node), ...line }), draw("line", { class: "hit", ...line })));
     });
     const right = Math.max(lineEnds[1], ...fragments.map(one => one.right), ...reach.map(x => x + 16));
-    return { width: right + PAD, height: bottom + 48 };
+    const owing = (contract.groups || []).map(group => [group, edges.flatMap(edge => work(edge).filter(one => one.group === group.id).map(one => [edge, one]))]).filter(([, rows]) => rows.length);
+    if (!owing.length) return { width: right + PAD, height: bottom + 48 };
+    const list = make("div", { class: "work-list" }, owing.map(([group, rows]) => make("section", { "data-group": group.id, style: colour({ group: group.id }) },
+      make("h2", {}, group.label),
+      make("ol", {}, rows.map(([edge, one]) => make("li", { class: "work-row", "data-for": edge.id },
+        make("span", { class: "work-step" }, String(step(edge))), make("span", { class: "work-change" }, one.change), make("span", { class: "work-says" }, words(one.says))))))));
+    list.style.left = PAD + "px"; list.style.top = bottom + 32 + "px"; list.style.width = Math.max(right - PAD, 720) + "px";
+    put(list);
+    return { width: Math.max(right + PAD, PAD + measure(list).w + PAD), height: bottom + 32 + measure(list).h + 48 };
+  }
+
+  const taskBar = (task, chain) => { const node = records[task.node].record;
+    return make("div", { class: "task" + (chain.has(task.id) ? " critical" : ""), "data-id": task.id, style: colour(node) }, task.label); };
+  function plan(level, svg, put) { // actors and resources down the left, each task in the column of its place in time
+    const { ranks, critical } = ORDER[level.id], chain = new Set(critical), BAR = 28, LANE_ROW = 64, BEND = 8;
+    const nodes = level.nodes.map(id => records[id].record), tasks = of("tasks", level.id), edges = of("edges", level.id), milestones = of("milestones", level.id);
+    const lane = Object.fromEntries(nodes.map((node, k) => [node.id, k])), lead = Math.max(...nodes.map(node => measure(nodeBox(node)).w));
+    const columns = Math.max(0, ...Object.values(ranks)) + 1, widths = Array(columns).fill(40), slot = {}, rowsOf = nodes.map(() => 1);
+    for (const task of tasks) {
+      widths[ranks[task.id]] = Math.max(widths[ranks[task.id]], measure(taskBar(task, chain)).w);
+      slot[task.id] = tasks.filter(other => other.node === task.node && ranks[other.id] === ranks[task.id] && tasks.indexOf(other) < tasks.indexOf(task)).length;
+      rowsOf[lane[task.node]] = Math.max(rowsOf[lane[task.node]], slot[task.id] + 1);
+    }
+    for (const milestone of milestones) widths[ranks[milestone.id]] = Math.max(widths[ranks[milestone.id]], 40);
+    // an arrow leaves its task into the gap after it, runs along the channel between lanes beside its target's lane, and enters the
+    // gap before its target, so no run crosses a bar; each arrow in one gap or channel keeps a track of its own
+    const leaving = Array(columns).fill(0), entering = Array(columns).fill(0), channels = Array(nodes.length + 1).fill(0);
+    const routes = edges.map(edge => {
+      const from = records[edge.from].record, to = records[edge.to].record, source = lane[from.node], target = lane[to.node];
+      const channel = source < target ? target : target + 1;
+      return { edge, from, to, channel, out: leaving[ranks[from.id]]++, into: entering[ranks[to.id]]++, track: channels[channel]++ };
+    });
+    const gaps = widths.map((width, c) => Math.max(GAP, 2 * 16 + BEND * (leaving[c] + (entering[c + 1] || 0))));
+    const starts = [PAD + 24 + lead + GAP];
+    widths.forEach((width, c) => { if (c) starts.push(starts[c - 1] + widths[c - 1] + gaps[c - 1]); });
+    const channelHeight = channels.map(count => 16 + BEND * count), laneTops = [];
+    let y = TOP + 32 + channelHeight[0];
+    nodes.forEach((node, k) => { laneTops.push(y); y += rowsOf[k] * LANE_ROW + channelHeight[k + 1]; });
+    const bottom = y, barY = task => laneTops[lane[task.node]] + slot[task.id] * LANE_ROW + 8, right = starts[columns - 1] + widths[columns - 1] + PAD;
+    nodes.forEach((node, k) => {
+      const box = nodeBox(node), height = rowsOf[k] * LANE_ROW - 8;
+      box.style.left = PAD + 24 + "px"; box.style.top = laneTops[k] + "px"; box.style.width = lead + "px"; box.style.height = height + "px";
+      put(box);
+      const lines = Array.from({ length: rowsOf[k] }, (_, row) => { const at = laneTops[k] + row * LANE_ROW + 8 + BAR / 2; return { x1: PAD + 24 + lead, x2: right - PAD + 24, y1: at, y2: at }; });
+      svg.prepend(draw("g", { class: "lifeline-hit", "data-for": node.id }, ...lines.flatMap(line => [draw("line", { class: "lifeline", style: colour(node), ...line }), draw("line", { class: "hit", ...line })])));
+    });
+    for (const task of tasks) {
+      const bar = taskBar(task, chain), x = starts[ranks[task.id]];
+      bar.style.left = x + "px"; bar.style.top = barY(task) + "px"; bar.style.width = widths[ranks[task.id]] + "px";
+      const chips = make("div", { class: "task-chips", "data-for": task.id }, make("span", { class: "chip" }, tagName(task.tag)), counts(task.id));
+      chips.style.left = x + "px"; chips.style.top = barY(task) + BAR + 4 + "px";
+      put(bar, chips);
+    }
+    for (const { edge, from, to, channel, out, into, track } of routes) {
+      const x1 = starts[ranks[from.id]] + widths[ranks[from.id]], y1 = barY(from) + BAR / 2, x2 = starts[ranks[to.id]], y2 = barY(to) + BAR / 2;
+      const leave = x1 + 16 + BEND * out, enter = x2 - 16 - BEND * into;
+      const runY = (channel < nodes.length ? laneTops[channel] : bottom) - channelHeight[channel] + 8 + BEND * track;
+      const path = from.node === to.node && slot[from.id] === slot[to.id] && ranks[to.id] === ranks[from.id] + 1 ? `M${x1},${y1} H${x2}`
+        : `M${x1},${y1} H${leave} V${runY} H${enter} V${y2} H${x2}`;
+      const bold = chain.has(from.id) && chain.has(to.id) && critical.indexOf(to.id) === critical.indexOf(from.id) + 1;
+      svg.append(draw("g", { class: "edge" + (bold ? " critical" : ""), "data-for": edge.id, "data-tag": edge.tag },
+        draw("path", { class: "arrow", d: path, "data-tag": edge.tag }), head(x2, y2, 1), draw("path", { class: "hit", d: path })));
+    }
+    for (const milestone of milestones) {
+      const x = starts[ranks[milestone.id]] + widths[ranks[milestone.id]] / 2;
+      svg.append(draw("line", { class: "milestone", "data-for": milestone.id, x1: x, x2: x, y1: TOP + 28, y2: bottom }));
+      const label = make("div", { class: "milestone-label at-top", "data-id": milestone.id }, milestone.label);
+      label.style.left = x + "px"; label.style.top = TOP + "px";
+      put(label);
+    }
+    return { width: right, height: bottom + 48 };
   }
 
   function render() {
@@ -244,7 +321,7 @@
     kept = null;
     const level = records[view.level].record, svg = draw("svg", { "aria-hidden": "true" }), parts = [];
     stage.replaceChildren();
-    const size = interaction(level, svg, (...elements) => parts.push(...elements));
+    const size = (level.kind === "plan" ? plan : interaction)(level, svg, (...elements) => parts.push(...elements));
     svg.setAttribute("width", size.width); svg.setAttribute("height", size.height);
     stage.style.width = size.width + "px"; stage.style.height = size.height + "px";
     stage.replaceChildren(svg, ...parts);
@@ -268,6 +345,7 @@
     const opener = event.target.closest(".opens-mark"), id = target(event);
     if (opener) return go(opener.dataset.opens, null);
     if (!id) { kept = null; light(null); return recordCard.hide(); }
+    if (event.target.closest(".work-row")) $("stage").querySelector(`.edge-label[data-id="${id}"]`).scrollIntoView({ block: "center" }); // a task-list row leads to its arrow
     kept = id; light(id); recordCard.show(id);
   });
   stage.addEventListener("dblclick", event => { // an edge that opens a level opens it, as its card's hint says

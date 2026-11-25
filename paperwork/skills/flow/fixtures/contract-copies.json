@@ -772,6 +772,22 @@
     }
    ]
   ],
+  "info-form-work-cell": [
+   [
+    [
+     "edges",
+     0,
+     "info",
+     "work",
+     "rows",
+     0,
+     0
+    ],
+    [
+     "registry"
+    ]
+   ]
+  ],
   "text-plain-info": [
    [
     [
@@ -794,6 +810,50 @@
      "protocol": "HTTPS GET /v1/names/{name}",
      "timing": "the browser gives up after 5 seconds"
     }
+   ]
+  ],
+  "work-group": [
+   [
+    [
+     "edges",
+     0,
+     "info",
+     "work",
+     "rows",
+     0,
+     0
+    ],
+    "nowhere"
+   ]
+  ],
+  "work-group-columns": [
+   [
+    [
+     "edges",
+     0,
+     "info",
+     "work",
+     "columns"
+    ],
+    [
+     "team",
+     "change",
+     "says"
+    ]
+   ]
+  ],
+  "work-group-number": [
+   [
+    [
+     "edges",
+     0,
+     "info",
+     "work",
+     "rows",
+     0,
+     0
+    ],
+    5
    ]
   ]
  },
@@ -824,7 +884,7 @@
    [
     [
      "edges",
-     7
+     8
     ],
     {
      "id": "sends-version",

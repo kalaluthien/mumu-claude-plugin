@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from flow_order import before, critical, ranks  # noqa: E402
 from page_parts import CARD, code, palette, style  # noqa: E402
 from tex_mathml import formulas, key, mathml  # noqa: E402
 
@@ -37,6 +38,7 @@ PAGE = """<!doctype html>
 <script type="application/json" id="page-threads">{{"threads": {{}}}}</script>
 <script type="application/json" id="page-tags">{tags}</script>
 <script type="application/json" id="page-formulas">{formulas}</script>
+<script type="application/json" id="page-order">{order}</script>
 <script>
 {parts}
 {code}
@@ -66,6 +68,17 @@ def drawn(value):
     return found
 
 
+def ordered(contract):
+    """Each plan level's place of each task and milestone on the time axis, and its critical path, by level id."""
+    found = {}
+    for level in contract["levels"]:
+        if level["kind"] == "plan":
+            first = before(contract, level)
+            tasks = {task["id"] for task in contract.get("tasks", []) if task["level"] == level["id"]}
+            found[level["id"]] = {"ranks": ranks(first), "critical": critical(first, tasks)}
+    return found
+
+
 def main(args):
     if not 1 <= len(args) <= 2 or any(arg.startswith("-") for arg in args) or not pathlib.Path(args[0]).is_file():
         print(__doc__, file=sys.stderr)
@@ -76,14 +89,10 @@ def main(args):
         print(checked.stdout + checked.stderr, end="", file=sys.stderr)
         return 1
     contract = json.loads(source.read_text())
-    planned = [level["id"] for level in contract["levels"] if level["kind"] != "interaction"]
-    if planned:
-        print(f"make-page.py: the page draws interaction levels only, and {', '.join(planned)} is a plan", file=sys.stderr)
-        return 1
     title = contract["title"].replace("&", "&amp;").replace("<", "&lt;")
     page = PAGE.format(title=title, parts_style=style(), style=(ASSETS / "page.css").read_text().strip(), card=CARD,
                        palette=palette("Search nodes, edges, tasks and properties"), parts=code(), code=(ASSETS / "page.js").read_text().strip(),
-                       data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())), formulas=block(drawn(contract)))
+                       data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())), formulas=block(drawn(contract)), order=block(ordered(contract)))
     target = pathlib.Path(args[1]) if len(args) == 2 else source.with_name("page.html")
     target.write_text(page)
     print(target)

@@ -40,6 +40,12 @@
         "label": "why",
         "form": "text",
         "example": "kept one way so the server never writes"
+      },
+      {
+        "name": "work",
+        "label": "work",
+        "form": "table",
+        "example": "group, change, says: registry, new API, serve the owner of a name"
       }
     ],
     "task": [

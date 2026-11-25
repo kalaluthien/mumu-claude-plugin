@@ -2,25 +2,32 @@
 // Build the page of each flow fixture, open it in a headless Chromium as file:// at 1440 by 900 pixels, and drive it as a
 // person with a pointer and a keyboard would.
 //
-// usage: run-page.cjs [interaction]
+// usage: run-page.cjs [interaction] [plan]
 // With no word it runs every step; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the step's seconds,
 // then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure and 2 on a word it does
 // not know.
 //   interaction  on the first level of name-lookup.json: every node in one row across the top; every edge lower than
 //                the one before it, its step number on its sender's line, its name above its arrow and its tag chip
-//                and badges below it, then its code items, a self-call a loop on its node's line, the arrow joining
-//                its two nodes' lines; each group's nodes in one fill and one 2 px border colour, the group's label
-//                inside each, the groups apart in colour; each fragment's frame round all its edges, its kind
-//                written inside its top left corner, each guard inside it; each milestone a dotted line across every
-//                node's line, between the edges before and after it, its name on it; the pointer on a node's line
-//                and on an edge raising that record's card, the edge's step and formula on it; `/` and an edge's
-//                name listing that edge first, and Enter keeping its card; a click on the nested edge's ref mark
-//                drawing the level it opens with crumbs back, a double-click on the edge doing the same, and the
-//                first crumb drawing the first level again; one anchor per node, edge, task, fragment and milestone;
-//                a contract the checker refuses building no page, nor one with a plan level; arrowheads pointing at
-//                the receiver; on a crowded copy, a self-call's name inside its frame and the stage, a frame inside
-//                the frame holding it, and a milestone after a milestone drawn below it; no console error and no
+//                and badges below it, then its code items and a pill per work row, a self-call a loop on its node's
+//                line with its parts starting just right of it, the arrow joining its two nodes' lines; each group's
+//                nodes in one fill and one 2 px border colour, the group's label inside each, the groups apart in
+//                colour; each fragment's frame round all its edges, its kind written inside its top left corner,
+//                each guard inside it; below the diagram a task list per group with work, its rows in step order, a
+//                click on the first step's row bringing that arrow into view with its card; each milestone a dotted
+//                line across every node's line, between the edges before and after it, its name on it; the pointer
+//                on a node's line and on an edge raising that record's card, the edge's step and formula on it; `/`
+//                and an edge's name listing that edge first, and Enter keeping its card; a click on the nested
+//                edge's ref mark drawing the level it opens with crumbs back, a double-click on the edge doing the
+//                same, and the first crumb drawing the first level again; one anchor per node, edge, task, fragment
+//                and milestone; a contract the checker refuses building no page; arrowheads pointing at the
+//                receiver; on a crowded copy, a self-call's name inside its frame and the stage, a frame inside the
+//                frame holding it, and a milestone after a milestone drawn below it; no console error and no
 //                request.
+//   plan         on the level of launch-plan.json: every node in one column down the left; each task a bar on one of its node's
+//                lines, right of the nodes, starting right of the end of every task and milestone it waits on, by an edge or
+//                its `after`; each milestone's dotted line right of the end of each task it waits on; each request arrow solid
+//                and each wait arrow dotted; the bold tasks and edges exactly the chain `check-contract.py order` prints, as
+//                many bold tasks as it counts; the pointer on a task raising its card; no console error and no request.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -29,7 +36,7 @@ const { spawnSync } = require("child_process");
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const SIZE = [1440, 900];
-const STEPS = ["interaction"];
+const STEPS = ["interaction", "plan"];
 const asked = process.argv.slice(2);
 if (asked.some((word) => !STEPS.includes(word))) {
   console.error("usage: run-page.cjs " + STEPS.map((word) => `[${word}]`).join(" "));
@@ -65,6 +72,7 @@ const quiet = (page, where) => {
 };
 const carded = (page, id, where) => page.waitForFunction((id) => { const card = document.getElementById("card"); return card.classList.contains("show") && card.dataset.for === id; }, id, { timeout: 5000 })
   .catch(() => { throw new Error(`${where}: no card for ${id} came`); });
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const shownLevel = (page) => page.evaluate(() => [...document.querySelectorAll("#crumbs [aria-current]")].map((crumb) => crumb.dataset.level)[0]);
 
 const drawn = (page) => page.evaluate(() => { // what the shown level draws, as boxes in the stage's own pixels
@@ -78,11 +86,11 @@ const drawn = (page) => page.evaluate(() => { // what the shown level draws, as 
   const lines = Object.fromEntries(all("#stage [data-for] > .lifeline").map((line) => [line.parentNode.dataset.for, { x: +line.getAttribute("x1"), top: +line.getAttribute("y1"), bottom: +line.getAttribute("y2") }]));
   const edges = Object.fromEntries(all("#stage g.edge").map((group) => {
     const id = group.dataset.for, arrow = group.querySelector(".arrow"), [tip, back] = group.querySelector(".head").getAttribute("points").split(" ").map((point) => +point.split(",")[0]), fill = [...group.querySelectorAll("path")].map((part) => getComputedStyle(part).fill).find((one) => one !== "none") || "none";
-    const chips = document.querySelector(`#stage .edge-chips[data-for="${id}"]`), codes = document.querySelector(`#stage .edge-codes[data-for="${id}"]`);
+    const chips = document.querySelector(`#stage .edge-chips[data-for="${id}"]`), codes = document.querySelector(`#stage .edge-codes[data-for="${id}"]`), work = document.querySelector(`#stage .edge-work[data-for="${id}"]`);
     const disc = group.querySelector("circle.step"), number = group.querySelector("text.step-number");
     return [id, { tip, back, arrow: box(arrow), label: box(document.querySelector(`#stage .edge-label[data-id="${id}"]`)), text: document.querySelector(`#stage .edge-label[data-id="${id}"]`).firstChild.textContent,
       chips: box(chips), chip: chips.querySelector(".chip").textContent, badges: chips.querySelectorAll(".count").length,
-      fill, codes: codes && { ...box(codes), text: codes.textContent }, step: disc && number && { x: +disc.getAttribute("cx"), y: +disc.getAttribute("cy"), text: number.textContent } }];
+      fill, codes: codes && { ...box(codes), text: codes.textContent }, work: work && { ...box(work), pills: [...work.querySelectorAll(".work-pill")].map((pill) => pill.textContent) }, step: disc && number && { x: +disc.getAttribute("cx"), y: +disc.getAttribute("cy"), text: number.textContent } }];
   }));
   const fragments = Object.fromEntries(all("#stage rect.fragment").map((frame) => {
     const id = frame.dataset.for, kind = document.querySelector(`#stage .fragment-kind[data-id="${id}"]`);
@@ -93,7 +101,10 @@ const drawn = (page) => page.evaluate(() => { // what the shown level draws, as 
     return [id, { line: box(line), y: +line.getAttribute("y1"), dash: getComputedStyle(line).strokeDasharray, label: box(document.querySelector(`#stage .milestone-label[data-id="${id}"]`)), text: document.querySelector(`#stage .milestone-label[data-id="${id}"]`).textContent }];
   }));
   const anchors = all("#stage [data-id]").map((element) => element.dataset.id);
-  return { nodes, lines, edges, fragments, milestones, anchors };
+  const list = document.querySelector("#stage .work-list");
+  const work = list && { ...box(list), sections: all("#stage .work-list section").map((section) => ({ group: section.dataset.group, title: section.querySelector("h2").textContent,
+    rows: [...section.querySelectorAll(".work-row")].map((row) => ({ for: row.dataset.for, step: row.querySelector(".work-step").textContent, change: row.querySelector(".work-change").textContent, says: row.querySelector(".work-says").textContent })) })) };
+  return { nodes, lines, edges, fragments, milestones, anchors, work };
 });
 
 async function interaction(browser) {
@@ -105,17 +116,18 @@ async function interaction(browser) {
     return file;
   })(), path.join(scratch, "refused.html"));
   check(refused.status === 1 && !fs.existsSync(path.join(scratch, "refused.html")), "make-page.py built a page from a contract the checker refuses");
-  const planned = python(path.join(ROOT, "scripts", "make-page.py"), path.join(ROOT, "fixtures", "launch-plan.json"), path.join(scratch, "planned.html"));
-  check(planned.status === 1 && !fs.existsSync(path.join(scratch, "planned.html")), "make-page.py built a page from a contract with a plan level, which it does not draw");
 
   const fixture = make("name-lookup"), contract = fixture.contract, level = contract.levels[0];
   const edges = contract.edges.filter((edge) => edge.level === level.id), fragments = (contract.fragments || []).filter((one) => one.level === level.id);
   const milestones = (contract.milestones || []).filter((one) => one.level === level.id), nested = edges.find((edge) => edge.opens);
   const groups = new Set(level.nodes.map((id) => contract.nodes.find((node) => node.id === id).group));
   const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
+  const owed = (edge) => ((edge.info || {}).work || { rows: [] }).rows;
+  const groupLabel = (id) => contract.groups.find((group) => group.id === id).label;
   const codes = (edge) => (tags.edge[edge.tag] ? tags.edge[edge.tag].items : []).filter((item) => item.form === "code" && typeof (edge.info || {})[item.name] === "string" && edge.info[item.name] !== edge.label).map((item) => edge.info[item.name]).join(" · ");
   check(groups.size >= 2 && fragments.some((one) => one.kind === "loop") && fragments.some((one) => one.kind === "break") && milestones.length && nested
-    && edges.some((edge) => edge.from === edge.to) && edges.some(codes), "the fixture's first level lacks two groups, a loop, a break, a milestone, a nested edge, a self-call or a code item");
+    && edges.some((edge) => edge.from === edge.to && owed(edge).length) && edges.some(codes) && new Set(edges.flatMap(owed).map((row) => row[0])).size >= 2,
+    "the fixture's first level lacks two groups, a loop, a break, a milestone, a nested edge, a self-call with work, a code item or work for two groups");
   const page = await open(browser, fixture);
   const seen = await drawn(page);
 
@@ -146,6 +158,9 @@ async function interaction(browser) {
     check((one.codes ? one.codes.text : "") === codes(edge), `${edge.id} writes "${one.codes ? one.codes.text : ""}" under its arrow, not its code items "${codes(edge)}"`);
     check(!one.codes || one.codes.top >= one.chips.bottom - 1, `${edge.id}'s code items are not below its chip`);
     check(one.fill === "none", `a path of ${edge.id} is filled ${one.fill}`);
+    const pills = owed(edge).map(([group, change]) => `${change} · ${groupLabel(group)}`);
+    check(JSON.stringify(one.work ? one.work.pills : []) === JSON.stringify(pills), `${edge.id}'s work pills read ${JSON.stringify(one.work ? one.work.pills : [])}, not ${JSON.stringify(pills)}`);
+    check(!one.work || one.work.top >= (one.codes || one.chips).bottom - 1, `${edge.id}'s work pills are not below its chip and code items`);
     check(one.text === edge.label, `${edge.id}'s name reads "${one.text}", not "${edge.label}"`);
     check(one.arrow.top > above, `${edge.id} is not lower than the edge before it`);
     above = one.arrow.bottom;
@@ -158,6 +173,8 @@ async function interaction(browser) {
     check(Math.abs(one.tip - seen.lines[edge.to].x) < 2 && Math.sign(one.tip - one.back) === toward, `${edge.id}'s arrowhead does not point at ${edge.to}'s line from ${edge.from}'s side`);
     if (edge.from === edge.to) check(Math.abs(one.arrow.left - seen.lines[edge.from].x) < 2 && one.arrow.right - one.arrow.left >= 20 && one.arrow.bottom - one.arrow.top >= 8,
       `${edge.id}'s arrow is no loop leaving and coming back to ${edge.from}'s line`);
+    if (edge.from === edge.to) check([one.label, one.chips, one.codes, one.work].filter(Boolean).every((part) => part.left >= one.arrow.right && part.left - one.arrow.right <= 16),
+      `${edge.id}'s name, chip, code items or work pills do not start just right of its loop`);
     else {
       const xs = [seen.lines[edge.from].x, seen.lines[edge.to].x].sort((a, b) => a - b);
       check(Math.abs(one.arrow.left - xs[0]) < 12 && Math.abs(one.arrow.right - xs[1]) < 12, `${edge.id}'s arrow does not join ${edge.from}'s and ${edge.to}'s lines`);
@@ -180,6 +197,12 @@ async function interaction(browser) {
     }
   }
 
+  // the task list below the diagram: per group with work, its rows in step order
+  const tasks = contract.groups.map((group) => ({ group: group.id, title: group.label,
+    rows: edges.flatMap((edge, k) => owed(edge).filter((row) => row[0] === group.id).map(([, change, says]) => ({ for: edge.id, step: String(k + 1), change, says }))) })).filter((one) => one.rows.length);
+  check(seen.work && JSON.stringify(seen.work.sections) === JSON.stringify(tasks), `the task list reads ${JSON.stringify(seen.work && seen.work.sections)}, not ${JSON.stringify(tasks)}`);
+  check(level.nodes.every((id) => seen.work.top > seen.lines[id].bottom), "the task list is not below the diagram");
+
   // each milestone a dotted line across every node's line, after the edges it names, its name on it
   for (const milestone of milestones) {
     const one = seen.milestones[milestone.id];
@@ -187,7 +210,7 @@ async function interaction(browser) {
     check(one.dash !== "none" && one.dash !== "", `${milestone.id}'s line is not dotted`);
     check(level.nodes.every((id) => one.line.left < seen.lines[id].x && seen.lines[id].x < one.line.right && seen.lines[id].top < one.y && one.y < seen.lines[id].bottom), `${milestone.id} does not cross every node's line`);
     const order = edges.map((edge) => edge.id), last = Math.max(...milestone.after.map((id) => order.indexOf(id)));
-    check(edges.every((edge, k) => k <= last ? Math.max(seen.edges[edge.id].chips.bottom, seen.edges[edge.id].codes ? seen.edges[edge.id].codes.bottom : 0) < one.y : seen.edges[edge.id].label.top > one.y), `${milestone.id} is not between the edges before and after it`);
+    check(edges.every((edge, k) => k <= last ? Math.max(...[seen.edges[edge.id].chips, seen.edges[edge.id].codes, seen.edges[edge.id].work].filter(Boolean).map((part) => part.bottom)) < one.y : seen.edges[edge.id].label.top > one.y), `${milestone.id} is not between the edges before and after it`);
     check(one.text === milestone.label && one.label.bottom <= one.y + 2 && one.label.bottom >= one.y - 12, `${milestone.id}'s name is not on its line`);
   }
 
@@ -209,6 +232,16 @@ async function interaction(browser) {
   check(formula.step === String(edges.indexOf(edge) + 1), `${edge.id}'s card gives step ${formula.step}, not ${edges.indexOf(edge) + 1}`);
   check(formula.math && !formula.marks, `${edge.id}'s card draws ${formula.math ? "" : "no formula "}${formula.marks ? "a dollar as text" : ""}`);
   await page.mouse.move(2, SIZE[1] - 2);
+
+  // a task-list row raises its edge's card with its arrow in view
+  const row = tasks[0].rows[0]; // the first step's arrow, the farthest from the list
+  await page.evaluate(() => { const box = document.getElementById("diagram"); box.scrollTop = box.scrollHeight; });
+  await page.click(`#stage .work-list section[data-group="${tasks[0].group}"] .work-row:first-child`);
+  await carded(page, row.for, `a click on the task-list row of step ${row.step}`);
+  const shown = await page.evaluate((id) => { const at = document.querySelector(`#stage .edge-label[data-id="${id}"]`).getBoundingClientRect(); return at.top >= 0 && at.bottom <= innerHeight; }, row.for);
+  check(shown, `a click on the task-list row of step ${row.step} leaves ${row.for}'s arrow out of view`);
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => { document.getElementById("diagram").scrollTop = 0; });
 
   // `/` finds an edge by its name
   const sought = edges.find((one) => one.id !== edge.id && one.level === level.id);
@@ -267,6 +300,80 @@ async function interaction(browser) {
   console.log(`${level.nodes.length} nodes, ${edges.length} edges, ${fragments.length} fragments and ${milestones.length} milestones read on ${level.id}; ${nested.opens} opened by its ref mark and by a double-click`);
 }
 
+async function plan(browser) {
+  const fixture = make("launch-plan"), contract = fixture.contract, level = contract.levels.find((one) => one.kind === "plan");
+  const ordered = python(path.join(ROOT, "scripts", "check-contract.py"), "order", fixture.source);
+  const printed = ordered.stdout.split("\n").find((line) => line.startsWith(`critical-path ${level.id} `));
+  check(ordered.status === 0 && printed, `check-contract.py order printed no critical path for ${level.id}`);
+  const counted = +printed.split(" ")[2], chain = printed.split(": ")[1].split(" ");
+  const tasks = contract.tasks.filter((task) => task.level === level.id), edges = contract.edges.filter((edge) => edge.level === level.id);
+  const milestones = (contract.milestones || []).filter((one) => one.level === level.id);
+  const page = await open(browser, fixture, `#level=${level.id}`);
+  const seen = await page.evaluate(() => {
+    const stage = document.getElementById("stage").getBoundingClientRect();
+    const box = (element) => { const at = element.getBoundingClientRect(); return { left: at.left - stage.left, right: at.right - stage.left, top: at.top - stage.top, bottom: at.bottom - stage.top }; };
+    const nodes = Object.fromEntries([...document.querySelectorAll("#stage .node")].map((node) => [node.dataset.id, box(node)]));
+    const lines = {};
+    for (const line of document.querySelectorAll("#stage [data-for] > .lifeline")) (lines[line.parentNode.dataset.for] = lines[line.parentNode.dataset.for] || []).push(+line.getAttribute("y1"));
+    const bars = Object.fromEntries([...document.querySelectorAll("#stage .task")].map((bar) => {
+      const style = getComputedStyle(bar);
+      return [bar.dataset.id, { ...box(bar), bold: +style.fontWeight >= 700 && parseFloat(style.borderTopWidth) >= 3 }];
+    }));
+    const arrows = Object.fromEntries([...document.querySelectorAll("#stage g.edge")].map((group) => {
+      const style = getComputedStyle(group.querySelector(".arrow"));
+      return [group.dataset.for, { dash: style.strokeDasharray, bold: parseFloat(style.strokeWidth) >= 3 }];
+    }));
+    const marks = Object.fromEntries([...document.querySelectorAll("#stage line.milestone")].map((line) => [line.dataset.for, { x: +line.getAttribute("x1"), dash: getComputedStyle(line).strokeDasharray }]));
+    return { nodes, lines, bars, arrows, marks };
+  });
+
+  // the nodes in one column down the left, each task on one of its node's lines, right of them
+  const nodes = level.nodes.map((id) => seen.nodes[id]);
+  check(nodes.every(Boolean), "a node of the level is not drawn");
+  check(nodes.every((node, k) => Math.abs(node.left - nodes[0].left) < 1 && (!k || node.top >= nodes[k - 1].bottom)), "the nodes are not in one column down the left");
+  const edgeOfNodes = Math.max(...nodes.map((node) => node.right));
+  for (const task of tasks) {
+    const bar = seen.bars[task.id];
+    check(bar, `the task ${task.id} is not drawn`);
+    check(bar.left > edgeOfNodes, `${task.id} is not right of the nodes`);
+    check((seen.lines[task.node] || []).some((y) => Math.abs(y - (bar.top + bar.bottom) / 2) < 1.5), `${task.id} is not on a line of ${task.node}`);
+  }
+
+  // each task right of the end of what it waits on; each milestone right of what it waits on
+  const ends = (id) => seen.bars[id] ? seen.bars[id].right : seen.marks[id].x;
+  const starts = (id) => seen.bars[id] ? seen.bars[id].left : seen.marks[id].x;
+  const waits = [...edges.map((edge) => [edge.from, edge.to]), ...[...tasks, ...milestones].flatMap((record) => (record.after || []).map((earlier) => [earlier, record.id]))];
+  for (const [earlier, later] of waits) check(starts(later) > ends(earlier), `${later} does not start right of the end of ${earlier}`);
+  for (const milestone of milestones) {
+    check(seen.marks[milestone.id] && seen.marks[milestone.id].dash !== "none", `${milestone.id} is not a dotted line`);
+  }
+
+  // requests solid, waits dotted, and the bold ones exactly the printed chain
+  for (const edge of edges) {
+    const arrow = seen.arrows[edge.id];
+    check(arrow, `the edge ${edge.id} is not drawn`);
+    if (edge.tag === "request") check(arrow.dash === "none", `the request ${edge.id} is not solid`);
+    if (edge.tag === "wait") check(arrow.dash !== "none", `the wait ${edge.id} is not dotted`);
+    const linked = chain.indexOf(edge.to) >= 1 && chain[chain.indexOf(edge.to) - 1] === edge.from;
+    check(arrow.bold === linked, `${edge.id} is ${arrow.bold ? "" : "not "}bold, though it is ${linked ? "" : "not "}on the printed chain`);
+  }
+  const bold = tasks.filter((task) => seen.bars[task.id].bold).map((task) => task.id);
+  const wanted = chain.filter((id) => tasks.some((task) => task.id === id));
+  check(same(bold, wanted.slice().sort((a, b) => tasks.findIndex((task) => task.id === a) - tasks.findIndex((task) => task.id === b))), `the bold tasks are ${bold.join(" ")}, not the chain's ${wanted.join(" ")}`);
+  check(bold.length === counted, `${bold.length} tasks are bold, not the ${counted} the order call counts`);
+
+  // the pointer on a task raises its card
+  const task = tasks[tasks.length - 1], bar = seen.bars[task.id];
+  await page.evaluate(([x, y]) => document.getElementById("diagram").scrollTo(x, y), [Math.max(0, bar.left - 200), 0]);
+  const stage = await page.evaluate(() => { const at = document.getElementById("stage").getBoundingClientRect(); return { left: at.left, top: at.top }; });
+  await page.mouse.move(2, SIZE[1] - 2);
+  await page.mouse.move(stage.left + (bar.left + bar.right) / 2, stage.top + (bar.top + bar.bottom) / 2, { steps: 4 });
+  await carded(page, task.id, `the pointer on ${task.id}`);
+  quiet(page, "the plan page");
+  await page.context().close();
+  console.log(`${tasks.length} tasks, ${edges.length} edges and ${milestones.length} milestones read on ${level.id}; ${bold.length} tasks bold: ${chain.join(" ")}`);
+}
+
 async function main() {
   if (browsers.missing()) {
     console.log(`FAIL setup: ${browsers.missing()}`);
@@ -275,7 +382,7 @@ async function main() {
   let failed = 0, browser = null;
   try {
     browser = await browsers.launch();
-    const steps = { interaction };
+    const steps = { interaction, plan };
     for (const name of asked.length ? asked : STEPS) {
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");

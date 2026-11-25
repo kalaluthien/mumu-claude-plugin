@@ -48,6 +48,7 @@ RULES = {
     "level-links": "an edge's `opens` names a level, every level but the first is opened by one edge at least, and no chain of `opens` leads from a level back to it",
     "edge-ends": "an interaction's edge joins two nodes its level lists, and a plan's edge two different tasks of its level; a pair is joined once by one label in a direction",
     "call-failure": "a `call` between nodes of two groups names its failure in a `failure` or `errors` item",
+    "work-group": "an edge's `work` table has the columns `group`, `change` and `says`, and each row names a group by its id",
     "task-place": "a task sits in a plan level, on a node that level lists",
     "fragment-span": "a fragment sits in an interaction level with its kind's operands, two or more for `alt` and `par`, one for `opt`, `loop` and `break`, each naming edges of its level that follow one another, every operand but a `par`'s saying its guard; the operands follow one another, and two fragments nest or stand apart",
     "after-known": "an `after` names a milestone, edge or task of its own level, never itself",
@@ -302,6 +303,11 @@ def breaks(contract, root=None):
         crosses = len(sides) == 2 and sides <= groups  # an unknown group breaks node-group alone
         if level["kind"] == "interaction" and edge["tag"] == "call" and crosses and not {"failure", "errors"} & set(edge.get("info", {})):
             found.append((where, "call-failure", "crosses from one group to another and names no failure; say what the caller sees when it fails in `failure` or `errors`"))
+        owed = edge.get("info", {}).get("work")
+        if isinstance(owed, dict) and isinstance(owed.get("rows"), list):  # a work value of another shape breaks info-form alone
+            if owed.get("columns") != ["group", "change", "says"]:
+                found.append((where, "work-group", "`work` has the columns `group`, `change` and `says`, in that order"))
+            found += [(where, "work-group", f"a `work` row names `{row[0]}`, which is no group") for row in owed["rows"] if isinstance(row, list) and row and not isinstance(row[0], (list, dict)) and row[0] not in groups]  # a list or dict cell breaks info-form alone
         if level["kind"] == "plan" and not (tasks.get(edge["from"], {}).get("level") == level["id"] == tasks.get(edge["to"], {}).get("level") and edge["from"] != edge["to"]):
             found.append((where, "edge-ends", f"joins `{edge['from']}` and `{edge['to']}`; a plan's edge joins two different tasks of level `{level['id']}`"))
     pairs = {}

@@ -35,6 +35,7 @@
     {"id": "asks-review", "level": "release", "from": "write-code", "to": "review-code", "label": "open a review", "tag": "request", "evidence": ["release-guide"]},
     {"id": "sends-findings", "level": "release", "from": "review-code", "to": "fix-findings", "label": "send the findings", "tag": "request", "evidence": ["release-guide"]},
     {"id": "waits-tests", "level": "release", "from": "run-tests", "to": "merge-change", "label": "tests pass", "tag": "wait", "evidence": ["release-guide"]},
+    {"id": "waits-approval", "level": "release", "from": "review-code", "to": "merge-change", "label": "the review approves", "tag": "wait", "evidence": ["release-guide"]},
     {"id": "asks-build", "level": "release", "from": "merge-change", "to": "build-package", "label": "tag the release", "tag": "request", "evidence": ["release-guide"]},
     {"id": "hands-package", "level": "release", "from": "build-package", "to": "publish-package", "label": "upload the package", "tag": "request", "evidence": ["release-guide"]},
     {"id": "waits-notes", "level": "release", "from": "write-notes", "to": "publish-package", "label": "notes are ready", "tag": "wait", "info": {"until": "the notes are merged"}, "evidence": ["release-guide"]}
