@@ -10,7 +10,7 @@ or a reached file imports it. A fixture folder is a `fixtures/` folder and all b
 each script of the `scripts/` folder beside it whose usage lists a `fixtures` call, are run by the repository check, so each `replay-*` runner is reached,
 a fixture folder with a runner keeps its data whole, and a program in it is reached only as a runner or when a reached program of that folder names it;
 no other file reaches a fixture file, so every file of a fixture folder with no runner is listed. A function nothing live calls
-and an import nothing uses are unused; a string that spells a function's name calls it, a `__future__` import is used, and a file that calls `getattr` with a computed name keeps every function it defines.
+and an import nothing uses in its own file are unused; a name, an attribute or a string that spells a function's name calls it, a decorated or dunder function, a `# noqa` import and a `__future__` import are used, and a file that calls `getattr` with a computed name keeps every function it defines.
 Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
 and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
 
