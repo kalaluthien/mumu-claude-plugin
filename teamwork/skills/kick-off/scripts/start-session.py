@@ -5,6 +5,8 @@ any other manager in a new workspace of its own. `--allow` turns a tool on that 
 
 usage: start-session.py <name> <cwd> <kick-off arguments> --model <model> --effort <effort> [--allow <tool>]... [--steer <key>]... [--repository <folder>]
 
+A manager, a successor included, always runs at model opus, effort low, whatever `--model` and `--effort` say, since it only routes and decides; the script says so on stderr when it changes them.
+
 A worker or sentinel started while its manager's heartbeat `print-team-gaps.py` runs under no process of the manager's session gets a warning on stderr naming the command that starts it.
 
 `--steer` puts the steering lines of those keys (print-steering.py lists them) after the kick-off arguments; a key it refuses, exit 2, starts nothing.
@@ -106,6 +108,9 @@ def main(args):
         print(f"start-session.py: {options.name} is named a {named_role} but its kick-off arguments start a {role}: "
               f"a worker or sentinel kick-off begins `worker <name> manager <manager>` or `sentinel <name> manager <manager>`.", file=sys.stderr)
         return 2
+    if role == "manager" and (options.model, options.effort) != ("opus", "low"):  # a manager that reads the agent adapter's Tier by work lines would pass high
+        print(f"start-session.py: a manager runs at opus, low: using that, not {options.model}, {options.effort}.", file=sys.stderr)
+        options.model, options.effort = "opus", "low"
     role_off = settings["tools_off"].get(role, [])
     if stray := sorted(set(options.allow) - set(role_off)):
         print(f"start-session.py: --allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}", file=sys.stderr)
