@@ -46,6 +46,10 @@ A task's sections, each a `## <section>` heading in the body, which holds their 
 | `Goal` | the owner's intent, in detail, with its purpose and each guess marked `(guess)`, and, from task 1305, a `Path:` line naming the flow of the changed part ([check-criteria.py](../scripts/check-criteria.py) and the board writes `file` and `edit` of [use-board.py](../scripts/use-board.py) refuse a Goal without one); the title sums it up |
 | `Definition of done` | criteria, one per numbered or bulleted line |
 
+### Criteria
+
+A criterion names the parts it checks by a `covers:` clause of backticked parts, each a path, a folder, or `<path>#<section>`: a Markdown heading's anchor, the lines up to the next heading as high, or an HTML element's `id`, its lines, so a task can name one section of a document. A criterion with no `covers:` covers every part, so any fix re-judges it; [run-criteria.py](../scripts/run-criteria.py) `--since <sha>` names the criteria a fix since the sha touched.
+
 A `N. [task] #n <title>` line in `Definition of done` is a part, not a criterion: the task it names belongs to this one, its parent, and is met when that task is closed as completed. A task has one parent, and a task with none is a root. A task numbered at or above the cut-off, which [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints, holds at most 5 criteria, parts not counted; the lint learns a task's number by `--task <n>`, and with none applies the cut-off's rules, as for a task not yet filed. `file` and `edit` also refuse, writing nothing, each defect the lint prints on the new body, `edit` only those the stored body did not hold. `file`, `edit` and `depend` refuse, writing nothing, parts and waits that make a cycle or a second parent or name an unknown task.
 
 ## States

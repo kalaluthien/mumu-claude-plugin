@@ -4,6 +4,8 @@ Review what your caller hands you, which you did not write, in [protocol.md](pro
 
 **Own folder**: write only under the judge folder your brief names, `<scratchpad>/judge-<round>/`, never a file or folder beside it, since the worker's files share that scratchpad; make it first, and put every mutant, copy and checkout there.
 
+**Changed parts**: when your brief names `Last judged: <sha>`, run [run-criteria.py](../scripts/run-criteria.py) `--since <sha> <task>` first, and narrow **Scenario**, **Probe** and **Change** to the criteria it names to judge again, their covered parts and each line it names covered by no criterion; a criterion it names unchanged keeps its last scenario verdict, its row `kept since <sha>`. **Intent**, **Form**, **Frozen** and **Report** still run on every criterion and decision, since a criterion's own text may have changed.
+
 1. **Find gaps**. Each kind below names how you check it:
    - **Intent**: an outcome of the routing `DECIDED:` or of a later one with no criterion or `[task]` part, or a criterion that goes beyond them, or a scope that breaks [protocol.md](protocol.md)'s **Scope the path**. Read the outcomes and the binding decisions beside the criteria, and the `Judge note:` paragraph of each decision at its url.
    - **Form**: a line [check-criteria.py](../scripts/check-criteria.py) `<task>` prints, or a `wrong base` or `text scan` row of [run-criteria.py](../scripts/run-criteria.py) `--base <body-file>`, or a criterion that proves only what another criterion already proves.

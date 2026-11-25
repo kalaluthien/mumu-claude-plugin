@@ -3,7 +3,7 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
 `--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
@@ -50,6 +50,14 @@ reaches hides inside a hunk a check needs, and a judge would find each in a roun
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, so give a long check time with `--timeout`; it never fetches.
 
+`--since <sha>` runs nothing: it reads the hunks between the sha, the head a judge last judged, and the head, and prints for each criterion
+`<n>: judge again` with the parts that changed, or `<n>: unchanged since <sha>: keep its verdict`. A criterion names its parts by a
+`covers:` clause of backticked parts, each a path, a folder or `<path>#<section>`, a section being a Markdown heading's anchor (the part up to the next
+heading as high) or an HTML element's `id` (the element's lines), so one middle section of a document is a part; a criterion with no
+`covers:` covers every part and is always judged again. When every criterion names its parts, each changed line no part holds prints
+`<file>:<line>: covered by no criterion`, and a section the head lacks prints a line saying so and counts as changed.
+A changed file whose name holds a `"`, a tab or a backslash counts as changed whole, each of its sections with it.
+
 `--pass <n>=<sample-file>` (once per criterion, with a body file) runs criterion `n` at the head with its first pipe stage
 replaced by `cat <sample-file>`, so the stages after it meet the input the pass would give. It prints `pass ok` when the
 output equals the text after `prints` (or meets `exits` or `more`), `wrong pass` when it differs, `unclear` for a criterion with no sample or whose first
@@ -59,6 +67,7 @@ or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import ast
 import hashlib
+import html.parser
 import json
 import os
 import pathlib
@@ -647,6 +656,129 @@ def run_at_head(options, task, root, live):
     return 1 if any(table_row[2] == "fail" for table_row in rows) else 0
 
 
+COVERS = re.compile(r"\bcovers:\s*(?P<parts>(?:`[^`]+`\s*,?\s*)+)")
+HEADING = re.compile(r"^(?P<level>#{1,6})\s+(?P<title>.*?)\s*#*\s*$")
+
+
+def covered_parts(detail):
+    """The parts a criterion's `covers:` clause names, each a path, a folder or `<path>#<section>`; none means all."""
+    match = COVERS.search(detail)
+    return re.findall(r"`([^`]+)`", match["parts"]) if match else []
+
+
+def slug(heading):
+    """A Markdown heading's anchor as GitHub writes it: lower case, punctuation dropped, each space a `-`."""
+    return re.sub(r" ", "-", re.sub(r"[^\w\- ]", "", heading.lower()))
+
+
+PARSED = ("handle_starttag", "handle_endtag")  # html.parser calls these by name
+
+
+class ElementSpans(html.parser.HTMLParser):
+    """Line spans of each element with an `id`, from its start tag's line to its end tag's; an element never closed has none, and of two with one `id` the first to end keeps it."""
+
+    def __init__(self):
+        super().__init__()
+        self.spans, self.open = {}, []
+
+    def handle_starttag(self, tag, attributes):
+        line, _ = self.getpos()
+        self.open.append((tag, dict(attributes).get("id"), line))
+
+    def handle_endtag(self, tag):
+        inner = [index for index, (name, _, _) in enumerate(self.open) if name == tag]
+        if inner:
+            index = max(inner)  # the innermost open element of that tag; any opened inside it close with it
+            last, _ = self.getpos()
+            for _, found, line in self.open[index:]:
+                self.spans.setdefault(found, (line, last))
+            del self.open[index:]
+
+
+def section_span(text, path, section):
+    """(first, last) line of SECTION in TEXT: a Markdown heading's slug up to the next heading as high, or an HTML element's `id`; None when absent."""
+    if path.endswith((".html", ".htm")):
+        parser = ElementSpans()
+        parser.feed(text)
+        return parser.spans.get(section)
+    lines, fenced = text.splitlines(), False
+    headings = []
+    for line in lines:
+        fenced ^= line.lstrip().startswith(("```", "~~~"))
+        headings.append(None if fenced else HEADING.match(line))  # a `#` line inside a code fence is no heading
+    for number, match in enumerate(headings, 1):
+        if match and slug(match["title"]) == section:
+            # enumerate from NUMBER gives each later line the number of the line before it, the section's last
+            return number, next((before for before, other in enumerate(headings[number:], number)
+                                 if other and len(other["level"]) <= len(match["level"])), len(lines))
+    return None
+
+
+def changed_lines(root, since):
+    """{file: set of head lines} each hunk between SINCE and the head touches; a hunk that only removes touches the line before it, and a file changed with no hunk, or whose name git quotes, maps to an empty set."""
+    diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", since, "HEAD"], cwd=root, capture_output=True)
+    if diff.returncode:
+        sys.exit(f"run-criteria: --since {since} names no commit here")
+    names = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z", since, "HEAD"], cwd=root, capture_output=True, text=True)
+    found = {file: set() for file in names.stdout.split("\0") if file}  # a file with no hunk keeps an empty set: it changed as a whole
+    # a name git quotes in a header, one with a `"`, a tab or a backslash, gets no hunk read, so it changed as a whole
+    named = "".join(part for part in re.split(r"(?m)^(?=diff --git )", diff.stdout.decode("latin-1")) if not part.startswith('diff --git "'))
+    for file, _, patch in split_hunks(named):
+        start, count = re.search(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))?", patch).groups()
+        found[file].update(range(int(start), int(start) + int(count or "1")) or [int(start)])
+    return found
+
+
+def run_since(options, task, root):
+    """Names each criterion whose covered parts changed between `--since` and the head, to be judged again, and each changed line no criterion covers."""
+    changed = changed_lines(root, options.since)
+    found = task_criteria(task)
+    standing = pathlib.Path(root, ".teamwork", "default-criteria.md")
+    wholes, sections, missing, touched = set(), {}, [], {}
+    for n, (_, _, detail) in enumerate(found, 1):
+        for part in covered_parts(detail):
+            path, _, section = part.partition("#")
+            path = path.rstrip("/")
+            if not section:
+                wholes.add(path)
+                touched.setdefault(n, []).extend(part for file in changed if file == path or file.startswith(path + "/"))
+                continue
+            # the head commit's file, since the hunks are the head commit's and an uncommitted edit would shift its lines
+            head = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=root, capture_output=True)
+            span = section_span(head.stdout.decode(errors="replace"), path, section)  # a file the head lacks prints nothing, so it holds no section
+            if span is None:
+                missing.append(f"{n}: covers `{part}`, which the head lacks: name a section by its Markdown heading's anchor or an HTML element's `id`")
+                touched.setdefault(n, []).append(part)
+                continue
+            first, last = span
+            sections.setdefault(path, set()).update(range(first, last + 1))
+            # a file with no hunk, such as a binary or a mode change, changed as a whole, so every section of it did
+            if path in changed and (not changed[path] or any(first <= line <= last for line in changed[path])):
+                touched.setdefault(n, []).append(part)
+    short = git_output("rev-parse", "--short", options.since, cwd=root)
+    print(f"since {short}: {len(changed)} files changed")
+    whole = [n for n, (_, _, detail) in enumerate(found, 1) if not covered_parts(detail)]
+    for n, (_, name, _) in enumerate(found, 1):
+        if n in whole:
+            print(f"{n}: judge again: it names no `covers:`, so it covers every part")
+        elif touched.get(n):
+            print(f"{n}: judge again: {', '.join(f'`{part}`' for part in dict.fromkeys(touched[n]))} changed")
+        else:
+            print(f"{n}: unchanged since {short}: keep its verdict")
+    for n, _ in enumerate(criteria(standing.read_text()) if standing.exists() else [], 1):
+        print(f"standing {n}: judge again: a standing criterion of the repository runs every round")
+    for line in missing:
+        print(line)
+    if not whole:
+        for file, lines in changed.items():
+            if any(file == path or file.startswith(path + "/") for path in wholes):
+                continue
+            outside = lines - sections.get(file, set()) if lines else (set() if file in sections else {1})
+            if outside:
+                print(f"{file}:{min(outside)}: covered by no criterion: judge this change, and name its part in a `covers:`")
+    return 0
+
+
 def main(args):
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=900)
@@ -655,6 +787,7 @@ def main(args):
     parser.add_argument("--each", action="store_true")
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--ref")
+    parser.add_argument("--since")
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
     options = parser.parse_args(data_folder.enter(args, __doc__))
@@ -663,8 +796,10 @@ def main(args):
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
-    if options.hunks and options.base:
+    if options.hunks and options.base or options.since and (options.hunks or options.base):
         usage_parser.refuse(__doc__)
+    if options.since:
+        return run_since(options, task, root)
     if options.hunks:
         return run_per_hunk(options, task, root, Live(root, task))
     if options.base:

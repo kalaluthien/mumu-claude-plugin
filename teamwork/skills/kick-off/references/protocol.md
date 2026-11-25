@@ -48,7 +48,7 @@ Intent flows owner → manager → root → worker → tasks → judged changes.
 | landing | `branch` | a worktree and branch `<name>` from the base |
 | landing | `push` | publishes a branch to the remote, the branch named |
 | landing | `change` | proposes a branch for merging into the base, citing its task |
-| landing | `judge` | a fresh subagent by `delegate` at `mid`, `high`, once per change and again only when its diff changed, prompted `Read <this folder>/judge.md, then judge <url or path>. Judge folder: <scratchpad>/judge-<round>/.`, a new round number each `judge`; `tell` it to resume |
+| landing | `judge` | a fresh subagent by `delegate` at `mid`, `high`, once per change and again only when its diff changed, prompted `Read <this folder>/judge.md, then judge <url or path>. Judge folder: <scratchpad>/judge-<round>/.`, then, from the second round, ` Last judged: <sha>.`, the head the judge before it judged, a new round number each `judge`; `tell` it to resume |
 | landing | `merge` | merges a change a judge approved at its head, or at a sha whose diff a rebase left the same, and releases it when the repository's rules ask |
 | landing | `remove` | removes a closed worker's worktree and merged branches |
 | agent | `delegate` | starts a subagent at a tier and effort, with a brief |
