@@ -6,28 +6,31 @@
 // With no word it runs every step; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the step's seconds,
 // then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure and 2 on a word it does
 // not know.
-//   interaction  on the first level of name-lookup.json: every node in one row across the top; every edge lower than
-//                the one before it, its step number on its sender's line, its name above its arrow and its tag chip
-//                and badges below it, then its code items and a pill per work row, a self-call a loop on its node's
-//                line with its parts starting just right of it, the arrow joining its two nodes' lines; each group's
-//                nodes in one fill and one 2 px border colour, the group's label inside each, the groups apart in
-//                colour; each fragment's frame round all its edges, its kind written inside its top left corner,
-//                each guard inside it; below the diagram a task list per group with work, its rows in step order, a
-//                click on the first step's row bringing that arrow into view with its card; each milestone a dotted
-//                line across every node's line, between the edges before and after it, its name on it; the pointer
-//                on a node's line and on an edge raising that record's card, the edge's step and formula on it; `/`
-//                and an edge's name listing that edge first, and Enter keeping its card; a click on the nested
-//                edge's ref mark drawing the level it opens with crumbs back, a double-click on the edge doing the
-//                same, and the first crumb drawing the first level again; one anchor per node, edge, task, fragment
-//                and milestone; a contract the checker refuses building no page; arrowheads pointing at the
-//                receiver; on a crowded copy, a self-call's name inside its frame and the stage, a frame inside the
-//                frame holding it, and a milestone after a milestone drawn below it; no console error and no
-//                request.
+//   interaction  on the first level of name-lookup.json: every node in one row across the top; every edge lower than the one
+//                before it, its step number on its sender's line, its name above its arrow and its tag chip and badges below
+//                it, then its code items and a pill per work row, a self-call a loop on its node's line with its parts starting
+//                just right of it, the arrow joining its two nodes' lines and its name, code items and work pills between them;
+//                each group's nodes in one fill and one 2 px border colour, the group's label inside each, the groups apart in
+//                colour; each fragment's frame round all its edges, its kind written inside its top left corner, each guard
+//                inside it; below the diagram a task list per group with work, its rows in step order, a click on the first
+//                step's row bringing that arrow into view with its card; each milestone a dotted line across every node's line,
+//                between the edges before and after it, its name on it; the pointer on a node's line and on an edge raising
+//                that record's card, the edge's step and formula on it; `/` and an edge's name listing that edge first, and
+//                Enter keeping its card; a click on the nested edge's ref mark drawing the level it opens with crumbs back, a
+//                double-click on the edge doing the same, and the first crumb drawing the first level again; one anchor per
+//                node, edge, task, fragment and milestone; a contract the checker refuses building no page; arrowheads pointing
+//                at the receiver; on a crowded copy, a self-call's name inside its frame and the stage, a call's wide work
+//                pills between its two lines, a frame 8 px or more inside the frame holding it on each side, a milestone listed
+//                before the milestone it waits on drawn below it, and ten groups in eight colours taken in turn and again from
+//                the first; no console error and no request.
 //   plan         on the level of launch-plan.json: every node in one column down the left; each task a bar on one of its node's
-//                lines, right of the nodes, starting right of the end of every task and milestone it waits on, by an edge or
-//                its `after`; each milestone's dotted line right of the end of each task it waits on; each request arrow solid
-//                and each wait arrow dotted; the bold tasks and edges exactly the chain `check-contract.py order` prints, as
-//                many bold tasks as it counts; the pointer on a task raising its card; no console error and no request.
+//                lines, right of the nodes, no two overlapping, starting right of the end of every task and milestone it waits
+//                on, by an edge or its `after`; each milestone's dotted line across every node's lane, right of the end of each
+//                task it waits on; each arrow from the right end of its task to the left end of the one it leads to, its head
+//                pointing in there, crossing no task, and between two lanes keeping to the band from one bar to the other; each
+//                request arrow solid and each wait arrow dotted; the bold tasks and edges exactly the chain
+//                `check-contract.py order` prints, as many bold tasks as it counts; the pointer on a task raising its card; no
+//                console error and no request.
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -180,6 +183,11 @@ async function interaction(browser) {
       check(Math.abs(one.arrow.left - xs[0]) < 12 && Math.abs(one.arrow.right - xs[1]) < 12, `${edge.id}'s arrow does not join ${edge.from}'s and ${edge.to}'s lines`);
     }
   }
+  const between = (seen, edge) => { // the name, code items and work pills of a call between two lines stay between those lines
+    const one = seen.edges[edge.id], xs = [seen.lines[edge.from].x, seen.lines[edge.to].x].sort((a, b) => a - b);
+    return [one.label, one.codes, one.work].filter(Boolean).every((part) => part.left >= xs[0] - 1 && part.right <= xs[1] + 1);
+  };
+  for (const edge of edges.filter((one) => one.from !== one.to)) check(between(seen, edge), `${edge.id}'s name, code items or work pills reach past ${edge.from}'s or ${edge.to}'s line`);
 
   // each fragment's frame round its edges, its kind inside its top left corner and each guard inside the frame
   for (const fragment of fragments) {
@@ -220,9 +228,9 @@ async function interaction(browser) {
 
   // the pointer on a node's line and on an edge raises its card
   const node = level.nodes[level.nodes.length - 1], line = seen.lines[node], stage = await page.evaluate(() => { const at = document.getElementById("stage").getBoundingClientRect(); return { left: at.left, top: at.top }; });
-  const between = (seen.edges[edges[0].id].arrow.bottom + seen.edges[edges[1].id].label.top) / 2;
+  const gap = (seen.edges[edges[0].id].arrow.bottom + seen.edges[edges[1].id].label.top) / 2;
   await page.mouse.move(2, SIZE[1] - 2);
-  await page.mouse.move(stage.left + line.x + 3, stage.top + between, { steps: 4 });
+  await page.mouse.move(stage.left + line.x + 3, stage.top + gap, { steps: 4 });
   await carded(page, node, `the pointer on ${node}'s line`);
   const edge = edges[edges.length - 1], arrow = seen.edges[edge.id].arrow;
   await page.mouse.move(2, SIZE[1] - 2);
@@ -279,7 +287,14 @@ async function interaction(browser) {
   crowded.edges.splice(at(stop.operands[0].edges.slice(-1)[0]) + 1, 0, { id: "logs-failure", level: level.id, from: "name-store", to: "name-store", label: "log(both-shards-timed-out)", tag: "call" });
   stop.operands[0].edges.push("logs-failure");
   crowded.edges.splice(at(edges[edges.length - 1].id) + 1, 0, { id: "drops-record", level: level.id, from: "name-store", to: "name-store", label: "drop(the-cached-owner-record-once-the-whole-reply-has-gone-out-to-the-browser)", tag: "call" });
-  crowded.milestones.push({ id: "reply-ready", level: level.id, label: "Reply ready", after: [milestones[0].id], purpose: "The reply is whole." });
+  crowded.milestones.unshift({ id: "reply-ready", level: level.id, label: "Reply ready", after: [milestones[0].id], purpose: "The reply is whole." });
+  const resolves = crowded.edges[at("resolves-name")];
+  resolves.info = { ...(resolves.info || {}), work: { columns: ["group", "change", "says"], rows: [["registry", "schema migration and index rebuild", "keep the owner of each name in one indexed table"]] } };
+  for (let k = crowded.groups.length; k < 10; k++) { // past the eighth group the colours come round again
+    crowded.groups.push({ id: `extra-${k}`, label: `Extra ${k}`, purpose: `Runs in place ${k}.` });
+    crowded.nodes.push({ id: `extra-node-${k}`, group: `extra-${k}`, label: `Extra node ${k}`, tag: "service", purpose: `Stands by in place ${k}.`, evidence: ["runbook"], basis: "documented" });
+    crowded.levels[0].nodes.push(`extra-node-${k}`);
+  }
   const copied = { name: "crowded", source: path.join(scratch, "crowded.json"), built: path.join(scratch, "crowded.html"), contract: crowded };
   fs.writeFileSync(copied.source, JSON.stringify(crowded));
   const built = python(path.join(ROOT, "scripts", "make-page.py"), copied.source, copied.built);
@@ -290,7 +305,10 @@ async function interaction(browser) {
   check([framed.label, framed.chips].every((part) => part.left >= frame.left && part.right <= frame.right), `logs-failure's name or chip reaches outside the frame of ${stop.id}`);
   check([loose.label, loose.chips].every((part) => part.right <= width), "drops-record's name or chip reaches past the stage");
   const inner = packed.fragments[loop.id].frame, outer = packed.fragments["if-sharded"].frame;
-  check(inner.left >= outer.left && inner.right <= outer.right, `the frame of ${loop.id} reaches outside the frame of if-sharded`);
+  check(inner.left - outer.left >= 7.5 && outer.right - inner.right >= 7.5, `the frame of ${loop.id} stands ${(inner.left - outer.left).toFixed(1)} and ${(outer.right - inner.right).toFixed(1)} px inside the frame of if-sharded, not 8 or more on each side`);
+  check(between(packed, crowded.edges[at("resolves-name")]), "resolves-name's work pills reach past gateway's or name-service's line");
+  const hues = crowded.groups.map((group) => { const node = Object.values(packed.nodes).find((one) => one.group === group.id); return node && node.fill + " " + node.border; });
+  check(hues.every(Boolean) && hues.every((hue, k) => k < 8 ? hues.indexOf(hue) === k : hue === hues[k - 8]), `the ten groups are drawn ${JSON.stringify(hues)}, not eight colours taken in turn and again from the first`);
   const first = packed.milestones[milestones[0].id], later = packed.milestones["reply-ready"];
   check(later && packed.anchors.includes("reply-ready"), "the milestone that waits on a milestone is not drawn");
   const next = crowded.edges.filter((edge) => edge.level === level.id).find((edge, k, all) => k > all.findIndex((one) => one.id === milestones[0].after.slice(-1)[0]));
@@ -320,10 +338,12 @@ async function plan(browser) {
       return [bar.dataset.id, { ...box(bar), bold: +style.fontWeight >= 700 && parseFloat(style.borderTopWidth) >= 3 }];
     }));
     const arrows = Object.fromEntries([...document.querySelectorAll("#stage g.edge")].map((group) => {
-      const style = getComputedStyle(group.querySelector(".arrow"));
-      return [group.dataset.for, { dash: style.strokeDasharray, bold: parseFloat(style.strokeWidth) >= 3 }];
+      const arrow = group.querySelector(".arrow"), style = getComputedStyle(arrow), length = arrow.getTotalLength();
+      const points = Array.from({ length: Math.ceil(length / 2) + 1 }, (_, k) => { const at = arrow.getPointAtLength(Math.min(k * 2, length)); return [at.x, at.y]; });
+      const head = group.querySelector(".head").getAttribute("points").split(" ").map((point) => point.split(",").map(Number));
+      return [group.dataset.for, { dash: style.strokeDasharray, bold: parseFloat(style.strokeWidth) >= 3, points, head }];
     }));
-    const marks = Object.fromEntries([...document.querySelectorAll("#stage line.milestone")].map((line) => [line.dataset.for, { x: +line.getAttribute("x1"), dash: getComputedStyle(line).strokeDasharray }]));
+    const marks = Object.fromEntries([...document.querySelectorAll("#stage line.milestone")].map((line) => [line.dataset.for, { x: +line.getAttribute("x1"), top: +line.getAttribute("y1"), bottom: +line.getAttribute("y2"), dash: getComputedStyle(line).strokeDasharray }]));
     return { nodes, lines, bars, arrows, marks };
   });
 
@@ -338,6 +358,8 @@ async function plan(browser) {
     check(bar.left > edgeOfNodes, `${task.id} is not right of the nodes`);
     check((seen.lines[task.node] || []).some((y) => Math.abs(y - (bar.top + bar.bottom) / 2) < 1.5), `${task.id} is not on a line of ${task.node}`);
   }
+  const apart = (a, b) => a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top;
+  for (const [k, task] of tasks.entries()) for (const other of tasks.slice(k + 1)) check(apart(seen.bars[task.id], seen.bars[other.id]), `${task.id} and ${other.id} overlap`);
 
   // each task right of the end of what it waits on; each milestone right of what it waits on
   const ends = (id) => seen.bars[id] ? seen.bars[id].right : seen.marks[id].x;
@@ -345,7 +367,9 @@ async function plan(browser) {
   const waits = [...edges.map((edge) => [edge.from, edge.to]), ...[...tasks, ...milestones].flatMap((record) => (record.after || []).map((earlier) => [earlier, record.id]))];
   for (const [earlier, later] of waits) check(starts(later) > ends(earlier), `${later} does not start right of the end of ${earlier}`);
   for (const milestone of milestones) {
-    check(seen.marks[milestone.id] && seen.marks[milestone.id].dash !== "none", `${milestone.id} is not a dotted line`);
+    const mark = seen.marks[milestone.id];
+    check(mark && mark.dash !== "none", `${milestone.id} is not a dotted line`);
+    check(mark.top <= nodes[0].top && mark.bottom >= nodes[nodes.length - 1].bottom, `${milestone.id}'s line runs from ${mark.top} to ${mark.bottom}, not across every node's lane`);
   }
 
   // requests solid, waits dotted, and the bold ones exactly the printed chain
@@ -354,6 +378,13 @@ async function plan(browser) {
     check(arrow, `the edge ${edge.id} is not drawn`);
     if (edge.tag === "request") check(arrow.dash === "none", `the request ${edge.id} is not solid`);
     if (edge.tag === "wait") check(arrow.dash !== "none", `the wait ${edge.id} is not dotted`);
+    const from = seen.bars[edge.from], to = seen.bars[edge.to], start = arrow.points[0], end = arrow.points[arrow.points.length - 1], tip = arrow.head[0];
+    const near = ([x, y], at, height) => Math.abs(x - at) < 1.5 && Math.abs(y - height) < 1.5;
+    check(near(start, from.right, (from.top + from.bottom) / 2) && near(end, to.left, (to.top + to.bottom) / 2), `${edge.id}'s arrow does not run from the right end of ${edge.from} to the left end of ${edge.to}`);
+    check(near(tip, to.left, (to.top + to.bottom) / 2) && arrow.head.slice(1).every(([x]) => x < tip[0]), `${edge.id}'s arrowhead does not point into the left end of ${edge.to}`);
+    check(arrow.points.every(([x, y]) => Object.values(seen.bars).every((bar) => x <= bar.left + 1 || x >= bar.right - 1 || y <= bar.top + 1 || y >= bar.bottom - 1)), `${edge.id}'s arrow crosses a task`);
+    const lanes = [contract.tasks.find((one) => one.id === edge.from).node, contract.tasks.find((one) => one.id === edge.to).node], band = [Math.min(from.top, to.top), Math.max(from.bottom, to.bottom)];
+    if (lanes[0] !== lanes[1]) check(arrow.points.every(([, y]) => y >= band[0] - 1 && y <= band[1] + 1), `${edge.id}'s arrow leaves the band from ${edge.from}'s lane to ${edge.to}'s`);
     const linked = chain.indexOf(edge.to) >= 1 && chain[chain.indexOf(edge.to) - 1] === edge.from;
     check(arrow.bold === linked, `${edge.id} is ${arrow.bold ? "" : "not "}bold, though it is ${linked ? "" : "not "}on the printed chain`);
   }
