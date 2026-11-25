@@ -2,9 +2,11 @@
 """Print one line per action the team session's board and sessions call for, each once, polling until killed.
 
 usage: print-team-gaps.py
-It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds."""
+It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds.
+When a file of its own code changes, such as by a merge pulled into the checkout, it runs the new code in its own process, once that code loads, so its output stays the session's monitor."""
 import os
 import pathlib
+import subprocess
 import sys
 import time
 
@@ -20,6 +22,22 @@ import team_signal  # noqa: E402
 POLL = float(os.environ.get("TEAMWORK_MONITOR_POLL", 60))  # the sessions are read each poll, which costs no board read
 REFRESH = float(os.environ.get("TEAMWORK_MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
 SKEW = 5  # seconds the board's clock may differ from ours
+SCRIPT = pathlib.Path(__file__).resolve()
+
+
+def code_stamp():
+    """The change time of this script and of each module of the plugin's lib, which a module imported late may come from; None while a pull removes one."""
+    try:
+        return {path: path.stat().st_mtime_ns for path in [SCRIPT, *sorted((SCRIPT.parents[1] / "lib").glob("*.py"))]}
+    except OSError:
+        return None
+
+
+def run_new_code(stamp):
+    """Replace this process by its changed code, keeping the pid and the output the session reads, since a plugin monitor that ends, even to load new code, is never started again; code that fails to load, such as one caught mid-pull or a script moved away, is left until a later poll."""
+    loads = [sys.executable, "-c", "import runpy, sys; runpy.run_path(sys.argv[1], run_name='load')", str(SCRIPT)]  # runs every import but not main, exiting 0 only when all load, and 1 for a script moved away
+    if code_stamp() != stamp and subprocess.run(loads, capture_output=True).returncode == 0:
+        os.execv(sys.executable, [sys.executable, str(SCRIPT)])
 
 
 def read(manager, me, since):
@@ -36,7 +54,9 @@ def main(args):
     fed_urls = set()  # the urls of the reports a manager was already fed
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
     awake = False  # whether the last poll watched, so the poll the team empties in still reads once
+    stamp = code_stamp()
     while True:
+        run_new_code(stamp)
         listed, me = session.own()
         watching = team_names.watching(me, listed)
         manager = team_names.role(me.get("name")) == "manager"

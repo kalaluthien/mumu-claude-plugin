@@ -119,8 +119,8 @@ def main(args):
         sys.exit(f"start-session.py: {refusal}")
     if workspace and (manager_id := next((listed_agent.get("agent_session") or {} for listed_agent in listed if listed_agent.get("workspace_id") == workspace and team_names.role(listed_agent.get("name")) == "manager"), {}).get("value")) \
             and not background_work.heartbeat_running(manager_id):  # a worker started with no heartbeat running goes unwatched for as long as that lasts
-        print(f"start-session.py: warning: the heartbeat of the manager of {options.name} is not running, so no gap of its team is shown; start `{ROOT}/monitors/print-team-gaps.py` "
-              f"in the manager's session with the Monitor tool (persistent), or reload its plugins.", file=sys.stderr)
+        print(f"start-session.py: warning: the heartbeat of the manager of {options.name} is not running, so no gap of its team is shown, and the plugin starts it only when a session starts: "
+              f"restart that manager by `succeed <name>`, or until then run `{ROOT}/monitors/print-team-gaps.py` in its session with the Monitor tool, again at each expiry, since a Monitor ends within 30 minutes.", file=sys.stderr)
     text = agent.kickoff(f"{options.args} — {steering}" if steering else options.args)
     trust = agent.TRUST[0]
     pane, sent = None, False
