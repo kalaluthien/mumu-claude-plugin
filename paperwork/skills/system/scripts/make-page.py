@@ -12,6 +12,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import nested  # noqa: E402
+from page_parts import CARD, code, palette, style  # noqa: E402
 from tex_mathml import formulas, key, mathml  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -23,6 +24,7 @@ PAGE = """<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <style>
+{parts_style}
 {style}
 </style>
 </head>
@@ -34,9 +36,8 @@ PAGE = """<!doctype html>
 <button id="properties" class="tool" type="button">Properties</button>
 <button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
 </div>
-<aside id="card" role="tooltip"></aside>
+{card}
 <div id="chip"></div>
-<div id="gloss" role="tooltip"></div>
 <div id="play" class="bar" role="toolbar" aria-label="Scenario">
 <button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
 <button id="run" class="tool icon" type="button" aria-label="Play" title="Play or pause (space)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="start" d="M7 4.5v15l12-7.5z" fill="currentColor"/><path class="pause" d="M8 5v14M16 5v14"/></svg></button>
@@ -46,18 +47,13 @@ PAGE = """<!doctype html>
 <button id="onward" class="tool" type="button" hidden>Next scenario</button>
 <button id="stop" class="tool icon quiet" type="button" aria-label="Close the scenario" title="Close (esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
 </div>
-<div id="veil"></div>
-<div id="palette" role="dialog" aria-label="Search">
-<div id="field"><input id="query" type="text" placeholder="Search nodes, edges, scenarios and properties" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="hits" aria-autocomplete="list" aria-label="Search">
-<button id="regex" class="tool icon quiet" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression (Alt+R)">.*</button></div>
-<div id="hits" role="listbox"></div>
-<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span><span><kbd>alt</kbd><kbd>R</kbd> regex</span></footer>
-</div>
+{palette}
 <script type="application/json" id="page-data">{data}</script>
 <script type="application/json" id="page-threads">{{"threads": {{}}}}</script>
 <script type="application/json" id="page-tags">{tags}</script>
 <script type="application/json" id="page-formulas">{formulas}</script>
 <script>
+{parts}
 {code}
 </script>
 </body>
@@ -97,7 +93,8 @@ def main(args):
         return 1
     contract = nested(json.loads(source.read_text()))
     title = contract["title"].replace("&", "&amp;").replace("<", "&lt;")
-    page = PAGE.format(title=title, style=(ASSETS / "page.css").read_text().strip(), code=(ASSETS / "page.js").read_text().strip(),
+    page = PAGE.format(title=title, parts_style=style(), style=(ASSETS / "page.css").read_text().strip(), card=CARD,
+                       palette=palette("Search nodes, edges, scenarios and properties"), parts=code(), code=(ASSETS / "page.js").read_text().strip(),
                        data=block(contract), tags=block(json.loads((ASSETS / "tags.json").read_text())), formulas=block(drawn(contract)))
     target = pathlib.Path(args[1]) if len(args) == 2 else source.with_name("page.html")
     target.write_text(page)
