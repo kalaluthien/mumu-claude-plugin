@@ -51,7 +51,7 @@
   "edge-ends-level": [[["edges", 0, "level"], "nowhere"]],
   "edge-ends-twice": [[["edges", 11], {"id": "asks-again", "level": "inside-resolve", "from": "name-service", "to": "name-store", "label": "SELECT owner FROM names", "tag": "access"}]],
   "level-links-first": [[["edges", 7, "opens"], "lookup"]],
-  "claim-form-none": [[["claims", 0, "kind"], "assumption"], [["claims", 1, "kind"], "assumption"], [["claims", 2, "kind"], "assumption"]],
+  "claim-form-none": [[["claims", 0, "kind"], "assumption"], [["claims", 1, "kind"], "assumption"], [["claims", 2, "kind"], "assumption"], [["claims", 3, "kind"], "assumption"]],
   "claim-form-strength": [[["claims", 0, "strength"], "maybe"]],
   "claim-form-on": [[["claims", 0, "on"], ["nowhere"]]],
   "question-answered-none": [[["questions"], []]],
