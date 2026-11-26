@@ -6,7 +6,7 @@ judge reads instead of running each check again.
 usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
 `--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
-on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
+on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started.
 A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
 file is the worker's own draft, so it runs.
 
@@ -374,6 +374,20 @@ def end_strays(folder):
             os.kill(int(pid), signal.SIGKILL)
 
 
+def descendants(pid):
+    """Every running process PID started, in its session or not."""
+    children = {}
+    for line in subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout.splitlines():
+        child, parent = map(int, line.split())
+        children.setdefault(parent, []).append(child)
+    found, waiting = [], [pid]
+    while waiting:
+        started = children.get(waiting.pop(), [])
+        found += started
+        waiting += started
+    return found
+
+
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
     process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
@@ -382,9 +396,15 @@ def run(command, cwd, timeout):
         out, _ = process.communicate(timeout=timeout)
         return process.returncode, out.strip()
     except subprocess.TimeoutExpired:
-        # the check's children share its session, so killing only bash would leave them running
+        # read before the kill, since a child that left the check's session keeps its pipe open and is reparented once the session dies
+        strays = descendants(process.pid)
         os.killpg(process.pid, signal.SIGKILL)
-        process.communicate()
+        for pid in strays:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:  # it ended with the session
+                pass
+        process.wait()  # never the output, which a process that left the tree before the timeout may hold open for good
         return None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
     finally:
         if pathlib.Path(cwd).resolve().is_relative_to(pathlib.Path(tempfile.gettempdir()).resolve()):
