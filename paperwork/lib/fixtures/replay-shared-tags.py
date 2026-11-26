@@ -5,9 +5,9 @@ usage: replay-shared-tags.py
 
 On a copy of the plugin whose `../tags.json` alone gives the `service` node's `responsibilities` item a new label, both skills' `tags`
 calls and the page runners' `tags` reader in `../check-step.cjs` must give it, both checkers must accept system's `parcel-locker.json` and
-flow's `name-lookup.json`, whose `service` nodes hold that item, and both `make-page.py` builds must carry it in the page's tags block;
-and no skill's own catalogue may write again the forms, a tag or a common item the shared catalogue holds. It prints `PASS <step>` or
-`FAIL <step>: <reason>` per step, then PASS or FAIL."""
+flow's `name-lookup.json`, system's also under `--tags` its own catalogue, whose `service` nodes hold that item, and both `make-page.py`
+builds must carry it in the page's tags block; and no skill's own catalogue may write again the forms, a tag or a common item the shared
+catalogue holds. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
 import pathlib
 import re
@@ -57,6 +57,10 @@ def reached(copied, skill, scratch):
     status, printed = run(script / "check-contract.py", "check", fixture)
     if status:
         found.append(f"its checker refuses {fixture.name}: {printed.strip()[:300]}")
+    if skill == "system":
+        status, printed = run(script / "check-contract.py", "check", fixture, "--tags", copied / "skills/system/assets/tags.json")
+        if status:
+            found.append(f"its checker refuses {fixture.name} under `--tags` its own catalogue: {printed.strip()[:300]}")
     page = pathlib.Path(scratch) / f"{skill}.html"
     status, printed = run(script / "make-page.py", fixture, page)
     block = re.search(r'<script type="application/json" id="page-tags">(.*?)</script>', page.read_text(), re.S) if page.exists() else None

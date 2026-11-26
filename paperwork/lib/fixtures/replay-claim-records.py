@@ -6,10 +6,11 @@ usage: replay-claim-records.py
 Every contract of both skills' `examples/` and `fixtures/`, and every copy in `contract-copies.json`, must hold `claims` and no
 `properties`, each claim a guarantee or an assumption; for each system example and fixture, `read` must say each claim's kind, strength
 and status, the written one or, under `paths`, the one the checker settles, and `score-contract.py` must leave out of its recall, and
-list, exactly the questions whose every answer is a claim with a fault, and list as missing a quote a claim of system's own example takes
-from a source that does not hold it; each system example's page, built again, must equal the shipped one; and system's `run-page.cjs
-badges counts` and flow's `run-page.cjs interaction plan` must pass, which draw each claim's status as a badge on its records and each
-mark in its area's colour. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
+list, exactly the questions whose every answer is a claim with a fault, exit 0 on system's own example, and list as missing a quote a
+claim of system's own example takes from a source that does not hold it; each system example's page, built again, must equal the shipped
+one; and system's `run-page.cjs badges counts` and flow's `run-page.cjs interaction plan` must pass, which draw each claim's status as a
+badge on its records and each mark in its area's colour. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or
+FAIL."""
 import json
 import pathlib
 import subprocess
@@ -74,7 +75,7 @@ def score_faults(path, contract):
     faulted = {claim["id"] for claim in contract["claims"] if "fault" in claim}
     questions = contract.get("questions", [])
     wanted = sorted(question["id"] for question in questions if question.get("answers") and set(question["answers"]) <= faulted)
-    _, printed = run(sys.executable, SKILLS / "system/scripts/score-contract.py", path, "--root", ROOT)
+    status, printed = run(sys.executable, SKILLS / "system/scripts/score-contract.py", path, "--root", ROOT)
     lines = printed.splitlines()
     recall = next((line for line in lines if line.startswith("recall ")), "")
     listed = []
@@ -88,6 +89,8 @@ def score_faults(path, contract):
         found.append(f"`score-contract.py` says `{recall}`, wanting recall {len(questions) - len(wanted)} of {len(questions)}")
     if sorted(listed) != wanted:
         found.append(f"`score-contract.py` lists {sorted(listed)} as left to a claim, wanting {wanted}")
+    if path == QUOTED and status:
+        found.append(f"`score-contract.py` exits {status} on system's own example: {' '.join(line.strip() for line in lines if line.startswith(('  ', 'missing')))[:300]}")
     return found
 
 

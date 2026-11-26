@@ -10,11 +10,12 @@ STRENGTHS = ("must", "should", "may")
 STATUSES = ("holds", "fails", "conflicting", "unknown")
 BASES = ("observed", "documented", "inferred")
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-LISTS = ("avoid", "aliases", "on", "answers", "evidence")  # each a list of strings, `aliases` the one that may hold an empty entry
+LISTS = ("avoid", "aliases", "on", "answers", "evidence")  # each a list of strings
 FIELDS = {
     "sources": ({"id": str, "path": str, "says": str}, {"authority": str}),
     "terms": ({"term": str, "meaning": str}, {"coined": bool, "avoid": list, "aliases": list}),
     "areas": ({"id": str, "label": str}, {"purpose": str, "aliases": list, "evidence": list, "basis": str}),
+    "levels": ({"id": str, "title": str}, {"about": str}),
     "claims": ({"id": str, "title": str, "kind": str, "statement": str},
                {"strength": str, "status": str, "fault": str, "source": str, "on": list, "paths": list, "evidence": list, "basis": str}),
     "questions": ({"id": str, "asks": str}, {"answers": list}),
@@ -22,8 +23,10 @@ FIELDS = {
 RULES = {
     "unique-ids": "an id is lowercase words and digits joined by `-`, used once in the whole contract",
     "area-known": "a node's `area` names an area it may sit in, and every area holds one node at least",
+    "level-links": "`opens` names a level; the first level is the whole subject, which nothing opens, and every other is opened by one record at least, "
+                   "reached by a chain of `opens` from the first, and no chain of `opens` leads from a level back to it",
     "claim-form": f"one guarantee at least is stated; a claim's kind is one of {', '.join(KINDS)}, its strength one of {', '.join(STRENGTHS)} and its status one of {', '.join(STATUSES)}, "
-                  "`holds` when none is written; a claim that does not hold says why in `fault`, as may one that holds with no document stating it; "
+                  "`holds` when none is written; a claim that does not hold says why in `fault`, as may one that holds with no document stating it, and no `fault` is blank; "
                   "`source` names the source that set the claim, and each `on` names a record the claim is about, never a source, a claim or a question",
     "claim-paths": "a guarantee alone holds `paths`, two different chains of edges that start at one node and end at one node, none of them marked `many`; "
                    "it writes no status, since the checker settles it from the paths",
@@ -48,7 +51,7 @@ def record_breaks(where, holder, fields, optional, texts=LISTS):
         if name in holder and not isinstance(holder[name], form):
             found.append((where, "form", f"`{name}` must be a {form.__name__}"))
     for name in texts:
-        if isinstance(holder.get(name), list) and not all(isinstance(entry, str) and (entry.strip() or name == "aliases") for entry in holder[name]):
+        if isinstance(holder.get(name), list) and not all(isinstance(entry, str) and entry.strip() for entry in holder[name]):
             found.append((where, "form", f"`{name}` must be a list of strings"))
     if "basis" in holder and holder["basis"] not in BASES:
         found.append((where, "form", f"`basis` is one of {', '.join(BASES)}"))
@@ -82,6 +85,27 @@ def area_breaks(areas, nodes, where, beyond=""):
     return found + [(where("areas", area), "area-known", "holds no node; an area groups one node at least") for area in areas if area["id"] not in held]
 
 
+def level_breaks(levels, openers, where):
+    """Breaks of `level-links` among LEVELS, their ids in order, and OPENERS, each (place, level, opens) of a record that sits in a
+    level and opens one; each level's break is placed by WHERE of its id."""
+    found = [(place, "level-links", f"`opens` names `{opens}`, which is no level") for place, _, opens in openers if opens not in levels]
+    by = {name: [level for _, level, opens in openers if opens == name] for name in levels}
+    if by[levels[0]]:
+        found.append((where(levels[0]), "level-links", "the first level is the whole subject, so nothing opens it"))
+    found += [(where(name), "level-links", "nothing opens it; name it in the `opens` of the record whose inside it shows") for name in levels[1:] if not by[name]]
+    def below(start):
+        reached, path = set(), [opens for _, level, opens in openers if level == start and opens in by]
+        while path:
+            name = path.pop()
+            if name not in reached:
+                reached.add(name)
+                path += [opens for _, level, opens in openers if level == name and opens in by]
+        return reached
+    reached = below(levels[0]) | {levels[0]}
+    found += [(where(name), "level-links", "a chain of `opens` leads from this level back to it") for name in levels if name in below(name)]
+    return found + [(where(name), "level-links", "no chain of `opens` from the first level reaches it") for name in levels if name not in reached and by[name]]
+
+
 def chained(paths, edges):
     """Whether PATHS are two different chains of the EDGES by id, each edge leading to the next, with one start and one end."""
     return (isinstance(paths, list) and len(paths) == 2 and paths[0] != paths[1]
@@ -101,7 +125,9 @@ def claim_breaks(claims, sources, root, about, edges):
         found += [(where, "evidence-source", message) for entry in claim.get("evidence", []) for message in cited(entry, sources, root)]
         if claim["kind"] not in KINDS or claim.get("strength", "must") not in STRENGTHS or claim.get("status", "holds") not in STATUSES:
             found.append((where, "claim-form", f"kind is one of {', '.join(KINDS)}; strength of {', '.join(STRENGTHS)}; status of {', '.join(STATUSES)}"))
-        elif claim.get("status", "holds") != "holds" and not claim.get("fault", "").strip():
+        elif "fault" in claim and not claim["fault"].strip():
+            found.append((where, "claim-form", "writes a blank `fault`; say why, or take it out"))
+        elif claim.get("status", "holds") != "holds" and "fault" not in claim:
             found.append((where, "claim-form", f"is `{claim['status']}` and says no `fault`; say why it does not hold"))
         if "source" in claim and claim["source"] not in sources:
             found.append((where, "claim-form", f"`source` names `{claim['source']}`, which is no source"))
@@ -129,6 +155,6 @@ def question_breaks(questions, records, proven, claims):
         found += [(where, "question-answered", f"`answers` names `{name}`, which is no record of the contract") for name in answers if name not in records]
         if not answers:
             found.append((where, "question-answered", "has no answer: name in `answers` the records that answer it, or the claim whose `fault` says why no source does"))
-        elif not proven & set(answers) and not any(claims.get(name, {}).get("fault", "").strip() for name in answers):
+        elif not proven & set(answers) and not any("fault" in claims.get(name, {}) for name in answers):
             found.append((where, "question-answered", "no record in `answers` carries `evidence` and no claim in it says in `fault` why none can, so the answer has no source"))
     return found

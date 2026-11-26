@@ -4,16 +4,16 @@ Write the findings as one contract the checker accepts and a blind reader can re
 
 ## Domain
 
-A contract holds the records every paperwork contract holds, as [contract.md](../../../lib/contract.md) defines them: sources, terms, areas, claims, questions and parts. This skill adds levels, nodes, edges and scenarios.
+A contract holds the records every paperwork contract holds, as [contract.md](../../../lib/contract.md) defines them: sources, terms, levels, tags, areas, claims, questions and parts. This skill adds nodes, edges and scenarios.
 
 - **top**: `title`, `purpose`, `sources`, `terms`, `levels`, `areas`, `nodes`, `edges`, `scenarios`, `claims`, `questions`; the nodes, edges and areas are one list each for the whole subject, and a level is a view of them.
 - **evidence**: nodes, edges, areas and claims take `evidence` and `basis`.
 - **aliases**: a node, an area or a term may list in `aliases` the words a reader searches it by that its name lacks, such as `아마존` for `AWS`; the page's search finds a node or an area by each as by its name, and takes a term's alias for the term itself; [writing.md](writing.md) says which to write.
-- **level**: `id`, `title` (a slug, such as `inside-server`), `about`. It shows the nodes and areas whose `level` names it and the edges that leave those nodes, one node at least. The first level is the whole subject.
+- **level**: shows the nodes and areas whose `level` names it and the edges that leave those nodes, one node at least; a node opens it.
 - **node**: `id`, `label`, `tag`, `level` (the level that shows it), `area` (an area of the node's own level, or left out), `opens` (a level's id), `files` (the ids of the sources that are this node, where it is one or more files), `purpose`, `info`, `aliases`.
 - **edge**: `id`, `from`, `to`, `label`, `tag`, `many`, `info`; the id says what the edge does, such as `takes-items`, and holds neither end's id, so moving an end leaves it true. A static edge reads as the sentence `<from label> <label> <to label>`, which holds for one `to` unless `many` is true, read aloud as "each of" before the `to` label: set it only where one `from` relates to several of what the `to` node stands for. A `transition` edge joins two states; its label is the event, and `info` holds its `guard` and `action`.
 - **area**: the core area with its `tag`, `level` and `info`. An area tagged `region` holds the states of one thing, exactly one current, and names the first in `info.initial`; two regions of a level run side by side. A state answers each event of its region: a transition takes it, or its `ignores` item lists it as changing nothing, its `refuses` item as turned down, or its `terminal` item ends the lifecycle; `ignores` and `refuses` name an event by its transition's label, and an event that changes no state is listed in `ignores`, since an edge joins two different nodes.
-- **info**: the items the element's tag fixes, each in its form: text, number, list, table (`{"columns": [...], "rows": [[...]]}`), tree (`[{"name", "note", "children"}]`) or code.
+- **info**: the items the element's tag fixes, each in its form.
 - **scenario**: `id`, `title` (a slug), `purpose`, `principle` (true for the story that shows the contract's purpose met), `steps`. A step is `{"at": <node or edge id>, "note": <text>}`: the record it names says what happens.
 - **part**: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/system/scripts/check-contract.py split <contract> <folder>` writes the parts: `top.json`, its `levels` the level ids in order, and `levels/<id>.json`, one level with its areas and nodes and the edges that leave them; an edit goes into the one part file it changes.
 

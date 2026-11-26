@@ -25,7 +25,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
-from contract_core import FIELDS as CORE_FIELDS, LISTS as CORE_LISTS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
+from contract_core import FIELDS as CORE_FIELDS, LISTS as CORE_LISTS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, level_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_parts import FLOW, checked, load, split_to  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
@@ -48,7 +48,7 @@ RULES = {
     "info-form": "an `info` value has the shape of its item's form: text, number, list, table, tree or code",
     "area-known": CORE["area-known"],
     "level-nodes": "a level lists in `nodes` the nodes it draws, each once, in order across the top or down the left, and every node is listed by one level at least",
-    "level-links": "an edge's `opens` names a level, every level but the first is opened by one edge at least, and no chain of `opens` leads from a level back to it",
+    "level-links": CORE["level-links"],
     "edge-ends": "an interaction's edge joins two nodes its level lists, and a plan's edge two different tasks of its level; a pair is joined once by one label in a direction",
     "call-failure": "a `call` between nodes of two areas names its failure in a `failure` or `errors` item",
     "work-area": "an edge's `work` table has the columns `area`, `change` and `says`, and each row names an area by its id",
@@ -72,7 +72,7 @@ RULES = {
 FIELDS = {
     "contract": ({"title": str, "purpose": str, "areas": list, "levels": list, "nodes": list}, {"sources": list, "terms": list, "edges": list, "tasks": list, "fragments": list, "milestones": list, "claims": list, "questions": list}),
     **{kind: CORE_FIELDS[kind] for kind in ("sources", "terms", "areas")},
-    "levels": ({"id": str, "title": str, "kind": str, "nodes": list}, {"about": str}),
+    "levels": ({**CORE_FIELDS["levels"][0], "kind": str, "nodes": list}, CORE_FIELDS["levels"][1]),
     "nodes": ({"id": str, "label": str, "tag": str, "area": str}, {"purpose": str, "info": dict, "evidence": list, "basis": str}),
     "edges": ({"id": str, "level": str, "from": str, "to": str, "label": str, "tag": str}, {"opens": str, "after": list, "info": dict, "evidence": list, "basis": str}),
     "tasks": ({"id": str, "level": str, "node": str, "label": str, "tag": str}, {"purpose": str, "after": list, "info": dict, "evidence": list, "basis": str}),
@@ -221,7 +221,7 @@ def breaks(contract, root=None):
             found.append((where, "level-nodes", "`nodes` is empty, lists a node twice, or names one that is no node"))
         listed.update(level["nodes"])
     found += [(f"nodes {name}", "level-nodes", "no level lists it; add it to the `nodes` of the level that draws it") for name in nodes if name not in listed]
-    opened = {name: [] for name in levels}
+    openers = []
     for edge in records["edges"]:
         where = f"edges {edge['id']}"
         if edge["level"] not in levels:
@@ -229,10 +229,7 @@ def breaks(contract, root=None):
             continue
         level = levels[edge["level"]]
         if "opens" in edge:
-            if edge["opens"] in levels:
-                opened[edge["opens"]].append(edge["level"])
-            else:
-                found.append((where, "level-links", f"`opens` names `{edge['opens']}`, which is no level"))
+            openers.append((where, edge["level"], edge["opens"]))
         if level["kind"] == "interaction" and not (edge["from"] in level["nodes"] and edge["to"] in level["nodes"]):
             found.append((where, "edge-ends", f"joins `{edge['from']}` and `{edge['to']}`; an interaction's edge joins two nodes level `{level['id']}` lists"))
         sides = {nodes.get(end, {}).get("area") for end in (edge["from"], edge["to"])}
@@ -252,19 +249,7 @@ def breaks(contract, root=None):
         if key in pairs:
             found.append((f"edges {edge['id']}", "edge-ends", f"joins the same ends by the same label as `{pairs[key]}`; one exchange is one edge"))
         pairs.setdefault(key, edge["id"])
-    first = records["levels"][0]["id"]
-    for name, by in opened.items():
-        if name == first and by:
-            found.append((f"levels {name}", "level-links", "the first level is the whole subject, so no edge opens it"))
-        elif name != first and not by:
-            found.append((f"levels {name}", "level-links", "no edge opens it; name it in the `opens` of the edge whose inside it shows"))
-    reached, path = set(), [first]
-    while path:
-        name = path.pop()
-        if name not in reached:
-            reached.add(name)
-            path += [edge["opens"] for edge in records["edges"] if edge["level"] == name and edge.get("opens") in levels]
-    found += [(f"levels {name}", "level-links", "no chain of `opens` from the first level reaches it") for name in levels if name not in reached and opened[name]]
+    found += level_breaks([level["id"] for level in records["levels"]], openers, lambda name: f"levels {name}")
     for task in records["tasks"]:
         level = levels.get(task["level"])
         if not level or level["kind"] != "plan" or task["node"] not in level["nodes"]:

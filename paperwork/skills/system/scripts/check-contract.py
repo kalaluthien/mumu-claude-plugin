@@ -26,7 +26,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
-from contract_core import FIELDS as CORE_FIELDS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
+from contract_core import FIELDS as CORE_FIELDS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, level_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_parts import SYSTEM, checked, load, split_to  # noqa: E402
@@ -50,7 +50,7 @@ RULES = {
     "area-known": CORE["area-known"],
     "edge-ends": "an edge joins two different nodes of its own level, one pair is joined once by one label in a direction, and the edge's id holds neither end's id",
     "edge-sentence": "a static edge's label opens in lower case, holds no full stop, question or exclamation mark, closes with no article, is more than a lone preposition and holds neither end's label; that it opens with a verb and that `<from label> <label> <to label>` is true is the writer's to check by the `read` call",
-    "level-links": "`opens` names a level, every level but the first is opened by at least one node, and no chain of `opens` leads from a level back to it, so the first level is opened by none",
+    "level-links": CORE["level-links"],
     "purpose-missing": "every node that is no state says its purpose",
     "state-region": "a state sits in an area tagged region, and a region holds only states",
     "region-initial": "a region's `initial` names one of its states",
@@ -162,7 +162,7 @@ def placed(value, where="", skipped=()):
 
 
 LEVEL_RECORDS = {
-    "levels": ({"id": str, "title": str}, {"about": str}),
+    "levels": CORE_FIELDS["levels"],
     "areas": ({**CORE_FIELDS["areas"][0], "tag": str, "level": str}, {**CORE_FIELDS["areas"][1], "info": dict}),
     "nodes": ({"id": str, "label": str, "tag": str, "level": str},
               {"area": str, "opens": str, "purpose": str, "files": list, "aliases": list, "info": dict, "evidence": list, "basis": str}),
@@ -230,7 +230,7 @@ def breaks(contract, root=None):
     found += id_breaks(named)
     sources = {source["id"]: source for source in contract.get("sources", [])}
     found += source_breaks(sources, root)
-    opened = {name: [] for name in levels}
+    openers = []
     for level in contract["levels"]:
         home = level["id"]
         area_tags = {area["id"]: area["tag"] for area in level.get("areas", [])}
@@ -253,10 +253,7 @@ def breaks(contract, root=None):
         for node in level["nodes"]:
             where = f"{home}/{node['id']}"
             if "opens" in node:
-                if node["opens"] not in levels:
-                    found.append((where, "level-links", f"`{node['opens']}` is no level"))
-                else:
-                    opened[node["opens"]].append(home)
+                openers.append((where, home, node["opens"]))
             in_region = area_tags.get(node.get("area")) == "region"
             if node["tag"] == "state" and not in_region:
                 found.append((where, "state-region", "a state sits in an area tagged region"))
@@ -296,19 +293,7 @@ def breaks(contract, root=None):
                 found.append((where, "transition-ends", "only a transition joins two states"))
             if edge["tag"] == "transition" and "terminal" in ends[0].get("info", {}):
                 found.append((where, "transition-ends", "no transition leaves a state marked `terminal`"))
-    first = contract["levels"][0]["id"]
-    for name, openers in opened.items():
-        if name != first and not openers:
-            found.append((f"level {name}", "level-links", "every level but the first is opened by a node"))
-    for name in levels:
-        above, queue = set(), list(opened[name])
-        while queue:
-            opener = queue.pop()
-            if opener not in above:
-                above.add(opener)
-                queue += opened[opener]
-        if name in above:
-            found.append((f"level {name}", "level-links", "a chain of `opens` leads from this level back to it"))
+    found += level_breaks([level["id"] for level in contract["levels"]], openers, lambda name: f"level {name}")
     places = {level["id"]: {node["id"] for node in level["nodes"]} | {edge['id'] for edge in level.get("edges", [])} for level in contract["levels"]}
     scenarios = contract.get("scenarios", [])
     everywhere = (set(levels) | {name for group in places.values() for name in group} | {area["id"] for level in contract["levels"] for area in level.get("areas", [])}
@@ -360,7 +345,7 @@ def breaks(contract, root=None):
     return found
 
 def alias_breaks(contract):
-    """Breaks of the `alias-words` rule: an alias that is empty, said twice, or the id, label, term or alias of a record."""
+    """Breaks of the `alias-words` rule: an alias said twice, or the id, label, term or alias of a record."""
     said = lambda word: " ".join(word.casefold().split())
     holders = [(element["id"], element) for element in elements(contract) if "from" not in element] + [(f"term {entry['term']}", entry) for entry in contract.get("terms", [])]
     names = {}
@@ -378,9 +363,7 @@ def alias_breaks(contract):
     for where, holder in holders:
         kept = set()
         for word in holder.get("aliases", []):
-            if not word.strip():
-                found.append((where, "alias-words", "an alias is empty; write the word a reader would search by, or take it out"))
-            elif said(word) in kept:
+            if said(word) in kept:
                 found.append((where, "alias-words", f"the alias `{word}` is said twice; keep one"))
             else:
                 kept.add(said(word))
@@ -548,8 +531,9 @@ READ = {"statement": "text", "guard": "text", "action": "text", "initial": "text
 def catalogue(path):
     """The tag catalogue the file at PATH holds over the shared one, or None when it is no catalogue the calls can read."""
     try:
-        tags = merged(json.loads(pathlib.Path(path).read_text()), json.loads(SHARED.read_text()))
-        whole = tags["forms"] == CATALOGUE["forms"]
+        own = json.loads(pathlib.Path(path).read_text())
+        tags = merged(own, json.loads(SHARED.read_text()))
+        whole = own.get("forms", tags["forms"]) == CATALOGUE["forms"]
         for kind in ("node", "edge", "area"):
             entries = list(tags[kind].values()) + [{"meaning": "", "items": tags["common"][kind]}]
             items = [item for entry in entries for item in entry["items"]]

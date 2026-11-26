@@ -28,7 +28,7 @@
   "claim-paths-two-starts": [[["claims", 1, "paths", 1, 0]]],
   "alias-words": [[["nodes", 0, "aliases"], ["Code list"]]],
   "alias-words-said-twice": [[["nodes", 1, "aliases"], ["locker door", "Locker  Door"]]],
-  "alias-words-empty": [[["nodes", 0, "aliases"], [" "]]],
+  "form-alias-blank": [[["nodes", 0, "aliases"], [" "]]],
   "alias-words-an-id": [[["nodes", 0, "aliases"], ["codes"]]],
   "alias-words-another-alias": [[["nodes", 0, "aliases"], ["보관함"]]],
   "alias-words-a-term": [[["areas", 0, "aliases"], ["Code"]]],

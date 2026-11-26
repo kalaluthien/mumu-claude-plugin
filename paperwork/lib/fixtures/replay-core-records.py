@@ -33,6 +33,12 @@ def spelt(contract):
     return f"It is said of the {contract['nodes'][0]['label']}."
 
 
+def opener(contract, skill, k):
+    """The first record of the K-th level that may open a level: a node in system, an edge in flow."""
+    level = contract["levels"][k]["id"]
+    return next(record for record in contract["nodes" if skill == "system" else "edges"] if record["level"] == level)
+
+
 def shared_node(contract):
     """The first node whose area holds another node too, so moving it out leaves its area held."""
     areas = [node.get("area") for node in contract["nodes"]]
@@ -71,6 +77,10 @@ DEFECTS = {
     "a label spelt in a claim's statement": lambda contract, skill: contract["claims"].append(claim(statement=spelt(contract))),
     "a label spelt in a claim's fault": lambda contract, skill: contract["claims"].append(claim(status="unknown", fault=spelt(contract))),
     "a label spelt in a question": lambda contract, skill: contract["questions"][0].update(asks=spelt(contract)),
+    "a blank alias": lambda contract, skill: contract["terms"][0].update(aliases=[" "]),
+    "a blank fault on a holding claim": lambda contract, skill: contract["claims"].append(claim(fault=" ")),
+    "an opens naming no level": lambda contract, skill: opener(contract, skill, 0).update(opens="no-such-level"),
+    "a chain of opens back to the first level": lambda contract, skill: opener(contract, skill, 1).update(opens=contract["levels"][0]["id"]),
 }
 
 

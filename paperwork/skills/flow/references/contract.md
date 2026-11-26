@@ -4,13 +4,13 @@ Write a flow as one contract the checker accepts and a reader who never saw the 
 
 ## Domain
 
-A contract holds the records every paperwork contract holds, as [contract.md](../../../lib/contract.md) defines them: sources, terms, areas, claims, questions and parts. This skill adds levels, nodes, edges, tasks, fragments and milestones.
+A contract holds the records every paperwork contract holds, as [contract.md](../../../lib/contract.md) defines them: sources, terms, levels, tags, areas, claims, questions and parts. This skill adds nodes, edges, tasks, fragments and milestones, and gives each level a `kind` and its `nodes`.
 
 - **top**: `title`, `purpose`, `sources`, `terms`, `areas`, `levels`, `nodes`, `edges`, `tasks`, `fragments`, `milestones`, `claims`, `questions`.
 - **evidence**: nodes, edges, tasks, fragments, milestones, areas and claims take `evidence` and `basis`.
 - **area**: the side a node belongs to, such as a team or a data centre; the page gives each area one colour and its label.
 - **part**: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py split <contract> <folder>` writes the parts: `top.json`, the areas and nodes included, its `levels` the level ids in order, and `levels/<id>.json`, one level with its edges, tasks, fragments and milestones; an edit goes into the one part file it changes.
-- **level**: `id`, `title` (a slug), `kind` (`interaction` or `plan`), `nodes` (the ids it draws, in order across the top or down the left), `about`. The first level is the whole flow; every other is opened by an edge.
+- **level**: `kind` (`interaction` or `plan`) and `nodes` (the ids it draws, in order across the top or down the left); an edge opens it.
 - **node**: `id`, `label`, `tag`, `area`, `purpose`, `info`: a system, an actor or a resource; one node may be drawn by several levels.
 - **edge**: `id`, `level`, `from`, `to`, `label`, `tag`, `opens`, `after`, `info`. On an interaction it joins two nodes its level lists, or a node to itself for its own step, and its `work` item, a table of `area`, `change` and `says`, names what each area must build or change for it; its label the exchange as written, such as `GET /v1/names/{name}`, and its place in the list its place in time. On a plan it joins two tasks: a `request` asks the `to` task to start, a `wait` holds it until the `from` task ends.
 - **task**: `id`, `level`, `node`, `label`, `tag`, `purpose`, `after`, `info`: one piece of work on a plan, drawn as a bar on its node's line.

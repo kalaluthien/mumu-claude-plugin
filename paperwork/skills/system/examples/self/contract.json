@@ -425,7 +425,8 @@
     ]
    },
    "evidence": [
-    "contract-playbook"
+    "contract-playbook",
+    "checker-code"
    ]
   },
   {
