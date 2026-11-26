@@ -6,7 +6,7 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 
 - **finding**: one fact about the subject with the source that shows it: a path, a `path:line`, a url, a command's output or a person's answer.
 - **topic**: one kind of thing a rebuild needs; the table below names where each lands in the contract.
-- **gap**: what the description lacks or gets wrong, by one of six faults: `missing` (the subject does it, nothing says so), `illegal` (the description allows what the subject forbids), `redundant` (one thing said two ways), `overloaded` (one word for two things), `contradictory` (two sources disagree) and `unknown` (no source settles it).
+- **gap**: what the description lacks or gets wrong, recorded as a claim whose `fault` names one of six: `missing` (the subject does it, nothing says so), `illegal` (the description allows what the subject forbids), `redundant` (one thing said two ways), `overloaded` (one word for two things), `contradictory` (two sources disagree) and `unknown` (no source settles it).
 
 | topic | look for | lands in |
 | --- | --- | --- |
@@ -14,8 +14,8 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 | relations between components | who calls, reads, writes, starts or rules whom | edges |
 | layers and hierarchy | what is inside what, and how deep | levels, `opens` |
 | partitioning and boundaries | modules, owners, trust and deployment lines | areas |
-| naming and placement conventions | how a name or a place is chosen | `convention` properties |
-| coupling and dependency | what breaks when a part changes | `dependsOn` edges, `fact` properties |
+| naming and placement conventions | how a name or a place is chosen | claims with a `source` |
+| coupling and dependency | what breaks when a part changes | `dependsOn` edges, claims with `paths` |
 | system documents | specifications, rules and decisions already written | sources |
 | state | what is kept, where, in what layout; each lifecycle | `dataStore` and `queue` nodes, regions of `state` nodes |
 | control | what starts, orders, routes and stops work | `trigger`, `router` and `policy` nodes, transitions |
@@ -23,14 +23,14 @@ Find, topic by topic, what a reader needs to rebuild the subject, before any of 
 | interfaces and payloads | addresses, signatures, wire formats, constants | `endpoint` nodes, items of `call`, `publish` and `access` edges |
 | failure and degraded behaviour | each refusal, error, timeout and retry | the `failure` item |
 | scenarios and operational principles | the story that shows each purpose met | scenarios |
-| invariants and properties | what always holds, and what must | `invariant` and `property` properties |
-| assumptions and constraints | what the subject relies on and may not do | `assumption` and `constraint` properties |
+| guarantees | what the subject keeps true | `guarantee` claims |
+| assumptions and constraints | what the subject relies on and may not do | `assumption` claims, claims with a `source` |
 | domain terms and coined words | words a reader would not know | terms |
 | rationale | why it is so, and what was turned down | the `why` item |
 | deployment and environment | where it runs, on what, set by what | `host` nodes, `deployment` areas |
 | security and trust | who may do what, with which secret | `credential` and `policy` nodes, `trustZone` areas |
 | actors and outside systems | who starts or receives, outside the subject | `actor` nodes |
-| gaps and open questions | what the sources do not settle | `gap` properties |
+| gaps and open questions | what the sources do not settle | claims with a `fault` |
 | evidence | the source behind each finding | each record's `evidence` |
 
 ## Steps

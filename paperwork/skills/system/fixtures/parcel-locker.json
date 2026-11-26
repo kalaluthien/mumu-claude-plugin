@@ -154,11 +154,11 @@
    ]
   }
  ],
- "properties": [
+ "claims": [
   {
    "id": "one-code",
    "title": "one-code",
-   "kind": "invariant",
+   "kind": "guarantee",
    "statement": "A full door has exactly one code in {codes}.",
    "on": [
     "door",
@@ -168,7 +168,7 @@
   {
    "id": "same-codes",
    "title": "same-codes",
-   "kind": "fact",
+   "kind": "guarantee",
    "statement": "The list {courier} adds to is the list {door} asks.",
    "on": [
     "codes"
@@ -186,10 +186,10 @@
   {
    "id": "lost-code",
    "title": "lost-code",
-   "kind": "gap",
-   "fault": "missing",
+   "kind": "guarantee",
+   "statement": "A parcel whose code is lost can still be taken out.",
    "status": "unknown",
-   "statement": "The manual does not say what happens to a parcel whose code is lost.",
+   "fault": "The manual does not say what happens to a parcel whose code is lost.",
    "on": [
     "take"
    ]
@@ -207,7 +207,9 @@
   {
    "id": "when-lost",
    "asks": "What happens to a parcel whose code is lost?",
-   "gap": "lost-code"
+   "answers": [
+    "lost-code"
+   ]
   }
  ]
 }

@@ -3,7 +3,7 @@
 // `paperworkCard(options)` once its `#card` and `#gloss` exist; each option is a function it answers from its own records:
 //   make(name, attributes, ...children)  the element maker
 //   record(id)       { kind, record } of a record, or nothing
-//   terms()          the contract's terms; sources() its sources; counted() each record's properties by the kind a badge counts
+//   terms()          the contract's terms; sources() its sources; counted() each record's claims by the status a badge counts
 //   formulas         the MathML of each formula, by `$tex` or `$$tex`
 //   rows(id)         the card's rows, each [name, form, data]
 //   place(id, w, h)  { left, top, cost, tied } where a card that big rests, `tied` what it still covers
@@ -29,14 +29,14 @@ window.paperworkCard = options => {
   const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && options.record(id) ? label(id) : whole));
   const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
-  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["broken", "✗", "broken"], ["gap", "!", "gaps"]]; // each kind a badge counts: its symbol, so it reads without its colour, and its card row's name
-  const counts = id => { // the badges of a record the properties on it earn, one per kind it holds
+  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["conflicting", "!", "conflicting"], ["fails", "✗", "fails"]]; // each status a badge counts: its symbol, so it reads without its colour, and its card row's name
+  const counts = id => { // the badges of a record the claims on it earn, one per status they hold
     const held = options.counted()[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
     if (!shown.length) return null;
     return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
       make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
   };
-  const countRows = id => COUNTS.filter(([kind]) => (options.counted()[id] || {})[kind]).map(([kind, , name]) => [name, "list", options.counted()[id][kind].map(one => `{${one}}`)]); // a card's row per kind of badge its record earns
+  const countRows = id => COUNTS.filter(([kind]) => (options.counted()[id] || {})[kind]).map(([kind, , name]) => [name, "list", options.counted()[id][kind].map(one => `{${one}}`)]); // a card's row per status of badge its record earns
   const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
   let glossed = new Set(); // the terms the card has marked, each at its first match only
   const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term

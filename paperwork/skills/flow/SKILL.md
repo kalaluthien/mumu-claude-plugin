@@ -9,7 +9,7 @@ Describe how a subject unfolds in time, its calls between systems or its plan of
 
 ## Domain
 
-- **flow contract**: one JSON file holding groups, levels, nodes, edges, tasks, fragments, milestones, properties, terms, sources and questions.
+- **flow contract**: one JSON file holding areas, levels, nodes, edges, tasks, fragments, milestones, claims, terms, sources and questions.
 - **level**: one diagram, of kind `interaction` (systems across the top, time flowing down, the arrows between them) or `plan` (actors and resources down the left, time flowing right, the tasks on their lines); an edge **opens** a level that shows its inside, as UML `ref` does.
 - **precedence**: what comes before what on a level; a **milestone** is one point in time, and the **critical path** of a plan is its longest chain of predecessors, counted in tasks.
 - **tag**: the kind of a node, edge or task, which fixes the items worth recording of it; `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py tags` prints them.
@@ -24,5 +24,5 @@ Describe how a subject unfolds in time, its calls between systems or its plan of
 
 ## Rules
 
-- **Written contracts only**: take the subject from written sources, such as a specification, a runbook or a plan, and cite one for each record; record what no source settles as a gap.
+- **Written contracts only**: take the subject from written sources, such as a specification, a runbook or a plan, and cite one for each record; record what no source settles as a claim whose `fault` says so.
 - **After a change to this folder**: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/check-contract.py fixtures`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-critical-path.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-deep-contract.py`, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/replay-script-calls.py` and `node ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/run-page.cjs`; each must print `PASS`.

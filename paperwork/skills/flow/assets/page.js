@@ -15,21 +15,21 @@
     element.append(...children);
     return element;
   };
-  const GROUP_COLOURS = 8; // the KRDS scales page.css names, taken in turn and again past the eighth group
+  const AREA_COLOURS = 8; // the KRDS scales page.css names, taken in turn and again past the eighth area
   const GAP = 48, TOP = 72, ROW = 64, HEAD = 28, PAD = 56;
 
   // ---- the contract's records ----
   const records = {}, counted = {}, openers = {};
   const add = (kind, list) => (list || []).forEach(record => { records[record.id] = { kind, record }; });
-  add("group", contract.groups); add("level", contract.levels); add("node", contract.nodes); add("edge", contract.edges);
+  add("area", contract.areas); add("level", contract.levels); add("node", contract.nodes); add("edge", contract.edges);
   add("task", contract.tasks); add("fragment", contract.fragments); add("milestone", contract.milestones);
-  add("property", contract.properties); add("question", contract.questions);
+  add("claim", contract.claims); add("question", contract.questions);
   for (const edge of contract.edges || []) if (edge.opens) openers[edge.opens] = edge.id;
-  for (const property of contract.properties || []) {
-    const kind = property.kind === "gap" ? "gap" : property.status || "holds";
-    for (const one of new Set(property.on || [])) ((counted[one] = counted[one] || {})[kind] = counted[one][kind] || []).push(property.id);
+  for (const claim of contract.claims || []) {
+    const status = claim.status || "holds";
+    for (const one of new Set(claim.on || [])) ((counted[one] = counted[one] || {})[status] = counted[one][status] || []).push(claim.id);
   }
-  const groupIndex = Object.fromEntries((contract.groups || []).map((group, k) => [group.id, k % GROUP_COLOURS]));
+  const areaIndex = Object.fromEntries((contract.areas || []).map((area, k) => [area.id, k % AREA_COLOURS]));
   const of = (kind, level) => (contract[kind] || []).filter(record => record.level === level);
   const step = edge => of("edges", edge.level).indexOf(edge) + 1;
   const codes = edge => (TAGS.edge[edge.tag] ? TAGS.edge[edge.tag].items : []).filter(item => item.form === "code" && typeof (edge.info || {})[item.name] === "string" && edge.info[item.name] !== edge.label).map(item => edge.info[item.name]); // a value the name already says is not written twice
@@ -46,8 +46,8 @@
     counted: () => counted, rows, place, kept: id => kept === id, light, follow });
   const { words, tagName, counts } = recordCard;
   const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
-    kinds: { node: "Nodes", edge: "Edges", task: "Tasks", milestone: "Milestones", fragment: "Fragments", level: "Levels", property: "Properties", question: "Questions" },
-    browse: [["Questions", "question"], ["Levels", "level"], ["Properties", "property"]],
+    kinds: { node: "Nodes", edge: "Edges", task: "Tasks", milestone: "Milestones", fragment: "Fragments", level: "Levels", claim: "Claims", question: "Questions" },
+    browse: [["Questions", "question"], ["Levels", "level"], ["Claims", "claim"]],
     shelf: () => `paperwork-flow-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
 
   function rows(id) {
@@ -55,10 +55,10 @@
     const named = ids => (ids || []).map(one => `{${one}}`);
     if (kind === "edge") { put("step", "text", String(step(record))); put("between", "text", `{${record.from}} → {${record.to}}`); }
     if (kind === "task") put("on", "text", `{${record.node}}`);
-    if (kind === "node") put("group", "text", records[record.group].record.label);
+    if (kind === "node") put("area", "text", records[record.area].record.label);
     if (kind === "fragment") put("operands", "list", record.operands.map(operand => (operand.guard ? `[${operand.guard}] ` : "") + named(operand.edges).join(", ")));
-    if (kind === "property") { put("statement", "text", record.statement); put("on", "list", named(record.on)); put("fault", "text", record.fault); }
-    if (kind === "question") { put("asks", "text", record.asks); put("answers", "list", named(record.answers)); put("gap", "text", record.gap && `{${record.gap}}`); }
+    if (kind === "claim") { put("statement", "text", record.statement); put("on", "list", named(record.on)); put("fault", "text", record.fault); }
+    if (kind === "question") { put("asks", "text", record.asks); put("answers", "list", named(record.answers)); }
     if (kind === "level") put("about", "text", record.about);
     put("purpose", "text", record.purpose);
     if (/^(node|edge|task|milestone|fragment)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) put(name, form, data);
@@ -87,7 +87,7 @@
   }
   function follow(id) { // a chip opens its record's card, on the level that draws it
     if (!records[id]) return false;
-    if (["property", "question", "group"].includes(records[id].kind)) { kept = id; recordCard.show(id); return true; }
+    if (["claim", "question", "area"].includes(records[id].kind)) { kept = id; recordCard.show(id); return true; }
     go(home(id), id);
     return true;
   }
@@ -104,14 +104,14 @@
       [["id", record.id], ["purpose", record.purpose], ...Object.entries(record.info || {}).map(([name, data]) => [name, values(data)])]);
   for (const fragment of contract.fragments || []) entry(fragment.id, "fragment", `${fragment.kind} ${fragment.operands.map(operand => operand.guard || "").join(" / ")}`.trim(), fragment.kind,
     [[fragment.kind, 0], [fragment.id, 1], [fragment.operands.map(operand => operand.guard || "").join(" "), 3]], [["id", fragment.id]]);
-  for (const property of contract.properties || []) entry(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["statement", property.statement]]);
-  for (const question of contract.questions || []) entry(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
+  for (const claim of contract.claims || []) entry(claim.id, "claim", claim.title, claim.kind, [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], [["statement", claim.statement]]);
+  for (const question of contract.questions || []) entry(question.id, "question", words(question.asks), question.answers.every(name => (contract.claims || []).some(claim => claim.id === name && claim.fault)) ? "open question" : "question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
   function open(hit) { // the record a search picked
     if (hit.kind === "question") {
       const question = records[hit.id].record;
-      return open(entries.find(one => one.id === (question.answers || [question.gap])[0]));
+      return open(entries.find(one => one.id === question.answers[0]));
     }
-    if (hit.kind === "property") { kept = hit.id; return recordCard.show(hit.id); }
+    if (hit.kind === "claim") { kept = hit.id; return recordCard.show(hit.id); }
     go(home(hit.id), hit.kind === "level" ? null : hit.id);
   }
 
@@ -137,12 +137,12 @@
   // ---- drawing ----
   const stage = $("stage");
   const measure = element => { stage.append(element); const size = { w: element.offsetWidth, h: element.offsetHeight }; element.remove(); return size; };
-  const colour = node => `--group-fill: var(--group-fill-${groupIndex[node.group]}); --group-edge: var(--group-edge-${groupIndex[node.group]})`;
-  const nodeBox = node => make("div", { class: "node", "data-id": node.id, "data-group": node.group, style: colour(node) },
-    make("span", { class: "group" }, records[node.group].record.label), make("span", { class: "label" }, node.label));
-  const work = edge => { const table = (edge.info || {}).work; return table && Array.isArray(table.rows) ? table.rows.map(([group, change, says]) => ({ group, change, says })) : []; };
+  const colour = node => `--area-fill: var(--area-fill-${areaIndex[node.area]}); --area-edge: var(--area-edge-${areaIndex[node.area]})`;
+  const nodeBox = node => make("div", { class: "node", "data-id": node.id, "data-area": node.area, style: colour(node) },
+    make("span", { class: "area" }, records[node.area].record.label), make("span", { class: "label" }, node.label));
+  const work = edge => { const table = (edge.info || {}).work; return table && Array.isArray(table.rows) ? table.rows.map(([area, change, says]) => ({ area, change, says })) : []; };
   const edgeWork = edge => work(edge).length ? make("div", { class: "edge-work", "data-for": edge.id },
-    work(edge).map(one => make("span", { class: "work-pill", "data-group": one.group, style: colour(one) }, `${one.change} · ${records[one.group].record.label}`))) : null;
+    work(edge).map(one => make("span", { class: "work-pill", "data-area": one.area, style: colour(one) }, `${one.change} · ${records[one.area].record.label}`))) : null;
   const edgeCodes = edge => codes(edge).length ? make("div", { class: "edge-codes", "data-for": edge.id }, codes(edge).join(" · ")) : null;
   const edgeLabel = edge => make("div", { class: "edge-label", "data-id": edge.id }, edge.label, ...(edge.opens ? [make("span", { class: "opens-mark", "data-opens": edge.opens, title: `Open ${records[edge.opens].record.title}` }, "ref")] : []));
   const head = (x, y, toward) => draw("polygon", { class: "head", points: `${x},${y} ${x - 10 * toward},${y - 5} ${x - 10 * toward},${y + 5}` });
@@ -242,10 +242,10 @@
       svg.prepend(draw("g", { class: "lifeline-hit", "data-for": node.id }, draw("line", { class: "lifeline", style: colour(node), ...line }), draw("line", { class: "hit", ...line })));
     });
     const right = Math.max(lineEnds[1], ...fragments.map(one => one.right), ...reach.map(x => x + 16));
-    const owing = (contract.groups || []).map(group => [group, edges.flatMap(edge => work(edge).filter(one => one.group === group.id).map(one => [edge, one]))]).filter(([, rows]) => rows.length);
+    const owing = (contract.areas || []).map(area => [area, edges.flatMap(edge => work(edge).filter(one => one.area === area.id).map(one => [edge, one]))]).filter(([, rows]) => rows.length);
     if (!owing.length) return { width: right + PAD, height: bottom + 48 };
-    const list = make("div", { class: "work-list" }, owing.map(([group, rows]) => make("section", { "data-group": group.id, style: colour({ group: group.id }) },
-      make("h2", {}, group.label),
+    const list = make("div", { class: "work-list" }, owing.map(([area, rows]) => make("section", { "data-area": area.id, style: colour({ area: area.id }) },
+      make("h2", {}, area.label),
       make("ol", {}, rows.map(([edge, one]) => make("li", { class: "work-row", "data-for": edge.id },
         make("span", { class: "work-step" }, String(step(edge))), make("span", { class: "work-change" }, one.change), make("span", { class: "work-says" }, words(one.says))))))));
     list.style.left = PAD + "px"; list.style.top = bottom + 32 + "px"; list.style.width = Math.max(right - PAD, 720) + "px";

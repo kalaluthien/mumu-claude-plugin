@@ -10,7 +10,6 @@ exit status is 1.
 The page keeps each part's key, made of the part, what its check reads of the other parts and the code that checks and builds it; over
 an earlier page, a part whose key is unchanged keeps its pieces from it, and only the other parts are checked and built again. It prints
 the parts checked and built, the parts kept, then the page's path."""
-import json
 import pathlib
 import subprocess
 import sys
@@ -18,17 +17,18 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import nested  # noqa: E402
 from contract_parts import SYSTEM, code_digest, keys, load, split  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 from page_parts import CARD, assembled, earlier, page, report  # noqa: E402
 from tex_mathml import drawn, named  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
-CODE = [HERE / "check-contract.py", HERE / "make-page.py", ASSETS / "tags.json", *(HERE.parents[2] / "lib").glob("*.py")]
+CODE = [HERE / "check-contract.py", HERE / "make-page.py", ASSETS / "tags.json", *(HERE.parents[2] / "lib").glob("*.py"), HERE.parents[2] / "lib" / "tags.json"]
 MARKUP = f"""<main id="diagram"><div id="stage" class="stage"></div></main>
 <nav id="crumbs" class="bar" aria-label="Levels"></nav>
 <div id="tools" class="bar">
 <button id="scenarios" class="tool" type="button">Scenarios</button>
-<button id="properties" class="tool" type="button">Properties</button>
+<button id="claims" class="tool" type="button">Claims</button>
 <button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
 </div>
 {CARD}
@@ -74,8 +74,8 @@ def main(args):
     pieces, made = assembled(keyed, shown, lambda name: {"formulas": drawn(parts[name])},
                              lambda name: {"formulas": {key: drawn_before[key] for key in named(parts[name]) if key in drawn_before}})
     formulas = {key: markup for piece in pieces.values() for key, markup in piece["formulas"].items()}
-    blocks = {"data": nested(contract), "tags": json.loads((ASSETS / "tags.json").read_text()), "formulas": formulas, "parts": keyed}
-    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, scenarios and properties", blocks))
+    blocks = {"data": nested(contract), "tags": catalogue(ASSETS / "tags.json"), "formulas": formulas, "parts": keyed}
+    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, scenarios and claims", blocks))
     print(report(keyed, made))
     print(target)
     return 0

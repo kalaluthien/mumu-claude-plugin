@@ -4,7 +4,7 @@
 usage: replay-page-parts.py
 
 page parts: a scratch page holding only lib's card and search parts, two boxes of its own and a contract of two nodes, one edge, a
-property that holds and a gap on the first node; `drive-page-parts.cjs own` checks its badges, card, chips and search.
+claim that holds and one that fails on the first node; `drive-page-parts.cjs own` checks its badges, card, chips and search.
 system reach: on a copy of the plugin whose lib card heads each card with a marked word and whose lib parts mark each badge group and
 search hit they draw, system's `make-page.py` builds the first example's page, where `drive-page-parts.cjs system` finds the word in a
 node's card heading, on every badge group and on every hit a search lists, and the words system hands the search as `SYSTEM_WORDS`
@@ -27,8 +27,9 @@ from page_parts import CARD, code, palette, style  # noqa: E402
 CONTRACT = {
     "nodes": [{"id": "intake", "label": "Intake", "purpose": "takes each order"}, {"id": "ledger", "label": "Ledger", "purpose": "keeps each payment"}],
     "edges": [{"id": "intake-ledger", "from": "intake", "to": "ledger", "label": "writes to"}],
-    "properties": [{"id": "checked", "title": "Every intake is checked", "kind": "invariant", "on": ["intake"], "statement": "An intake is checked once."},
-                   {"id": "no-retry", "title": "A failed intake is never retried", "kind": "gap", "on": ["intake"], "statement": "Nothing retries an intake."}],
+    "claims": [{"id": "checked", "title": "Every intake is checked", "kind": "guarantee", "on": ["intake"], "statement": "An intake is checked once."},
+               {"id": "no-retry", "title": "A failed intake is retried", "kind": "guarantee", "status": "fails", "on": ["intake"], "statement": "A failed intake is retried.",
+                "fault": "Nothing retries an intake."}],
     "terms": [{"term": "ledger", "meaning": "the store of payments", "aliases": ["원장"]}],
 }
 PAGE = """<!doctype html>
@@ -56,13 +57,13 @@ body {{ margin: 0; font: 14px/20px sans-serif; }}
     element.append(...children);
     return element;
   }};
-  for (const [kind, list] of [["node", data.nodes], ["edge", data.edges], ["property", data.properties]]) for (const record of list) records[record.id] = {{ kind, record }};
-  for (const property of data.properties) for (const one of property.on) ((counted[one] = counted[one] || {{}})[property.kind === "gap" ? "gap" : "holds"] = counted[one][property.kind === "gap" ? "gap" : "holds"] || []).push(property.id);
+  for (const [kind, list] of [["node", data.nodes], ["edge", data.edges], ["claim", data.claims]]) for (const record of list) records[record.id] = {{ kind, record }};
+  for (const claim of data.claims) for (const one of claim.on) ((counted[one] = counted[one] || {{}})[claim.status || "holds"] = counted[one][claim.status || "holds"] || []).push(claim.id);
   let kept = null;
   const rows = id => {{ const {{ kind, record }} = records[id]; return [["purpose", "text", record.purpose || record.statement], ...(kind === "node" ? card.countRows(id) : [])]; }};
   const card = paperworkCard({{ make, formulas: {{}}, record: id => records[id], terms: () => data.terms, sources: () => [], counted: () => counted, rows,
     place: () => ({{ left: 480, top: 40, cost: 0, tied: 0 }}), kept: id => id === kept, light: () => {{}},
-    follow: id => {{ if (records[id].kind !== "property") return false; kept = id; card.show(id); return true; }} }});
+    follow: id => {{ if (records[id].kind !== "claim") return false; kept = id; card.show(id); return true; }} }});
   for (const box of document.querySelectorAll(".box")) {{
     const badges = card.counts(box.dataset.id);
     if (badges) box.append(badges);
@@ -71,7 +72,7 @@ body {{ margin: 0; font: 14px/20px sans-serif; }}
   const entries = Object.entries(records).map(([id, {{ kind, record }}]) => ({{ id, kind, name: record.label || record.title, note: kind,
     fields: [[record.label || record.title, 0], [id, 1], [record.purpose || record.statement, 3]], shown: [["purpose", record.purpose || record.statement]] }}));
   const search = paperworkSearch({{ make, entries: () => entries, terms: () => data.terms, shelf: () => "paperwork-parts-replay",
-    kinds: {{ node: "Nodes", edge: "Edges", property: "Properties" }}, browse: [["Nodes", "node"]], open: entry => {{ kept = entry.id; card.show(entry.id); }} }});
+    kinds: {{ node: "Nodes", edge: "Edges", claim: "Claims" }}, browse: [["Nodes", "node"]], open: entry => {{ kept = entry.id; card.show(entry.id); }} }});
   addEventListener("keydown", event => search.key(event));
 }})();
 </script>
@@ -79,8 +80,8 @@ body {{ margin: 0; font: 14px/20px sans-serif; }}
 """
 OWN = ("const spoken = piece =>", "const typed = text =>", "function measure(entry", "#card dl { margin", "#hits .hit { display")  # lines only the shared parts hold
 MARK = "MARKED"
-SYSTEM_WORDS = {"placeholder": "Search nodes, edges, scenarios and properties", "browse": ["Questions", "Scenarios", "Levels", "Properties"],
-                "kinds": {"levels": "Levels", "areas": "Areas", "nodes": "Nodes", "edges": "Edges", "scenarios": "Scenarios", "properties": "Properties", "questions": "Questions"}}
+SYSTEM_WORDS = {"placeholder": "Search nodes, edges, scenarios and claims", "browse": ["Questions", "Scenarios", "Levels", "Claims"],
+                "kinds": {"levels": "Levels", "areas": "Areas", "nodes": "Nodes", "edges": "Edges", "scenarios": "Scenarios", "claims": "Claims", "questions": "Questions"}}
 
 
 def drive(*args):

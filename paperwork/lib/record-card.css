@@ -3,8 +3,8 @@
 .counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .counts > [data-count="holds"] { background: oklch(.5 .13 150); }
 .counts > [data-count="unknown"] { background: oklch(.5 0 0); }
-.counts > [data-count="broken"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
-.counts > [data-count="gap"] { background: oklch(.53 .21 27); }
+.counts > [data-count="conflicting"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
+.counts > [data-count="fails"] { background: oklch(.53 .21 27); }
 #card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
 #card.kept { box-shadow: var(--shadow-lg); }
 #card.long { overflow-y: auto; }
@@ -31,7 +31,7 @@
 #card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
 #card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
 #card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
-#card .badge.broken { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
+#card .badge.fails, #card .badge.conflicting { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
 #card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
 #card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
 #card .cite:hover { background: var(--accent); }

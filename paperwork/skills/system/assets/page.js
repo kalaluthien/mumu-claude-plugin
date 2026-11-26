@@ -22,8 +22,8 @@
     counted: () => counted, rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow });
   const { words, bare, tagName, label, counts, prose } = recordCard;
   const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
-    kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", property: "Properties", question: "Questions" },
-    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Properties", "property"]],
+    kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", claim: "Claims", question: "Questions" },
+    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Claims", "claim"]],
     shelf: () => `paperwork-system-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
 
   // ---- the contract's records ----
@@ -38,10 +38,10 @@
     for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
     for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
     counted = {};
-    for (const property of contract.properties || []) {
-      records[property.id] = { kind: "property", record: property };
-      const kind = property.kind === "gap" ? "gap" : property.status || "holds";
-      for (const one of new Set(property.on || [])) ((counted[one] = counted[one] || {})[kind] = counted[one][kind] || []).push(property.id);
+    for (const claim of contract.claims || []) {
+      records[claim.id] = { kind: "claim", record: claim };
+      const status = claim.status || "holds";
+      for (const one of new Set(claim.on || [])) ((counted[one] = counted[one] || {})[status] = counted[one][status] || []).push(claim.id);
     }
     entries = index();
   }
@@ -541,7 +541,7 @@
     if (kind === "node") for (const edge of level.edges || []) if (edge.from === id || edge.to === id) [edge.id, edge.from, edge.to].forEach(one => set.add(one));
     if (kind === "edge") [records[id].record.from, records[id].record.to].forEach(one => set.add(one));
     if (kind === "area") for (const node of level.nodes) if (node.area === id) set.add(node.id);
-    if (kind === "property") (records[id].record.on || []).forEach(one => set.add(one));
+    if (kind === "claim") (records[id].record.on || []).forEach(one => set.add(one));
     for (const one of [...set]) if (records[one] && records[one].kind === "node" && records[one].record.area) set.add(records[one].record.area);
     return set;
   }
@@ -571,7 +571,7 @@
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
     if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
-    if (kind === "property") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
+    if (kind === "claim") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
     if (/^(node|edge)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) add(name, form, data);
@@ -637,8 +637,8 @@
     stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
     if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
   }
-  function follow(id, event) { // a chip that names a property opens that property's card, which waits for the pointer to move
-    if (records[id].kind !== "property") return false;
+  function follow(id, event) { // a chip that names a claim opens that claim's card, which waits for the pointer to move
+    if (records[id].kind !== "claim") return false;
     parked = [event.clientX, event.clientY];
     go({ level: home(id), at: id });
     return true;
@@ -755,18 +755,18 @@
     for (const level of contract.levels) {
       add(level.id, "level", words(level.title), "level", [[words(level.title), 0], [level.id, 1], [level.about && words(level.about), 3]], [["id", level.id], ["about", level.about]]);
       for (const node of level.nodes) add(node.id, "node", node.label, tagName(node.tag), [[node.label, 0], ...aliased(node), [node.id, 1], [node.tag, 2], [node.purpose && words(node.purpose), 3], [texts(node.info), 4]], [...said(node), ["id", node.id], ["tag", tagName(node.tag)], ["purpose", node.purpose], ...details(node.info)]);
-      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 0], ...aliased(area), [area.id, 1], [area.tag, 2], [texts(area.info), 4]], [...said(area), ["id", area.id], ["tag", tagName(area.tag)], ...details(area.info)]);
+      for (const area of level.areas || []) add(area.id, "area", area.label, tagName(area.tag), [[area.label, 0], ...aliased(area), [area.id, 1], [area.tag, 2], [area.purpose && words(area.purpose), 3], [texts(area.info), 4]], [...said(area), ["id", area.id], ["tag", tagName(area.tag)], ["purpose", area.purpose], ...details(area.info)]);
       for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 0], [edge.id, 1], [edge.tag, 2], [sentence(edge), 3], [texts(edge.info), 4]], [["id", edge.id], ["tag", tagName(edge.tag)], ...details(edge.info)]);
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
-    for (const property of contract.properties || []) add(property.id, "property", property.title, property.kind, [[property.title, 0], [property.id, 1], [property.kind, 2], [words(property.statement), 3]], [["id", property.id], ["kind", property.kind], ["statement", property.statement]]);
-    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers ? "question" : "open question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
+    for (const claim of contract.claims || []) add(claim.id, "claim", claim.title, claim.kind, [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], [["id", claim.id], ["kind", claim.kind], ["statement", claim.statement]]);
+    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers.every(name => (contract.claims || []).some(claim => claim.id === name && claim.fault)) ? "open question" : "question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
     return list;
   }
   function open(entry) { // the record a search picked
-    if (entry.kind === "question") { // a question leads to the first record that answers it, or to the gap it is left to
+    if (entry.kind === "question") { // a question leads to the first record that answers it
       const question = contract.questions.find(one => one.id === entry.id);
-      return open(entries.find(one => one.id === (question.answers || [question.gap])[0]));
+      return open(entries.find(one => one.id === question.answers[0]));
     }
     if (entry.kind === "scenario") return start(entry.id);
     if (entry.kind === "level") return go({ level: entry.id, at: null, scenario: null });
@@ -790,7 +790,7 @@
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
     $("search").addEventListener("click", () => search.ask());
     $("scenarios").addEventListener("click", () => search.ask("Scenarios"));
-    $("properties").addEventListener("click", () => search.ask("Properties"));
+    $("claims").addEventListener("click", () => search.ask("Claims"));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -818,7 +818,7 @@
     history.replaceState(state, "", address(state));
     document.title = contract.title;
     $("scenarios").hidden = !(contract.scenarios || []).length;
-    $("properties").hidden = !(contract.properties || []).length;
+    $("claims").hidden = !(contract.claims || []).length;
     show(state);
   };
   wire();

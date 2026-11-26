@@ -30,9 +30,7 @@
    "label": "Counter",
    "tag": "module",
    "level": "bakery",
-   "info": {
-    "purpose": "takes requests"
-   }
+   "purpose": "takes requests"
   },
   {
    "id": "back-room",
@@ -399,11 +397,11 @@
    ]
   }
  ],
- "properties": [
+ "claims": [
   {
    "id": "every-loaf-asked",
    "title": "every-loaf-asked",
-   "kind": "invariant",
+   "kind": "guarantee",
    "statement": "Every loaf in {bread-batch} answers one line of {order-book}.",
    "on": [
     "bread-batch",

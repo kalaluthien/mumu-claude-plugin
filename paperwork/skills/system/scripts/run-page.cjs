@@ -68,8 +68,8 @@
 //            printed as `stop word: PASS`; a query picked in the regular expression mode comes back from the recent
 //            queries after a reload with the mode on, and one kept as bare text with it off, printed as `regex recall: PASS`; a
 //            text picked from plain, then from regex, leaves one recent row that comes back in regex mode, printed as `recent set: PASS`.
-//   titles   on each example's page the Properties list shows each property by its title, and a click on the first
-//            property's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
+//   titles   on each example's page the Claims list shows each claim by its title, and a click on the first
+//            claim's hit opens a card headed by that title; on a copy of the self example whose reader's purpose
 //            names `{checker}` mid-sentence, the reader's card shows the label `Checker` there as written.
 //   results  on each example's page a word only one node's purpose holds lists that node with an excerpt of its
 //            purpose on its own line, the word marked and tinted, and its id's words show the name or the id marked; a word start, initials
@@ -113,17 +113,17 @@
 //            term's meaning; a click on a card's sources mark shows each cited source's path and what it says; on a copy of the
 //            first example a term is marked capitalised and plural, its meaning draws its formula and code, and a step's
 //            note marks no term, chip or guess, as no crumb or scenario title, a slug, can.
-//   badges   on a copy of the first example, a text holding `(guess)` and a property whose status is unknown or broken each show
-//            a badge naming that state, and a property that holds shows none.
-//   counts   on a copy of the first example whose first level's first node holds three properties that hold, one with no
-//            status, one unknown and three gaps, unknown, broken and holding, and each edge of that level but the last one
-//            broken property, at each size in light and dark, each node and edge of the level shows one badge per kind its properties hold, `✓`, `?`, `✗` or `!` and their count, a tucked
+//   badges   on a copy of the first example, a text holding `(guess)` and a claim whose status is unknown or fails each show
+//            a badge naming that state, and a claim that holds shows none.
+//   counts   on a copy of the first example whose first level's first node holds five claims that hold, one with no
+//            status and one with a fault, one unknown, one conflicting and one that fails, and each edge of that level but the last one
+//            a claim that fails, at each size in light and dark, each node and edge of the level shows one badge per status its claims hold, `✓`, `?`, `!` or `✗` and their count, a tucked
 //            label's badges still shown, and a record with none shows none; a node's badges sit inside it, clear of its name,
 //            tag and open button, and an edge's within 16 px of its label; each fill is green, grey, orange or red by its oklch
 //            hue and chroma, each pair 0.08 or more apart in oklab, its text at 4.5:1 or more, printed as `count badges: PASS`
 //            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of each one whose label
-//            is tucked, and a click on it, shows its record's card listing each property it counts as a chip under the row of its
-//            kind, each once, and a click on each chip shows that property's card headed by its title on the level of the first
+//            is tucked, and a click on it, shows its record's card listing each claim it counts as a chip under the row of its
+//            status, each once, and a click on each chip shows that claim's card headed by its title on the level of the first
 //            record it names, still so once the pointer has rested where it clicked, and so when a pointer resting on the chip
 //            since its page loaded clicks it unmoved and shakes 1 px, and while the pointer has moved 2 px or less from there no
 //            record it comes over raises a card, though one moved 2.5 px does; an area's card lists no such row; and with the
@@ -166,7 +166,7 @@ const { spawnSync } = require("child_process");
 
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
-const { check, same, python } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
+const { check, same, python, tags: catalogue } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
 const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
@@ -180,7 +180,7 @@ if (asked.some((word) => !STEPS.includes(word))) {
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "system-page-"));
 const examples = fs.readdirSync(path.join(ROOT, "examples")).filter((name) => fs.existsSync(path.join(ROOT, "examples", name, "contract.json"))).sort()
   .map((name) => ({ name, source: path.join(ROOT, "examples", name, "contract.json"), kept: path.join(ROOT, "examples", name, "page.html"), built: path.join(scratch, name + ".html") }));
-const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
+const tags = catalogue(path.join(ROOT, "assets", "tags.json"));
 const UNFOLD = "import json, pathlib, sys; sys.path.insert(0, sys.argv[1]); from contract_copies import copies; print(json.dumps(dict(copies(pathlib.Path(sys.argv[2])))))";
 
 let launches = 0;
@@ -572,8 +572,8 @@ async function shapes(browser) {
 }
 
 // ---- overlay ----
-function rowsOf(record, kind, properties = []) { // a record's card rows: its sentence, purpose, items, opens and evidence, and one row per kind of property its badges count
-  const counted = new Set(properties.filter((one) => /^(node|edge)$/.test(kind) && (one.on || []).includes(record.id)).map((one) => (one.kind === "gap" ? "gap" : one.status || "holds")));
+function rowsOf(record, kind, claims = []) { // a record's card rows: its sentence, purpose, items, opens and evidence, and one row per kind of claim its badges count
+  const counted = new Set(claims.filter((one) => /^(node|edge)$/.test(kind) && (one.on || []).includes(record.id)).map((one) => one.status || "holds"));
   return (kind === "edge" ? 1 : 0) + (record.purpose ? 1 : 0) + Object.keys(record.info || {}).length + (record.opens ? 1 : 0) + (record.evidence ? 1 : 0) + counted.size;
 }
 const formOf = (kind, record, name) => { const items = ((tags[kind] || {})[record.tag] || { items: [] }).items.concat((tags.common || {})[kind] || []); const item = items.find((one) => one.name === name); return item ? item.form : null; };
@@ -584,7 +584,7 @@ function targets(example) { // a node, an edge and an area, then one record per 
     const first = !picked.some((one) => one.kind === kind);
     if (!first && !held.length) continue;
     held.forEach((form) => forms.add(form));
-    picked.push({ kind, id: record.id, level: level.id, rows: rowsOf(record, kind, example.contract.properties), forms: Object.keys(record.info || {}).map((name) => formOf(kind, record, name)).filter(Boolean) });
+    picked.push({ kind, id: record.id, level: level.id, rows: rowsOf(record, kind, example.contract.claims), forms: Object.keys(record.info || {}).map((name) => formOf(kind, record, name)).filter(Boolean) });
   }
   return picked;
 }
@@ -1100,7 +1100,7 @@ function changed(example) { // a copy of one example's contract that holds the p
   planted.scenarios[0].steps.push({ at: PLANTED });
   const walked = new Set(planted.scenarios.flatMap((scenario) => scenario.steps.map((step) => step.at)));
   const levelOf = Object.fromEntries(planted.nodes.map((node) => [node.id, node.level]));
-  const fixed = new Set((planted.properties || []).flatMap((item) => (item.paths || []).flat()));
+  const fixed = new Set((planted.claims || []).flatMap((item) => (item.paths || []).flat()));
   const renamed = planted.nodes.find((node) => node.id !== PLANTED && (walked.has(node.id) || planted.edges.some((edge) => walked.has(edge.id) && edge.to === node.id)));
   check(renamed, `${example.name}: no scenario walks a node`);
   const source = path.join(scratch, `${example.name}-changed.json`);
@@ -1209,11 +1209,11 @@ async function recentSet(browser) { // one text run in both modes is one recent 
 async function titles(browser) {
   for (const example of examples) {
     const page = await open(browser, example, SIZES[1], { still: true });
-    await page.click("#properties");
+    await page.click("#claims");
     await page.clock.fastForward(30);
     const listed = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#hits [data-hit]")].map((row) => [row.dataset.hit, row.querySelector("b").textContent])));
-    for (const property of example.contract.properties || []) check(listed[property.id] === property.title, `${example.name}: the Properties list shows ${property.id} as ${JSON.stringify(listed[property.id])}, not by its title ${property.title}`);
-    const first = example.contract.properties[0];
+    for (const claim of example.contract.claims || []) check(listed[claim.id] === claim.title, `${example.name}: the Claims list shows ${claim.id} as ${JSON.stringify(listed[claim.id])}, not by its title ${claim.title}`);
+    const first = example.contract.claims[0];
     await page.click(`#hits [data-hit="${first.id}"]`);
     await rest(page);
     const heading = await page.evaluate(() => (document.querySelector("#card h2") || {}).textContent);
@@ -1455,10 +1455,10 @@ async function task(page, example, question, typed) {
   for (const level of contract.levels) for (const node of level.nodes) if (node.opens) openers[node.opens] = node.id;
   const depth = (id) => { let level = example.levelOf[id], count = 0; while (openers[level]) { level = example.levelOf[openers[level]]; count += 1; } return count; };
   const nodes = question.answers.filter((id) => names[id] && contract.levels.some((level) => level.nodes.some((node) => node.id === id))).sort((a, b) => depth(a) - depth(b));
-  const listed = question.answers.find((id) => (contract.scenarios || []).concat(contract.properties || []).some((record) => record.id === id));
-  check(nodes.length || listed, `${example.name} ${question.id}: no answer is a node, a scenario or a property to walk to`);
+  const listed = question.answers.find((id) => (contract.scenarios || []).concat(contract.claims || []).some((record) => record.id === id));
+  check(nodes.length || listed, `${example.name} ${question.id}: no answer is a node, a scenario or a claim to walk to`);
   if (!nodes.length || (listed && depth(nodes[0]) > 0)) {
-    await page.click((contract.scenarios || []).some((record) => record.id === listed) ? "#scenarios" : "#properties");
+    await page.click((contract.scenarios || []).some((record) => record.id === listed) ? "#scenarios" : "#claims");
     await page.click(`#hits [data-hit="${listed}"]`);
     await rest(page);
     check(await shows(listed), `${example.name} ${question.id}: the listed ${listed} is not the view shown`);
@@ -1758,14 +1758,14 @@ async function glosses(browser) {
 let marked = null;
 const OUTSIDE = [[String.raw`\foo{x}`, "is outside the subset"], [String.raw`\frac{a`, "is never closed"], ["a}", "closes nothing"], ["x_1_2", "a second `_` on one base"],
   [String.raw`\frac{a}`, "lacks what it takes"], [String.raw`\text x`, "takes its words in braces"]]; // a formula outside the subset, and the words check-contract.py refuses it with
-function planted() { // a copy of the first example whose cards hold a guess, a property of each status, quotes, a fence and formulas
+function planted() { // a copy of the first example whose cards hold a guess, a claim of each status, quotes, a fence and formulas
   if (marked) return marked;
   const flat = JSON.parse(fs.readFileSync(examples[0].source, "utf8")), first = flat.levels[0].id, nodes = flat.nodes.filter((node) => node.level === first);
   check(nodes.length >= 4, `${examples[0].name}'s first level holds under four nodes`);
-  const holds = (flat.properties || []).find((one) => (one.status || "holds") === "holds"), open = (flat.properties || []).filter((one) => one.status !== "holds" && one.status);
-  check(holds && open.length, `${examples[0].name} holds no property that holds or none that is open`);
-  const broken = { ...open[0], id: "planted-broken", status: "broken" };
-  flat.properties.push(broken);
+  const holds = (flat.claims || []).find((one) => (one.status || "holds") === "holds"), open = (flat.claims || []).filter((one) => one.status !== "holds" && one.status);
+  check(holds && open.length, `${examples[0].name} holds no claim that holds or none that is open`);
+  const fails = { ...open[0], id: "planted-fails", status: "fails" };
+  flat.claims.push(fails);
   const term = flat.terms[0], story = flat.scenarios[0];
   story.steps[0].note = `a ${term.term} of {${nodes[0].id}} (guess)`;
   term.meaning += String.raw` It weighs $x^2$ and runs \`make-page.py\`.`;
@@ -1780,40 +1780,40 @@ function planted() { // a copy of the first example whose cards hold a guess, a 
   refused.nodes.find((node) => node.id === nodes[3].id).label = String.raw`Rank $x$ hits`;
   refused.nodes.find((node) => node.id === nodes[0].id).purpose = "Run `make-page.py once a writer marks a step.";
   fs.writeFileSync(wrong, JSON.stringify(refused));
-  marked = { example: make({ name: "marked", source, built: path.join(scratch, "marked.html") }), wrong, term: term.term, story: story.id, nodes: nodes.slice(0, 4).map((node) => node.id), holds: holds.id, unknown: open.find((one) => one.status === "unknown").id, broken: broken.id, level: first };
+  marked = { example: make({ name: "marked", source, built: path.join(scratch, "marked.html") }), wrong, term: term.term, story: story.id, nodes: nodes.slice(0, 4).map((node) => node.id), holds: holds.id, unknown: open.find((one) => one.status === "unknown").id, fails: fails.id, level: first };
   return marked;
 }
-const homeOf = (copy, property) => (property.on || []).map((id) => copy.example.levelOf[id]).find(Boolean) || copy.level;
+const homeOf = (copy, claim) => (claim.on || []).map((id) => copy.example.levelOf[id]).find(Boolean) || copy.level;
 async function badges(browser) {
-  const copy = planted(), properties = Object.fromEntries(copy.example.contract.properties.map((one) => [one.id, one]));
+  const copy = planted(), claims = Object.fromEntries(copy.example.contract.claims.map((one) => [one.id, one]));
   const badged = async (id, level) => { const page = await kept(browser, copy.example, id, level); const seen = await page.evaluate(() => [...document.querySelectorAll("#card .badge")].map((one) => (getComputedStyle(one).backgroundColor === "rgba(0, 0, 0, 0)" ? "unfilled " : "") + one.textContent.trim())); quiet(page, `marked ${id}`); await page.context().close(); return seen; };
   const guess = await badged(copy.nodes[0], copy.level);
   check(guess.includes("guess"), `a text holding (guess) shows the badges [${guess}], none naming the guess`);
-  for (const state of ["unknown", "broken"]) {
-    const seen = await badged(copy[state], homeOf(copy, properties[copy[state]]));
-    check(seen.includes(state), `a property whose status is ${state} shows the badges [${seen}]`);
+  for (const state of ["unknown", "fails"]) {
+    const seen = await badged(copy[state], homeOf(copy, claims[copy[state]]));
+    check(seen.includes(state), `a claim whose status is ${state} shows the badges [${seen}]`);
   }
-  const settled = await badged(copy.holds, homeOf(copy, properties[copy.holds]));
-  check(!settled.length, `a property that holds shows the badges [${settled}]`);
+  const settled = await badged(copy.holds, homeOf(copy, claims[copy.holds]));
+  check(!settled.length, `a claim that holds shows the badges [${settled}]`);
 }
-const COUNTED = { holds: ["✓", 150, 30, 0.08], unknown: ["?", null, 0, 0], broken: ["✗", 65, 30, 0.08], gap: ["!", 27, 25, 0.1] }; // each kind's symbol, the hue its fill keeps within a turn of, and the least chroma; unknown's fill is grey
-function tallied() { // a copy of the first example whose first level's first node holds four properties that hold, one named on it twice, one with no status and one first on another level, one unknown and three gaps of each status, each of its edges but the last one broken property, and its first area one property
+const COUNTED = { holds: ["✓", 150, 30, 0.08], unknown: ["?", null, 0, 0], conflicting: ["!", 65, 30, 0.08], fails: ["✗", 27, 25, 0.1] }; // each status's symbol, the hue its fill keeps within a turn of, and the least chroma; unknown's fill is grey
+function tallied() { // a copy of the first example whose first level's first node holds five claims that hold, one named on it twice, one with no status, one first on another level and one with a fault, one unknown, one conflicting and one that fails, each of its edges but the last one claim that fails, and its first area one claim
   const flat = JSON.parse(fs.readFileSync(examples[0].source, "utf8")), first = flat.levels[0].id, nodes = flat.nodes.filter((node) => node.level === first), away = flat.nodes.find((node) => node.level !== first), area = (flat.areas || []).find((one) => one.level === first), edges = flat.edges.filter((edge) => nodes.some((node) => node.id === edge.from));
   check(nodes.length >= 2 && edges.length >= 2 && away && area, `${examples[0].name}'s first level holds under two nodes, two edges or one area, or no node lies on another level`);
-  const planted = (id, kind, status, on) => ({ id, title: id, kind, ...(status ? { status } : {}), statement: "Each planted record keeps its count.", on, ...(kind === "gap" ? { fault: "missing" } : {}) });
-  flat.properties = (flat.properties || []).concat([planted("planted-holds-one", "invariant", "holds", [nodes[0].id]), planted("planted-holds-two", "convention", "holds", [nodes[0].id, nodes[0].id]), planted("planted-away", "invariant", "holds", [away.id, nodes[0].id]), planted("planted-area", "invariant", "holds", [area.id]), planted("planted-holds-bare", "invariant", null, [nodes[0].id]),
-    planted("planted-unknown", "invariant", "unknown", [nodes[0].id]), planted("planted-gap", "gap", "unknown", [nodes[0].id]), planted("planted-gap-broken", "gap", "broken", [nodes[0].id]), planted("planted-gap-holds", "gap", "holds", [nodes[0].id]), planted("planted-broken", "constraint", "broken", edges.slice(0, -1).map((edge) => edge.id))]);
+  const planted = (id, status, on, fault = status && status !== "holds") => ({ id, title: id, kind: "guarantee", ...(status ? { status } : {}), statement: "Each planted record keeps its count.", on, ...(fault ? { fault: "missing" } : {}) });
+  flat.claims = (flat.claims || []).concat([planted("planted-holds-one", "holds", [nodes[0].id]), planted("planted-holds-two", "holds", [nodes[0].id, nodes[0].id]), planted("planted-away", "holds", [away.id, nodes[0].id]), planted("planted-area", "holds", [area.id]), planted("planted-holds-bare", null, [nodes[0].id]),
+    planted("planted-holds-fault", "holds", [nodes[0].id], true), planted("planted-unknown", "unknown", [nodes[0].id]), planted("planted-conflicting", "conflicting", [nodes[0].id]), planted("planted-fails-one", "fails", [nodes[0].id]), planted("planted-fails", "fails", edges.slice(0, -1).map((edge) => edge.id))]);
   const source = path.join(scratch, "tallied.json");
   fs.writeFileSync(source, JSON.stringify(flat));
   const example = make({ name: "tallied", source, built: path.join(scratch, "tallied.html") }), want = {};
-  for (const property of example.contract.properties) for (const id of new Set(property.on || [])) {
-    const kind = property.id.startsWith("planted-") ? { "planted-holds-one": "holds", "planted-holds-two": "holds", "planted-away": "holds", "planted-area": "holds", "planted-holds-bare": "holds", "planted-unknown": "unknown", "planted-broken": "broken" }[property.id] || "gap" : property.kind === "gap" ? "gap" : property.status || "holds"; // the planted ones by what they are meant to count as, never by the page's own rule
-    ((want[id] = want[id] || {})[kind] = want[id][kind] || []).push(property.id);
+  for (const claim of example.contract.claims) for (const id of new Set(claim.on || [])) {
+    const kind = claim.id.startsWith("planted-") ? { "planted-holds-one": "holds", "planted-holds-two": "holds", "planted-away": "holds", "planted-area": "holds", "planted-holds-bare": "holds", "planted-holds-fault": "holds", "planted-unknown": "unknown", "planted-conflicting": "conflicting" }[claim.id] || "fails" : claim.status || "holds"; // the planted ones by what they are meant to count as, never by the page's own rule
+    ((want[id] = want[id] || {})[kind] = want[id][kind] || []).push(claim.id);
   }
   const placed = Object.fromEntries([...flat.nodes, ...(flat.areas || [])].map((one) => [one.id, one.level]).concat(flat.edges.map((edge) => [edge.id, flat.nodes.find((node) => node.id === edge.from).level])));
-  const homes = Object.fromEntries(flat.properties.map((one) => [one.id, (one.on || []).map((id) => placed[id]).find(Boolean) || first]));
-  check(homes["planted-away"] === away.level && away.level !== first, "the planted property first on another level is seen on the first level");
-  return { example, level: first, node: nodes[0].id, area: area.id, homes, want, titles: Object.fromEntries(example.contract.properties.map((one) => [one.id, one.title])) };
+  const homes = Object.fromEntries(flat.claims.map((one) => [one.id, (one.on || []).map((id) => placed[id]).find(Boolean) || first]));
+  check(homes["planted-away"] === away.level && away.level !== first, "the planted claim first on another level is seen on the first level");
+  return { example, level: first, node: nodes[0].id, area: area.id, homes, want, titles: Object.fromEntries(example.contract.claims.map((one) => [one.id, one.title])) };
 }
 const badgesOf = (page) => page.evaluate(() => { // each node's and edge's badges as drawn: text, fill, ink, whether a reader sees them, and what they cover or stray from
   const box = (rect) => ({ left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }), meets = (one, other) => one.left < other.right - 0.5 && other.left < one.right - 0.5 && one.top < other.bottom - 0.5 && other.top < one.bottom - 0.5;
@@ -1835,7 +1835,7 @@ const badgesOf = (page) => page.evaluate(() => { // each node's and edge's badge
   return out;
 });
 const lit = (rgb) => { const [r, g, b] = rgb.map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
-async function countBadges(browser, copy) { // each node's and edge's badges say what the properties on it hold, in their own colours, a tucked label's included
+async function countBadges(browser, copy) { // each node's and edge's badges say what the claims on it hold, in their own colours, a tucked label's included
   let tucked = 0, bare = { node: 0, edge: 0 };
   const level = copy.example.contract.levels.find((one) => one.id === copy.level);
   for (const scheme of ["light", "dark"]) for (const size of SIZES) {
@@ -1861,10 +1861,10 @@ async function countBadges(browser, copy) { // each node's and edge's badges say
     quiet(page, where);
     await page.context().close();
   }
-  check(bare.node && bare.edge, `the copy's first level shows no node or no edge without properties, so a bare record's lack of badges is untested`);
+  check(bare.node && bare.edge, `the copy's first level shows no node or no edge without claims, so a bare record's lack of badges is untested`);
   check(tucked, `no edge whose label is tucked held a badge at any size, so a tucked label's badges are untested`);
 }
-async function countLists(browser, copy) { // the pointer on each badge, and a click on it, shows its record's card listing what it counts, each chip opening its property
+async function countLists(browser, copy) { // the pointer on each badge, and a click on it, shows its record's card listing what it counts, each chip opening its claim
   const listed = (page) => page.evaluate(() => {
     const card = document.getElementById("card"), rows = {};
     for (let leaf = 0; leaf < 12; leaf++) {
@@ -1876,7 +1876,7 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
     }
     return rows;
   });
-  const names = { holds: "holds", unknown: "unknown", broken: "broken", gap: "gaps" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
+  const names = { holds: "holds", unknown: "unknown", conflicting: "conflicting", fails: "fails" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
   let jittered = false, stilled = false;
   const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
   await shown.context().close();
@@ -1900,31 +1900,31 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       await page.keyboard.press("Escape");
       await rest(page);
     }
-    for (const [, list] of wanted) for (const property of list) {
+    for (const [, list] of wanted) for (const claim of list) {
       await page.goto("file://" + copy.example.built + `#level=${copy.level}&at=${id}`);
       await settled(page);
-      const chip = page.locator(`#card .ref[data-ref="${property}"]`);
+      const chip = page.locator(`#card .ref[data-ref="${claim}"]`);
       for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.locator("#card footer .turn").click();
-      check(await chip.count(), `the kept card of ${id} shows no chip for ${property}`);
+      check(await chip.count(), `the kept card of ${id} shows no chip for ${claim}`);
       const spot = await chip.first().boundingBox(), clicked = [spot.x + spot.width / 2, spot.y + spot.height / 2];
       await page.mouse.click(...clicked);
       await settled(page);
       await page.waitForTimeout(200); // the pointer that clicked rests over the diagram the card left, long enough for a hover to raise a card
       await page.clock.fastForward(900);
       await settled(page);
-      const [head, at] = await page.evaluate((property) => { const card = document.getElementById("card"); return [card.classList.contains("show") && card.dataset.for === property ? card.querySelector("h2").textContent : null, new URLSearchParams(location.hash.slice(1)).get("level")]; }, property);
-      check(head === copy.titles[property], `a click on the chip for ${property} in the card of ${id} shows the card ${head}, not one headed ${copy.titles[property]}`);
-      const there = copy.homes[property]; // a property is seen on the level of the first record it names
-      check(at === there, `a click on the chip for ${property} in the card of ${id} shows the level ${at}, not ${there}`);
-      if (!jittered) jittered = await jitter(page, property, clicked);
+      const [head, at] = await page.evaluate((claim) => { const card = document.getElementById("card"); return [card.classList.contains("show") && card.dataset.for === claim ? card.querySelector("h2").textContent : null, new URLSearchParams(location.hash.slice(1)).get("level")]; }, claim);
+      check(head === copy.titles[claim], `a click on the chip for ${claim} in the card of ${id} shows the card ${head}, not one headed ${copy.titles[claim]}`);
+      const there = copy.homes[claim]; // a claim is seen on the level of the first record it names
+      check(at === there, `a click on the chip for ${claim} in the card of ${id} shows the level ${at}, not ${there}`);
+      if (!jittered) jittered = await jitter(page, claim, clicked);
       if (!stilled && await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return !!(one && one.closest("#stage [data-id], #stage [data-edge]")); }, clicked))
-        stilled = await clickedResting(page, `#level=${copy.level}&at=${id}`, copy.example, property, clicked); // a record the card uncovers, which a hover would raise
+        stilled = await clickedResting(page, `#level=${copy.level}&at=${id}`, copy.example, claim, clicked); // a record the card uncovers, which a hover would raise
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
   }
   check(stilled, "no chip has a record under it once its card leaves, so a click by a resting pointer is untested");
-  const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.area}` }), rows = await listed(page); // an area holds a property but shows no badge and lists no count row
+  const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.area}` }), rows = await listed(page); // an area holds a claim but shows no badge and lists no count row
   check(!(await page.locator(`#stage [data-id="${copy.area}"] .count`).count()), `the area ${copy.area} shows a badge`);
   check(!Object.values(names).some((name) => name in rows), `the card of the area ${copy.area} lists a row of ${Object.values(names).filter((name) => name in rows)}`);
   await page.context().close();
@@ -1939,27 +1939,27 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
   check(faded.some((one) => one.dim), `with the card of ${copy.node} kept no record holding badges is dimmed, so a dimmed record's badges are untested`);
   for (const one of faded) check(one.own ? one.shown === 1 : !one.dim || one.shown <= 0.75, `with the card of ${copy.node} kept the badges of ${one.dim ? "the dimmed " : ""}${one.id} show at opacity ${one.shown.toFixed(2)}`);
 }
-async function clickedResting(page, hash, example, property, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
+async function clickedResting(page, hash, example, claim, [x, y]) { // a hand resting on the chip since the page loaded clicks it unmoved, so no pointermove says where it is, then shakes, yet what the card uncovered raises no card
   await page.mouse.move(x, y);
   await page.goto("about:blank");
   await page.goto("file://" + example.built + hash);
   await settled(page);
-  const chip = page.locator(`#card .ref[data-ref="${property}"]`);
+  const chip = page.locator(`#card .ref[data-ref="${claim}"]`);
   for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.evaluate(() => document.querySelector("#card footer .turn").click()); // a click by script, since the pointer must not move
   const spot = await chip.first().boundingBox();
-  check(spot && Math.abs(spot.x + spot.width / 2 - x) < 1 && Math.abs(spot.y + spot.height / 2 - y) < 1, `the chip for ${property} stands elsewhere once its page loads again`);
+  check(spot && Math.abs(spot.x + spot.width / 2 - x) < 1 && Math.abs(spot.y + spot.height / 2 - y) < 1, `the chip for ${claim} stands elsewhere once its page loads again`);
   await page.mouse.down();
   await page.mouse.up();
   await settled(page);
   await page.mouse.move(Math.trunc(x) + 1, Math.trunc(y)); // a pixel from where the click landed, the page's click spot being whole pixels
   await page.clock.fastForward(900);
   await settled(page);
-  check(await page.evaluate(CARDED, property), `a pointer resting on the chip for ${property} since its page loaded, clicking it and shaking 1 px, shows no card for ${property}`);
+  check(await page.evaluate(CARDED, claim), `a pointer resting on the chip for ${claim} since its page loaded, clicking it and shaking 1 px, shows no card for ${claim}`);
   return true;
 }
-async function jitter(page, property, [x, y]) { // a hand still on the chip it clicked shakes by a pixel or two and raises no card from what it comes over, yet a real move does
+async function jitter(page, claim, [x, y]) { // a hand still on the chip it clicked shakes by a pixel or two and raises no card from what it comes over, yet a real move does
   const node = await page.evaluate(() => { const one = document.querySelector("#stage .node[data-id]"); return one && one.dataset.id; });
-  check(node, `the level of ${property} shows no node to come over`);
+  check(node, `the level of ${claim} shows no node to come over`);
   const over = (dx) => page.evaluate(([x, y, dx, node]) => { // the pointer moved DX px from where it clicked, then coming over NODE, so only the distance tells
     dispatchEvent(new PointerEvent("pointermove", { clientX: x + dx, clientY: y, bubbles: true }));
     document.querySelector(`#stage [data-id="${node}"]`).dispatchEvent(new PointerEvent("pointerover", { clientX: x + dx, clientY: y, bubbles: true }));
@@ -1967,11 +1967,11 @@ async function jitter(page, property, [x, y]) { // a hand still on the chip it c
   await over(2);
   await page.clock.fastForward(900);
   await settled(page);
-  check(await page.evaluate(CARDED, property), `a pointer moved 2 px from the chip for ${property} it clicked raised a card from what it came over`);
+  check(await page.evaluate(CARDED, claim), `a pointer moved 2 px from the chip for ${claim} it clicked raised a card from what it came over`);
   await over(2.5);
   await page.clock.fastForward(900);
   await settled(page);
-  check(await page.evaluate(CARDED, node), `a pointer moved 2.5 px from the chip for ${property} it clicked raised no card for the node ${node} it came over`);
+  check(await page.evaluate(CARDED, node), `a pointer moved 2.5 px from the chip for ${claim} it clicked raised no card for the node ${node} it came over`);
   return true;
 }
 async function counts(browser) {

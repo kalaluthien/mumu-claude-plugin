@@ -52,7 +52,7 @@
   {
    "term": "gap",
    "aliases": ["빈틈", "누락"],
-   "meaning": "what {contract} lacks, forbids wrongly, says twice or says with two meanings",
+   "meaning": "a claim whose fault says what {contract} lacks, forbids wrongly, says twice or says with two meanings",
    "coined": false
   }
  ],
@@ -96,9 +96,7 @@
    "label": "Kept files",
    "tag": "module",
    "level": "skill",
-   "info": {
-    "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."
-   }
+   "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."
   },
   {
    "id": "life",
@@ -116,18 +114,14 @@
    "label": "Parts of one level",
    "tag": "module",
    "level": "parts",
-   "info": {
-    "purpose": "Draw one level as a graph with four parts."
-   }
+   "purpose": "Draw one level as a graph with four parts."
   },
   {
    "id": "told",
    "label": "Parts across levels",
    "tag": "module",
    "level": "parts",
-   "info": {
-    "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."
-   }
+   "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."
   }
  ],
  "nodes": [
@@ -237,7 +231,7 @@
      "name nodes as things and edges as sentences",
      "draw each lifecycle as a region of states",
      "fill each tag's items",
-     "write scenarios and properties",
+     "write scenarios and claims",
      "run {checker}, read aloud, answer each open question"
     ],
     "failure": {
@@ -367,7 +361,7 @@
         "name": "scenarios"
        },
        {
-        "name": "properties"
+        "name": "claims"
        }
       ]
      }
@@ -431,7 +425,8 @@
     ]
    },
    "evidence": [
-    "contract-playbook"
+    "contract-playbook",
+    "checker-code"
    ]
   },
   {
@@ -538,14 +533,14 @@
    ]
   },
   {
-   "id": "property",
-   "label": "Property",
+   "id": "claim",
+   "label": "Claim",
    "tag": "artifact",
    "level": "parts",
    "area": "told",
-   "purpose": "State what must hold of the nodes and edges, what is assumed and what is not known.",
+   "purpose": "State what {subject} keeps true and what it takes the world to be, each with whether it holds and, when it does not, why.",
    "info": {
-    "format": "id, kind, strength, status, fault, statement, on, paths"
+    "format": "id, title, kind, strength, status, fault, source, statement, on, paths"
    },
    "evidence": [
     "contract-playbook"
@@ -799,7 +794,7 @@
   },
   {
    "id": "constrains",
-   "from": "property",
+   "from": "claim",
    "to": "node",
    "label": "constrains",
    "many": true,
@@ -855,13 +850,13 @@
    ]
   }
  ],
- "properties": [
+ "claims": [
   {
    "id": "one-file",
    "title": "one-file",
-   "kind": "invariant",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "Every page of {subject} is made from {contract} and nothing else.",
+   "strength": "must",
    "on": [
     "contract"
    ],
@@ -872,7 +867,7 @@
   {
    "id": "same-level",
    "title": "same-level",
-   "kind": "fact",
+   "kind": "guarantee",
    "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.",
    "on": [
     "node",
@@ -895,9 +890,10 @@
   {
    "id": "ids-once",
    "title": "ids-once",
-   "kind": "convention",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.",
+   "strength": "must",
+   "source": "contract-playbook",
    "on": [
     "node",
     "edge"
@@ -918,9 +914,10 @@
   {
    "id": "standard-library",
    "title": "standard-library",
-   "kind": "constraint",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "{checker} uses the Python standard library only.",
+   "strength": "must",
+   "source": "checker-code",
    "on": [
     "checker"
    ]
@@ -928,10 +925,10 @@
   {
    "id": "sentence-truth",
    "title": "sentence-truth",
-   "kind": "gap",
-   "fault": "unknown",
+   "kind": "guarantee",
+   "statement": "Each sentence `read` prints is true of {subject}.",
    "status": "unknown",
-   "statement": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.",
+   "fault": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.",
    "on": [
     "edge",
     "subject",
@@ -1015,7 +1012,9 @@
   {
    "id": "is-it-true",
    "asks": "How is a sentence of the description known to be true?",
-   "gap": "sentence-truth"
+   "answers": [
+    "sentence-truth"
+   ]
   }
  ]
 }

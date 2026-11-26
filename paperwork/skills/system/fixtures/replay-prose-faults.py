@@ -29,11 +29,12 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
 from contract_levels import flat, nested  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 SYSTEM = HERE.parent
 CHECK = SYSTEM / "scripts" / "check-contract.py"
-TAGS = json.loads((SYSTEM / "assets" / "tags.json").read_text())
+TAGS = catalogue(SYSTEM / "assets" / "tags.json")
 KOREAN = re.compile(r"[ㄱ-ㆎ가-힣]")
 NAMED = re.compile(r"\{([a-z0-9-]+)\}")
 WORDS = {"English": ("passkey", "watchword", ("{}", "{}s")),
@@ -82,8 +83,8 @@ def texts(contract):
         found += own(scenario, here, ("title",), "name") + own(scenario, here, ("purpose",), "description")
         for k, step in enumerate(scenario["steps"]):
             found += own(step, f"{here}steps/{k + 1}/", ("note",), "description")
-    for item in contract.get("properties", []):
-        found += own(item, f"properties/{item['id']}/", ("statement", "fault"), "description")
+    for item in contract.get("claims", []):
+        found += own(item, f"claims/{item['id']}/", ("statement", "fault"), "description")
     for question in contract.get("questions", []):
         found += own(question, f"questions/{question['id']}/", ("asks",), "description")
     return found

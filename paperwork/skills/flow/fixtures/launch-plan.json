@@ -7,7 +7,7 @@
   "terms": [
     {"term": "code freeze", "meaning": "the point after which only fixes of review findings may land before the release", "avoid": ["lockdown"]}
   ],
-  "groups": [
+  "areas": [
     {"id": "team", "label": "Team", "purpose": "The people who write and review the change."},
     {"id": "automation", "label": "Automation", "purpose": "The machines that test and publish."}
   ],
@@ -15,10 +15,10 @@
     {"id": "release", "title": "release", "kind": "plan", "nodes": ["developer", "reviewer", "ci-runner", "package-registry"], "about": "One release from code to a published package."}
   ],
   "nodes": [
-    {"id": "developer", "label": "Developer", "tag": "actor", "group": "team", "purpose": "Writes the change and fixes what the review finds.", "evidence": ["release-guide"], "basis": "documented"},
-    {"id": "reviewer", "label": "Reviewer", "tag": "actor", "group": "team", "purpose": "Reads the change and approves it or sends it back.", "evidence": ["release-guide"], "basis": "documented"},
-    {"id": "ci-runner", "label": "macOS runner", "tag": "job", "group": "automation", "purpose": "Runs the tests and builds the package.", "evidence": ["release-guide"], "basis": "documented"},
-    {"id": "package-registry", "label": "Package registry", "tag": "dataStore", "group": "automation", "purpose": "Holds each published version for users to install.", "evidence": ["release-guide"], "basis": "documented"}
+    {"id": "developer", "label": "Developer", "tag": "actor", "area": "team", "purpose": "Writes the change and fixes what the review finds.", "evidence": ["release-guide"], "basis": "documented"},
+    {"id": "reviewer", "label": "Reviewer", "tag": "actor", "area": "team", "purpose": "Reads the change and approves it or sends it back.", "evidence": ["release-guide"], "basis": "documented"},
+    {"id": "ci-runner", "label": "macOS runner", "tag": "job", "area": "automation", "purpose": "Runs the tests and builds the package.", "evidence": ["release-guide"], "basis": "documented"},
+    {"id": "package-registry", "label": "Package registry", "tag": "dataStore", "area": "automation", "purpose": "Holds each published version for users to install.", "evidence": ["release-guide"], "basis": "documented"}
   ],
   "tasks": [
     {"id": "write-code", "level": "release", "node": "developer", "label": "Write the change", "tag": "work", "purpose": "Makes the code change the release ships.", "info": {"done": "the branch builds locally"}, "evidence": ["release-guide"]},
@@ -43,13 +43,13 @@
   "milestones": [
     {"id": "code-freeze", "level": "release", "label": "Code freeze", "after": ["fix-findings", "run-tests"], "purpose": "After it only the merge and the release steps run."}
   ],
-  "properties": [
-    {"id": "reviewed-first", "title": "reviewed-first", "kind": "invariant", "statement": "No change reaches {merge-change} before {review-code} ends.", "on": ["merge-change"], "evidence": ["release-guide"]},
-    {"id": "notes-owner", "title": "notes-owner", "kind": "gap", "status": "unknown", "fault": "missing", "statement": "No source says who approves the release notes before {publish-package}.", "on": ["write-notes"]}
+  "claims": [
+    {"id": "reviewed-first", "title": "reviewed-first", "kind": "guarantee", "statement": "No change reaches {merge-change} before {review-code} ends.", "on": ["merge-change"], "evidence": ["release-guide"]},
+    {"id": "notes-owner", "title": "notes-owner", "kind": "guarantee", "statement": "The release notes are approved before {publish-package}.", "status": "unknown", "fault": "No source says who approves the release notes before {publish-package}.", "on": ["write-notes"]}
   ],
   "questions": [
     {"id": "blocks-what", "asks": "What must end before the version is published?", "answers": ["hands-package", "waits-notes", "code-freeze"]},
     {"id": "who-owns", "asks": "Who owns each step?", "answers": ["developer", "reviewer", "ci-runner", "package-registry"]},
-    {"id": "notes-approval", "asks": "Who approves the release notes?", "gap": "notes-owner"}
+    {"id": "notes-approval", "asks": "Who approves the release notes?", "answers": ["notes-owner"]}
   ]
 }

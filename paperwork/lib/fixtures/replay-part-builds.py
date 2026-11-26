@@ -46,6 +46,7 @@ sys.path.insert(0, str(LIB))
 from contract_copies import copies  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_parts import FLOW, SYSTEM, TOP, TOP_WORDS, join, load, split  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 from flow_order import before, critical, ranks  # noqa: E402
 from page_parts import earlier  # noqa: E402
 from tex_mathml import drawn  # noqa: E402
@@ -67,7 +68,7 @@ def lines(text):
 def whole(skill, contract):
     """The data blocks a build of CONTRACT draws from the contract, made from it whole."""
     blocks = {"data": nested(contract) if skill == "system" else contract,
-              "tags": json.loads((PLUGIN / "skills" / skill / "assets/tags.json").read_text()), "formulas": drawn(contract)}
+              "tags": catalogue(PLUGIN / "skills" / skill / "assets/tags.json"), "formulas": drawn(contract)}
     if skill == "flow":
         blocks["order"] = {level["id"]: {"ranks": ranks(before(contract, level)),
                                          "critical": critical(before(contract, level), {task["id"] for task in contract.get("tasks", []) if task["level"] == level["id"]})}
@@ -132,7 +133,7 @@ def edit_step(folder):
             write(file, held)
         copy = folder / skill / "plugin"
         shutil.copytree(PLUGIN, copy, ignore=shutil.ignore_patterns("examples", "__pycache__"))
-        for code in (f"skills/{skill}/scripts/check-contract.py", f"skills/{skill}/scripts/make-page.py", f"skills/{skill}/assets/tags.json",
+        for code in (f"skills/{skill}/scripts/check-contract.py", f"skills/{skill}/scripts/make-page.py", f"skills/{skill}/assets/tags.json", "lib/tags.json",
                      *sorted(f"lib/{file.name}" for file in (PLUGIN / "lib").glob("*.py"))):
             with open(copy / code, "a") as marked:
                 marked.write("\n")  # a blank line, which leaves the code's meaning and JSON as they were

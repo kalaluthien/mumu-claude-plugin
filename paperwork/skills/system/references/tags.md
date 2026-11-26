@@ -1,6 +1,6 @@
 # tags
 
-Where each tag of [../assets/tags.json](../assets/tags.json) and its items come from: a survey of how 35 documented systems name their parts and what they record of each.
+Where each tag of [../assets/tags.json](../assets/tags.json) and of the catalogue both skills share, [tags.json](../../../lib/tags.json), and its items come from: a survey of how 35 documented systems name their parts and what they record of each.
 
 ## Domain
 
