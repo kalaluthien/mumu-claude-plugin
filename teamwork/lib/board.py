@@ -2,17 +2,22 @@
 - reads: `tasks(state, project, pulls, comments, since, repo)`, `fresh(number, repo, comments)`, `comments_since(since)` as (task number, comment),
   `changed_since(stamp)`, `blockers(number)` the numbers of the tasks it waits on that are not closed as completed, `scoped(project)` the folder that scopes a project ('' the repository root),
   `tree(project, nodes)` the open tasks' nodes the task pane draws; each None when a read failed
-- writes: `atomic(change)` runs CHANGE's writes as one, `comment(number, text, fields)`, `file(title, body, labels, scope, depends) -> int` (`scope` the folder), `depend(number, targets)`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
+- writes, each refused by `task_state.Refused`, nothing written, unless `board_writers` lets the session running this process write it, and signed with its name:
+  `atomic(change)` runs CHANGE's writes as one, `comment(number, text, fields)`, `file(title, body, labels, scope, depends) -> int` (`scope` the folder), `depend(number, targets)`, `body(number)` and `edit(number, body)`, `resolve(number, summary, completed)`, `reopen(number)`, `retitle(number, title)`,
   `label(number, name, remove)`; this module's `edit`, `resolve` and `reopen` move the tree as task-grammar.md's States table says
 - links: `parent_of(number)` the task whose body names it as a part, `check_links(number, body, depends)` raises LookupError naming why NUMBER cannot have BODY and wait on DEPENDS
 - `trusted(record)`, whether a record's author may write records; `command(text)`, the board write a shell command runs
 A record has `number`, `title`, `body`, `labels` (names), `state` (`OPEN` or `CLOSED`), `parent` (a number or None), `trusted`,
 `depends` (the numbers of the tasks it waits on) and `comments`, each comment with `body`, `trusted` and `fields`."""
+import functools
 import hashlib
 
 import board_git
+import board_writers
 import task_state
 import task_links
+
+READS = ("tasks", "fresh", "comments_since", "changed_since", "blockers", "scoped", "tree", "body", "parent_of", "check_links", "trusted", "command", "atomic")
 
 
 def body_sha(text):
@@ -21,7 +26,47 @@ def body_sha(text):
 
 
 def __getattr__(name):
+    if name not in READS:
+        raise AttributeError(f"board has no {name}")
     return getattr(board_git, name)
+
+
+@functools.cache
+def writer():
+    return board_writers.writer()
+
+
+def gate(verb, number, fields=None):
+    """Raises task_state.Refused naming each rule VERB on NUMBER breaks, else signs the board's commits with the writer's name."""
+    me = writer()
+    if refusals := board_writers.check(verb, number, fields or {}, me):
+        raise task_state.Refused("nothing posted: " + "; ".join(refusals))
+    board_git.author(me.name)
+
+
+def comment(number, text, fields=None):
+    gate("comment", number, {"text": text, **(fields or {})})
+    return board_git.comment(number, text, fields)
+
+
+def file(title, body, labels, scope=None, depends=()):
+    gate("file", None)
+    return board_git.file(title, body, labels, scope=scope, depends=depends)
+
+
+def depend(number, targets):
+    gate("depend", number)
+    return board_git.depend(number, targets)
+
+
+def retitle(number, title):
+    gate("title", number)
+    return board_git.retitle(number, title)
+
+
+def label(number, name, remove=False):
+    gate("label", number)
+    return board_git.label(number, name, remove)
 
 
 def parts_completed(body):
@@ -30,6 +75,7 @@ def parts_completed(body):
 
 
 def edit(number, text):
+    gate("edit", number)
     return board_git.atomic(lambda: edit_whole(number, text))
 
 
@@ -42,10 +88,11 @@ def edit_whole(number, text):
         reopen_up(number)
     dropped = old and (set(task_links.parts(old["body"])) - set(task_links.parts(text)) or set(task_links.criteria(old["body"])) - set(task_links.criteria(text)))
     if dropped and old["state"] == "OPEN" and task_links.parts(text) and not task_links.criteria(text) and parts_completed(text):
-        resolve(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
+        resolve_whole(number, "REPORTED: every part left closed as completed, once the edit dropped the rest.")
 
 
 def resolve(number, summary, completed=True):
+    gate("resolve", number)
     return board_git.atomic(lambda: resolve_whole(number, summary, completed))
 
 
@@ -61,11 +108,11 @@ def resolve_whole(number, summary, completed=True):
         board_git.comment(number, f"{task_state.ANSWER}: stopping #{number} stops its open parts {' '.join(f'#{part}' for part in stopping)}.")
     board_git.resolve(number, summary, completed)
     for part in stopping:
-        resolve(part, f"REPORTED: stopped with its parent #{number}.", False)
+        resolve_whole(part, f"REPORTED: stopped with its parent #{number}.", False)
     parent = completed and board_git.parent_of(number)
     found = parent and board_git.fresh(parent, comments=False)
     if found and found["state"] == "OPEN" and int(number) in task_links.parts(found["body"]) and not task_links.criteria(found["body"]) and parts_completed(found["body"]):
-        resolve(parent, f"REPORTED: every part closed as completed, the last #{number}.")
+        resolve_whole(parent, f"REPORTED: every part closed as completed, the last #{number}.")
 
 
 def reopen_up(number):
@@ -78,4 +125,5 @@ def reopen_up(number):
 
 
 def reopen(number):
+    gate("reopen", number)
     return board_git.atomic(lambda: reopen_up(number))

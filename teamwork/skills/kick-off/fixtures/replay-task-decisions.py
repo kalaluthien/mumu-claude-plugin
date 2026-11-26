@@ -53,8 +53,8 @@ def body(parts=()):
     return f"## Goal\n\nProbe typed decisions.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{''.join(items)}"
 
 
-def use(*argv):
-    return sandbox.python(USE, *map(str, argv))
+def use(*argv, **options):
+    return sandbox.python(USE, *map(str, argv), **options)
 
 
 def write(text):
@@ -69,9 +69,10 @@ def file(title, parts=(), depends=()):
 
 
 def decide(number, decision, by="probe-manager", door="two-way", supersedes="", answers="", quote=None):
-    """Posts a decision by `use-board.py decide`; its url, or the finished call when it exited non-zero."""
-    options = ["--by", by, *(["--one-way"] if door == "one-way" else []), *(["--supersedes", supersedes] if supersedes else []), *(["--answers", answers] if answers else [])]
-    done = use("decide", number, "--decision", decision, *(["--text", write(f"> {quote}\n")] if quote else []), *options)
+    """Posts a decision by `use-board.py decide`, run as BY or, for `owner`, as a manager in whose session the owner typed QUOTE; its url, or the finished call when it exited non-zero."""
+    session, said = sandbox.decider(by, quote or "")
+    options = [*(said if quote or by != "owner" else said[:2]), *(["--one-way"] if door == "one-way" else []), *(["--supersedes", supersedes] if supersedes else []), *(["--answers", answers] if answers else [])]
+    done = use("decide", number, "--decision", decision, *options, **session)
     return done.stdout.strip() if done.returncode == 0 else done
 
 
@@ -150,7 +151,7 @@ def authority_cases():
     task = file("Probe an owner's task")
     owner = decide(task, "no external service", by="owner", door="one-way", quote="no external service")
     refused("authority-refuses", task, lambda: decide(task, "an external service is fine", supersedes=owner), owner, "owner")
-    refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "quotes no words")
+    refused("authority-unquoted", task, lambda: decide(task, "an external service is fine", by="owner", supersedes=owner), "--owner-said <file>")
     refused("authority-comment", task, lambda: use("comment", task, "--reported", "an external service is fine", "--text", write("DECIDED: an external service is fine\n")), "--decision")
     again = decide(task, "only the sandbox service", by="owner", door="one-way", supersedes=owner, quote="the sandbox is fine")
     cases.step("authority-owner", isinstance(again, str) and bound(task) == [again], index(task))

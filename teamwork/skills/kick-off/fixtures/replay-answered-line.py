@@ -34,7 +34,7 @@ def main(args):
         number = use("w1:p1", "file", "--title", "Answer a held task", "--body", replay_probe.write_text(work, "body.md", "Answer a held task.\n"), "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
         use("w1:p1", "decide", number, "--decision", "c-worker holds this.", "--holders", "c-worker")
         asked = use("w1:p2", "comment", number, "--blocked", "which way")
-        use("w1:p1", "decide", number, "--decision", "take the first way.", "--by", "c-manager", "--answers", asked)
+        use("w1:p1", "decide", number, "--decision", "take the first way.", "--answers", asked)
         ended, saw = heartbeat()
         cases.step("unacted", ended and saw.count(f"answered #{number}") == 1, saw)
         use("w1:p2", "comment", number, "--reported", "took the first way")

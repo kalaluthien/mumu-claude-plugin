@@ -60,8 +60,10 @@ def replay(box, work):
     repository, other, copy = (box.init(work / name) for name in ("spaced repo", "otherboard", "moved copy"))
     (repository / SCOPE).mkdir()
 
-    def use(*argv, cwd=repository):
-        return box.python(USE, *map(str, argv), cwd=cwd)
+    def use(*argv, cwd=repository, pane=None):
+        """use-board.py ARGV run from CWD, a `--by <name>` in it run as that decider's session, since the write gate takes the writer only from its session."""
+        argv, session = as_decider(box, argv)
+        return box.python(USE, *argv, cwd=cwd, pane=pane, **session)
 
     def ref(cwd=repository):
         return box.git("rev-parse", REF, cwd=cwd).strip()
@@ -117,7 +119,8 @@ def replay(box, work):
     right = use("decide", mine, "--decision", "go right.", "--by", "probe-manager", "--supersedes", first).stdout.strip()
     use("decide", mine, "--decision", "ask nobody.", "--by", "probe-manager", "--answers", asked)
     wish = "The probe keeps its output short"
-    owned = use("decide", mine, "--decision", f"{wish}.", "--text", replay_probe.write_text(work, "owner.md", f"> {wish}.\n"), "--by", "owner").stdout.strip()
+    owner = use("decide", mine, "--decision", f"{wish}.", "--text", replay_probe.write_text(work, "owner.md", f"> {wish}.\n"), "--by", "owner")
+    owned = owner.stdout.strip()
     sha = call("list-additions", mine).stdout.split("body sha: ", 1)[-1].split("\n", 1)[0]
     folded = use("edit", mine, "--body", replay_probe.write_text(work, "folded.md", replay_probe.BODY + f"2. [check] **{wish}**: `basename PASS` prints `PASS`; on base `FAIL`.\n"),
                  "--reason", f"folds {owned}", "--base", sha)
@@ -126,10 +129,25 @@ def replay(box, work):
     additions = call("list-additions", mine, cwd=copy)
     step("moved", folded.returncode == 0 and "binding decisions: 3" in read and "open questions: 0" in read
          and "go left" not in read.split("binding decisions")[1].split("open questions")[0] and "owner additions not in the body: 0" in additions.stdout,
-         [folded.stderr, read, additions.stdout, additions.stderr])
+         [owner.stderr, folded.stderr, read, additions.stdout, additions.stderr])
     gaps_case(step, use, mine, right, owned, ref, box, copy)
     parent_case(step, use, call, ref, number, mine, link, board, work, box, repository)
     return cases.finish()
+
+
+def as_decider(box, argv):
+    """(ARGV without its `--by <name>`, the `run` options of that decider's session, the owner's words added as `box.decider` gives them, which replace
+    any `--text`, since the gate reads every `>` line as the owner's); ARGV as it is with no `--by`."""
+    argv = [str(word) for word in argv]
+    if "--by" not in argv:
+        return argv, {}
+    k = argv.index("--by")
+    by, argv = argv[k + 1], argv[:k] + argv[k + 2:]
+    if by == "owner" and "--text" in argv:
+        k = argv.index("--text")
+        argv = argv[:k] + argv[k + 2:]
+    session, said = box.decider(by, argv[argv.index("--decision") + 1] if by == "owner" else "")
+    return argv + said, session
 
 
 def parse_case(step, box, repository, mine):

@@ -15,7 +15,7 @@ import data_folder
 REF = board_refs.REF
 TRIES = 100  # 40 writers racing gc on one task needed at most 34 in the probes
 STALE = 10  # seconds a ref lock may stand before it is taken for a killed writer's, since a live write holds it for milliseconds
-WRITER = {"GIT_AUTHOR_NAME": "teamwork", "GIT_AUTHOR_EMAIL": "teamwork@localhost", "GIT_COMMITTER_NAME": "teamwork", "GIT_COMMITTER_EMAIL": "teamwork@localhost"}
+WRITER = {"GIT_AUTHOR_EMAIL": "teamwork@localhost", "GIT_COMMITTER_NAME": "teamwork", "GIT_COMMITTER_EMAIL": "teamwork@localhost"}
 
 
 class GitFailed(Exception):
@@ -25,6 +25,7 @@ class GitFailed(Exception):
 class Ref(board_records.Store):
     def __init__(self):
         self.common, self.tip, self.files, self.folders, self.times, self.timed, self.places = None, None, {}, {}, {}, None, {}
+        self.author = "teamwork"
 
     def git(self, *args, data=None, env=None, check=True):
         if self.common is None:
@@ -96,7 +97,7 @@ class Ref(board_records.Store):
     def commit(self, staged):
         """A commit on the read tip with STAGED's files over its tree, built in an index of its own, since the checkout's index is the person's."""
         index = pathlib.Path(self.common) / f"teamwork-board-index-{os.getpid()}-{threading.get_ident()}"
-        env = {"GIT_INDEX_FILE": str(index), **WRITER}
+        env = {"GIT_INDEX_FILE": str(index), **WRITER, "GIT_AUTHOR_NAME": self.author}
         try:
             self.git("read-tree", *([self.tip] if self.tip else ["--empty"]), env=env)
             listing = "".join(f"0 {'0' * 40}\t{path}\n" if text is None else f"100644 {self.git('hash-object', '-w', '--stdin', data=text.encode()).stdout.decode().strip()}\t{path}\n"
@@ -140,3 +141,8 @@ class Ref(board_records.Store):
 
 STORE = Ref()
 globals().update(board_records.bind(STORE))
+
+
+def author(name):
+    """Names NAME, else `teamwork`, as the author of each later write's commit, so `git log refs/teamwork-blackboard` shows who wrote it."""
+    STORE.author = name or "teamwork"

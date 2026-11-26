@@ -36,8 +36,13 @@ def replay(box):
     cases = replay_probe.Cases("question links")
     step = cases.step
 
-    def use(*argv, pane=None):
-        return box.python(USE, *map(str, argv), pane=pane)
+    def use(*argv, pane=None, claude=None):
+        """use-board.py ARGV, a `--by <name>` in it run as that decider's session, since the write gate takes the writer only from its session."""
+        argv = [str(word) for word in argv]
+        if "--by" in argv:
+            k = argv.index("--by")
+            claude, argv = ["--name", argv[k + 1]], argv[:k] + argv[k + 2:]
+        return box.python(USE, *argv, pane=pane, claude=claude)
 
     def number(url):
         return int(url.strip().rsplit("/", 1)[-1])
@@ -67,8 +72,8 @@ def replay(box):
     step("first", first.returncode == 0 and second.returncode == 0 and open_questions(use("read", task)) == [board_refs.stored(url_first), board_refs.stored(url_second)],
          (first.stderr, second.stderr, use("read", task).stdout))
 
-    answered = use("decide", task, "--decision", "Export as csv.", "--by", "probe-manager", "--answers", url_first)
-    held = use("decide", task, "--decision", "probe-worker holds this.", "--by", "probe-manager", "--holders", "probe-worker")
+    answered = use("decide", task, "--decision", "Export as csv.", "--answers", url_first, claude=["--name", "probe-manager"])
+    held = use("decide", task, "--decision", "probe-worker holds this.", "--holders", "probe-worker", claude=["--name", "probe-manager"])
     read = use("read", task)
     step("answer", answered.returncode == 0 and held.returncode == 0 and open_questions(read) == [board_refs.stored(url_second)],
          (answered.stderr, held.stderr, read.stdout))
@@ -90,11 +95,12 @@ def replay(box):
          and box.git("rev-parse", "refs/teamwork-blackboard").strip() == before, (refused.stderr, foreign.stderr, reported.stderr))
     owner = use("comment", task, "--blocked", "which licence?", "--asks", "owner", "--option", "MIT", "--option", "BSD", pane="w1:p1").stdout.strip()
     box.evaluate(f"import board; board.comment({task}, 'REPORTED: retry count noted.', {{'answers': {url_second!r}}}); print(0)")
-    box.evaluate(f"import board; board.comment({task}, 'DECIDED: MIT.', {{'decision': 'MIT.', 'by': 'probe-manager', 'answers': {owner!r}}}); print(0)")
+    raw = box.run([sys.executable, "-c", f"import board; board.comment({task}, 'DECIDED: MIT.', {{'decision': 'MIT.', 'by': 'probe-manager', 'answers': {owner!r}}})"],
+                  claude=["--name", "probe-manager"], PYTHONPATH=LIB)
     later = use("decide", task, "--decision", "Export as xlsx after all.", "--by", "probe-manager", "--answers", url_first)
     asked = box.evaluate(f"import board, decisions, json, task_state; print(json.dumps([q['answer'] and q['answer']['url'] for q in task_state.questions(decisions.as_task(board.fresh({task})))]))")
-    step("not an answer", later.returncode == 0 and open_questions(use("read", task)) == [board_refs.stored(url_second), board_refs.stored(owner)]
-         and asked[0] == answered.stdout.strip(), (later.stderr, asked))
+    step("not an answer", raw.returncode == 0 and later.returncode == 0 and open_questions(use("read", task)) == [board_refs.stored(url_second), board_refs.stored(owner)]
+         and asked[0] == answered.stdout.strip(), (raw.stderr, later.stderr, asked))
     return cases.finish()
 
 

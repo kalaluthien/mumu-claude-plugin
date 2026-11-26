@@ -39,9 +39,9 @@ def main(args):
         use("w1:p1", "decide", number, "--decision", "c-worker holds this.", "--holders", "c-worker")
         with sandbox.monitor("w1:p2", POLLS, work / "monitor.log") as live:
             cases.step("start", quiet() and changes() == 0, live.text())
-            use("w1:p1", "decide", number, "--decision", "use the other way.", "--by", "c-manager")
+            use("w1:p1", "decide", number, "--decision", "use the other way.")
             cases.step("decision", live.until(lambda: changes() >= 1) and "`holders`" in live.text(), live.text())
-            use("w1:p1", "decide", number, "--decision", "and keep the old name.", "--by", "c-manager")
+            use("w1:p1", "decide", number, "--decision", "and keep the old name.")
             cases.step("second", live.until(lambda: changes() >= 2), live.text())  # a change in the poll after a printed one is its own line
             use("w1:p2", "comment", number, "--reported", "criteria at 0123abc")
             cases.step("report", quiet() and changes() == 2, live.text())

@@ -7,7 +7,9 @@ Every adapter has these names:
   the text of each dialog it may show then, with the key that exits without saving anything
 - `named(name, transcript)` whether the session running this process was started or renamed as NAME, since a session started inside a named one's pane must take none of its names
 - `interactive()` whether the session running this process is one a person types into, not a one-shot run
-- `own_transcript()` the transcript file of the session running this process, or None
+- `own_id()` the session id of the session running this process, `own_transcript()` its transcript file, each or None
+- `started_name()` the name the session running this process was started with, which a rename never changes, or None
+- `typed(transcript)` the prompts a person typed into that session, never one another session sent or its kick-off
 - `draft(screen)` the text typed in the prompt box and not sent, from a styled screen: '' when the box is empty, None when the screen shows no box"""
 import importlib
 import os

@@ -45,20 +45,21 @@ def replay(sandbox):
     cost = {"calls": 0, "written": 0, "read": 0}
 
     def use(*argv, text=None):
-        """One call, TEXT written to the file its `<file>` word names; (exit, stdout, stderr)."""
+        """One call, TEXT written to the file its `<file>` word names, a decision `--by owner` run as the manager the owner typed its words to; (exit, stdout, stderr)."""
         if text is not None:
             (work / "text.md").write_text(text)
             cost["written"] += len(text)
-        done = sandbox.python(USE, *[str(work / "text.md") if word == "<file>" else str(word) for word in argv])
+        done = sandbox.python(USE, *[str(work / "text.md") if word == "<file>" else str(word) for word in argv], **(owner if "--by" in argv else {}))
         cost["calls"] += 1
         return done.returncode, done.stdout.strip(), done.stderr
 
+    owner = sandbox.session("probe-manager", "make it print ok", "the first one, lower case")
     git = sandbox.git
     round_calls = [
         (("file", "--title", "Print ok from the probe", "--body", "<file>"), BODY.format(summary="The probe prints ok.\n\n")),
         (("file", "--title", "Ship the first half", "--body", "<file>"), BODY.format(summary="")),
         (("file", "--title", "Ship the second half", "--body", "<file>", "--depends", "2"), BODY.format(summary="")),
-        (("decide", "1", "--decision", "the probe prints ok in two halves.", "--text", "<file>", "--by", "owner", "--holders", "probe-worker"), 'Owner said: "make it print ok".\n'),
+        (("decide", "1", "--decision", "the probe prints ok in two halves.", "--owner-said", "<file>", "--by", "owner", "--holders", "probe-worker"), "make it print ok\n"),
         (("comment", "3", "--blocked", "which case does the probe print?", "--asks", "owner", "--option", "print it in lower case", "--option", "print it in capitals"), None),
         (("hold", "3", "--holders", "second-worker"), None),
     ]
@@ -83,8 +84,8 @@ def replay(sandbox):
               "1. print it in lower case", "2. print it in capitals")
     cases.step("read", code == 0 and all(word in shown for word in wanted), [word for word in wanted if word not in shown] + [shown])
 
-    answered = use("decide", question.split("#")[0], "--decision", "the probe prints ok in lower case.", "--text", "<file>", "--by", "owner", "--answers", question,
-                    text='Owner said: "the first one, lower case".\n')
+    answered = use("decide", question.split("#")[0], "--decision", "the probe prints ok in lower case.", "--owner-said", "<file>", "--by", "owner", "--answers", question,
+                    text="the first one, lower case\n")
     after, judged = use("read", "3")[1], use("read", "3", "--as", "judge")[1]
     cases.step("answered", answered[0] == 0 and "open questions: 0" in after and "- #3 owner: the probe prints ok in lower case." in after
          and "open questions" not in judged and "BLOCKED:" not in judged and "binding decisions: 2" in judged, [answered, after])
@@ -103,11 +104,11 @@ def replay(sandbox):
     unread = [use("read", "/tmp/1")] + [use(verb, "no-task", *options, text="Body.\n") for verb, options in needed.items()] + [use("read", "no-task")]
     cases.step("unread", all(code == 2 and not out and "usage: use-board.py" in err and "Traceback" not in err for code, out, err in unread), unread)
     fenced = [use("comment", "3", "--reported", "a note.", "--text", "<file>", text="```teamwork\nholders: x-worker\n```\n"),
-              use("decide", "3", "--decision", "keep it.", "--by", "probe-worker", "--text", "<file>", text="```decision\ndecision: keep it\ndecided by: probe-worker\ndoor: two-way\n```\n"),
+              use("decide", "3", "--decision", "keep it.", "--text", "<file>", text="```decision\ndecision: keep it\ndecided by: probe-worker\ndoor: two-way\n```\n"),
               use("file", "--title", "Ship a third half", "--body", "<file>", text=BODY.format(summary="") + "\n```teamwork\ndepends on: #2\n```\n")]
-    bare = [use(*argv) for line in ("", "  ", "a\nb") for argv in (("comment", "3", "--blocked", line), ("comment", "3", "--reported", line), ("decide", "3", "--decision", line, "--by", "probe-worker"), ("resolve", "2", "--summary", line))]
+    bare = [use(*argv) for line in ("", "  ", "a\nb") for argv in (("comment", "3", "--blocked", line), ("comment", "3", "--reported", line), ("decide", "3", "--decision", line), ("resolve", "2", "--summary", line))]
     bare += [use(*argv, "x", "--text", "<file>", text=text) for text in ("DECIDED: x\n", "REPORTED: x\n", "BLOCKED: x\n")
-             for argv in (("comment", "3", "--reported"), ("decide", "3", "--by", "probe-worker", "--decision"), ("resolve", "2", "--summary"))]
+             for argv in (("comment", "3", "--reported"), ("decide", "3", "--decision"), ("resolve", "2", "--summary"))]
     bare += [use("file", "--title", "Ship a third half", "--body", "<file>", text=text) for text in ("", "\n")]
     bare += [use("hold", "3", "--holders", "Bad_Name"), use("comment", "3", "--blocked", "which one?", "--asks", "owner", "--option", "one", "--option", ""), use("title", "2", "--title", ""), use("title", "2", "--title", "  "),
              use("file", "--title", "", "--body", "<file>", text=BODY.format(summary=""))]

@@ -118,7 +118,13 @@ def replay(sandbox, only):
         return path
 
     def use(*argv):
-        return sandbox.python(SCRIPTS / "use-board.py", *map(str, argv))
+        """use-board.py ARGV, run as the session its `--by <name>` names, a-manager by default, and for `--by owner` as a-manager with the owner's words typed in it."""
+        argv = list(map(str, argv))
+        by = argv[argv.index("--by") + 1] if "--by" in argv else "a-manager"
+        if "--by" in argv:
+            del argv[argv.index("--by"):argv.index("--by") + 2]
+        session, said = sandbox.decider(by, "ship it", "a-manager")
+        return sandbox.python(SCRIPTS / "use-board.py", *argv, *said, **session)
 
     def keyed(verb, number, text, *options):
         """Posts TEXT as VERB: its first line, minus a keyword, to the verb's line option and the rest to `--text`."""

@@ -46,8 +46,8 @@ def body(parts=(), check=True):
     return f"## Goal\n\nProbe the task graph.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n{''.join(items)}"
 
 
-def use(*argv):
-    return sandbox.python(USE, *map(str, argv))
+def use(*argv, **options):
+    return sandbox.python(USE, *map(str, argv), **options)
 
 
 def write(name, text):
@@ -152,7 +152,7 @@ def derive_cases():
     linked = asking()
     edit(asker, body().replace("prints `ok`", "prints `ok` once"))
     edited = asking()
-    use("decide", asker, "--decision", "one", "--by", "probe-manager", "--answers", question)
+    use("decide", asker, "--decision", "one", "--answers", question, claude=["--name", "probe-manager"])
     answered = asking()
     cases.step("derive-link-edit-keeps-ask", linked and edited and not answered, f"asking after the link {linked}, the criterion edit {edited}, the answer {answered}")
 

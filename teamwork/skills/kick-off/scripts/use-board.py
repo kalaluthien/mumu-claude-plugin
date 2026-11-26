@@ -3,7 +3,7 @@
 
 usage: use-board.py read <task> [--as worker|judge] [--full] [--body]
 usage: use-board.py comment <task> (--blocked [<question>] | --reported [<line>]) [--text <file>] [--asks owner] [--option <answer>]... [--again <url>]
-usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
+usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by owner --owner-said <file>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
 usage: use-board.py hold <task> --holders <names>
 usage: use-board.py depend <task> --depends <numbers>
 usage: use-board.py file --title <title> --body <file> [--label <name>]... [--scope <folder>] [--depends <numbers>] [--parent <task>]
@@ -157,21 +157,32 @@ def board_link(option, value):
     return []
 
 
+def quote(said, path):
+    """SAID with the text of PATH as `>` lines after its keyword line, the words the owner typed."""
+    lines = read_text(path).strip().splitlines()
+    head, _, rest = said.partition("\n")
+    return f"{head}\n\n" + "".join(f"> {line}".rstrip() + "\n" for line in lines) + (rest if rest.strip() else "")  # `composed` opens REST with its blank line
+
+
 def decide_task(options):
     said = composed("decide", task_state.ANSWER, options.decision, "--decision", options.text)
+    said = quote(said, options.owner_said) if options.owner_said else said
     found = task_state.defects("decide", said)
-    by = options.by or my_name()
+    me = board.writer()
+    if options.owner_said and options.by != "owner":
+        found.append("`--owner-said` quotes the owner, so it goes only with `--by owner`")
+    by = options.by or me.name
     if not by:
-        found.append("no session name tells who decides; pass `--by owner` or `--by <your session's name>`")
+        found.append("no session name tells who decides: decide from a team session, started or renamed as its name")
     if not (options.live_runs or "0").isdigit():
         found.append("`--live-runs` takes one count, as `--live-runs 12`")
     found += [why for key in ("supersedes", "answers") if getattr(options, key) is not None for why in board_link(f"--{key}", getattr(options, key))]
     refuse("decide", found)
-    fields = {"decision": task_state.first_line(said), "by": by, **{key: getattr(options, key) for key in ("supersedes", "answers") if getattr(options, key) is not None}}
+    fields = {"decision": options.decision.strip(), "by": by, **{key: getattr(options, key) for key in ("supersedes", "answers") if getattr(options, key) is not None}}
     fields.update({"one_way": True} if options.one_way else {})
     fields.update({"holders": options.holders.split()} if options.holders is not None else {})
     fields.update({"live_runs": int(options.live_runs)} if options.live_runs is not None else {})
-    refuse("decide", decisions.refusals(options.task, said, fields, decisions.read(options.task, board.fresh)))
+    refuse("decide", decisions.refusals(options.task, fields, decisions.read(options.task, board.fresh)))
     print(board.comment(options.task, said, fields))
     return 0
 
@@ -327,7 +338,7 @@ TEXT = ("--text", {"metavar": "FILE"})
 # verb -> (what it does, whether it names a task by place, its options as (flag, argparse keywords)); a flag with no keywords takes one value
 VERBS = {"read": (read_task, True, [("--as", {"dest": "as_role", "choices": ("worker", "judge")}), ("--full", {"action": "store_true"}), ("--body", {"action": "store_true"})]),
          "comment": (post_comment, True, [("--blocked", {"group": "line", "nargs": "?", "const": ""}), ("--reported", {"group": "line", "nargs": "?", "const": ""}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []}), ("--again", {})]),
-         "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--one-way", {"action": "store_true"}), ("--supersedes", {}),
+         "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--owner-said", {}), ("--one-way", {"action": "store_true"}), ("--supersedes", {}),
                                         ("--answers", {}), ("--holders", {}), ("--live-runs", {})]),
          "hold": (hold_task, True, [("--holders", {"required": True})]),
          "depend": (depend_task, True, [("--depends", {"required": True})]),

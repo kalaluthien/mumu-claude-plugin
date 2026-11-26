@@ -50,8 +50,8 @@ def replay(box):
     cases = replay_probe.Cases()
     step = cases.step
 
-    def use(*argv, cwd=None):
-        return box.python(USE, *map(str, argv), cwd=cwd)
+    def use(*argv, cwd=None, claude=None):
+        return box.python(USE, *map(str, argv), cwd=cwd, claude=claude)
 
     def body(name, text):
         return replay_probe.write_text(box.work, f"{name}.md", text)
@@ -97,7 +97,7 @@ def replay(box):
         step(f"held {row}", done.returncode == 0 and "reworded" in use("read", held, "--body").stdout, (done.returncode, done.stderr))
 
     no_goal = use("file", "--title", "Probe a root", "--body", body("root", "Root intent of the owner.\n\n## Definition of done\n\n" + replay_probe.CHECK))
-    decided = use("decide", seed("decided", PATHLESS), "--decision", "the probe holds this.", "--by", "probe-manager", "--holders", "probe-worker")
+    decided = use("decide", seed("decided", PATHLESS), "--decision", "the probe holds this.", "--holders", "probe-worker", claude=["--name", "probe-manager"])
     old = box.init(box.work / "old")
     floor(box, 0, cwd=old)
     below = seed("old", GOOD, cwd=old)

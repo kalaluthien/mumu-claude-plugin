@@ -22,8 +22,8 @@ LIST = ROOT / "hooks" / "list-task-board.py"
 cases = replay_probe.Cases()
 
 
-def use(*argv):
-    done = sandbox.python(USE, *map(str, argv))
+def use(*argv, **options):
+    done = sandbox.python(USE, *map(str, argv), **options)
     if done.returncode:
         raise SystemExit(f"replay-wait-mark: use-board.py {argv[0]} failed: {done.stderr}")
     return done.stdout.strip()
@@ -38,8 +38,8 @@ def ask(number, question, owner=False, again=""):
 
 
 def decide(number, text, answers="", by="probe-manager"):
-    quote = replay_probe.write_text(sandbox.work, "quote.md", "> the owner's words\n")
-    return use("decide", number, "--decision", text, *(("--text", quote) if by == "owner" else ()), "--by", by, *(("--answers", answers) if answers else ()))
+    session, said = sandbox.decider(by, "the owner's words")
+    return use("decide", number, "--decision", text, *said, *(("--answers", answers) if answers else ()), **session)
 
 
 def row(number):

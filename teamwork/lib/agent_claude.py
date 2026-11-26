@@ -51,9 +51,14 @@ def named(name, transcript):
     return bool(name) and (started_name() == name or last_title(transcript) == name)
 
 
+def own_id():
+    """The session id of the session running this process; None outside one."""
+    return os.environ.get("CLAUDE_CODE_SESSION_ID")
+
+
 def own_transcript():
     """The transcript of the session running this process, found by its session id under the config folder; None when there is none."""
-    session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    session_id = own_id()
     try:
         return next(iter(sorted(claude_config.folder().glob(f"projects/*/{session_id}.jsonl"))), None) if session_id else None
     except OSError:
@@ -92,6 +97,26 @@ def last_title(transcript):
     except OSError:
         return None
     return titles and json.loads(titles[-1]).get("customTitle") or None
+
+
+def typed(transcript):
+    """The prompts TRANSCRIPT marks as typed by a person (`origin.kind` `human`), oldest first, without a kick-off, which herdr types for the
+    session that started this one and the transcript marks as typed too; a message from another session is `peer`, never `human`."""
+    found = []
+    try:
+        lines = pathlib.Path(transcript or "").read_text(errors="replace").splitlines()
+    except OSError:
+        return found
+    for line in lines:
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        content = (row.get("message") or {}).get("content") if (row.get("origin") or {}).get("kind") == "human" else None
+        text = content if isinstance(content, str) else "".join(block.get("text", "") for block in content or [] if isinstance(block, dict))
+        if not text.startswith(kickoff("")):
+            found.append(text)
+    return found
 
 
 def kickoff(args):

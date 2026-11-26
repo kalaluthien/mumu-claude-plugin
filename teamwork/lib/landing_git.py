@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 
+import board_writers
 import data_folder
 import iso_time
 import team_signal
@@ -125,6 +126,18 @@ def change(branch, title, body, base):
             return f"file://{directory}/{number}.json"
         except FileExistsError:
             number += 1
+
+
+def close(number, reason, writer):
+    """Closes the open change NUMBER unmerged, its REASON kept, when `board_writers` lets WRITER close it; its url. LookupError, nothing changed, naming why not."""
+    entry = record(number)
+    if entry["state"] != "OPEN":
+        raise LookupError(f"change {number} is closed")
+    refusals = board_writers.check("close", number, entry, writer) + ([] if reason.strip() else ["a close names its reason"])
+    if refusals:
+        raise LookupError(f"change {number} stays open: " + "; ".join(refusals))
+    save({**entry, "state": "CLOSED", "headRefOid": tip(f"refs/heads/{entry['headRefName']}"), "reason": reason.strip(), "closedAt": iso_time.stamp()})
+    return f"file://{folder()}/{entry['number']}.json"
 
 
 def clobbered(holder, base, commit):

@@ -9,6 +9,7 @@ A change is a branch of the repository, filed and merged in local git by [use-la
 | `change` | `use-landing.py change <branch> <title> <body-file> [<base>]`, the body citing its task; it prints the change's url, whose number the heartbeat names |
 | `judge` | the judge reads the change at its sha by `git diff <base>...<sha>` and `git show <sha>:<path>`, with no fetch |
 | `merge` | `use-landing.py merge <change> <sha>`, the sha the judge approved, which it refuses when the branch tip moved and its diff from where it left the base, line numbers and `index` lines aside, is not the tip's; it pushes the merge to `origin`'s base as one atomic fast-forward, and only then moves the local base and the worktree that has it checked out; a repository with no `origin` skips the push |
+| `close` | `use-landing.py close <change> <reason>`, closing a change unmerged: its own worker or a manager may, any other session is refused |
 | `remove` | [remove-worktree.py](../../scripts/remove-worktree.py) `<name>...` |
 
 - **Release hook**: when the merge commit tracks `.github/plan-release.py`, the merge runs that script as `plan-release.py <base sha> <merge sha>`, tags the merge commit with each tag line it prints and pushes them with the base; a non-zero exit refuses the merge with its stderr, nothing tagged or pushed.

@@ -35,10 +35,12 @@ def replay(sandbox, work):
     cases = replay_probe.Cases()
     step = cases.step
 
+    owner = sandbox.session("probe-manager", "no, after it", "the first one")
+
     def use(*argv, text=None):
         if text is not None:
             (work / "text.md").write_text(text)
-        done = sandbox.python(USE, *[work / "text.md" if word == "<file>" else word for word in argv])
+        done = sandbox.python(USE, *[work / "text.md" if word == "<file>" else word for word in argv], **(owner if "owner" in argv else {}))
         if done.returncode:
             raise SystemExit(f"replay-wait-kinds: use-board.py {argv[0]} failed: {done.stderr}")
         return done.stdout.strip()
@@ -82,7 +84,7 @@ def replay(sandbox, work):
     (work / "new.md").write_text(replay_probe.BODY + "2. [task] #5 Do the blocked part\n")
     sha = next(line.split(": ", 1)[1] for line in use("read", 3).splitlines() if line.startswith("body sha: "))
     use("edit", 3, "--body", work / "new.md", "--reason", "adds the blocked part.", "--base", sha)
-    use("decide", 5, "--decision", "the part starts after its blocker.", "--text", "<file>", "--by", "owner", "--answers", early, text='Owner said: "no, after it".\n')
+    use("decide", 5, "--decision", "the part starts after its blocker.", "--owner-said", "<file>", "--by", "owner", "--answers", early, text="no, after it\n")
     parent = row(3)
     step("parts", parent["wait"] == "" and row(5)["wait"] == "" and not any("waits" in line for line in parent["lines"]["status"] + row(5)["lines"]["status"]), [parent, row(5)])
 
@@ -90,7 +92,7 @@ def replay(sandbox, work):
     folded, opened, dim = notes(row(2))
     step("two-questions", folded == ["? which case does the probe print?", "? when does the probe run?"]
          and opened[:6] == [folded[0], "1. print it in lower case", "2. print it in capitals", folded[1], "1. today", "2. tomorrow"], row(2)["lines"])
-    use("decide", 2, "--decision", "the probe prints in lower case.", "--text", "<file>", "--by", "owner", "--answers", question, text='Owner said: "the first one".\n')
+    use("decide", 2, "--decision", "the probe prints in lower case.", "--owner-said", "<file>", "--by", "owner", "--answers", question, text="the first one\n")
     after = row(2)
     folded, opened, dim = notes(after)
     step("answered", after["wait"] == OWNER and folded == ["? when does the probe run?"] and opened[:2] == ["1. today", "2. tomorrow"] and "1. print it in lower case" not in opened, after)

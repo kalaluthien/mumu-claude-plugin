@@ -45,9 +45,9 @@ CALLS = {
         ["read", "1", "--as", "worker", "--full"], ["comment", "1", "--blocked", "which", "--text", "body", "--asks", "owner", "--option", "x", "--option", "y"],
         ["hold", "1", "--holders", "name"], ["depend", "1", "--depends", "2"], ["file", "--title", "Add thing", "--body", "body", "--label", "label", "--scope", "", "--depends", "1", "--parent", "1"],
         ["edit", "1", "--body", "diff", "--reason", "x", "--base", "abc"], ["title", "1", "--title", "Add thing"], ["resolve", "1", "--summary", "done", "--text", "body", "--not-planned"],
-        ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name",
+        ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--owner-said", "said", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name",
                           "--live-runs", "1"], ["label", "1", "--label", "label", "--remove"]],
-    "skills/kick-off/references/adapters/landing-git/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"]],
+    "skills/kick-off/references/adapters/landing-git/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"], ["close", "1", "reason"]],
 }
 
 

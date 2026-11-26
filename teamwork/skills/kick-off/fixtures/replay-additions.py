@@ -26,8 +26,8 @@ def setup(work):
     return box, number
 
 
-def run(box, script, *argv):
-    return box.python(SCRIPTS / script, *map(str, argv))
+def run(box, script, *argv, **options):
+    return box.python(SCRIPTS / script, *map(str, argv), **options)
 
 
 def commits(box):
@@ -39,7 +39,8 @@ def body(box, number):
 
 
 def owner_says(box, number, wish):
-    done = run(box, "use-board.py", "decide", number, "--decision", wish, "--text", replay_probe.write_text(box.work, "owner.md", f"> {wish}\n"), "--by", "owner")
+    session, said = box.decider("owner", wish)
+    done = run(box, "use-board.py", "decide", number, "--decision", wish, *said, **session)
     if done.returncode:
         raise SystemExit(replay_probe.fail(f"exit {done.returncode}: {(done.stdout + done.stderr).strip()[-300:]}"))
     return done.stdout.strip().splitlines()[-1]

@@ -24,8 +24,8 @@ def main(args):
         sandbox = replay_probe.Sandbox(work, [replay_probe.agent("x-manager", 1), replay_probe.agent("w-worker", 2)])
         first, second = sandbox.repository, sandbox.init(work / "second")
 
-        def use(*argv):
-            return sandbox.python(USE, *map(str, argv), pane="w1:p1").stdout.strip()
+        def use(*argv, **options):
+            return sandbox.python(USE, *map(str, argv), pane="w1:p1", **options).stdout.strip()
 
         def text(name, body):
             return replay_probe.write_text(work, name, body)
@@ -35,8 +35,9 @@ def main(args):
         again = use("comment", number, "--blocked", "which way now?")
         manager_ask = use("comment", number, "--blocked", "which way?")
         owner_ask = use("comment", number, "--blocked", "merge it?", "--asks", "owner", "--option", "yes", "--option", "no")
-        use("decide", number, "--decision", "the first way", "--by", "manager", "--answers", manager_ask)
-        use("decide", number, "--decision", "merge", "--text", text("answer-owner.md", '> "merge it"\n'), "--by", "owner", "--answers", owner_ask)
+        use("decide", number, "--decision", "the first way", "--answers", manager_ask)
+        owner, said = sandbox.decider("owner", "merge it", "x-manager")
+        use("decide", number, "--decision", "merge", *said, "--answers", owner_ask, **owner)
         use("resolve", number, "--summary", "done")
         use("reopen", number)
         sandbox.git("fetch", "-q", first, "refs/teamwork-blackboard:refs/teamwork-blackboard", cwd=second)

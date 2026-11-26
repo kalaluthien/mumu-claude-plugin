@@ -27,7 +27,7 @@ DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # a data fence at a line's start, which a text may not hold, since every datum is an option
 FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
 FENCE_OPTIONS = {"teamwork": "`hold <task> --holders <names>`, `depend <task> --depends <numbers>`, `comment --asks owner` or `decide --live-runs <n>`",
-                 "decision": "`decide --decision <sentence> [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>]`"}
+                 "decision": "`decide --decision <sentence> [--by owner --owner-said <file>] [--one-way] [--supersedes <url>] [--answers <url>]`"}
 # the keyword each posting verb opens its text with; a comment asks or informs
 VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense

@@ -70,7 +70,7 @@ def case_close_waiting(box):
     refused = box.python(SCRIPTS / "close-session.py", "probe-worker")
     if refused.returncode != 2 or url not in refused.stdout or "Which branch should the probe use now?" not in refused.stdout or "probe-worker" not in live(box):
         return replay_probe.fail(f"a waiting worker's close exited {refused.returncode}, live {live(box)}: {refused.stdout[-300:]} {refused.stderr[-300:]}")
-    use(box, "decide", url, "--decision", "Use the main branch for the probe.", "--by", "probe-manager", "--answers", asked)
+    use(box, "decide", url, "--decision", "Use the main branch for the probe.", "--answers", asked, claude=["--name", "probe-manager"])
     closed = box.python(SCRIPTS / "close-session.py", "probe-worker")
     if closed.returncode or "probe-worker" in live(box):
         return replay_probe.fail(f"an answered worker's close exited {closed.returncode}, live {live(box)}: {closed.stdout[-300:]} {closed.stderr[-300:]}")

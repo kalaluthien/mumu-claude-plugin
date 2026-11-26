@@ -111,7 +111,7 @@ def main(args):
         routed = [line for line in live.text().splitlines() if line.startswith(f"route #{loose} ")]
         cases.step("cited", len(fed) == 2 and f"({reported})" in fed[0], f"{reported} {fed!r}")
         cases.step("joined", len(fed) == 2 and fed[1].endswith('report: "REPORTED: first short | REPORTED: second short"'), f"{fed!r}")
-        cases.step("question", len(asking) == 1 and shows(asking[0], f"question #{number} (", "waits on the owner: ask the owner, then record the answer by `decide`", "with `--by owner` and `--answers` its url;", alone=True, question=TITLE.replace("\n", " ").replace("\r", " ")), f"{asked.stdout}{asked.stderr} {live.text()!r}")
+        cases.step("question", len(asking) == 1 and shows(asking[0], f"question #{number} (", "waits on the owner: ask the owner, then record the answer by `decide`", "with `--by owner --owner-said <file>` and `--answers` its url;", alone=True, question=TITLE.replace("\n", " ").replace("\r", " ")), f"{asked.stdout}{asked.stderr} {live.text()!r}")
         cases.step("feed", len(fed) == 2 and shows(fed[0], f"feed #{number} has a report", "tell the owner in your tab", alone=True, title=TITLE, report=REPORT), f"{reported} {live.text()!r}")
         cases.step("route", len(routed) == 1 and shows(routed[0], f"route #{loose} is held by no live worker", ": route it, or name by `depend` the open task it waits for, or close it as not planned;", alone=True, title=TITLE), f"{loose} {live.text()!r}")
     cases.step("quote", not (wrong := quote_breaks()), f"{len(wrong)} texts, first {wrong[:1]!r}")

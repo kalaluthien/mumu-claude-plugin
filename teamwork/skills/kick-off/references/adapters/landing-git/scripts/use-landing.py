@@ -4,11 +4,13 @@
 usage: use-landing.py <operation> <args> [--repository <folder>]
 
   change <branch> <title> <body-file> [base]   file BRANCH as a change into BASE, by default the main checkout's branch; print its url
-  merge <change> <sha>                         squash SHA, the branch tip a judge approved, onto the base; print the new commit"""
+  merge <change> <sha>                         squash SHA, the branch tip a judge approved, onto the base; print the new commit
+  close <change> <reason>                      close an open change unmerged, a worker only its own; print its url"""
 import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
+import board_writers  # noqa: E402
 import data_folder  # noqa: E402
 import landing_git  # noqa: E402
 
@@ -27,6 +29,8 @@ def main(args):
             print(landing_git.change(operands[0], operands[1], pathlib.Path(operands[2]).read_text(), operands[3] if operands[3:] else base))
         elif verb == "merge" and len(operands) == 2:
             print(landing_git.merge(*operands))
+        elif verb == "close" and len(operands) == 2:
+            print(landing_git.close(operands[0], operands[1], board_writers.writer()))
         else:
             print(__doc__, file=sys.stderr)
             return 2

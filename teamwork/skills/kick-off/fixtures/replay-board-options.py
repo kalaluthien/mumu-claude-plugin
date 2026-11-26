@@ -38,7 +38,7 @@ SPELLED = re.compile(r"use-board\.py[ \t]+(" + "|".join(WRITES) + r")\b([^`\n]*)
 
 
 def use(*argv):
-    return box.python(USE, *map(str, argv))
+    return box.python(USE, *map(str, argv), claude=["--name", "a-manager"])
 
 
 def ref():
@@ -129,7 +129,7 @@ def replay(work):
     sha = re.search(r"body sha: (\w+)", use("read", number).stdout).group(1) if number else ""
     calls = [("comment", number, "--reported", "probe findings", "--text", rest),
              ("comment", number, "--blocked", "which probe runs first?", "--asks", "owner", "--option", "the fast one", "--option", "the slow one"),
-             ("decide", number, "--decision", "ship the probe today", "--text", rest, "--by", "a-manager", "--holders", "a-worker"),
+             ("decide", number, "--decision", "ship the probe today", "--text", rest, "--holders", "a-worker"),
              ("edit", number, "--body", written("new.md", replay_probe.BODY + "2. [check] **The probe works when it runs twice**: `basename PASS` prints `PASS`; on base `FAIL`.\n"),
               "--reason", "add the second run", "--base", sha),
              ("title", number, "--title", "Seed the probe board"), ("label", number, "--label", "second"), ("hold", number, "--holders", "a-worker b-worker"),
@@ -162,11 +162,11 @@ def replay(work):
     sha = re.search(r"body sha: (\w+)", use("read", number).stdout).group(1)
     new = written("newer.md", replay_probe.BODY + "3. [check] **The probe works when it runs three times**: `basename PASS` prints `PASS`; on base `FAIL`.\n")
     refused("refused-missing", [(("edit", number, "--body", new, "--reason", "add a run"), "--base"), (("edit", number, "--body", new, "--base", sha), "--reason"),
-                                (("edit", number, "--reason", "add a run", "--base", sha), "--body"), (("decide", number, "--by", "a-manager"), "--decision"),
+                                (("edit", number, "--reason", "add a run", "--base", sha), "--body"), (("decide", number), "--decision"),
                                 (("resolve", number), "--summary"), (("file", "--body", body), "--title"),
                                 (("edit", number, "--body", new, "--reason", "REPORTED: task filed"), "--base"),
                                 (("edit", number, "--body", new, "--reason", "add a run", "--base", "0" * 12), "--base")])
-    refused("refused-misplaced", [(("decide", number, "--decision", "ship it today now", "--by", "a-manager", "--text", written("d.md", "DECIDED: ship it\n")), "--decision"),
+    refused("refused-misplaced", [(("decide", number, "--decision", "ship it today now", "--text", written("d.md", "DECIDED: ship it\n")), "--decision"),
                                   (("comment", number, "--reported", "probe findings", "--text", written("b.md", "BLOCKED: which one?\n")), "--blocked"),
                                   (("resolve", number, "--summary", "probe landed", "--text", written("r.md", "REPORTED: probe landed\n")), "--summary"),
                                   (("comment", number, "--blocked", "which one?", "--reported", "probe findings"), "--blocked"),
@@ -175,8 +175,8 @@ def replay(work):
                                   (("comment", number, "--blocked", "which one?", "--asks", "owner", "--option", "a"), "--option"),
                                   (("depend", number, "--depends", "the-probe"), "--depends"),
                                   (("comment", number, "--reported", " "), "--reported"),
-                                  (("decide", number, "--decision", "ship the probe today\nand tomorrow", "--by", "a-manager"), "--decision"),
-                                  (("decide", number, "--decision", "ship the probe today", "--by", "a-manager", "--live-runs", "many"), "--live-runs"),
+                                  (("decide", number, "--decision", "ship the probe today\nand tomorrow"), "--decision"),
+                                  (("decide", number, "--decision", "ship the probe today", "--live-runs", "many"), "--live-runs"),
                                   (("read", number, "--body", "--full"), "--body"),
                                   (("title", "the-probe", "--title", "Seed it again"), "its number or its url"),
                                   (("edit", number, new, "DECIDED: add a run", "--base", sha), "--body")])

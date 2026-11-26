@@ -1,4 +1,18 @@
 """What a session's name says in a team: its role, its project, the branches it owns, and its workspace's members."""
+import collections
+import re
+
+# `<project>-manager`, `<task>-worker`, `<duty>-sentinel`, each `-next` for the successor start-session.py starts
+FORM = re.compile(r"([a-z0-9]+(?:-[a-z0-9]+)*?)-(manager|worker|sentinel)(-next)?")
+SessionName = collections.namedtuple("SessionName", "role project successor")
+
+
+def parse(name):
+    """NAME's role, the words before the role (a manager's project, a worker's task, a sentinel's duty) and whether it is a `-next` successor; ValueError for a name of no such form."""
+    found = FORM.fullmatch(name or "")
+    if not found:
+        raise ValueError(f"{name!r} is no session name: name it `<task>-worker`, `<duty>-sentinel`, `<project>-manager` or `<that name>-next`")
+    return SessionName(found.group(2), found.group(1), bool(found.group(3)))
 
 
 def role(name):

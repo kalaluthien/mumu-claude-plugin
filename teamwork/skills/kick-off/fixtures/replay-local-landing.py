@@ -11,9 +11,11 @@ usage: replay-local-landing.py [--case <name>]   (no argument: every one in turn
 - owned-branches: removing a worker removes each merged `<name>-<word>` branch it owns, here and on `origin`, keeps one with unmerged commits and an `origin` one of no worker branch name and says so, and leaves a branch of another name
 - rebased: a sha a judge approved still merges once a rebase onto a moved base left its diff the same, and is refused once the rebased branch changed its diff, by its text or by whitespace alone
 - conflict-marker: a change whose file adds a leftover `|||||||` conflict marker line is refused with its file and line, and nothing moves, while one that adds a Markdown `=======` heading underline merges
-- dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves"""
+- dirty-base: an uncommitted file of the base checkout that the change also edits, its name holding a space, refuses the merge before any push, and nothing moves
+- closed: a `close` with no reason and an unknown verb print the usage, exit 2 and change nothing; another worker's `close` of a change, and its own worker's with a blank reason, exit 1 and leave it open, its own worker's closes it unmerged with its reason, trimmed, the branch's tip and the time, and a second close and a merge of it are then refused, the base as it was"""
 import json
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
@@ -38,9 +40,9 @@ def setup(work, remote=True):
     return sandbox
 
 
-def script(sandbox, path, *argv, cwd=None, check=False):
-    """The run of the plugin script PATH; a failed one raises RuntimeError when CHECK."""
-    done = sandbox.python(path, *argv, cwd=cwd)
+def script(sandbox, path, *argv, cwd=None, check=False, claude=None):
+    """The run of the plugin script PATH, under a stand-in `claude` started with the options CLAUDE when given; a failed one raises RuntimeError when CHECK."""
+    done = sandbox.python(path, *argv, cwd=cwd, claude=claude)
     if check and done.returncode:
         raise RuntimeError(f"{pathlib.Path(path).name} {' '.join(map(str, argv))}: {done.stdout}{done.stderr}")
     return done
@@ -205,8 +207,37 @@ def case_owned_branches(work):
     return 0
 
 
+def case_closed(work):
+    sandbox = setup(work)
+    tree, head = worker(sandbox)
+    for argv in (("close", "1"), ("reopen", "1", "taken over by another task")):
+        wrong = script(sandbox, LANDING, *argv, cwd=tree, claude=["--name", "probe-worker"])
+        if wrong.returncode != 2 or "usage:" not in wrong.stderr or change_state(sandbox) != "OPEN":
+            return replay_probe.fail(f"`{' '.join(argv)}` exited {wrong.returncode}: {wrong.stdout}{wrong.stderr}; the change is {change_state(sandbox)}")
+    other = script(sandbox, LANDING, "close", "1", "taken over by another task", cwd=tree, claude=["--name", "other-worker"])
+    if other.returncode != 1 or "other-worker (worker) may not write a close on change 1: only manager, worker on its own branch may" not in other.stderr or change_state(sandbox) != "OPEN":
+        return replay_probe.fail(f"another worker's close exited {other.returncode}: {other.stdout}{other.stderr}; the change is {change_state(sandbox)}")
+    blank = script(sandbox, LANDING, "close", "1", "  ", cwd=tree, claude=["--name", "probe-worker"])
+    if blank.returncode != 1 or "a close names its reason" not in blank.stderr or change_state(sandbox) != "OPEN":
+        return replay_probe.fail(f"its own worker's close with a blank reason exited {blank.returncode}: {blank.stdout}{blank.stderr}; the change is {change_state(sandbox)}")
+    own = script(sandbox, LANDING, "close", "1", "  taken over by another task ", cwd=tree, claude=["--name", "probe-worker"])
+    entry = json.loads((sandbox.repository / ".teamwork" / "changes" / "1.json").read_text())
+    if own.returncode or entry["state"] != "CLOSED" or entry.get("mergedAt") or entry.get("reason") != "taken over by another task" \
+            or entry.get("headRefOid") != sandbox.git("rev-parse", "probe-worker").strip() or not re.fullmatch(r"\d{4}-\d\d-\d\dT[\d:.]+(Z|[+-]\d\d:?\d\d)", entry.get("closedAt", "")):
+        return replay_probe.fail(f"its own worker's close exited {own.returncode}: {own.stdout}{own.stderr}; the change is {entry}")
+    again = script(sandbox, LANDING, "close", "1", "taken over by another task", cwd=tree, claude=["--name", "probe-worker"])
+    if again.returncode != 1 or "change 1 is closed" not in again.stderr:
+        return replay_probe.fail(f"a second close of the closed change exited {again.returncode}: {again.stdout}{again.stderr}")
+    before = bases(sandbox)
+    run = merged(sandbox, tree, head)
+    if run.returncode != 1 or "change 1 is closed" not in run.stderr or bases(sandbox) != before:
+        return replay_probe.fail(f"a merge of the closed change exited {run.returncode}: {run.stdout}{run.stderr}; the bases moved {before} -> {bases(sandbox)}")
+    return 0
+
+
 CASES = {"pushes": case_pushes, "push-refused": case_push_refused, "no-gh": case_no_gh, "no-origin": case_no_origin, "swap-retired": case_swap_retired, "rebased": case_rebased,
-         "conflict-marker": case_conflict_marker, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches}
+         "conflict-marker": case_conflict_marker, "dirty-base": case_dirty_base, "owned-branches": case_owned_branches,
+         "closed": case_closed}
 
 
 def main(args):

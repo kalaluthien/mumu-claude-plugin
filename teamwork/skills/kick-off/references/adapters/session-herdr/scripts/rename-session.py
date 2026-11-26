@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Rename this session to <name> in herdr (tab, pane, agent) and in Claude Code (a `/rename` prompt), then read the name Claude Code
 recorded from the session's transcript and send the prompt again, only while the prompt box is empty, until it is exactly <name>; print `renamed to <name>`, or
-`not renamed to <name>: <reason>` and exit 1. A typed prompt can land garbled, such as `teamwork-manager teamwork-`, so one send is not proof.
+`not renamed to <name>: <reason>` and exit 1, as for a name of another role than the session's. The name is kept as the session's own for the board's
+writes, which read it, not a later `/rename`. A typed prompt can land garbled, such as `teamwork-manager teamwork-`, so one send is not proof.
 
 usage: rename-session.py <name>"""
 import json
@@ -11,6 +12,7 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[6] / "lib"))
 import agent  # noqa: E402
+import board_writers  # noqa: E402
 import claude_config  # noqa: E402
 import session  # noqa: E402
 
@@ -55,6 +57,11 @@ def main(args):
     session_id = (me.get("agent_session") or {}).get("value")
     if not session_id:
         print(f"not renamed to {name}: herdr gives this session no id, so its transcript cannot be read")
+        return 1
+    try:
+        board_writers.record(name)
+    except ValueError as e:
+        print(f"not renamed to {name}: {e}")
         return 1
     session.rename(me, name)
     session.herdr("agent", "rename", me.get("name") or me["pane_id"], name)  # its name, resolved on each call, since herdr may move the pane

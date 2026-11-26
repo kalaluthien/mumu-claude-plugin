@@ -2,7 +2,6 @@
 decision to, and the gaps the manager's heartbeat lists. TASKS is {number: task}, each with `body`, `trusted`, `state`,
 `stateReason`, `parent` (a number, a {number} node or None) and `comments` (a list, or a {nodes} connection)."""
 import datetime
-import re
 
 import board_refs
 import board_text
@@ -19,12 +18,6 @@ def as_task(node):
 def parent_of(task):
     parent = task.get("parent")
     return parent.get("number") if isinstance(parent, dict) else parent
-
-
-def quoted(text):
-    """Whether TEXT, outside its fenced blocks, quotes someone's words: a `>` line or a span in double quotes."""
-    prose = re.sub(r"^(`{3,}).*?^\1", "", text or "", flags=re.M | re.S)
-    return bool(re.search(r'^>\s*\S|"[^"\n]{2,}"|“[^”\n]{2,}”', prose, re.M))
 
 
 def typed(number, task):
@@ -96,16 +89,14 @@ def read(number, fresh):
     return tasks
 
 
-def refusals(number, text, fields, tasks):
-    """Why TEXT with the decision FIELDS cannot be posted on NUMBER, given its root's tree TASKS; empty when it can."""
+def refusals(number, fields, tasks):
+    """Why a decision of FIELDS cannot be posted on NUMBER, given its root's tree TASKS; empty when it can."""
     found = []
     owner = task_state.role(fields["by"]) == "owner"
-    if owner and not quoted(text):
-        found.append("`--by owner` quotes no words of the owner's, as a `>` line or in double quotes")
     answered = fields.get("answers")
     asked = {link: question["fields"].get("asks") for question in task_state.questions(as_task(tasks[int(number)])) for link in question["links"]}
     if answered and asked.get(board_refs.stored(answered)) == "owner" and not owner:
-        found.append(f"{answered} asks the owner, so only a decision `--by owner`, quoting the owner's words, answers it")
+        found.append(f"{answered} asks the owner, so only a decision `--by owner`, quoting the owner's words by `--owner-said`, answers it")
     if answered and board_refs.stored(answered) not in asked:
         place = next((home for home, task in tasks.items() for comment in as_task(task)["comments"] if board_refs.stored(comment.get("url")) == board_refs.stored(answered)), None)
         found.append(f"`--answers` names {answered}, which is no question on #{number}"
@@ -117,7 +108,7 @@ def refusals(number, text, fields, tasks):
         if board_refs.stored(target) not in every:
             found.append(f"`--supersedes` names {target}, which is no decision in #{root}'s tree")
         elif every[board_refs.stored(target)]["role"] == "owner" and not owner:
-            found.append(f"{target} was decided by the owner, so only a decision `--by owner`, quoting the owner's words, supersedes it")
+            found.append(f"{target} was decided by the owner, so only a decision `--by owner`, quoting the owner's words by `--owner-said`, supersedes it")
     return found
 
 
@@ -131,7 +122,7 @@ def owner_questions(tasks):
                     for question in task_state.open_questions(task) if question["fields"].get("asks") == "owner"),
                    key=lambda item: item[0])
     return [board_text.line(f"question #{number} ({ask['url']}) waits on the owner: ask the owner, then record the answer by `decide` "
-                            "with `--by owner` and `--answers` its url;", question=first_line(ask)) for _, number, ask in asked]
+                            "with `--by owner --owner-said <file>` and `--answers` its url;", question=first_line(ask)) for _, number, ask in asked]
 
 
 def superseded_twice(every):

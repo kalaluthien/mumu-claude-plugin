@@ -7,6 +7,8 @@ as a session renamed to the worker and as a bare `claude -p`, on a scratch repos
 - `role-started`, `role-renamed`, `role-child`: SessionStart in the worker's worktree tells the first two the worker role and not the child;
 - `monitor-started`, `monitor-child`: the monitor prints the worker's `answered` line for the started worker and nothing for the child;
 - `rename-child`, `rename-started`: the child is refused as owning no session, while the started worker gets past that refusal;
+- `rename-role`: the started worker's rename to a manager's name is refused as changing its role, nothing renamed, while a worker started as its `-next` successor gets past that refusal;
+- `parse`: team_names.parse reads a worker's, a sentinel's, a manager's and a `-next` successor's name, and raises ValueError on a name of no role suffix;
 - `rename-config`: the started worker, its prompt box empty, is renamed, the name Claude Code records being read from CLAUDE_CONFIG_DIR, which lies outside HOME.
 
 usage: replay-own-readers.py"""
@@ -70,8 +72,17 @@ def main(args):
                      "--label", "scope:x").rsplit("/", 1)[-1].removesuffix(".json")
         use("w1:p1", "decide", number, "--decision", f"{NAME} holds this.", "--holders", NAME)
         asked = use("w1:p2", "comment", number, "--blocked", "which way")
-        use("w1:p1", "decide", number, "--decision", "take the first way.", "--by", "c-manager", "--answers", asked)
+        use("w1:p1", "decide", number, "--decision", "take the first way.", "--answers", asked)
 
+        parsed = box.evaluate("""import json, team_names
+def parsed(name):
+    try:
+        return list(team_names.parse(name))
+    except ValueError as e:
+        return str(e)
+print(json.dumps([parsed(name) for name in ("c-worker", "ops-sentinel", "my-app-manager", "my-app-manager-next", "c-worker4", "Bad")]))""")
+        cases.step("parse", parsed[:4] == [["worker", "c", False], ["sentinel", "ops", False], ["manager", "my-app", False], ["manager", "my-app", True]]
+                   and all("is no session name" in said for said in parsed[4:]), parsed)
         for case, way, expected in (("list-started", STARTED, NAME), ("list-renamed", RENAMED, NAME), ("list-child", CHILD, "")):
             code, out = run(SCRIPTS / "list-sessions.py", ["--me"], way)
             cases.step(case, out.strip() == expected, (code, out))
@@ -83,13 +94,18 @@ def main(args):
         code, saw = run(MONITOR, ["--polls", "3"], CHILD)
         cases.step("monitor-child", code == 0 and saw.strip() == "", (code, saw))
         # the fake herdr keeps a rename, so the renames come last
-        code, out = run(RENAME, ["c-worker2"], CHILD)
+        code, out = run(RENAME, ["c2-worker"], CHILD)
         cases.step("rename-child", code == 1 and "no herdr session owns this pane" in out, (code, out))
-        code, out = run(RENAME, ["c-worker2"], STARTED, seconds=RENAME_SECONDS)
+        code, out = run(RENAME, ["c2-worker"], STARTED, seconds=RENAME_SECONDS)
         cases.step("rename-started", "no herdr session owns this pane" not in out, (code, out))
+        before = len(box.herdr_calls())
+        code, out = run(RENAME, ["c-manager"], STARTED)
+        refused = code == 1 and "keeps the role it started with" in out and not any("rename" in call for call in box.herdr_calls()[before:])
+        code, successor = run(RENAME, ["c4-worker"], ([NAME + "-next" if word == NAME else word for word in STARTED[0]], False), seconds=RENAME_SECONDS)
+        cases.step("rename-role", refused and "keeps the role" not in successor and "no herdr session" not in successor, (out, successor))
         box.herdr([replay_probe.agent(NAME, 2, "idle", agent_session={"value": SESSION}, screen=BOX)])
-        code, out = run(RENAME, ["c-worker3"], STARTED)
-        cases.step("rename-config", code == 0 and out.strip() == "renamed to c-worker3", (code, out))
+        code, out = run(RENAME, ["c3-worker"], STARTED)
+        cases.step("rename-config", code == 0 and out.strip() == "renamed to c3-worker", (code, out))
     return cases.finish()
 
 

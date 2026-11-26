@@ -21,11 +21,11 @@ def main(args):
     with replay_probe.scratch("visibility-") as work:
         sandbox = replay_probe.Sandbox(work)
 
-        def use(*argv):
-            return sandbox.python(USE, *map(str, argv))
+        def use(*argv, claude=None):
+            return sandbox.python(USE, *map(str, argv), claude=claude)
 
-        def post(verb, number, key, line, rest="", *options):
-            done = use(verb, number, key, line, *options, *(["--text", replay_probe.write_text(work, "text.md", rest)] if rest else []))
+        def post(verb, number, key, line, rest="", claude=None):
+            done = use(verb, number, key, line, *(["--text", replay_probe.write_text(work, "text.md", rest)] if rest else []), claude=claude)
             if done.returncode:
                 raise SystemExit(f"replay-visibility: {verb} refused: {done.stderr}")
 
@@ -33,7 +33,7 @@ def main(args):
         if filed.returncode:
             return replay_probe.fail(f"cannot file the task: {filed.stderr}")
         number = filed.stdout.strip().rsplit("/", 1)[1]
-        post("decide", number, "--decision", "probe routing", f"Judge note: {NOTE}\n", "--by", "probe-manager")
+        post("decide", number, "--decision", "probe routing", f"Judge note: {NOTE}\n", ["--name", "probe-manager"])
         post("comment", number, "--blocked", ASK)
         post("comment", number, "--reported", "probe findings")
         seen = {role: use("read", number, "--as", role) for role in ("worker", "judge")}

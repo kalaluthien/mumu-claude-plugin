@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[1]
 FAKE_HERDR = PLUGIN / "skills" / "kick-off" / "fixtures" / "fake-herdr"
@@ -204,6 +205,24 @@ class Sandbox:
         since a script takes its writer's name only from a session started as that name; ARGV alone when neither gives one."""
         options = claude if claude is not None else (["--name", self.name_of(pane)] if pane and self.name_of(pane) else None)
         return as_claude(argv, options, self.work / "stand-in") if options is not None else [str(word) for word in argv]
+
+    def session(self, name, *typed):
+        """The `run` options of a session a person types into, started as NAME, whose transcript holds each row of TYPED: a prompt the person typed,
+        or a (kind, text) pair, a message of that `origin.kind`, such as `peer` for one another session sent; each call writes it anew."""
+        session_id = str(uuid.uuid5(uuid.NAMESPACE_URL, name))
+        transcript = self.config / "projects" / "sandbox" / f"{session_id}.jsonl"
+        transcript.parent.mkdir(parents=True, exist_ok=True)
+        rows = [row if isinstance(row, tuple) else ("human", row) for row in typed]
+        transcript.write_text("".join(json.dumps({"type": "user", "origin": {"kind": kind}, "message": {"role": "user", "content": text}}, separators=(",", ":")) + "\n"
+                                      for kind, text in rows))
+        return {"claude": ["--name", name], "CLAUDE_CODE_SESSION_ID": session_id}
+
+    def decider(self, by, said="", manager="probe-manager"):
+        """(the `run` options, the `decide` arguments) of a decision by BY: a session started as BY, or for `owner` the session MANAGER,
+        in which the owner typed SAID, which `--owner-said` quotes."""
+        if by != "owner":
+            return {"claude": ["--name", by]}, []
+        return self.session(manager, said), ["--by", "owner", "--owner-said", write_text(self.work, "owner-said.txt", said + "\n")]
 
     def run(self, argv, pane=None, claude=None, cwd=None, input=None, timeout=120, **variables):
         """ARGV finished as `command` runs it, from CWD (the repository by default), in pane PANE with VARIABLES added to the environment; a run past

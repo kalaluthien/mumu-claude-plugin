@@ -18,8 +18,8 @@ import usage_parser  # noqa: E402
 names = {}  # the number each task got, by the name the output uses
 
 
-def use(*argv):
-    done = box.python(USE, *map(str, argv))
+def use(*argv, **options):
+    done = box.python(USE, *map(str, argv), **options)
     if done.returncode:
         sys.exit(f"replay-board-scenario: use-board.py {' '.join(map(str, argv))}: {done.stderr.strip()}")
     return done.stdout.strip()
@@ -82,7 +82,8 @@ def main(args):
         show("label-remove")
         asked = use("comment", number("task"), "--blocked", "which sample proves the probe", "--asks", "owner", "--option", "ok: the first", "--option", "no: the second")
         show("ask")
-        use("decide", number("task"), "--decision", "use the first sample", "--text", text("answer.md", 'The owner said "use the first".\n'), "--by", "owner", "--answers", asked)
+        owner, said = box.decider("owner", "use the first")
+        use("decide", number("task"), "--decision", "use the first sample", *said, "--answers", asked, **owner)
         show("answer")
         use("edit", number("task"), "--body", text("edit.md", body_of("task").replace("Do it.", "Do it twice.")), "--reason", "probe the body edit", "--base", sha_of("task"))
         show("edit")
