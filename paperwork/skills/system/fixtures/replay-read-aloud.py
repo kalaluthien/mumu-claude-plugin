@@ -4,7 +4,7 @@
 usage: replay-read-aloud.py
 
 For each `../examples/*/contract.json` the output must hold a `sentence:` line per static edge, a `transition:` line per transition, an
-`opens:` and an `opened by:` line per node that opens a level, each property's statement at the end of a line, every `{id}` in them shown as its label is written, and under each
+`opens:` and an `opened by:` line per node that opens a level, each claim's statement at the end of a line, every `{id}` in them shown as its label is written, and under each
 scenario's heading one line per step, its sentence or its node's label, then its note. It prints one PASS or FAIL line per example,
 then whether a step note it empties in one output is found, then PASS or FAIL."""
 import json
@@ -46,7 +46,7 @@ def expected(contract):
     steps = {f"{'principle' if scenario.get('principle') else 'scenario'} {scenario['id']}: ": [
         f"  {k + 1}. {said.get(step['at'], labels.get(step['at']))}" + (f" ({shown(step['note'])})" if "note" in step else "") for k, step in enumerate(scenario["steps"])]
         for scenario in contract.get("scenarios", [])}
-    return lines, [shown(item["statement"]) for item in contract.get("properties", [])], steps
+    return lines, [shown(item["statement"]) for item in contract.get("claims", [])], steps
 
 
 def unread(printed, lines, statements, steps):

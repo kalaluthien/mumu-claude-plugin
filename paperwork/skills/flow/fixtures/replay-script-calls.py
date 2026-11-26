@@ -37,8 +37,8 @@ BREAKS = {  # each copy and the words of the line it must print: where it broke,
     "order-acyclic": "level release: order-acyclic: publish-package then write-notes then publish-package come each before the next",
     "fragment-span-overlap": "fragment each-shard: fragment-span: overlaps `store-down` ",
     "text-plain-guard": "fragments/each-shard/operands/1/guard: text-plain: ",
-    "name-form-property-title": "properties one-owner: name-form: the title `One Owner` is no slug",
-    "work-group": "edges asks-owner: work-group: a `work` row names `nowhere`, which is no group",
+    "name-form-claim-title": "claims one-owner: name-form: the title `One Owner` is no slug",
+    "work-area": "edges asks-owner: work-area: a `work` row names `nowhere`, which is no area",
     "term-words-meaning": "terms/1/meaning: term-words: ",
     "name-english-term": "terms/1/term: name-english: `소유자 record` holds Korean",
 }
@@ -69,7 +69,7 @@ def breaks(held, folder):
 
 def catalogue(folder):
     missed = []
-    for word, line in (("tags", re.compile(r"^edge call: ", re.M)), ("rules", re.compile(r"^call-failure: a `call` between nodes of two groups", re.M))):
+    for word, line in (("tags", re.compile(r"^edge call: ", re.M)), ("rules", re.compile(r"^call-failure: a `call` between nodes of two areas", re.M))):
         done = run(CHECKER, [word], folder)
         if done.returncode or not line.search(done.stdout):
             missed.append(f"catalogue {word}: exit {done.returncode}, stdout {done.stdout[:120]!r}")

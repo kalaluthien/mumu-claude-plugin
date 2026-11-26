@@ -69,11 +69,11 @@ def contract_of(nodes, tasks, edges, milestones):
         "title": "Random plan",
         "purpose": "Orders random work.",
         "sources": [{"id": "notes", "path": "https://example.com/notes", "says": "The plan."}],
-        "groups": [{"id": "crew", "label": "Crew"}],
+        "areas": [{"id": "crew", "label": "Crew"}],
         "levels": [{"id": "work", "title": "work", "kind": "plan", "nodes": nodes}],
-        "nodes": [{"id": name, "label": f"Worker {k}", "tag": "actor", "group": "crew", "purpose": f"Does the work of crew member {k}."} for k, name in enumerate(nodes)],
+        "nodes": [{"id": name, "label": f"Worker {k}", "tag": "actor", "area": "crew", "purpose": f"Does the work of crew member {k}."} for k, name in enumerate(nodes)],
         "tasks": tasks, "edges": edges, "milestones": milestones,
-        "properties": [{"id": "ordered", "title": "ordered", "kind": "invariant", "statement": "Each step waits for what it names.", "on": ["work"]}],
+        "claims": [{"id": "ordered", "title": "ordered", "kind": "guarantee", "statement": "Each step waits for what it names.", "on": ["work"]}],
         "questions": [{"id": "what-first", "asks": "What runs first?", "answers": ["task-0"]}],
     }
     next(task for task in tasks if task["id"] == "task-0")["evidence"] = ["notes"]

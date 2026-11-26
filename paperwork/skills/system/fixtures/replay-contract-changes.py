@@ -25,7 +25,7 @@ TAGS = catalogue(HERE.parent / "assets" / "tags.json")
 
 
 def records(contract):
-    """Each record of CONTRACT by its key: a source, a term, a level's own fields, an area, a node, an edge, a scenario, a property."""
+    """Each record of CONTRACT by its key: a source, a term, a level's own fields, an area, a node, an edge, a scenario, a claim."""
     found = {"contract": {name: contract[name] for name in ("title", "purpose")}}
     found.update({"source " + source["id"]: source for source in contract.get("sources", [])})
     found.update({"term " + term["term"]: term for term in contract.get("terms", [])})
@@ -33,7 +33,7 @@ def records(contract):
         found["level " + level["id"]] = {name: value for name, value in level.items() if name not in ("areas", "nodes", "edges")}
         for kind in ("areas", "nodes", "edges"):
             found.update({element["id"]: element if kind == "edges" else {**element, "level": level["id"]} for element in level.get(kind, [])})
-    found.update({item["id"]: item for item in contract.get("scenarios", []) + contract.get("properties", [])})
+    found.update({item["id"]: item for item in contract.get("scenarios", []) + contract.get("claims", [])})
     return found
 
 
@@ -138,7 +138,7 @@ def stranded(contract):
     return [key for key, rule in wanted if (key, rule) not in named] + ([] if status == 1 and wanted else ["a refusal"]), len(wanted)
 
 
-SPOKEN = ("level ", "  sentence:", "  transition:", "  rule:", "principle ", "scenario ", "property ", "invariant ", "fact ", "gap ", "assumption ", "constraint ", "convention ")
+SPOKEN = ("level ", "  sentence:", "  transition:", "  rule:", "principle ", "scenario ", "guarantee ", "assumption ")
 
 
 def worded(value, kind=None, tag=None, name=None):
@@ -150,7 +150,7 @@ def worded(value, kind=None, tag=None, name=None):
         return [text for part in value for text in worded(part, kind, tag, name)]
     found = []
     for key, part in value.items() if isinstance(value, dict) else ():
-        if key in ("levels", "scenarios", "properties", "terms", "steps"):
+        if key in ("levels", "scenarios", "claims", "terms", "steps"):
             found += worded(part)
         elif key in ("areas", "nodes", "edges"):
             found += [text for element in part for text in worded(element, key[:-1], element["tag"])]
@@ -192,7 +192,7 @@ def spoken(contract):
             texts += [edge["label"], edge.get("info", {}).get("guard"), edge.get("info", {}).get("action")]
     for scenario in contract.get("scenarios", []):
         texts += [scenario.get("title"), scenario.get("purpose")] + [step.get("note") for step in scenario["steps"]]
-    for item in contract.get("properties", []):
+    for item in contract.get("claims", []):
         texts.append(item.get("statement"))
     return [text for text in texts if isinstance(text, str)]
 
@@ -204,7 +204,7 @@ def said(text, names):
 
 def move_edge(contract):
     named = {step["at"] for scenario in contract.get("scenarios", []) for step in scenario["steps"]}
-    named |= {name for item in contract.get("properties", []) for name in item.get("on", [])}
+    named |= {name for item in contract.get("claims", []) for name in item.get("on", [])}
     choices = []
     for level in contract["levels"]:
         pairs = {(edge["from"], edge["to"]) for edge in level.get("edges", [])}
@@ -215,7 +215,7 @@ def move_edge(contract):
                 if node["tag"] != "state" and node["id"] not in (edge["from"], edge["to"]) and (edge["from"], node["id"]) not in pairs:
                     choices.append((edge["id"] not in named, edge, node["id"]))
                     break
-    in_paths = {key for item in contract.get("properties", []) for path in item.get("paths", []) for key in path}
+    in_paths = {key for item in contract.get("claims", []) for path in item.get("paths", []) for key in path}
     for _, edge, target in sorted((choice for choice in choices if choice[1]["id"] not in in_paths), key=lambda choice: choice[0]):
         old, edge["to"] = edge["to"], target
         if run("check", contract)[0] == 0:
@@ -252,9 +252,9 @@ def refused(contract):
         change(copied["levels"][0]["nodes"][0])
         return copied
 
-    def with_property(change):
+    def with_claim(change):
         copied = copy.deepcopy(contract)
-        change(next(item for item in copied["properties"] if item["kind"] != "fact"))
+        change(next(item for item in copied["claims"] if "paths" not in item))
         return copied
 
     def with_step(change):
@@ -279,7 +279,7 @@ def refused(contract):
 
     def with_statement(change):
         copied = copy.deepcopy(contract)
-        change(copied["properties"][0])
+        change(copied["claims"][0])
         return copied
 
     tries = {
@@ -297,7 +297,7 @@ def refused(contract):
         "a made-up tag": with_statement(lambda item: item.update(statement="<zzz-part>" + item["statement"])),
         "a comment": with_node(lambda node: node.update(purpose="x <!-- c --> y")),
         "markup made of a node's label": with_node(lambda node: node.update(label="mark", purpose="a <{" + node["id"] + "}>x")),
-        "paths on a property that is no fact": with_property(lambda item: item.update(paths=[{"any": 1}])),
+        "paths that are no chains of edges": with_claim(lambda item: item.update(paths=[{"any": 1}])),
         "a declaration": with_node(lambda node: node.update(purpose="<!DOCTYPE html>")),
         "a processing instruction": with_step(lambda step: step.update(note="<?xml?> it holds")),
         "a tag after a space": with_node(lambda node: node.update(purpose="< b>x")),
@@ -318,7 +318,7 @@ def refused(contract):
     kept = copy.deepcopy(contract)
     first = kept["levels"][0]["nodes"][0]
     first["label"] = "kept-name.txt"
-    kept["properties"][0]["statement"] = "{" + first["id"] + "} holds it. {" + first["id"] + "} is read."
+    kept["claims"][0]["statement"] = "{" + first["id"] + "} holds it. {" + first["id"] + "} is read."
     unnamed += ["a file name shown with a capital"] if "kept-name.txt holds it. kept-name.txt is read." not in run("read", kept)[1] else []
     noted = with_step(lambda step: step.update(note="<b>it"))
     place = f"scenarios/{noted['scenarios'][0]['id']}/steps/1/note: text-plain"

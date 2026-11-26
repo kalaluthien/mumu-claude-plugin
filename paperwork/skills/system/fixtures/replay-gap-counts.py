@@ -26,7 +26,8 @@ def counts(contract):
     levels = contract["levels"]
     group = {kind: [record for level in levels for record in level.get(kind, [])] for kind in ("nodes", "edges", "areas")}
     tags = {kind: collections.Counter(record.get("tag") for record in records) for kind, records in group.items()}
-    properties = collections.Counter(item.get("kind") for item in contract.get("properties", []))
+    claims = contract.get("claims", [])
+    sourced = sum(1 for item in claims if "source" in item)
     items = collections.Counter(name for records in group.values() for record in records for name in record.get("info", {}))
     edge_items = sum(1 for edge in group["edges"] if edge.get("tag") in ("call", "publish", "access") and edge.get("info"))
     return {
@@ -34,8 +35,8 @@ def counts(contract):
         "relations between components": len(group["edges"]) - tags["edges"]["transition"],
         "layers and hierarchy": len(levels) - 1,
         "partitioning and boundaries": len(group["areas"]),
-        "naming and placement conventions": properties["convention"],
-        "coupling and dependency": tags["edges"]["dependsOn"] + properties["fact"],
+        "naming and placement conventions": sourced,
+        "coupling and dependency": tags["edges"]["dependsOn"] + sum(1 for item in claims if "paths" in item),
         "system documents": len(contract.get("sources", [])),
         "state": tags["nodes"]["state"] + tags["nodes"]["dataStore"] + tags["nodes"]["queue"],
         "control": sum(tags["nodes"][tag] for tag in ("trigger", "router", "policy")) + sum(tags["edges"][tag] for tag in ("transition", "triggers", "sequence", "governs")),
@@ -43,14 +44,14 @@ def counts(contract):
         "interfaces and payloads": tags["nodes"]["endpoint"] + edge_items,
         "failure and degraded behaviour": items["failure"] + items["errors"],
         "scenarios and operational principles": len(contract.get("scenarios", [])),
-        "invariants and properties": properties["invariant"] + properties["property"],
-        "assumptions and constraints": properties["assumption"] + properties["constraint"],
+        "guarantees": sum(1 for item in claims if item["kind"] == "guarantee"),
+        "assumptions and constraints": sum(1 for item in claims if item["kind"] == "assumption" or "source" in item),
         "domain terms and coined words": len(contract.get("terms", [])),
         "rationale": items["why"],
         "deployment and environment": tags["nodes"]["host"] + tags["areas"]["deployment"],
         "security and trust": tags["nodes"]["credential"] + tags["nodes"]["policy"] + tags["areas"]["trustZone"],
         "actors and outside systems": tags["nodes"]["actor"],
-        "gaps and open questions": properties["gap"],
+        "gaps and open questions": sum(1 for item in claims if "fault" in item),
         "evidence": sum(1 for records in group.values() for record in records if record.get("evidence")),
     }
 

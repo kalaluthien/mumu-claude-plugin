@@ -4,7 +4,7 @@
 usage: replay-reconstruction.py
 
 Each `../examples/*/contract.json` is scored against the repository's root, then three copies of it: a quoted value with a digit more must
-lower precision and exit 1, an answered question left to a gap must lower recall by one alone, and a source path that is no file must
+lower precision and exit 1, an answered question left to a claim with a fault must lower recall by one alone, and a source path that is no file must
 print a `missing path` line and exit 1. It prints one PASS or FAIL line per example with both scores, then PASS or FAIL."""
 import copy
 import json
@@ -46,7 +46,7 @@ def planted(contract, missing):
         return value
 
     records = [element for kind in ("nodes", "edges", "areas") for element in copied.get(kind, [])]
-    for record in records + copied.get("properties", []):
+    for record in records + copied.get("claims", []):
         for name in ("label", "purpose", "statement", "info") if record.get("evidence") else ():
             if name in record:
                 record[name] = changed(record[name], record["id"])
@@ -67,17 +67,16 @@ def faults(contract):
         status, changed, _ = scored(wrong)
         if status != 1 or len(changed) != 2 or changed[1][0] >= found or changed[0] != pairs[0]:
             found_faults.append(f"a quoted value with a digit more leaves precision at {changed[1:]} of {pairs[1]}, exit {status}")
-    gap = next((item["id"] for item in contract.get("properties", []) if item["kind"] == "gap"), None)
+    faulted = {item["id"] for item in contract.get("claims", []) if "fault" in item}
     open_question = copy.deepcopy(contract)
-    first = next((question for question in open_question.get("questions", []) if question.get("answers")), None)
-    if first is None or gap is None:
-        found_faults.append("it holds no answered question or no gap to leave one to")
+    first = next((question for question in open_question.get("questions", []) if not set(question.get("answers", [])) <= faulted), None)
+    if first is None or not faulted:
+        found_faults.append("it holds no answered question or no claim with a fault to leave one to")
     else:
-        del first["answers"]
-        first["gap"] = gap
+        first["answers"] = sorted(faulted)[:1]
         _, changed, _ = scored(open_question)
         if changed != [(answered - 1, asked), (found, quoted)]:
-            found_faults.append(f"a question left to a gap gives {changed}, expected recall {answered - 1} of {asked} and precision unchanged")
+            found_faults.append(f"a question left to a claim with a fault gives {changed}, expected recall {answered - 1} of {asked} and precision unchanged")
     moved = copy.deepcopy(contract)
     moved["sources"][0]["path"] += ".gone"
     status, _, printed = scored(moved)

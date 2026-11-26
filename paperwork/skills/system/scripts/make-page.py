@@ -28,7 +28,7 @@ MARKUP = f"""<main id="diagram"><div id="stage" class="stage"></div></main>
 <nav id="crumbs" class="bar" aria-label="Levels"></nav>
 <div id="tools" class="bar">
 <button id="scenarios" class="tool" type="button">Scenarios</button>
-<button id="properties" class="tool" type="button">Properties</button>
+<button id="claims" class="tool" type="button">Claims</button>
 <button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
 </div>
 {CARD}
@@ -75,7 +75,7 @@ def main(args):
                              lambda name: {"formulas": {key: drawn_before[key] for key in named(parts[name]) if key in drawn_before}})
     formulas = {key: markup for piece in pieces.values() for key, markup in piece["formulas"].items()}
     blocks = {"data": nested(contract), "tags": catalogue(ASSETS / "tags.json"), "formulas": formulas, "parts": keyed}
-    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, scenarios and properties", blocks))
+    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, scenarios and claims", blocks))
     print(report(keyed, made))
     print(target)
     return 0

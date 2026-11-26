@@ -5,7 +5,7 @@ usage: score-contract.py <contract> --root <subject root>
 
 The contract is a JSON file or a folder of part files that `check-contract.py split` wrote.
 
-Prints `recall <answered> of <asked>` with each question left to a gap, `precision <found> of <quoted>` with each quote its record's
+Prints `recall <answered> of <asked>` with each question left to a claim whose `fault` says why no source answers it, `precision <found> of <quoted>` with each quote its record's
 sources do not hold, and each source whose path is no file under the root; exit 1 when a quote or a path is missing, 0 otherwise.
 A quote is a text between backticks, placeholders such as `<port>` left out of it, or a line of an item of the code form, in a record
 that carries evidence; it is looked for in the whole text of the sources that record cites.
@@ -54,10 +54,11 @@ def score(contract, root):
         else:
             lost.append(f"{source['id']}: {source['path']}")
     questions = contract.get("questions", [])
-    gaps = [f"{question['id']}: {question['gap']}" for question in questions if not question.get("answers")]
+    faulted = {claim["id"] for claim in contract.get("claims", []) if "fault" in claim}
+    gaps = [f"{question['id']}: {', '.join(question['answers'])}" for question in questions if set(question.get("answers", [])) <= faulted]
     records = [element for kind in ("nodes", "edges", "areas") for element in contract.get(kind, [])]
     quoted, missing = 0, []
-    for record in records + contract.get("properties", []):
+    for record in records + contract.get("claims", []):
         cited = [held[entry.split(":")[0]] for entry in record.get("evidence", []) if entry.split(":")[0] in held]
         for quote in quotes(record) if cited else ():
             quoted += 1
@@ -76,7 +77,7 @@ def main(args):
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
         print(f"{args[0]}: {e!r}; run check-contract.py check on it first", file=sys.stderr)
         return 2
-    print(f"recall {answered} of {asked}: rebuild questions the contract answers; each other is left to a gap")
+    print(f"recall {answered} of {asked}: rebuild questions the contract answers; each other is left to a claim that says why")
     print("".join(f"  {line}\n" for line in gaps), end="")
     print(f"precision {found} of {quoted}: quoted values the cited sources hold; each other is wrong or cites the wrong source")
     print("".join(f"  {line}\n" for line in missing), end="")

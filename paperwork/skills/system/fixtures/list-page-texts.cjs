@@ -3,7 +3,7 @@
 //
 // usage: list-page-texts.cjs PAGE.html
 // It prints one JSON line per view, {"view", "text", "shown"}: each level, each node, edge and area with its
-// overlay, each step of each scenario, each property with its overlay, and the lists the Scenarios and
+// overlay, each step of each scenario, each claim with its overlay, and the lists the Scenarios and
 // Properties buttons open. `text` is the text the window draws and `shown` says whether the view's overlay or
 // list came. It exits 1 with a `setup:` line when Playwright or its browser is missing, and 2 on another call.
 // The browser is the one ../../../lib/launch-browser.cjs starts.
@@ -39,8 +39,8 @@ async function main() {
       for (const kind of ["areas", "nodes", "edges"]) for (const record of level[kind] || []) views.push({ view: `${kind} ${record.id}`, address: `#level=${level.id}&at=${record.id}`, card: record.id });
     }
     for (const scenario of contract.scenarios || []) scenario.steps.forEach((step, k) => views.push({ view: `scenario ${scenario.id} step ${k + 1}`, address: `#scenario=${scenario.id}&step=${k}`, step: k, note: !!step.note }));
-    for (const property of contract.properties || []) views.push({ view: `property ${property.id}`, address: `#at=${property.id}`, card: property.id });
-    for (const button of ["scenarios", "properties"]) views.push({ view: `list of ${button}`, address: "", button });
+    for (const claim of contract.claims || []) views.push({ view: `claim ${claim.id}`, address: `#at=${claim.id}`, card: claim.id });
+    for (const button of ["scenarios", "claims"]) views.push({ view: `list of ${button}`, address: "", button });
     for (const one of views) {
       await page.goto("about:blank");
       await page.goto(built + one.address);

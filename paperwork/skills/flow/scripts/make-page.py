@@ -82,7 +82,7 @@ def main(args):
     formulas = {key: markup for piece in pieces.values() for key, markup in piece["formulas"].items()}
     order = {level: entry for piece in pieces.values() for level, entry in piece["order"].items()}
     blocks = {"data": contract, "tags": catalogue(ASSETS / "tags.json"), "formulas": formulas, "order": order, "parts": keyed}
-    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, tasks and properties", blocks))
+    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, tasks and claims", blocks))
     print(report(keyed, made))
     print(target)
     return 0

@@ -11,9 +11,8 @@ SYSTEM = {"held": {"areas": "level", "nodes": "level", "edges": "from"}, "after"
 FLOW = {"held": {"edges": "level", "tasks": "level", "fragments": "level", "milestones": "level"}, "after": "nodes"}
 TOP = "top"
 SPOKEN = ("about", "basis", "evidence", "info", "purpose")  # what no rule of another level reads
-READ_BY_TOP = ("evidence", "purpose")  # what the top's scenarios, properties and questions read of a level
-TOP_WORDS = {"contract", "title", "purpose", "source", "sources", "term", "terms", "group", "groups", "scenario", "scenarios",
-             "property", "properties", "question", "questions"}
+READ_BY_TOP = ("evidence", "purpose")  # what the top's scenarios, claims and questions read of a level
+TOP_WORDS = {"contract", "title", "purpose", "source", "sources", "term", "terms", "scenario", "scenarios", "claim", "claims", "question", "questions"}
 
 
 def level_part(name):

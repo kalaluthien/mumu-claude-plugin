@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Drive a page in a headless Chromium as a reader would, and print `PASS <mode>` or `FAIL <mode>: <reason>`.
-//   own <page.html>             the page replay-page-parts.py writes: the first box carries a ✓1 and a !1 badge, read aloud as `1 holds` and
-//                               `1 gaps`; the pointer resting on it shows its card with a chip per property; a click on the gap's chip shows
-//                               the gap's card headed by its title; `/` shows search to the eye, where the second node's Korean alias, its
+//   own <page.html>             the page replay-page-parts.py writes: the first box carries a ✓1 and a ✗1 badge, read aloud as `1 holds` and
+//                               `1 fails`; the pointer resting on it shows its card with a chip per claim; a click on the failing claim's chip
+//                               shows that claim's card headed by its title; `/` shows search to the eye, where the second node's Korean alias, its
 //                               name and its name's first three letters typed on a Korean layout each list it first, and Enter shows its card
 //   system <page.html> <word> <words.json>
 //                               a system page: the pointer resting on its first node shows a card whose heading starts with WORD, every badge
@@ -33,16 +33,16 @@ const heading = (page) => page.waitForFunction(() => document.querySelector("#ca
 
 async function own(page) {
   const badges = await page.$$eval('.box[data-id="intake"] .counts > .count', (all) => all.map((one) => one.textContent));
-  check(badges.join(" ") === "✓1 !1", `the first box's badges read "${badges.join(" ")}"`);
+  check(badges.join(" ") === "✓1 ✗1", `the first box's badges read "${badges.join(" ")}"`);
   const spoken = await page.$$eval('.box[data-id="intake"] .counts > .count', (all) => all.map((one) => one.getAttribute("aria-label")));
-  check(spoken.join(", ") === "1 holds, 1 gaps", `the first box's badges are read aloud as "${spoken.join(", ")}"`);
+  check(spoken.join(", ") === "1 holds, 1 fails", `the first box's badges are read aloud as "${spoken.join(", ")}"`);
   await page.hover('.box[data-id="intake"]');
   check(await heading(page) === "Intake", "resting on the first box showed no card headed Intake");
   const chips = await page.$$eval("#card .ref", (all) => all.map((one) => one.dataset.ref));
   check(chips.includes("checked") && chips.includes("no-retry"), `the card's chips are ${JSON.stringify(chips)}`);
   await page.click('#card .ref[data-ref="no-retry"]');
-  check(await page.waitForFunction(() => document.querySelector("#card.show h2").textContent === "A failed intake is never retried", null, { timeout: 4000 }).catch(() => null),
-    "a click on the gap's chip did not show the gap's card");
+  check(await page.waitForFunction(() => document.querySelector("#card.show h2").textContent === "A failed intake is retried", null, { timeout: 4000 }).catch(() => null),
+    "a click on the failing claim's chip did not show that claim's card");
   for (const query of ["원장", "ㅣㄷㅇㅎㄷㄱ", "ㅣㄷㅇ"]) { // three letters forgive no slip, so each key must read as pressed
     await page.mouse.move(1, 1);
     await page.keyboard.press("/");

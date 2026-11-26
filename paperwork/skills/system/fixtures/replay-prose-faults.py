@@ -83,8 +83,8 @@ def texts(contract):
         found += own(scenario, here, ("title",), "name") + own(scenario, here, ("purpose",), "description")
         for k, step in enumerate(scenario["steps"]):
             found += own(step, f"{here}steps/{k + 1}/", ("note",), "description")
-    for item in contract.get("properties", []):
-        found += own(item, f"properties/{item['id']}/", ("statement", "fault"), "description")
+    for item in contract.get("claims", []):
+        found += own(item, f"claims/{item['id']}/", ("statement", "fault"), "description")
     for question in contract.get("questions", []):
         found += own(question, f"questions/{question['id']}/", ("asks",), "description")
     return found

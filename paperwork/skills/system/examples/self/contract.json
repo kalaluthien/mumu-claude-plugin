@@ -52,7 +52,7 @@
   {
    "term": "gap",
    "aliases": ["빈틈", "누락"],
-   "meaning": "what {contract} lacks, forbids wrongly, says twice or says with two meanings",
+   "meaning": "a claim whose fault says what {contract} lacks, forbids wrongly, says twice or says with two meanings",
    "coined": false
   }
  ],
@@ -231,7 +231,7 @@
      "name nodes as things and edges as sentences",
      "draw each lifecycle as a region of states",
      "fill each tag's items",
-     "write scenarios and properties",
+     "write scenarios and claims",
      "run {checker}, read aloud, answer each open question"
     ],
     "failure": {
@@ -361,7 +361,7 @@
         "name": "scenarios"
        },
        {
-        "name": "properties"
+        "name": "claims"
        }
       ]
      }
@@ -532,14 +532,14 @@
    ]
   },
   {
-   "id": "property",
-   "label": "Property",
+   "id": "claim",
+   "label": "Claim",
    "tag": "artifact",
    "level": "parts",
    "area": "told",
-   "purpose": "State what must hold of the nodes and edges, what is assumed and what is not known.",
+   "purpose": "State what {subject} keeps true and what it takes the world to be, each with whether it holds and, when it does not, why.",
    "info": {
-    "format": "id, kind, strength, status, fault, statement, on, paths"
+    "format": "id, title, kind, strength, status, fault, source, statement, on, paths"
    },
    "evidence": [
     "contract-playbook"
@@ -793,7 +793,7 @@
   },
   {
    "id": "constrains",
-   "from": "property",
+   "from": "claim",
    "to": "node",
    "label": "constrains",
    "many": true,

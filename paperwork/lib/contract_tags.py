@@ -7,10 +7,10 @@ SHARED = pathlib.Path(__file__).resolve().parent / "tags.json"
 
 
 def merged(own, shared):
-    """The catalogue OWN over SHARED: SHARED's forms, each kind's tags with OWN's replacing one of the same name, and each kind's
+    """The catalogue OWN over SHARED: OWN's forms if it names any, else SHARED's, each kind's tags with OWN's replacing one of the same name, and each kind's
     common items, SHARED's that OWN does not name, then OWN's as written, so a whole catalogue merged again stays the same and
     OWN's own faults, such as an item named twice, stay for the checker to find."""
-    whole = {"forms": shared["forms"], "common": {}}
+    whole = {"forms": own.get("forms", shared["forms"]), "common": {}}
     for kind in dict.fromkeys([*shared["common"], *own.get("common", {})]):
         added = own.get("common", {}).get(kind, [])
         named = {item.get("name") for item in added if isinstance(item, dict)}

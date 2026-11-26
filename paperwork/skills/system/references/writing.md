@@ -4,7 +4,7 @@ Word every text of a contract so that a reader new to the subject's field takes 
 
 ## Domain
 
-- **name**: a title, a label, a term or an edge's label. It is English and shows as written. A level's, a scenario's and a property's title is a slug, lowercase words and digits joined by `-`, such as `inside-server`.
+- **name**: a title, a label, a term or an edge's label. It is English and shows as written. A level's, a scenario's and a claim's title is a slug, lowercase words and digits joined by `-`, such as `inside-server`.
 - **description**: every other text: a `purpose`, an `about`, a `meaning`, an item's text, a step's `note`, a `statement`, a question's `asks`. It is English, or Korean when the reader asks for Korean, one language through the contract.
 - **lead**: the description a reader meets before what sits under it. The contract's `purpose` leads the levels, a level's `about` its areas, an area's `purpose` item, or its `why` where its tag has no `purpose`, its nodes, a node's `purpose` its items, a scenario's `purpose` its steps.
 - **reader**: the person who rebuilds the subject from the contract alone. The reader knows software in general, never the subject's field, its sources or the history of the contract.
