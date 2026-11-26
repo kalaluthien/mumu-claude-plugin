@@ -101,7 +101,7 @@ def read_task(options):
     tasks = decisions.read(options.task, board.fresh)
     task = tasks[options.task]
     state = task_state.compose(task, board.blockers(task["number"]))
-    print(f"#{task['number']} {task_state.title(task)}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'OPEN' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
+    print(f"#{task['number']} {task['title']}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'OPEN' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
           f"{'scope: ' + (task['scope'] or '(repository root)') + chr(10) if 'scope' in task else ''}labels: {', '.join(task['labels'])}\nparent: {task['parent']}\n"
           f"depends: {' '.join(f'#{number}' for number in task['depends'])}\nbody sha: {board.body_sha(task['body'])}\n\n{task['body']}\n")
     print("\n".join(decisions.lines(task["number"], tasks, questions=role != "judge")))

@@ -11,7 +11,6 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
 import data_folder  # noqa: E402
-import task_state  # noqa: E402
 
 
 def main(args):
@@ -33,7 +32,7 @@ def main(args):
     if not task:
         print(f"print-task-markdown: cannot read #{args[0]}", file=sys.stderr)
         return 1
-    print(f"# #{task['number']} {task_state.title(task)}\n\n{task['state'].lower()}\n\n{task['body'].strip()}")
+    print(f"# #{task['number']} {task['title']}\n\n{task['state'].lower()}\n\n{task['body'].strip()}")
     for note in task["comments"]:
         print(f"\n---\n\n{note['body'].strip()}")
     return 0

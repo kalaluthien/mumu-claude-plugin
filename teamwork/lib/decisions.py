@@ -4,6 +4,7 @@ decision to, and the gaps the manager's heartbeat lists. TASKS is {number: task}
 import datetime
 import re
 
+import board_text
 import task_state
 import task_links
 
@@ -129,8 +130,8 @@ def owner_questions(tasks):
     asked = sorted(((question["ask"].get("createdAt") or "", number, question["ask"]) for number, task in tasks.items()
                     for question in task_state.open_questions(task) if question["fields"].get("asks") == "owner"),
                    key=lambda item: item[0])
-    return [f"question #{number}: {first_line(ask)} ({ask['url']}) waits on the owner; ask the owner, then record the answer by `decide` "
-            "with `--by owner` and `--answers` its url" for _, number, ask in asked]
+    return [board_text.line(f"question #{number} ({ask['url']}) waits on the owner: ask the owner, then record the answer by `decide` "
+                            "with `--by owner` and `--answers` its url;", question=first_line(ask)) for _, number, ask in asked]
 
 
 def superseded_twice(every):

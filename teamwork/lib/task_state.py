@@ -178,20 +178,6 @@ def trusted(item):
     return item.get("trusted") is True
 
 
-# C0 and DEL, which a terminal or a prompt reads as a command or a line break
-CONTROL = re.compile(r"[\x00-\x1f\x7f]")
-TITLE_CUT = 60
-
-
-def title(item):
-    """Its title as a prompt or the pane may show it: a trusted author's as written, else quoted, its control characters
-    removed and cut to TITLE_CUT characters then an ellipsis, so it reads as data, never as an instruction."""
-    if trusted(item):
-        return item["title"]
-    text = CONTROL.sub("", item["title"] or "")
-    return '"' + (text[:TITLE_CUT] + "…" if len(text) > TITLE_CUT else text) + '"'
-
-
 def fields(comment):
     """A comment's fields, as board-record-schema.json names them and `use-board.py` stored them."""
     return comment.get("fields") or {}

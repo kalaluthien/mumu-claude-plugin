@@ -4,6 +4,7 @@ import re
 
 import background_work
 import board
+import board_text
 import decisions
 import task_state
 import landing
@@ -175,7 +176,7 @@ def routing_lines(found, present, open_tasks, blockers, again):
     for task in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(task, present) and (names := again.present()) is not None and unrouted(board.fresh(task["number"]) or task, names):
-            lines.append(f"route #{task['number']} {task_state.title(task)}: no live worker holds it; route it, or name by `depend` the open task it waits for, or close it as not planned")
+            lines.append(board_text.line(f"route #{task['number']} is held by no live worker: route it, or name by `depend` the open task it waits for, or close it as not planned;", title=task["title"]))
         # the kept read may predate the manager's own `decide`, so a question is read again before it is called open
         if asking(task) and asking(board.fresh(task["number"]) or task):
             ask = task_state.open_questions(task)[-1]["ask"]
@@ -186,9 +187,9 @@ def routing_lines(found, present, open_tasks, blockers, again):
 
 def outside_lines(outside):
     """A line per outside contributor's task or pull request."""
-    return [f"outside #{task['number']} {task_state.title(task)}: an outside contributor opened this pull request; close it unread with a comment that outside pull requests are not accepted and GitHub issues are welcome"
-            if task.get("isPullRequest") else
-            f"outside #{task['number']} {task_state.title(task)}: an outside contributor opened it; ask the owner, then route it, answer it by a {ANSWER}:, or close it"
+    return [board_text.line(f"outside #{task['number']} was opened by an outside contributor as a pull request: close it unread with a comment that outside pull requests are not accepted and GitHub issues are welcome;"
+                            if task.get("isPullRequest") else
+                            f"outside #{task['number']} was opened by an outside contributor: ask the owner, then route it, answer it by a {ANSWER}:, or close it;", title=task["title"])
             for task in outside]
 
 
@@ -229,7 +230,7 @@ def feed_lines(me, data, fed_urls):
         said = " | ".join(comment["body"].strip().splitlines()[0] for comment in posted)
         # a push reaches the owner away only through Remote Control, so without it the line sends none
         push = "push it to the owner by PushNotification" if remote_control.active((me.get("agent_session") or {}).get("value")) else "tell the owner in your tab; send no push, since Remote Control is off in your session"
-        lines.append(f"feed #{task['number']} {task_state.title(task)}: {said} ({posted[-1]['url']}); {push}")
+        lines.append(board_text.line(f"feed #{task['number']} has a report ({posted[-1]['url']}): {push};", title=task["title"], report=said))
     return lines
 
 
@@ -258,8 +259,8 @@ def worker_goal(me):
     fresh = [board.fresh(task["number"]) or task for task in every if holds(task, me["name"])]
     open_tasks.update((task["number"], task) for task in fresh)
     blockers = wait_blockers([task["number"] for task in fresh], open_tasks) or {}
-    return [f"#{task['number']} {task_state.title(task)} ({task['url']}): "
-            + ("waits on your manager" if asking(task) else "waits on a task" if waiting(task, open_tasks, blockers) else "open") for task in fresh]
+    return [board_text.line(f"#{task['number']} " + ("waits on your manager" if asking(task) else "waits on a task" if waiting(task, open_tasks, blockers) else "is open")
+                            + f" ({task['url']}):", title=task["title"]) for task in fresh]
 
 
 def worker_read(me):

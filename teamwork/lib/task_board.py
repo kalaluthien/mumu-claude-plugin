@@ -48,10 +48,10 @@ def entry(node, superseded=frozenset()):
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
     state = task_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
     summary = node.get("partsSummary") or {}
-    closed = [{"number": task["number"], "title": task_state.title(task), "url": task["url"], "blockers": blockers_of(task),
+    closed = [{"number": task["number"], "title": task["title"], "url": task["url"], "blockers": blockers_of(task),
                "stopped": task.get("stateReason") in STOPPED} for task in (node.get("parts") or {}).get("nodes", []) if task["state"] == "CLOSED"]
     next_step = next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else ""
-    return {"number": node["number"], "title": task_state.title(node), "url": node["url"],
+    return {"number": node["number"], "title": node["title"], "url": node["url"],
             "holder": " ".join(state["holders"] or []), "wait": state["waits"] if state["waits"] == task_state.OWNER_WAIT else "",
             "progress": progress_of(summary, blockers, next_step),
             "done": [item for item in state["done"] if item["kind"] != "task"],

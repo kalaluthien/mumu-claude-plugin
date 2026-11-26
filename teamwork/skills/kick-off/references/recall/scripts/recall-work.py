@@ -16,7 +16,6 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
 import data_folder  # noqa: E402
-import task_state  # noqa: E402
 from judge_note import without_judge_note  # noqa: E402
 import landing  # noqa: E402
 import task_links  # noqa: E402
@@ -60,7 +59,7 @@ def load(before):
             kind = "parent" if task_links.parts(item["body"]) else "task"
             state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
         items[item["number"]] = {
-            "head": f"#{item['number']} {kind} {state}: {task_state.title(item)}",
+            "head": f"#{item['number']} {kind} {state}: {item['title']}",
             "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
             # any capitalised word, since comments under words the grammar no longer lists stay on the record
             "records": [without_judge_note(text.strip()).strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],

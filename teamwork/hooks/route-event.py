@@ -306,7 +306,7 @@ def route(kind, event, role, me, listed):
         return {"hookSpecificOutput": {"hookEventName": kind, "additionalContext": text}}
     # once, so a real wait still stops; never while a subagent or a background command it waits on still runs
     if kind == "Stop" and role == "worker" and not event.get("stop_hook_active") and not background_work.running_work(event.get("transcript_path") or ""):
-        goal = [line for line in team_gaps.worker_goal(me) if line.endswith(": open")]
+        goal = [line for line in team_gaps.worker_goal(me) if re.match(r"#\d+ is open ", line)]
         return goal and {"decision": "block", "reason": "\n".join(["Your goal still waits on you:", *goal,
                          "Take its next step; stop again only while a subagent, a check or your manager has it."])}
     entered = role == "worker" and live_change_directory(command_of(event), event.get("cwd"))
