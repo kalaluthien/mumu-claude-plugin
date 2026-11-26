@@ -30,6 +30,7 @@ CALLS = {
     "skills/kick-off/scripts/list-sessions.py": [["--me"]],
     "skills/kick-off/references/estimation/scripts/list-task-durations.py": [["--from-json", "body"]],
     "skills/kick-off/references/manager/scripts/print-scope-folder.py": [["name"], ["--me"]],
+    "skills/kick-off/scripts/pick-verdict.py": [["--gaps", "document"], ["--since", "abc"]],
     "skills/kick-off/scripts/print-steering.py": [["key"]],
     "monitors/print-team-gaps.py": [["--polls", "1"]],
     "skills/kick-off/references/recall/scripts/recall-work.py": [["words", "--path", "file", "--before", "2026-01-01", "--top", "3"]],
@@ -38,6 +39,7 @@ CALLS = {
     "skills/kick-off/scripts/run-criteria.py": [["--timeout", "5", "--base", "--ref", "main", "1"], ["--pass", "1=body", "1"]],
     "skills/kick-off/references/worker-build/scripts/run-on-refs.py": [["true", "main", "main"]],
     "skills/kick-off/scripts/start-session.py": [["name", ".", "worker name", "--model", "m", "--effort", "low", "--allow", "Bash", "--steer", "key"]],
+    "skills/kick-off/references/judge/scripts/test-gap-features.py": [["table"]],
     "skills/kick-off/references/adapters/message-herdr/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [
         ["read", "1", "--as", "worker", "--full"], ["comment", "1", "--blocked", "which", "--text", "body", "--asks", "owner", "--option", "x", "--option", "y"],
