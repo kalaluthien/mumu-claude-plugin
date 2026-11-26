@@ -96,9 +96,7 @@
    "label": "Kept files",
    "tag": "module",
    "level": "skill",
-   "info": {
-    "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."
-   }
+   "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."
   },
   {
    "id": "life",
@@ -116,18 +114,14 @@
    "label": "Parts of one level",
    "tag": "module",
    "level": "parts",
-   "info": {
-    "purpose": "Draw one level as a graph with four parts."
-   }
+   "purpose": "Draw one level as a graph with four parts."
   },
   {
    "id": "told",
    "label": "Parts across levels",
    "tag": "module",
    "level": "parts",
-   "info": {
-    "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."
-   }
+   "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."
   }
  ],
  "nodes": [
@@ -855,13 +849,13 @@
    ]
   }
  ],
- "properties": [
+ "claims": [
   {
    "id": "one-file",
    "title": "one-file",
-   "kind": "invariant",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "Every page of {subject} is made from {contract} and nothing else.",
+   "strength": "must",
    "on": [
     "contract"
    ],
@@ -872,7 +866,7 @@
   {
    "id": "same-level",
    "title": "same-level",
-   "kind": "fact",
+   "kind": "guarantee",
    "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.",
    "on": [
     "node",
@@ -895,9 +889,10 @@
   {
    "id": "ids-once",
    "title": "ids-once",
-   "kind": "convention",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.",
+   "strength": "must",
+   "source": "contract-playbook",
    "on": [
     "node",
     "edge"
@@ -918,9 +913,10 @@
   {
    "id": "standard-library",
    "title": "standard-library",
-   "kind": "constraint",
-   "strength": "must",
+   "kind": "guarantee",
    "statement": "{checker} uses the Python standard library only.",
+   "strength": "must",
+   "source": "checker-code",
    "on": [
     "checker"
    ]
@@ -928,10 +924,10 @@
   {
    "id": "sentence-truth",
    "title": "sentence-truth",
-   "kind": "gap",
-   "fault": "unknown",
+   "kind": "guarantee",
+   "statement": "Each sentence `read` prints is true of {subject}.",
    "status": "unknown",
-   "statement": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.",
+   "fault": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.",
    "on": [
     "edge",
     "subject",
@@ -1015,7 +1011,9 @@
   {
    "id": "is-it-true",
    "asks": "How is a sentence of the description known to be true?",
-   "gap": "sentence-truth"
+   "answers": [
+    "sentence-truth"
+   ]
   }
  ]
 }

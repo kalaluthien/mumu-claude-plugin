@@ -5,7 +5,7 @@
         "name": "work",
         "label": "work",
         "form": "table",
-        "example": "group, change, says: registry, new API, serve the owner of a name"
+        "example": "area, change, says: registry, new API, serve the owner of a name"
       }
     ],
     "task": [

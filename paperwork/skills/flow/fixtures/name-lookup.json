@@ -8,7 +8,7 @@
   "terms": [
     {"term": "owner record", "meaning": "the account id and the time a name was taken, as the store keeps them", "aliases": ["소유자 기록"]}
   ],
-  "groups": [
+  "areas": [
     {"id": "client-side", "label": "Client side", "purpose": "Runs on the person's device."},
     {"id": "registry", "label": "Registry", "purpose": "Runs in the registry's own data centre."}
   ],
@@ -17,20 +17,20 @@
     {"id": "inside-resolve", "title": "inside-resolve", "kind": "interaction", "nodes": ["name-service", "name-cache", "name-store"], "about": "How {name-service} resolves one name, cache first."}
   ],
   "nodes": [
-    {"id": "browser-app", "label": "Browser app", "tag": "actor", "group": "client-side", "purpose": "Shows the person who owns the name they typed.", "evidence": ["api-spec"], "basis": "documented"},
-    {"id": "gateway", "label": "API gateway", "tag": "service", "group": "registry", "purpose": "Takes public requests, checks their rate and passes them on.",
+    {"id": "browser-app", "label": "Browser app", "tag": "actor", "area": "client-side", "purpose": "Shows the person who owns the name they typed.", "evidence": ["api-spec"], "basis": "documented"},
+    {"id": "gateway", "label": "API gateway", "tag": "service", "area": "registry", "purpose": "Takes public requests, checks their rate and passes them on.",
      "info": {"capacity": "2000 lookups a second", "responsibilities": ["checks the rate of each client", "turns a timeout into `503`"]}, "evidence": ["api-spec"], "basis": "documented"},
-    {"id": "name-service", "label": "Name service", "tag": "service", "group": "registry", "purpose": "Turns a name into its owner record.", "evidence": ["runbook"], "basis": "documented"},
-    {"id": "name-cache", "label": "Name cache", "tag": "dataStore", "group": "registry", "purpose": "Keeps recent owner records for a minute.", "evidence": ["runbook"], "basis": "documented"},
-    {"id": "name-store", "label": "Name store", "tag": "dataStore", "group": "registry", "purpose": "Keeps every owner record for good.", "info": {"layout": [{"name": "names", "note": "one row per name", "children": [{"name": "shard-a"}, {"name": "shard-b"}]}]}, "evidence": ["runbook"], "basis": "documented"}
+    {"id": "name-service", "label": "Name service", "tag": "service", "area": "registry", "purpose": "Turns a name into its owner record.", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "name-cache", "label": "Name cache", "tag": "dataStore", "area": "registry", "purpose": "Keeps recent owner records for a minute.", "evidence": ["runbook"], "basis": "documented"},
+    {"id": "name-store", "label": "Name store", "tag": "dataStore", "area": "registry", "purpose": "Keeps every owner record for good.", "info": {"layout": [{"name": "names", "note": "one row per name", "children": [{"name": "shard-a"}, {"name": "shard-b"}]}]}, "evidence": ["runbook"], "basis": "documented"}
   ],
   "edges": [
     {"id": "asks-owner", "level": "lookup", "from": "browser-app", "to": "gateway", "label": "GET /v1/names/{name}", "tag": "call",
      "info": {"protocol": "HTTPS GET /v1/names/{name}", "timing": "the browser gives up after 5 seconds",
        "errors": {"columns": ["status", "when"], "rows": [["404", "no one holds the name"], ["503", "{name-service} gives up"]]},
-       "work": {"columns": ["group", "change", "says"], "rows": [["registry", "new API", "serve the owner of a name, or 404 for a free one"], ["client-side", "logic change", "show a free name as one the reader may take"]]}}, "evidence": ["api-spec"], "basis": "documented"},
+       "work": {"columns": ["area", "change", "says"], "rows": [["registry", "new API", "serve the owner of a name, or 404 for a free one"], ["client-side", "logic change", "show a free name as one the reader may take"]]}}, "evidence": ["api-spec"], "basis": "documented"},
     {"id": "checks-name", "level": "lookup", "from": "gateway", "to": "gateway", "label": "check(name)", "tag": "call",
-     "info": {"protocol": "in-process", "why": "a malformed name is refused before any lookup", "work": {"columns": ["group", "change", "says"], "rows": [["registry", "logic change", "refuse a name outside lowercase letters, digits and hyphens with 400"]]}}, "evidence": ["api-spec"], "basis": "documented"},
+     "info": {"protocol": "in-process", "why": "a malformed name is refused before any lookup", "work": {"columns": ["area", "change", "says"], "rows": [["registry", "logic change", "refuse a name outside lowercase letters, digits and hyphens with 400"]]}}, "evidence": ["api-spec"], "basis": "documented"},
     {"id": "resolves-name", "level": "lookup", "from": "gateway", "to": "name-service", "label": "resolve(name)", "tag": "call", "opens": "inside-resolve",
      "info": {"protocol": "gRPC Resolve", "timing": "timeout 1 s"}, "evidence": ["runbook"], "basis": "documented"},
     {"id": "reads-shard", "level": "lookup", "from": "name-service", "to": "name-store", "label": "SELECT owner FROM names", "tag": "access",
@@ -54,14 +54,14 @@
   "milestones": [
     {"id": "name-resolved", "level": "lookup", "label": "Name resolved", "after": ["returns-record"], "purpose": "From here on the gateway holds the owner record and only sends it on."}
   ],
-  "properties": [
-    {"id": "one-owner", "title": "one-owner", "kind": "invariant", "statement": "A name has at most one owner record in the whole store.", "on": ["name-store"], "evidence": ["runbook"]},
-    {"id": "answer-in-time", "title": "answer-in-time", "kind": "invariant", "strength": "should", "statement": "{gateway} answers within 2 seconds, with `503` when {name-service} gives up.", "on": ["answers-browser", "gives-up"], "evidence": ["api-spec"]},
-    {"id": "stale-cache", "title": "stale-cache", "kind": "gap", "status": "unknown", "fault": "missing", "statement": "No source says what {name-cache} does when a name changes owner within its minute.", "on": ["fills-cache"]}
+  "claims": [
+    {"id": "one-owner", "title": "one-owner", "kind": "guarantee", "statement": "A name has at most one owner record in the whole store.", "on": ["name-store"], "evidence": ["runbook"]},
+    {"id": "answer-in-time", "title": "answer-in-time", "kind": "guarantee", "statement": "{gateway} answers within 2 seconds, with `503` when {name-service} gives up.", "strength": "should", "on": ["answers-browser", "gives-up"], "evidence": ["api-spec"]},
+    {"id": "stale-cache", "title": "stale-cache", "kind": "guarantee", "statement": "{name-cache} serves a name's new owner once the name changes owner.", "status": "unknown", "fault": "No source says what {name-cache} does when a name changes owner within its minute.", "on": ["fills-cache"]}
   ],
   "questions": [
     {"id": "call-order", "asks": "In what order do the parts call one another for one lookup?", "answers": ["asks-owner", "resolves-name", "reads-shard", "returns-record", "answers-browser"]},
     {"id": "store-fails", "asks": "What does the browser hear when the store fails?", "answers": ["store-down", "answer-in-time"]},
-    {"id": "cache-change", "asks": "What does a cached record show after the name changes owner?", "gap": "stale-cache"}
+    {"id": "cache-change", "asks": "What does a cached record show after the name changes owner?", "answers": ["stale-cache"]}
   ]
 }

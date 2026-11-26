@@ -418,12 +418,6 @@
    "meaning": "parts grouped by what they do: a system, domain or package",
    "items": [
     {
-     "name": "purpose",
-     "label": "purpose",
-     "form": "text",
-     "example": "takes payments"
-    },
-    {
      "name": "owner",
      "label": "owner",
      "form": "text",

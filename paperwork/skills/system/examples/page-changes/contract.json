@@ -223,8 +223,8 @@
    "label": "Skill's folder",
    "tag": "module",
    "level": "whole",
+   "purpose": "Hold what the skill ships at teamwork/skills/page-changes: {playbook}, the scripts, {runtime}'s source, {starter} and {replays}.",
    "info": {
-    "purpose": "Hold what the skill ships at teamwork/skills/page-changes: {playbook}, the scripts, {runtime}'s source, {starter} and {replays}.",
     "interface": [
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/serve-page-changes.py `<page.html>` [--port `<n>`] [--quiet `<seconds>`]",
      "python3 ${CLAUDE_PLUGIN_ROOT}/skills/page-changes/scripts/connect-page.py `<page.html>`",
@@ -244,8 +244,8 @@
    "label": "Page's folder",
    "tag": "module",
    "level": "whole",
+   "purpose": "Hold one page and what {server} keeps beside it.",
    "info": {
-    "purpose": "Hold one page and what {server} keeps beside it.",
     "rules": [
      "the folder lies outside every repository",
      "{server} creates changes/, {history-folder} and {url-file} here and never writes the page"
@@ -280,17 +280,15 @@
    "label": "Rules",
    "tag": "module",
    "level": "session-steps",
-   "info": {
-    "purpose": "Bound when the skill loads, what an edit may touch and what a change's text may cause."
-   }
+   "purpose": "Bound when the skill loads, what an edit may touch and what a change's text may cause."
   },
   {
    "id": "blocks",
    "label": "Two JSON blocks",
    "tag": "module",
    "level": "page-parts",
+   "purpose": "Hold what {session} writes and {runtime} reads, as data and never as code.",
    "info": {
-    "purpose": "Hold what {session} writes and {runtime} reads, as data and never as code.",
     "rules": [
      "both are script elements of type application/json",
      "no raw `<` inside either"
@@ -302,17 +300,15 @@
    "label": "Page's body",
    "tag": "module",
    "level": "page-parts",
-   "info": {
-    "purpose": "Hold what {person} sees and the code that draws it."
-   }
+   "purpose": "Hold what {person} sees and the code that draws it."
   },
   {
    "id": "page-interface",
    "label": "What the page's code meets",
    "tag": "module",
    "level": "runtime-parts",
+   "purpose": "Give the page's code and a test the globals {runtime} sets and calls.",
    "info": {
-    "purpose": "Give the page's code and a test the globals {runtime} sets and calls.",
     "interface": [
      "{record-change}(kind, target, payload)",
      "window.pageData",
@@ -326,18 +322,14 @@
    "label": "Screen parts",
    "tag": "module",
    "level": "runtime-parts",
-   "info": {
-    "purpose": "Draw the badges, {panel} and {status-bar} inside one element with id page-changes-ui, apart from the page's own elements."
-   }
+   "purpose": "Draw the badges, {panel} and {status-bar} inside one element with id page-changes-ui, apart from the page's own elements."
   },
   {
    "id": "runtime-sync",
    "label": "Sending and receiving",
    "tag": "module",
    "level": "runtime-parts",
-   "info": {
-    "purpose": "Move changes to {server} and learn from it of reloads and acks."
-   }
+   "purpose": "Move changes to {server} and learn from it of reloads and acks."
   },
   {
    "id": "connection",
@@ -371,9 +363,7 @@
    "label": "Start and background loops",
    "tag": "module",
    "level": "server-parts",
-   "info": {
-    "purpose": "Start {server}, do what no request starts and hold what the threads share."
-   }
+   "purpose": "Start {server}, do what no request starts and hold what the threads share."
   },
   {
    "id": "behind-token",
@@ -401,8 +391,8 @@
    "label": "Files beside the page",
    "tag": "module",
    "level": "server-parts",
+   "purpose": "Hold the files {server} reads and writes in {page-folder}.",
    "info": {
-    "purpose": "Hold the files {server} reads and writes in {page-folder}.",
     "rules": [
      "JSON Lines files are rewritten whole through `<name>.tmp` and os.replace",
      "none of them is served"
@@ -449,27 +439,21 @@
    "label": "Starter's own parts",
    "tag": "module",
    "level": "starter-parts",
-   "info": {
-    "purpose": "Hold everything of assets/diagram-page.html above its runtime copy."
-   }
+   "purpose": "Hold everything of assets/diagram-page.html above its runtime copy."
   },
   {
    "id": "python-replays",
    "label": "Script replays",
    "tag": "module",
    "level": "replay-parts",
-   "info": {
-    "purpose": "Replay the Python scripts on fixed inputs."
-   }
+   "purpose": "Replay the Python scripts on fixed inputs."
   },
   {
    "id": "browser-run",
    "label": "Loop replay",
    "tag": "module",
    "level": "replay-parts",
-   "info": {
-    "purpose": "Drive {server}, {runtime} and {starter} in {headless-browser}."
-   }
+   "purpose": "Drive {server}, {runtime} and {starter} in {headless-browser}."
   }
  ],
  "nodes": [
@@ -6258,14 +6242,14 @@
    ]
   }
  ],
- "properties": [
+ "claims": [
   {
    "id": "server-never-writes-page",
    "title": "server-never-writes-page",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "{server} never writes {page-file}; while it queues, refuses, restarts or takes an ack the file's bytes stay as they were.",
    "strength": "must",
    "status": "holds",
-   "statement": "{server} never writes {page-file}; while it queues, refuses, restarts or takes an ack the file's bytes stay as they were.",
    "on": [
     "server",
     "page-file",
@@ -6281,10 +6265,10 @@
   {
    "id": "ids-never-reused",
    "title": "ids-never-reused",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "A change id is an integer one above every integer id in the pending and applied files, also after a restart; a refused post uses no id.",
    "strength": "must",
    "status": "holds",
-   "statement": "A change id is an integer one above every integer id in the pending and applied files, also after a restart; a refused post uses no id.",
    "on": [
     "route-post",
     "applied-file",
@@ -6298,10 +6282,10 @@
   {
    "id": "url-survives-restart",
    "title": "url-survives-restart",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "A restart on the same page prints the same url as long as {url-file} stays and the port is free.",
    "strength": "must",
    "status": "holds",
-   "statement": "A restart on the same page prints the same url as long as {url-file} stays and the port is free.",
    "on": [
     "url-file",
     "startup"
@@ -6314,10 +6298,10 @@
   {
    "id": "one-line-per-burst",
    "title": "one-line-per-burst",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "No pending line is printed before the quiet window has passed since the newest change, and one line is printed for the whole burst.",
    "strength": "must",
    "status": "holds",
-   "statement": "No pending line is printed before the quiet window has passed since the newest change, and one line is printed for the whole burst.",
    "on": [
     "announcer"
    ],
@@ -6330,10 +6314,10 @@
   {
    "id": "reload-only-whole-page",
    "title": "reload-only-whole-page",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "A reload event is sent only for page content that stayed the same for a whole 0.5 s poll and holds {runtime}'s closing marker.",
    "strength": "must",
    "status": "holds",
-   "statement": "A reload event is sent only for page content that stayed the same for a whole 0.5 s poll and holds {runtime}'s closing marker.",
    "on": [
     "keeper",
     "watcher",
@@ -6348,10 +6332,10 @@
   {
    "id": "ack-does-not-reload",
    "title": "ack-does-not-reload",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "An ack sends a changes event and never a reload; only a change of {page-file} reloads an open page.",
    "strength": "must",
    "status": "holds",
-   "statement": "An ack sends a changes event and never a reload; only a change of {page-file} reloads an open page.",
    "on": [
     "route-ack",
     "pushes-reload"
@@ -6363,10 +6347,10 @@
   {
    "id": "loopback-only",
    "title": "loopback-only",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "{server} listens on 127.0.0.1 only; no other address of the machine, ::1 included, accepts a connection on its port.",
    "strength": "must",
    "status": "holds",
-   "statement": "{server} listens on 127.0.0.1 only; no other address of the machine, ::1 included, accepts a connection on its port.",
    "on": [
     "server",
     "local-machine"
@@ -6379,10 +6363,10 @@
   {
    "id": "records-never-served",
    "title": "records-never-served",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "No route answers with {url-file}, anything under changes/ or {history-folder}, or a file whose path has a piece opening with a dot.",
    "strength": "must",
    "status": "holds",
-   "statement": "No route answers with {url-file}, anything under changes/ or {history-folder}, or a file whose path has a piece opening with a dot.",
    "on": [
     "route-files",
     "history-folder",
@@ -6398,10 +6382,10 @@
   {
    "id": "history-read-only",
    "title": "history-read-only",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "Every file of {history-folder} has no write bit: its mode is 0444.",
    "strength": "must",
    "status": "holds",
-   "statement": "Every file of {history-folder} has no write bit: its mode is 0444.",
    "on": [
     "history-folder"
    ],
@@ -6413,10 +6397,10 @@
   {
    "id": "no-change-lost",
    "title": "no-change-lost",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "A change recorded on a served page is either answered by {server} or stays in the tab's unsent list, across reloads, until {server} answers.",
    "strength": "must",
    "status": "holds",
-   "statement": "A change recorded on a served page is either answered by {server} or stays in the tab's unsent list, across reloads, until {server} answers.",
    "on": [
     "sender",
     "session-store",
@@ -6430,10 +6414,10 @@
   {
    "id": "draft-survives-reload",
    "title": "draft-survives-reload",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "The open panel and a typed draft are the same after the reload an applied edit causes.",
    "strength": "must",
    "status": "holds",
-   "statement": "The open panel and a typed draft are the same after the reload an applied edit causes.",
    "on": [
     "panel",
     "session-store"
@@ -6445,10 +6429,10 @@
   {
    "id": "click-survives-redraw",
    "title": "click-survives-redraw",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "A badge is updated in place and never rebuilt, so a redraw between a press and its release does not drop the click.",
    "strength": "must",
    "status": "holds",
-   "statement": "A badge is updated in place and never rebuilt, so a redraw between a press and its release does not drop the click.",
    "on": [
     "badges"
    ],
@@ -6460,10 +6444,10 @@
   {
    "id": "runtime-never-breaks-page",
    "title": "runtime-never-breaks-page",
-   "kind": "property",
+   "kind": "guarantee",
+   "statement": "A page with missing or broken blocks, a throwing pageRender or no sessionStorage still loads without an uncaught error, with window.pageData as {}.",
    "strength": "must",
    "status": "holds",
-   "statement": "A page with missing or broken blocks, a throwing pageRender or no sessionStorage still loads without an uncaught error, with window.pageData as {}.",
    "on": [
     "runtime-start"
    ],
@@ -6475,10 +6459,10 @@
   {
    "id": "starter-runtime-current",
    "title": "starter-runtime-current",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "The copy of {runtime} inside {starter} equals lib/relay-runtime.js stripped; {connector} on the starter writes nothing.",
    "strength": "must",
    "status": "holds",
-   "statement": "The copy of {runtime} inside {starter} equals lib/relay-runtime.js stripped; {connector} on the starter writes nothing.",
    "on": [
     "starter",
     "holds-a"
@@ -6490,10 +6474,10 @@
   {
    "id": "entry-ids-unique",
    "title": "entry-ids-unique",
-   "kind": "invariant",
+   "kind": "guarantee",
+   "statement": "Each entry id is used once in the whole threads block, and a session entry replies to an entry of its own thread.",
    "strength": "must",
    "status": "holds",
-   "statement": "Each entry id is used once in the whole threads block, and a session entry replies to an entry of its own thread.",
    "on": [
     "threads-block",
     "checker"
@@ -6506,10 +6490,11 @@
   {
    "id": "session-writes-threads-alone",
    "title": "session-writes-threads-alone",
-   "kind": "constraint",
+   "kind": "guarantee",
+   "statement": "Only {session} writes threads and page data in the file; {runtime} and {server} only read them.",
    "strength": "must",
    "status": "holds",
-   "statement": "Only {session} writes threads and page data in the file; {runtime} and {server} only read them.",
+   "source": "src-skill",
    "on": [
     "threads-block",
     "data-block",
@@ -6522,10 +6507,12 @@
   {
    "id": "page-outside-repositories",
    "title": "page-outside-repositories",
-   "kind": "constraint",
+   "kind": "guarantee",
+   "statement": "A page lives outside every repository, since {server} creates changes/, {history-folder} and {url-file} beside it; nothing in the folder checks this.",
    "strength": "must",
    "status": "unknown",
-   "statement": "A page lives outside every repository, since {server} creates changes/, {history-folder} and {url-file} beside it; nothing in the folder checks this.",
+   "fault": "Nothing in the folder checks that a page lives outside every repository.",
+   "source": "src-skill",
    "on": [
     "page-file",
     "page-folder"
@@ -6537,10 +6524,11 @@
   {
    "id": "post-size-limit",
    "title": "post-size-limit",
-   "kind": "constraint",
+   "kind": "guarantee",
+   "statement": "A post's Content-Length is 1,000,000 at most and a comment's text 4000 characters at most; a longer one is answered 400.",
    "strength": "must",
    "status": "holds",
-   "statement": "A post's Content-Length is 1,000,000 at most and a comment's text 4000 characters at most; a longer one is answered 400.",
+   "source": "src-relay-server",
    "on": [
     "route-post",
     "origin-rule"
@@ -6554,10 +6542,11 @@
   {
    "id": "standard-library-only",
    "title": "standard-library-only",
-   "kind": "constraint",
+   "kind": "guarantee",
+   "statement": "The three Python scripts and the two fixture runners import only the standard library and no other script.",
    "strength": "must",
    "status": "holds",
-   "statement": "The three Python scripts and the two fixture runners import only the standard library and no other script.",
+   "source": "src-server",
    "on": [
     "skill-folder"
    ],
@@ -6571,9 +6560,9 @@
    "id": "token-is-only-guard",
    "title": "token-is-only-guard",
    "kind": "assumption",
+   "statement": "Nobody but {person} and {session} learns the url: anyone on the machine who has it can read the page, read the queue and, with the right Origin header, post and ack.",
    "strength": "must",
    "status": "holds",
-   "statement": "Nobody but {person} and {session} learns the url: anyone on the machine who has it can read the page, read the queue and, with the right Origin header, post and ack.",
    "on": [
     "token-url",
     "rule-url"
@@ -6586,9 +6575,10 @@
    "id": "tools-assumed",
    "title": "tools-assumed",
    "kind": "assumption",
+   "statement": "{session} has python3, curl and a Monitor that runs a long command and wakes on each stdout line; {browser-run} has node, Playwright and macOS on arm64.",
    "strength": "must",
    "status": "unknown",
-   "statement": "{session} has python3, curl and a Monitor that runs a long command and wakes on each stdout line; {browser-run} has node, Playwright and macOS on arm64.",
+   "fault": "Nothing in the folder checks these tools before a run.",
    "on": [
     "step-serve",
     "headless-browser"
@@ -6602,9 +6592,9 @@
    "id": "browser-sends-origin",
    "title": "browser-sends-origin",
    "kind": "assumption",
+   "statement": "{browser} adds the Origin header to {runtime}'s same-origin POST by itself; {runtime} sets only Content-Type.",
    "strength": "must",
    "status": "holds",
-   "statement": "{browser} adds the Origin header to {runtime}'s same-origin POST by itself; {runtime} sets only Content-Type.",
    "on": [
     "sends-each"
    ],
@@ -6616,10 +6606,11 @@
   {
    "id": "anchor-id-form",
    "title": "anchor-id-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "An anchor id, a change's target and a thread key match [\\w.:-]{1,80} in full: 1 to 80 letters, digits or _.:-.",
    "strength": "must",
    "status": "holds",
-   "statement": "An anchor id, a change's target and a thread key match [\\w.:-]{1,80} in full: 1 to 80 letters, digits or _.:-.",
+   "source": "src-check",
    "on": [
     "anchor-rule",
     "route-post"
@@ -6632,10 +6623,11 @@
   {
    "id": "reply-id-form",
    "title": "reply-id-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "A person's entry keeps its change id and by person; a session's reply takes the id `<comment id>`.`<k>`, by session and replies_to the comment's id.",
    "strength": "must",
    "status": "holds",
-   "statement": "A person's entry keeps its change id and by person; a session's reply takes the id `<comment id>`.`<k>`, by session and replies_to the comment's id.",
+   "source": "src-skill",
    "on": [
     "threads-block",
     "step-apply"
@@ -6648,10 +6640,11 @@
   {
    "id": "fixture-name-form",
    "title": "fixture-name-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "A fixture page is named follows-`<case>`.html or break-`<rule>`.html; the name alone fixes the verdict {replay-check} expects.",
    "strength": "must",
    "status": "holds",
-   "statement": "A fixture page is named follows-`<case>`.html or break-`<rule>`.html; the name alone fixes the verdict {replay-check} expects.",
+   "source": "src-replay-check",
    "on": [
     "fixture-pages",
     "replay-check"
@@ -6663,10 +6656,11 @@
   {
    "id": "history-name-form",
    "title": "history-name-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "A history copy is named `<local time as %Y%m%dT%H%M%S%f>`-`<first 12 hex of the sha256>`.html, so names sort by time.",
    "strength": "must",
    "status": "holds",
-   "statement": "A history copy is named `<local time as %Y%m%dT%H%M%S%f>`-`<first 12 hex of the sha256>`.html, so names sort by time.",
+   "source": "src-relay-server",
    "on": [
     "history-folder",
     "keeper"
@@ -6678,10 +6672,11 @@
   {
    "id": "storage-key-form",
    "title": "storage-key-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "Every sessionStorage key is page-changes:`<location.pathname>`:`<name>`, so two pages of one origin do not share state.",
    "strength": "must",
    "status": "holds",
-   "statement": "Every sessionStorage key is page-changes:`<location.pathname>`:`<name>`, so two pages of one origin do not share state.",
+   "source": "src-runtime",
    "on": [
     "session-store"
    ],
@@ -6692,10 +6687,11 @@
   {
    "id": "stdout-line-form",
    "title": "stdout-line-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "Every stdout line of {server} opens with `relay `, then `url:` or `pending`.",
    "strength": "must",
    "status": "holds",
-   "statement": "Every stdout line of {server} opens with `relay `, then `url:` or `pending`.",
+   "source": "src-relay-server",
    "on": [
     "server",
     "announcer"
@@ -6708,10 +6704,11 @@
   {
    "id": "script-call-form",
    "title": "script-call-form",
-   "kind": "convention",
+   "kind": "guarantee",
+   "statement": "A Python script answers a call it cannot read, --help included, with its docstring on stderr, nothing on stdout and exit 2, and changes nothing.",
    "strength": "must",
    "status": "holds",
-   "statement": "A Python script answers a call it cannot read, --help included, with its docstring on stderr, nothing on stdout and exit 2, and changes nothing.",
+   "source": "src-replay-options",
    "on": [
     "replay-options",
     "connector",
@@ -6725,10 +6722,9 @@
   {
    "id": "keeper-one-procedure",
    "title": "keeper-one-procedure",
-   "kind": "fact",
-   "strength": "must",
-   "status": "holds",
+   "kind": "guarantee",
    "statement": "{keeper} run once at start and the one {watcher} runs are one procedure on one memory, so a version seen at start is neither copied twice nor reloaded for.",
+   "strength": "must",
    "on": [
     "keeper"
    ],
@@ -6747,13 +6743,13 @@
    ]
   },
   {
-   "id": "gap-escape-wording",
-   "title": "gap-escape-wording",
-   "kind": "gap",
-   "fault": "contradictory",
+   "id": "escape-wording",
+   "title": "escape-wording",
+   "kind": "guarantee",
+   "statement": "A raw less-than sign inside the blocks is written as \\u003c, as the checker's escape rule asks.",
    "strength": "must",
-   "status": "unknown",
-   "statement": "SKILL.md's {rule-valid-blocks} rule reads, as stored, write a raw less-than sign inside the blocks as the same raw sign, while the checker's escape rule forbids a raw one and says to write \\u003c; this contract follows the checker.",
+   "status": "conflicting",
+   "fault": "SKILL.md's {rule-valid-blocks} rule reads, as stored, write a raw less-than sign inside the blocks as the same raw sign, while the checker's escape rule forbids a raw one and says to write \\u003c; this contract follows the checker.",
    "on": [
     "rule-valid-blocks"
    ],
@@ -6763,13 +6759,13 @@
    ]
   },
   {
-   "id": "gap-connector-updated",
-   "title": "gap-connector-updated",
-   "kind": "gap",
-   "fault": "contradictory",
+   "id": "connector-updated",
+   "title": "connector-updated",
+   "kind": "guarantee",
+   "statement": "{connector} prints `updated <page>` only when an older copy was replaced, as its docstring says.",
    "strength": "should",
-   "status": "unknown",
-   "statement": "{connector}'s docstring says `updated <page>` is printed when an older copy was replaced; the code prints it whenever the markers are found, also when nothing was written, and {browser-run} relies on that.",
+   "status": "conflicting",
+   "fault": "{connector}'s docstring says `updated <page>` is printed when an older copy was replaced; the code prints it whenever the markers are found, also when nothing was written, and {browser-run} relies on that.",
    "on": [
     "connector"
    ],
@@ -6780,13 +6776,13 @@
    ]
   },
   {
-   "id": "gap-thread-key-by-data-id",
-   "title": "gap-thread-key-by-data-id",
-   "kind": "gap",
-   "fault": "missing",
+   "id": "thread-key-by-data-id",
+   "title": "thread-key-by-data-id",
+   "kind": "guarantee",
+   "statement": "A thread lives under its anchor's id, or under a key that is an id inside page data.",
    "strength": "should",
-   "status": "unknown",
-   "statement": "SKILL.md says a thread lives under its anchor's id only; the checker also takes a key that is an id inside page data, and SKILL.md does not say so.",
+   "status": "holds",
+   "fault": "SKILL.md says a thread lives under its anchor's id only; the checker also takes a key that is an id inside page data, and SKILL.md does not say so.",
    "on": [
     "anchor-rule",
     "threads-keyed-by-anchor"
@@ -6797,13 +6793,13 @@
    ]
   },
   {
-   "id": "gap-monitor-timeout",
-   "title": "gap-monitor-timeout",
-   "kind": "gap",
-   "fault": "unknown",
+   "id": "monitor-timeout",
+   "title": "monitor-timeout",
+   "kind": "assumption",
+   "statement": "{session}'s Monitor stays armed for as long as {step-serve} runs.",
    "strength": "should",
    "status": "unknown",
-   "statement": "The folder names {session}'s Monitor and its longest timeout and defines neither; how a Monitor is armed and how long it lasts is settled {outside}.",
+   "fault": "The folder names {session}'s Monitor and its longest timeout and defines neither; how a Monitor is armed and how long it lasts is settled {outside}.",
    "on": [
     "step-serve"
    ],
@@ -6812,13 +6808,13 @@
    ]
   },
   {
-   "id": "gap-reply-number",
-   "title": "gap-reply-number",
-   "kind": "gap",
-   "fault": "unknown",
+   "id": "reply-number",
+   "title": "reply-number",
+   "kind": "guarantee",
+   "statement": "The k in a reply id `<comment id>`.`<k>` counts the replies to one comment from 1.",
    "strength": "should",
    "status": "unknown",
-   "statement": "No source says how k in a reply id `<comment id>`.`<k>` is chosen; {browser-run} uses 1 for the first reply.",
+   "fault": "No source says how k in a reply id `<comment id>`.`<k>` is chosen; {browser-run} uses 1 for the first reply.",
    "on": [
     "step-apply"
    ],
@@ -6828,13 +6824,13 @@
    ]
   },
   {
-   "id": "gap-exported-changes",
-   "title": "gap-exported-changes",
-   "kind": "gap",
-   "fault": "missing",
+   "id": "exported-changes",
+   "title": "exported-changes",
+   "kind": "guarantee",
+   "statement": "A session reads back an exported changes.json and applies its changes.",
    "strength": "should",
    "status": "unknown",
-   "statement": "Nothing says what a session does with an exported changes.json; its changes carry no id, and no script reads the file.",
+   "fault": "Nothing says what a session does with an exported changes.json; its changes carry no id, and no script reads the file.",
    "on": [
     "exporter"
    ],
@@ -6844,13 +6840,13 @@
    ]
   },
   {
-   "id": "gap-refused-not-shown",
-   "title": "gap-refused-not-shown",
-   "kind": "gap",
-   "fault": "missing",
+   "id": "refused-not-shown",
+   "title": "refused-not-shown",
+   "kind": "guarantee",
+   "statement": "{person} is told when {server} refuses a change.",
    "strength": "should",
    "status": "unknown",
-   "statement": "A change {server} refuses disappears from {person}'s view; no source says whether {person} should be told.",
+   "fault": "A change {server} refuses disappears from {person}'s view; no source says whether {person} should be told.",
    "on": [
     "change-refused",
     "sender"
@@ -6860,13 +6856,13 @@
    ]
   },
   {
-   "id": "gap-data-payload-unchecked",
-   "title": "gap-data-payload-unchecked",
-   "kind": "gap",
-   "fault": "illegal",
+   "id": "data-payload-unchecked",
+   "title": "data-payload-unchecked",
+   "kind": "guarantee",
+   "statement": "{server} queues a data change only when its payload carries payload.path and payload.value.",
    "strength": "should",
-   "status": "unknown",
-   "statement": "SKILL.md describes a data change as carrying payload.path and payload.value; {server} queues a data change with any object as payload, an empty one included.",
+   "status": "fails",
+   "fault": "SKILL.md describes a data change as carrying payload.path and payload.value; {server} queues a data change with any object as payload, an empty one included.",
    "on": [
     "route-post"
    ],
@@ -6876,13 +6872,13 @@
    ]
   },
   {
-   "id": "gap-latest-data-order",
-   "title": "gap-latest-data-order",
-   "kind": "gap",
-   "fault": "unknown",
+   "id": "latest-data-order",
+   "title": "latest-data-order",
+   "kind": "guarantee",
+   "statement": "The latest data change per target and path is the one the queue holds last.",
    "strength": "should",
    "status": "unknown",
-   "statement": "The latest data change per target and path is not defined further; the queue's order and rising ids are the only order the sources give.",
+   "fault": "The latest data change per target and path is not defined further; the queue's order and rising ids are the only order the sources give.",
    "on": [
     "step-apply"
    ],
@@ -6891,13 +6887,13 @@
    ]
   },
   {
-   "id": "gap-other-methods",
-   "title": "gap-other-methods",
-   "kind": "gap",
-   "fault": "unknown",
+   "id": "other-methods-answer",
+   "title": "other-methods-answer",
+   "kind": "guarantee",
+   "statement": "{server} answers a method other than GET and POST with an error.",
    "strength": "may",
    "status": "unknown",
-   "statement": "{server} defines GET and POST only; what another method gets is left to Python's http.server and was not run.",
+   "fault": "{server} defines GET and POST only; what another method gets is left to Python's http.server and was not run.",
    "on": [
     "route-table"
    ],
@@ -7022,17 +7018,23 @@
   {
    "id": "after-refusal",
    "asks": "Does the editing side learn that a change was refused?",
-   "gap": "gap-refused-not-shown"
+   "answers": [
+    "refused-not-shown"
+   ]
   },
   {
    "id": "after-export",
    "asks": "What is done with an exported file of changes?",
-   "gap": "gap-exported-changes"
+   "answers": [
+    "exported-changes"
+   ]
   },
   {
    "id": "other-methods",
    "asks": "What does a request of another method get?",
-   "gap": "gap-other-methods"
+   "answers": [
+    "other-methods-answer"
+   ]
   }
  ]
 }

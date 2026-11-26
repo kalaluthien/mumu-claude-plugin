@@ -26,6 +26,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
+from contract_core import FIELDS as CORE_FIELDS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_parts import SYSTEM, checked, load, split_to  # noqa: E402
@@ -36,22 +37,17 @@ from tex_mathml import SUBSET  # noqa: E402
 HERE = pathlib.Path(__file__).resolve().parent
 CATALOGUE = skill_catalogue(HERE.parent / "assets" / "tags.json")
 TAGS = CATALOGUE
-KINDS = ("property", "invariant", "fact", "gap", "assumption", "constraint", "convention")
-STRENGTHS = ("must", "should", "may")
-STATUSES = ("holds", "broken", "unknown")
-BASES = ("observed", "documented", "inferred")
 OWN = re.compile(r"[./_\d]|[a-z][A-Z]")
 ARTICLE = re.compile(r"^(?:an?|the)\s+", re.IGNORECASE)
 WEAK = {"a", "an", "the"}
 BARE = WEAK | {"at", "by", "for", "from", "in", "of", "on", "to", "with"}
-FAULTS = ("missing", "illegal", "redundant", "overloaded", "contradictory", "unknown")
 RULES = {
     "form": "every part holds its required fields, each of the right type",
-    "unique-ids": "an id is lowercase words and digits joined by `-`; a level, area, node, edge, scenario, property or source id is used once in the whole contract",
+    "unique-ids": CORE["unique-ids"],
     "tag-known": "an area, node or edge carries a tag of its kind from the catalogue",
     "info-item": "an `info` key is an item of its element's tag, or an item every element of that kind may hold",
     "info-form": "an `info` value has the shape of its item's form: text, number, list, table, tree or code",
-    "area-known": "a node's `area` is an area of its level, and every area holds one node at least",
+    "area-known": CORE["area-known"],
     "edge-ends": "an edge joins two different nodes of its own level, one pair is joined once by one label in a direction, and the edge's id holds neither end's id",
     "edge-sentence": "a static edge's label opens in lower case, holds no full stop, question or exclamation mark, closes with no article, is more than a lone preposition and holds neither end's label; that it opens with a verb and that `<from label> <label> <to label>` is true is the writer's to check by the `read` call",
     "level-links": "`opens` names a level, every level but the first is opened by at least one node, and no chain of `opens` leads from a level back to it, so the first level is opened by none",
@@ -59,13 +55,14 @@ RULES = {
     "state-region": "a state sits in an area tagged region, and a region holds only states",
     "region-initial": "a region's `initial` names one of its states",
     "transition-ends": "a transition joins two states of one region, only a transition joins two states, and none leaves a state marked `terminal`",
-    "fact-paths": "a fact names two different paths of edges that start at one node and end at one node, none of them marked `many`",
     "scenario-steps": "a step names a node or an edge by its id and adds a note, of any length, that holds a word, names neither end of its own edge and is no copy of its record's purpose, and one scenario at least is a principle",
-    "property-form": "one invariant or property at least is stated; a property's kind, strength and status are known words, a gap alone names its fault, and each `on` names a node, an edge, an area, a level or a scenario",
-    "evidence-source": "an evidence entry is a source id, `id:line` or `id:line-line`, and a node's `files` entry a source id; under --root each source path that is no url exists and holds the lines cited",
-    "question-answered": "one rebuild question at least is asked; each names in `answers` the records that answer it, one at least with evidence, or in `gap` the gap property that says why none does, never both",
-    "name-english": "a title, a label and a term are English and hold no Korean letter, the contract's, a level's and a scenario's title and an edge's label included; only a description may be Korean: a purpose, a meaning, an item's text, a step's note, a statement, a question",
-    "name-form": "a node's and an area's label opens with a capital, or with the subject's own name such as a file name, and with no article `A`, `An` or `The`, so it reads as a title on the page; a level's, a scenario's and a property's title is a slug, lowercase words and digits joined by `-`",
+    "claim-form": CORE["claim-form"],
+    "claim-paths": CORE["claim-paths"],
+    "evidence-source": CORE["evidence-source"],
+    "files-source": "a node's `files` names sources by their ids",
+    "question-answered": CORE["question-answered"],
+    "name-english": "a title, a label and a term are English and hold no Korean letter, the contract's, a level's and a scenario's title and an edge's label included; only a description may be Korean: a purpose, a meaning, an item's text, a step's note, a statement, a fault, a question",
+    "name-form": "a node's and an area's label opens with a capital, or with the subject's own name such as a file name, and with no article `A`, `An` or `The`, so it reads as a title on the page; a level's, a scenario's and a claim's title is a slug, lowercase words and digits joined by `-`",
     "korean-text": "a description that holds Korean keeps three forms: after a record's name `{id}` a particle of two forms is written as both, `은(는)`, `이(가)`, `을(를)`, `과(와)` or `(으)로`, since a new label may end in another sound; a sentence that closes with a full stop closes in `니다`; and no space stands before a particle after a name, a quote in backticks or an English word",
     "term-words": "a term's `avoid` lists the other words for its concept, and no text, label or title says one of them outside backticks: one concept keeps one word; an English word counts in any case and with a plural `s` or `es`, a Korean word alone or with a particle after it, and a word inside a longer word does not count; no word is both a term and a word to avoid",
     "alias-words": "a node's, an area's or a term's `aliases` holds the other words a reader may search it by, such as a Korean name, an abbreviation or its expansion: each is a word, said once, and no id, label, term or alias of any record, its own included, whatever its case or spacing, so one search word leads to one record",
@@ -77,8 +74,8 @@ TOPICS = (
     ("relations between components", lambda contract: len(edges(contract)) - tagged(contract, "edges", "transition")),
     ("layers and hierarchy", lambda contract: len(contract["levels"]) - 1),
     ("partitioning and boundaries", lambda contract: sum(len(level.get("areas", [])) for level in contract["levels"])),
-    ("naming and placement conventions", lambda contract: kinds(contract, "convention")),
-    ("coupling and dependency", lambda contract: tagged(contract, "edges", "dependsOn") + kinds(contract, "fact")),
+    ("naming and placement conventions", lambda contract: sum(1 for claim in claims(contract) if "source" in claim)),
+    ("coupling and dependency", lambda contract: tagged(contract, "edges", "dependsOn") + sum(1 for claim in claims(contract) if "paths" in claim)),
     ("system documents", lambda contract: len(contract.get("sources", []))),
     ("state", lambda contract: tagged(contract, "nodes", "state", "dataStore", "queue")),
     ("control", lambda contract: tagged(contract, "nodes", "trigger", "router", "policy") + tagged(contract, "edges", "transition", "triggers", "sequence", "governs")),
@@ -86,14 +83,14 @@ TOPICS = (
     ("interfaces and payloads", lambda contract: tagged(contract, "nodes", "endpoint") + sum(1 for edge in edges(contract) if edge.get("tag") in ("call", "publish", "access") and edge.get("info"))),
     ("failure and degraded behaviour", lambda contract: items(contract, "failure") + items(contract, "errors")),
     ("scenarios and operational principles", lambda contract: len(contract.get("scenarios", []))),
-    ("invariants and properties", lambda contract: kinds(contract, "invariant") + kinds(contract, "property")),
-    ("assumptions and constraints", lambda contract: kinds(contract, "assumption") + kinds(contract, "constraint")),
+    ("guarantees", lambda contract: sum(1 for claim in claims(contract) if claim.get("kind") == "guarantee")),
+    ("assumptions and constraints", lambda contract: sum(1 for claim in claims(contract) if claim.get("kind") == "assumption" or "source" in claim)),
     ("domain terms and coined words", lambda contract: len(contract.get("terms", []))),
     ("rationale", lambda contract: items(contract, "why")),
     ("deployment and environment", lambda contract: tagged(contract, "nodes", "host") + tagged(contract, "areas", "deployment")),
     ("security and trust", lambda contract: tagged(contract, "nodes", "credential", "policy") + tagged(contract, "areas", "trustZone")),
     ("actors and outside systems", lambda contract: tagged(contract, "nodes", "actor")),
-    ("gaps and open questions", lambda contract: kinds(contract, "gap")),
+    ("gaps and open questions", lambda contract: sum(1 for claim in claims(contract) if "fault" in claim)),
     ("evidence", lambda contract: sum(1 for element in elements(contract) if element.get("evidence"))),
 )
 
@@ -115,8 +112,8 @@ def elements(contract):
     return nodes(contract) + edges(contract) + [area for level in contract["levels"] for area in level.get("areas", [])]
 
 
-def kinds(contract, kind):
-    return sum(1 for item in contract.get("properties", []) if item.get("kind") == kind)
+def claims(contract):
+    return contract.get("claims", [])
 
 
 def items(contract, name):
@@ -145,8 +142,8 @@ def worded(contract, quoted):
         found += own(scenario, here, "title", "purpose")
         for k, step in enumerate(scenario["steps"]):
             found += own(step, f"{here}/steps/{k + 1}", "note")
-    for item in contract.get("properties", []):
-        found += own(item, f"properties/{item['id']}", "statement", "fault")
+    for item in contract.get("claims", []):
+        found += own(item, f"claims/{item['id']}", "statement", "fault")
     for question in contract.get("questions", []):
         found += own(question, f"questions/{question['id']}", "asks")
     return found
@@ -164,9 +161,15 @@ def placed(value, where="", skipped=()):
     return [pair for key, part in value.items() for pair in placed(part, f"{where}/{key}", skipped)] if isinstance(value, dict) else []
 
 
-OPTIONAL = {"avoid": list, "area": str, "opens": str, "purpose": str, "about": str, "note": str, "authority": str, "strength": str, "status": str, "fault": str,
-            "many": bool, "principle": bool, "coined": bool, "on": list, "paths": list, "sources": list, "terms": list, "scenarios": list,
-            "properties": list, "areas": list, "edges": list, "questions": list, "answers": list, "gap": str, "files": list, "aliases": list}
+LEVEL_RECORDS = {
+    "levels": ({"id": str, "title": str}, {"about": str}),
+    "areas": ({**CORE_FIELDS["areas"][0], "tag": str, "level": str}, {**CORE_FIELDS["areas"][1], "info": dict}),
+    "nodes": ({"id": str, "label": str, "tag": str, "level": str},
+              {"area": str, "opens": str, "purpose": str, "files": list, "aliases": list, "info": dict, "evidence": list, "basis": str}),
+    "edges": ({"id": str, "from": str, "to": str, "label": str, "tag": str}, {"many": bool, "info": dict, "evidence": list, "basis": str}),
+    "scenarios": ({"id": str, "title": str, "purpose": str, "steps": list}, {"principle": bool}),
+    "steps": ({"at": str}, {"note": str}),
+}
 
 
 def form_breaks(contract):
@@ -180,61 +183,36 @@ def form_breaks(contract):
             found.append((where, "form", "is empty; it holds one entry at least"))
         return list(enumerate(value)) if isinstance(value, list) else []
 
-    def need(where, holder, fields, optional=()):
-        if not isinstance(holder, dict):
-            found.append((where, "form", "must be an object"))
-            return False
-        for name, kind in fields.items():
-            if not isinstance(holder.get(name), kind) or kind is str and not holder[name].strip():
-                found.append((where, "form", f"`{name}` is missing or no {kind.__name__}"))
-        for name in set(holder) - set(fields) - set(optional):
-            found.append((where, "form", f"`{name}` is no field here"))
-        for name, kind in OPTIONAL.items():
-            if name in holder and name in optional and not isinstance(holder[name], kind):
-                found.append((where, "form", f"`{name}` must be a {kind.__name__}"))
-        if isinstance(holder.get("on"), list) and not all(isinstance(name, str) for name in holder["on"]):
-            found.append((where, "form", "`on` must be a list of ids"))
-        if isinstance(holder.get("avoid"), list) and not all(isinstance(word, str) and word.strip() for word in holder["avoid"]):
-            found.append((where, "form", "`avoid` must be a list of words"))
-        if isinstance(holder.get("aliases"), list) and not all(isinstance(word, str) for word in holder["aliases"]):
-            found.append((where, "form", "`aliases` must be a list of strings"))
-        if "info" in holder and not isinstance(holder["info"], dict):
-            found.append((where, "form", "`info` must be an object"))
-        if "evidence" in holder and not (isinstance(holder["evidence"], list) and all(isinstance(entry, str) for entry in holder["evidence"])):
-            found.append((where, "form", "`evidence` must be a list of strings"))
-        if "basis" in holder and holder["basis"] not in BASES:
-            found.append((where, "form", f"`basis` is one of {', '.join(BASES)}"))
-        return True
+    def need(where, holder, kind):
+        broken = record_breaks(where, holder, *({**CORE_FIELDS, **LEVEL_RECORDS}[kind]))
+        found.extend(broken)
+        return isinstance(holder, dict)
 
-    proof = ("info", "evidence", "basis")
-    if not need("contract", contract, {"title": str, "purpose": str, "levels": list, "nodes": list}, ("sources", "terms", "scenarios", "properties", "questions", "areas", "edges")):
+    whole = ({"title": str, "purpose": str, "levels": list, "nodes": list},
+             {name: list for name in ("sources", "terms", "scenarios", "claims", "questions", "areas", "edges")})
+    found += record_breaks("contract", contract, *whole)
+    if not isinstance(contract, dict):
         return found
-    for i, source in each("sources", contract.get("sources", [])):
-        need(f"sources[{i}]", source, {"id": str, "path": str, "says": str}, ("authority",))
-    for i, term in each("terms", contract.get("terms", [])):
-        need(f"terms[{i}]", term, {"term": str, "meaning": str}, ("coined", "avoid", "aliases"))
-    levels = [level.get("id") for i, level in each("levels", contract.get("levels"), True) if need(f"levels[{i}]", level, {"id": str, "title": str}, ("about",))]
+    for kind in ("sources", "terms"):
+        for i, record in each(kind, contract.get(kind, [])):
+            need(f"{kind}[{i}]", record, kind)
+    levels = [level.get("id") for i, level in each("levels", contract.get("levels"), True) if need(f"levels[{i}]", level, "levels")]
     shown = set()
-    for kind, fields, optional in (("areas", {"id": str, "label": str, "tag": str, "level": str}, ("aliases",) + proof),
-                                   ("nodes", {"id": str, "label": str, "tag": str, "level": str}, ("area", "opens", "purpose", "files", "aliases") + proof),
-                                   ("edges", {"id": str, "from": str, "to": str, "label": str, "tag": str}, ("many",) + proof)):
+    for kind in ("areas", "nodes", "edges"):
         for k, element in each(kind, contract.get(kind, [])):
-            if need(f"{kind}[{k}]", element, fields, optional) and kind != "edges" and isinstance(element.get("level"), str):
+            if need(f"{kind}[{k}]", element, kind) and kind != "edges" and isinstance(element.get("level"), str):
                 if element["level"] not in levels:
                     found.append((f"{kind}[{k}]", "form", f"`level` names `{element['level']}`, which is no level"))
                 shown.update([element["level"]] if kind == "nodes" else [])
     found += [(f"level {name}", "form", "no node names this level; a level shows one node at least") for name in levels if isinstance(name, str) and name not in shown]
     for i, scenario in each("scenarios", contract.get("scenarios", [])):
         where = f"scenarios[{i}]"
-        if need(where, scenario, {"id": str, "title": str, "purpose": str, "steps": list}, ("principle",)):
+        if need(where, scenario, "scenarios"):
             for k, step in each(f"{where}.steps", scenario["steps"], True) if "steps" in scenario else ():
-                need(f"{where}.steps[{k}]", step, {"at": str}, ("note",))
-    for i, item in each("properties", contract.get("properties", [])):
-        need(f"properties[{i}]", item, {"id": str, "title": str, "kind": str, "statement": str}, ("strength", "status", "fault", "on", "paths", "evidence", "basis"))
-    for i, question in each("questions", contract.get("questions", [])):
-        need(f"questions[{i}]", question, {"id": str, "asks": str}, ("answers", "gap"))
-        if isinstance(question, dict) and isinstance(question.get("answers"), list) and not all(isinstance(name, str) for name in question["answers"]):
-            found.append((f"questions[{i}]", "form", "`answers` must be a list of ids"))
+                need(f"{where}.steps[{k}]", step, "steps")
+    for kind in ("claims", "questions"):
+        for i, record in each(kind, contract.get(kind, [])):
+            need(f"{kind}[{i}]", record, kind)
     return found
 
 
@@ -245,21 +223,13 @@ def breaks(contract, root=None):
         return found
     contract = nested(contract)
     levels = {level["id"]: level for level in contract["levels"]}
-    seen = {}
     named = [(f"level {level['id']}", level["id"]) for level in contract["levels"]]
     named += [(f"{level['id']}/{element['id']}", element["id"]) for level in contract["levels"] for kind in ("areas", "nodes", "edges") for element in level.get(kind, [])]
     named += [(f"source {source['id']}", source["id"]) for source in contract.get("sources", [])]
-    named += [(f"{kind} {item['id']}", item["id"]) for kind in ("scenarios", "properties", "questions") for item in contract.get(kind, [])]
-    for where, name in named:
-        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
-            found.append((where, "unique-ids", f"`{name}` is not lowercase words joined by `-`, so no text can name it as `{{id}}`"))
-        if name in seen:
-            found.append((where, "unique-ids", f"`{name}` is also {seen[name]}"))
-        seen.setdefault(name, where)
+    named += [(f"{kind} {item['id']}", item["id"]) for kind in ("scenarios", "claims", "questions") for item in contract.get(kind, [])]
+    found += id_breaks(named)
     sources = {source["id"]: source for source in contract.get("sources", [])}
-    for source in sources.values():
-        if root is not None and "://" not in source["path"] and not (root / source["path"]).exists():
-            found.append((f"source {source['id']}", "evidence-source", f"`{source['path']}` is not under {root}"))
+    found += source_breaks(sources, root)
     opened = {name: [] for name in levels}
     for level in contract["levels"]:
         home = level["id"]
@@ -278,14 +248,10 @@ def breaks(contract, root=None):
                     elif not fits(value, allowed[name]["form"]):
                         found.append((where, "info-form", f"`{name}` must be a {allowed[name]['form']}"))
                 found += [(where, "evidence-source", message) for entry in element.get("evidence", []) for message in cited(entry, sources, root)]
-                found += [(where, "evidence-source", f"`files` names `{name}`, which is no source") for name in element.get("files", []) if not isinstance(name, str) or name not in sources]
-        for area in level.get("areas", []):  # the page frames an area around its nodes, so one with none has nothing to draw
-            if not any(node.get("area") == area["id"] for node in level["nodes"]):
-                found.append((f"{home}/{area['id']}", "area-known", "holds no node; an area groups one node at least"))
+                found += [(where, "files-source", f"`files` names `{name}`, which is no source") for name in element.get("files", []) if not isinstance(name, str) or name not in sources]
+        found += area_breaks(level.get("areas", []), level["nodes"], lambda record: f"{home}/{record['id']}", " of this level")
         for node in level["nodes"]:
             where = f"{home}/{node['id']}"
-            if "area" in node and node["area"] not in area_tags:
-                found.append((where, "area-known", f"`{node['area']}` is no area of this level"))
             if "opens" in node:
                 if node["opens"] not in levels:
                     found.append((where, "level-links", f"`{node['opens']}` is no level"))
@@ -361,8 +327,6 @@ def breaks(contract, root=None):
                 for end in sorted({end for edge in edges(contract) if edge["id"] == step["at"] for end in (edge["from"], edge["to"])}):
                     if "{" + end + "}" in step.get("note", ""):
                         found.append((where, "scenario-steps", f"the note names `{end}`, an end of its own edge; the edge says its ends, so a move of one would leave the note false"))
-    if not any(item.get("kind") in ("invariant", "property") for item in contract.get("properties", [])):
-        found.append(("properties", "property-form", "state one invariant or property at least: what must hold while the purpose is met"))
     labels = {element["id"]: element["label"] for element in elements(contract)}
     quoted = {id(value) for level in contract["levels"] for kind in ("area", "node", "edge") for element in level.get(kind + "s", [])
               for name, value in element.get("info", {}).items() if tag_items(TAGS, kind, element["tag"]).get(name, {}).get("form") == "code"}
@@ -374,10 +338,10 @@ def breaks(contract, root=None):
                 label = element["label"].strip()
                 if ARTICLE.match(label) or not (label[:1].isupper() or OWN.search(label.split()[0] if label else "")):
                     found.append((f"levels/{level['id']}/{kind}/{element['id']}/label", "name-form", f"the label `{label}` opens in lower case or with an article; a node's or an area's label opens with a capital and no article, such as `Checker` or `Three jobs`"))
-    titled = [(f"level {level['id']}", level) for level in contract["levels"]] + [(f"{kind} {item['id']}", item) for kind, group in (("scenario", "scenarios"), ("property", "properties")) for item in contract.get(group, [])]
+    titled = [(f"level {level['id']}", level) for level in contract["levels"]] + [(f"{kind} {item['id']}", item) for kind, group in (("scenario", "scenarios"), ("claim", "claims")) for item in contract.get(group, [])]
     for where, item in titled:
-        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", item["title"]):
-            found.append((where, "name-form", f"the title `{item['title'][:40]}` is no slug; a level's, a scenario's and a property's title is lowercase words and digits joined by `-`, such as `inside-server`"))
+        if not SLUG.fullmatch(item["title"]):
+            found.append((where, "name-form", f"the title `{item['title'][:40]}` is no slug; a level's, a scenario's and a claim's title is lowercase words and digits joined by `-`, such as `inside-server`"))
     for level in contract["levels"]:
         for kind in ("areas", "nodes", "edges"):
             for element in level.get(kind, []):
@@ -389,44 +353,10 @@ def breaks(contract, root=None):
     found += wording_breaks(worded(contract, quoted), names, [(element["id"], element["label"]) for element in named],
                             [(f"terms/{k + 1}/term", f"term {entry['term']}", entry) for k, entry in enumerate(contract.get("terms", []))])
     found += alias_breaks(contract)
-    all_edges = {edge['id']: edge for edge in edges(contract)}
-    for item in contract.get("properties", []):
-        where = f"property {item['id']}"
-        found += [(where, "evidence-source", message) for entry in item.get("evidence", []) for message in cited(entry, sources, root)]
-        if item["kind"] not in KINDS or item.get("strength", "must") not in STRENGTHS or item.get("status", "holds") not in STATUSES:
-            found.append((where, "property-form", f"kind is one of {', '.join(KINDS)}; strength of {', '.join(STRENGTHS)}; status of {', '.join(STATUSES)}"))
-        if item["kind"] == "gap" and item.get("fault") not in FAULTS or item["kind"] != "gap" and "fault" in item:
-            found.append((where, "property-form", f"a gap, and only a gap, names its fault: one of {', '.join(FAULTS)}"))
-        for name in item.get("on", []):
-            if name not in everywhere:
-                found.append((where, "property-form", f"`on` names `{name}`, which is no node, edge, area, level or scenario"))
-        if item["kind"] != "fact" and "paths" in item:
-            found.append((where, "property-form", "a fact alone holds `paths`"))
-        if item["kind"] == "fact":
-            paths = item.get("paths")
-            chains = isinstance(paths, list) and len(paths) == 2 and all(
-                isinstance(path, list) and path and all(isinstance(key, str) and key in all_edges for key in path)
-                and all(all_edges[key]["to"] == all_edges[after]["from"] for key, after in zip(path, path[1:])) for path in paths)
-            if not (chains and paths[0] != paths[1] and all_edges[paths[0][0]]["from"] == all_edges[paths[1][0]]["from"]
-                    and all_edges[paths[0][-1]]["to"] == all_edges[paths[1][-1]]["to"]):
-                found.append((where, "fact-paths", "`paths` holds two different chains of edge keys with one start and one end"))
-            elif any(all_edges[key].get("many") for path in paths for key in path):
-                found.append((where, "fact-paths", "a path crosses an edge marked `many`, which leads to several things, so the two paths cannot be said to agree"))
-    stated = {item["id"]: item for item in contract.get("properties", [])}
+    stated = {item["id"]: item for item in contract.get("claims", [])}
+    found += claim_breaks(contract.get("claims", []), sources, root, everywhere, {edge["id"]: edge for edge in edges(contract)})
     proven = {element["id"] for element in elements(contract) if element.get("evidence")} | {name for name, item in stated.items() if item.get("evidence")}
-    if not contract.get("questions"):
-        found.append(("questions", "question-answered", "ask one rebuild question at least: what a reader must learn from the contract to rebuild the subject"))
-    for question in contract.get("questions", []):
-        where, answers, gap = f"question {question['id']}", question.get("answers") or [], question.get("gap")
-        for name in answers:
-            if name not in everywhere and name not in stated:
-                found.append((where, "question-answered", f"`answers` names `{name}`, which is no node, edge, area, level, scenario or property"))
-        if bool(answers) == bool(gap):
-            found.append((where, "question-answered", "holds both `answers` and `gap`; keep the one that is true" if answers else "has no answer: name the records that answer it in `answers`, or the gap property that says why none does in `gap`"))
-        elif answers and not proven & set(answers):
-            found.append((where, "question-answered", "no record in `answers` carries `evidence`, so the answer has no source"))
-        elif gap and stated.get(gap, {}).get("kind") != "gap":
-            found.append((where, "question-answered", f"`gap` names `{gap}`, which is no gap property"))
+    found += question_breaks(contract.get("questions", []), everywhere | set(stated), proven, stated)
     return found
 
 def alias_breaks(contract):
@@ -434,7 +364,7 @@ def alias_breaks(contract):
     said = lambda word: " ".join(word.casefold().split())
     holders = [(element["id"], element) for element in elements(contract) if "from" not in element] + [(f"term {entry['term']}", entry) for entry in contract.get("terms", [])]
     names = {}
-    for kind, one in (("levels", "level"), ("sources", "source"), ("scenarios", "scenario"), ("properties", "property"), ("questions", "question")):
+    for kind, one in (("levels", "level"), ("sources", "source"), ("scenarios", "scenario"), ("claims", "claim"), ("questions", "question")):
         for item in contract.get(kind, []):
             names.setdefault(said(item["id"]), []).append(f"{one} {item['id']}")
     for element in elements(contract):
@@ -505,7 +435,7 @@ def read_lines(contract):
     for scenario in contract.get("scenarios", []):
         lines.append(f"\n{'principle' if scenario.get('principle') else 'scenario'} {scenario['id']}: {shown(scenario['title'], labels)} ({shown(scenario['purpose'], labels)})")
         lines += step_lines(scenario, said, labels)
-    for item in contract.get("properties", []):
+    for item in contract.get("claims", []):
         lines.append(f"\n{item['kind']} {item['id']} ({item.get('strength', 'must')}, {item.get('status', 'holds')}): {shown(item['statement'], labels)}")
     return lines
 
@@ -521,7 +451,7 @@ def flat(value, labels):
 
 
 def outline_lines(contract, only=None):
-    """The contract as leads to read from the top, or the level ONLY alone: the contract's purpose, each level's `about` over its areas, each area's `purpose`, or else its `why`,
+    """The contract as leads to read from the top, or the level ONLY alone: the contract's purpose, each level's `about` over its areas, each area's purpose, or else its `why`,
     over its nodes, each node's purpose over its items, then each scenario's purpose over its steps, each term and each statement."""
     labels = {element["id"]: element["label"] for element in elements(contract)}
     said = {edge["id"]: f"{labels[edge['from']]} {shown(edge['label'], labels)} {labels[edge['to']]}" for edge in edges(contract)}
@@ -530,35 +460,36 @@ def outline_lines(contract, only=None):
         if only not in (None, level["id"]):
             continue
         lines.append(f"\nlevel {level['id']}: {shown(level['title'], labels)}: {shown(level.get('about', '(no about)'), labels)}")
-        def part(kind, element, lead, indent):
+        def part(kind, element, indent):
             catalogue_labels = {name: item["label"] for name, item in tag_items(TAGS, kind, element["tag"]).items()}
-            said = element.get(lead) if kind == "node" else element.get("info", {}).get(lead)
+            lead = "why" if kind == "area" and "purpose" not in element else None
+            said = element.get("info", {}).get(lead) if lead else element.get("purpose")
             return ([f"{indent}{element['label']} ({element['tag']})" + (f": {shown(said, labels)}" if isinstance(said, str) else "")]
-                    + [f"{indent}  {catalogue_labels.get(name, name)}: {flat(value, labels)}" for name, value in element.get("info", {}).items() if kind == "node" or name != lead]
+                    + [f"{indent}  {catalogue_labels.get(name, name)}: {flat(value, labels)}" for name, value in element.get("info", {}).items() if name != lead]
                     + ([f"{indent}  opens: level {element['opens']}"] if "opens" in element else []))
         for area in level.get("areas", []):
-            lines += part("area", area, "purpose" if "purpose" in area.get("info", {}) else "why", "  ")
-            lines += [line for node in level["nodes"] if node.get("area") == area["id"] for line in part("node", node, "purpose", "    ")]
-        lines += [line for node in level["nodes"] if node.get("area") not in [area["id"] for area in level.get("areas", [])] for line in part("node", node, "purpose", "  ")]
+            lines += part("area", area, "  ")
+            lines += [line for node in level["nodes"] if node.get("area") == area["id"] for line in part("node", node, "    ")]
+        lines += [line for node in level["nodes"] if node.get("area") not in [area["id"] for area in level.get("areas", [])] for line in part("node", node, "  ")]
     if only:
         return lines
     for scenario in contract.get("scenarios", []):
         lines.append(f"\n{'principle' if scenario.get('principle') else 'scenario'} {scenario['id']}: {shown(scenario['title'], labels)}: {shown(scenario['purpose'], labels)}")
         lines += step_lines(scenario, said, labels)
     lines += [""] + [f"term {entry['term']}: {shown(entry['meaning'], labels)}" for entry in contract.get("terms", [])]
-    lines += [""] + [f"{item['kind']} {item['id']}: {shown(item['statement'], labels)}" for item in contract.get("properties", [])]
+    lines += [""] + [f"{item['kind']} {item['id']}: {shown(item['statement'], labels)}" for item in contract.get("claims", [])]
     return lines
 
 
 def gap_lines(contract):
     """What each topic holds, then each question the contract leaves open; the questions are what `gaps` exits 1 on."""
     counts = [f"{count(contract):4d}  {topic}" for topic, count in TOPICS]
-    excused = {name for item in contract.get("properties", []) if item["kind"] == "gap" for name in item.get("on", [])}
+    excused = {name for item in claims(contract) if "fault" in item for name in item.get("on", [])}
     asked = []
     for topic, count in TOPICS:
-        named = any(item["kind"] == "gap" and topic in item["statement"] for item in contract.get("properties", []))
+        named = any(topic in item.get("fault", "") for item in claims(contract))
         if not count(contract) and not named:
-            asked.append(f"topic: nothing holds `{topic}`: look again in the sources, or record a gap whose statement names the topic in these words and says why it has none")
+            asked.append(f"topic: nothing holds `{topic}`: look again in the sources, or record a claim whose `fault` names the topic in these words and says why it has none")
     for level in contract["levels"]:
         label = {node["id"]: node["label"] for node in level["nodes"]}
         for kind, group in (("node", level["nodes"]), ("edge", level.get("edges", [])), ("area", level.get("areas", []))):
@@ -712,7 +643,7 @@ def main(args):
     counts, asked = gap_lines(contract)
     print("what each topic holds:")
     print("\n".join(counts))
-    print("\n".join([f"\n{len(asked)} open questions; answer each from the sources, or record a gap property `on` the element it names:"] + asked) if asked else "\nno open question")
+    print("\n".join([f"\n{len(asked)} open questions; answer each from the sources, or record a claim `on` the element it names whose `fault` says why none can be answered:"] + asked) if asked else "\nno open question")
     return 1 if asked else 0
 
 
