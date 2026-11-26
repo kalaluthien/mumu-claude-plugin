@@ -8,7 +8,7 @@ and one HTML element. Print `ok <case>` or `fail <case>: <detail>` per case, the
 - `missing-section`: a section the head lacks, or one of a file it lacks, is named and its criterion judged again;
 - `subsection`: a fix under a deeper heading inside the Markdown section counts as that section's;
 - `removal`: a fix that only removes a line of the Markdown section counts as that section's;
-- `unknown-sha`: a sha the repository lacks is named, exit 1, and `--since` beside `--hunks` or `--base` is refused with the usage, exit 2.
+- `unknown-sha`: a sha the repository lacks is named, exit 1, and `--since` beside `--base` is refused with the usage, exit 2.
 - `more-parts`, on a second repository: a folder's cover and a whole file's beside its own section combine in either order;
   nested elements of one tag end at their own end tags; a punctuated heading's anchor; a `#` line in a code fence is no
   heading; a removal at the top of a file; a binary file and a mode change are judged again, a standing criterion always, and a binary file no criterion covers is named; a criterion with no
@@ -191,8 +191,8 @@ def main(args):
         cases.step("removal", verdicts(out).get(2) == "again" and "covered by no criterion" not in out, out)
         codes.clear()
         out = since(box, folder, "0" * 40, CRITERIA)
-        refused = [since(box, folder, first, CRITERIA, other) for other in ("--hunks", "--base")]
-        cases.step("unknown-sha", codes == [1, 2, 2] and all("\nusage: run-criteria.py " in text for text in refused) and out == f"run-criteria: --since {'0' * 40} names no commit here\n", (codes, out, refused))
+        refused = since(box, folder, first, CRITERIA, "--base")
+        cases.step("unknown-sha", codes == [1, 2] and "\nusage: run-criteria.py " in refused and out == f"run-criteria: --since {'0' * 40} names no commit here\n", (codes, out, refused))
         more_parts(cases, box)
         edges(cases, box)
     return cases.finish()

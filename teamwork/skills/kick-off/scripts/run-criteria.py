@@ -3,7 +3,7 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
 `--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given.
@@ -49,6 +49,8 @@ for each whose branch no criterion reaches; each other comparison it adds is the
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, so give a long check time with `--timeout`; it never fetches.
+With `--since <sha>`, the head of the last sweep, it reverts and mutates only the hunks a line of which changed between that sha and the head,
+and counts the rest as `unchanged since <sha>, not swept`, since the last sweep already judged them; the checks at the head still run first.
 
 `--since <sha>` runs nothing: it reads the hunks between the sha, the head a judge last judged, and the head, and prints for each criterion
 `<n>: judge again` with the parts that changed, or `<n>: unchanged since <sha>: keep its verdict`. A criterion names its parts by a
@@ -505,6 +507,13 @@ def run_per_hunk(options, task, root, live):
     hunks = split_hunks(diff.decode("latin-1"))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
     runners = sorted({file for file, _, _ in hunks if RUNNER.search(file)})
+    if options.since:
+        # a hunk no line of which moved since the last sweep keeps that sweep's result, so only the moved ones are swept
+        moved = changed_lines(root, options.since)
+        # a file changed with no hunk since, such as a binary, moved as a whole
+        # the line before a hunk counts as its own, since a fix that removes the hunk's first lines touches that line
+        kept = [hunk for hunk in hunks if hunk[0] not in moved or moved[hunk[0]] and not moved[hunk[0]] & {hunk_lines(hunk)[0] - 1, *hunk_lines(hunk)}]
+        hunks = [hunk for hunk in hunks if hunk not in kept]
     found += [(file, ("check", file, f"`{'bun' if file.endswith('.ts') else 'python3'} {file}` exits 0")) for file in runners]
 
     def results(copy):
@@ -589,7 +598,8 @@ def run_per_hunk(options, task, root, live):
                         unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
                     elif alive:
                         unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode()}`, so make a criterion fail on it or drop it")
-    print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded")
+    print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded"
+          + (f", {len(kept)} unchanged since {options.since}, not swept" if options.since else ""))
     print(*unneeded, sep="\n")
     print(*[f"{file}: {count} hunks not judged one by one, since reverting them together fails a criterion; --each judges each" for file, count in unjudged], sep="\n")
     print(live.report(), end="")
@@ -714,6 +724,12 @@ def section_span(text, path, section):
     return None
 
 
+def hunk_lines(hunk):
+    """The head lines a one-hunk patch spans; one that only removes spans the line before it."""
+    start, count = re.search(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))?", hunk[2]).groups()
+    return range(int(start), int(start) + int(count or "1")) or [int(start)]
+
+
 def changed_lines(root, since):
     """{file: set of head lines} each hunk between SINCE and the head touches; a hunk that only removes touches the line before it, and a file changed with no hunk, or whose name git quotes, maps to an empty set."""
     diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", since, "HEAD"], cwd=root, capture_output=True)
@@ -723,9 +739,8 @@ def changed_lines(root, since):
     found = {file: set() for file in names.stdout.split("\0") if file}  # a file with no hunk keeps an empty set: it changed as a whole
     # a name git quotes in a header, one with a `"`, a tab or a backslash, gets no hunk read, so it changed as a whole
     named = "".join(part for part in re.split(r"(?m)^(?=diff --git )", diff.stdout.decode("latin-1")) if not part.startswith('diff --git "'))
-    for file, _, patch in split_hunks(named):
-        start, count = re.search(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))?", patch).groups()
-        found[file].update(range(int(start), int(start) + int(count or "1")) or [int(start)])
+    for hunk in split_hunks(named):
+        found[hunk[0]].update(hunk_lines(hunk))
     return found
 
 
@@ -796,9 +811,9 @@ def main(args):
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
-    if options.hunks and options.base or options.since and (options.hunks or options.base):
+    if options.hunks and options.base or options.since and options.base:
         usage_parser.refuse(__doc__)
-    if options.since:
+    if options.since and not options.hunks:
         return run_since(options, task, root)
     if options.hunks:
         return run_per_hunk(options, task, root, Live(root, task))
