@@ -115,20 +115,22 @@
 //            note marks no term, chip or guess, as no crumb or scenario title, a slug, can.
 //   badges   on a copy of the first example, a text holding `(guess)` and a claim whose status is unknown or fails each show
 //            a badge naming that state, and a claim that holds shows none.
-//   counts   on a copy of the first example whose first level's first node holds five claims that hold, one with no
-//            status and one with a fault, one unknown, one conflicting and one that fails, and each edge of that level but the last one
-//            a claim that fails, at each size in light and dark, each node and edge of the level shows one badge per status its claims hold, `✓`, `?`, `!` or `✗` and their count, a tucked
-//            label's badges still shown, and a record with none shows none; a node's badges sit inside it, clear of its name,
-//            tag and open button, and an edge's within 16 px of its label; each fill is green, grey, orange or red by its oklch
-//            hue and chroma, each pair 0.08 or more apart in oklab, its text at 4.5:1 or more, printed as `count badges: PASS`
-//            or `count badges: FAIL, <reason>`; the pointer on each badge of that node, of an edge and of each one whose label
-//            is tucked, and a click on it, shows its record's card listing each claim it counts as a chip under the row of its
-//            status, each once, and a click on each chip shows that claim's card headed by its title on the level of the first
-//            record it names, still so once the pointer has rested where it clicked, and so when a pointer resting on the chip
+//   counts   on a copy of the first example whose first level's first node holds five claims that hold, one named on it twice,
+//            one with no status, one first on another level and one with a fault, one unknown, one conflicting and one that fails,
+//            each edge of that level but the last one a claim that fails, and its first area one claim that holds, at each size in
+//            light and dark, each node, edge and area of the level shows one badge per claim on it, its kind's initial, its status's
+//            `✓`, `?`, `!` or `✗` and `*` for a claim that holds with a fault, a tucked label's badges still shown, and a record
+//            with none shows none; a node's and an area's badges sit inside it, a node's clear of its name, tag and open button,
+//            and an edge's within 16 px of its label; each fill keeps its status's hue at its least chroma, each pair 0.08 or more
+//            apart in oklab, its text at 4.5:1 or more, printed as `count badges: PASS` or `count badges: FAIL, <reason>`; the
+//            pointer on each badge of that node, of an edge, of that area and of each one whose label is tucked shows its record's
+//            card listing each claim on it as a chip under `claims`, each once, and a click on the badge keeps its claim's card on
+//            the level of the first record the claim names; a click on each chip shows that claim's card headed by its title on
+//            that level, still so once the pointer has rested where it clicked, and so when a pointer resting on the chip
 //            since its page loaded clicks it unmoved and shakes 1 px, and while the pointer has moved 2 px or less from there no
-//            record it comes over raises a card, though one moved 2.5 px does; an area's card lists no such row; and with the
-//            node's card kept, each badge of a record dimmed around it shows at 0.75 opacity or less, the node's own at full,
-//            printed as `count lists: PASS` or `count lists: FAIL, <reason>`.
+//            record it comes over raises a card, though one moved 2.5 px does; and with the node's card kept, each badge of a
+//            record dimmed around it shows at 0.75 opacity or less, the node's own at full, printed as `count lists: PASS` or
+//            `count lists: FAIL, <reason>`.
 //   note     on each example at each size, each step's note shows a left bar 3 px or wider and a first line `Step <n>`, both
 //            in the scenario mark's hue within 20 degrees at an oklch chroma of 0.1 or more, no edge label shows a border, and
 //            no count outside the badges, such as the play bar's, takes a badge's ring or rounding.
@@ -276,7 +278,7 @@ const drawn = (page, level) => page.evaluate((level) => {
     if (!drawn) return `edge ${edge.id} has not one anchor`;
     if (!inside(box(drawn.querySelector("path.line")), whole, 2)) return `edge ${edge.id} leaves the window`;
     const label = stage.querySelector(`.label[data-edge="${edge.id}"]`);
-    const said = label && [...label.childNodes].filter((part) => !(part.classList && part.classList.contains("counts"))).map((part) => part.textContent).join(""); // the label's words, its badges apart
+    const said = label && [...label.childNodes].filter((part) => !(part.classList && part.classList.contains("claims"))).map((part) => part.textContent).join(""); // the label's words, its badges apart
     if (!label || said !== edge.shown) return `edge ${edge.id} has no label`;
     if (!label.classList.contains("tucked") && !inside(box(label), whole)) return `the label of edge ${edge.id} is outside the window`;
   }
@@ -408,7 +410,7 @@ const outlines = (page) => page.evaluate(() => { // each node's corners, lid and
     canvas: pixel(canvas), mark: pixel(getComputedStyle(document.documentElement).getPropertyValue("--mark")),
     nodes: [...stage.querySelectorAll(".node")].map((card) => {
       const lid = getComputedStyle(card, "::after"), drawn = lid.content !== "none" && lid.display !== "none";
-      return { id: card.dataset.id, w: card.offsetWidth, h: card.offsetHeight, corners: corners(card), inner: [...card.querySelectorAll("button")].map((button) => Math.max(...corners(button).flat())),
+      return { id: card.dataset.id, w: card.offsetWidth, h: card.offsetHeight, corners: corners(card), inner: [...card.querySelectorAll("button:not(.claim)")].map((button) => Math.max(...corners(button).flat())),
         lid: drawn ? { w: parseFloat(lid.width), h: parseFloat(lid.height), top: parseFloat(lid.top), round: lid.borderBottomLeftRadius, rim: line(lid, "Bottom") } : null, label: top(card.querySelector("b")) - top(card) };
     }),
     areas: [...stage.querySelectorAll(".area")].map((frame) => {
@@ -572,9 +574,9 @@ async function shapes(browser) {
 }
 
 // ---- overlay ----
-function rowsOf(record, kind, claims = []) { // a record's card rows: its sentence, purpose, items, opens and evidence, and one row per kind of claim its badges count
-  const counted = new Set(claims.filter((one) => /^(node|edge)$/.test(kind) && (one.on || []).includes(record.id)).map((one) => one.status || "holds"));
-  return (kind === "edge" ? 1 : 0) + (record.purpose ? 1 : 0) + Object.keys(record.info || {}).length + (record.opens ? 1 : 0) + (record.evidence ? 1 : 0) + counted.size;
+function rowsOf(record, kind, claims = []) { // a record's card rows: its sentence, purpose, items, opens and evidence, and one row listing the claims on it
+  const held = claims.some((one) => (one.on || []).includes(record.id));
+  return (kind === "edge" ? 1 : 0) + (record.purpose ? 1 : 0) + Object.keys(record.info || {}).length + (record.opens ? 1 : 0) + (record.evidence ? 1 : 0) + (held ? 1 : 0);
 }
 const formOf = (kind, record, name) => { const items = ((tags[kind] || {})[record.tag] || { items: [] }).items.concat((tags.common || {})[kind] || []); const item = items.find((one) => one.name === name); return item ? item.form : null; };
 function targets(example) { // a node, an edge and an area, then one record per item form
@@ -975,13 +977,13 @@ async function mixed(browser, example, size, order) {
   const note = async () => { await rest(page); const now = await view(page); if (now.address !== views[views.length - 1].address) views.push(now); };
   const moves = {
     down: async () => {
-      if (!(await page.$("#stage .node .open"))) { await page.click("#crumbs button"); await note(); }
+      if (!(await page.$("#stage .node .open"))) { await page.click("#crumbs > button"); await note(); }
       await page.mouse.move(2, size[1] - 2); await rest(page); // off the diagram, so no overlay lies over the button
       await page.click("#stage .node .open"); await note();
     },
     up: async () => {
-      if ((await page.$$("#crumbs button")).length < 2) await moves.down();
-      const path = await page.$$("#crumbs button");
+      if ((await page.$$("#crumbs > button")).length < 2) await moves.down();
+      const path = await page.$$("#crumbs > button");
       await path[path.length - 2].click(); await note();
     },
     search: async () => {
@@ -1796,7 +1798,8 @@ async function badges(browser) {
   const settled = await badged(copy.holds, homeOf(copy, claims[copy.holds]));
   check(!settled.length, `a claim that holds shows the badges [${settled}]`);
 }
-const COUNTED = { holds: ["✓", 150, 30, 0.08], unknown: ["?", null, 0, 0], conflicting: ["!", 65, 30, 0.08], fails: ["✗", 27, 25, 0.1] }; // each status's symbol, the hue its fill keeps within a turn of, and the least chroma; unknown's fill is grey
+const FILLS = { holds: [140, 30, 0.08], unknown: [265, 40, 0.04], conflicting: [65, 30, 0.08], fails: [25, 25, 0.1] }; // the hue each status's fill keeps within a turn of, and its least chroma
+const face = (claim) => ({ guarantee: "G", assumption: "A" })[claim.kind] + ({ holds: "✓", unknown: "?", conflicting: "!", fails: "✗" })[claim.status || "holds"] + ((claim.status || "holds") === "holds" && claim.fault ? "*" : ""); // a badge's text
 function tallied() { // a copy of the first example whose first level's first node holds five claims that hold, one named on it twice, one with no status, one first on another level and one with a fault, one unknown, one conflicting and one that fails, each of its edges but the last one claim that fails, and its first area one claim
   const flat = JSON.parse(fs.readFileSync(examples[0].source, "utf8")), first = flat.levels[0].id, nodes = flat.nodes.filter((node) => node.level === first), away = flat.nodes.find((node) => node.level !== first), area = (flat.areas || []).find((one) => one.level === first), edges = flat.edges.filter((edge) => nodes.some((node) => node.id === edge.from));
   check(nodes.length >= 2 && edges.length >= 2 && away && area, `${examples[0].name}'s first level holds under two nodes, two edges or one area, or no node lies on another level`);
@@ -1806,10 +1809,7 @@ function tallied() { // a copy of the first example whose first level's first no
   const source = path.join(scratch, "tallied.json");
   fs.writeFileSync(source, JSON.stringify(flat));
   const example = make({ name: "tallied", source, built: path.join(scratch, "tallied.html") }), want = {};
-  for (const claim of example.contract.claims) for (const id of new Set(claim.on || [])) {
-    const kind = claim.id.startsWith("planted-") ? { "planted-holds-one": "holds", "planted-holds-two": "holds", "planted-away": "holds", "planted-area": "holds", "planted-holds-bare": "holds", "planted-holds-fault": "holds", "planted-unknown": "unknown", "planted-conflicting": "conflicting" }[claim.id] || "fails" : claim.status || "holds"; // the planted ones by what they are meant to count as, never by the page's own rule
-    ((want[id] = want[id] || {})[kind] = want[id][kind] || []).push(claim.id);
-  }
+  for (const claim of example.contract.claims) for (const id of new Set(claim.on || [])) (want[id] = want[id] || []).push(claim);
   const placed = Object.fromEntries([...flat.nodes, ...(flat.areas || [])].map((one) => [one.id, one.level]).concat(flat.edges.map((edge) => [edge.id, flat.nodes.find((node) => node.id === edge.from).level])));
   const homes = Object.fromEntries(flat.claims.map((one) => [one.id, (one.on || []).map((id) => placed[id]).find(Boolean) || first]));
   check(homes["planted-away"] === away.level && away.level !== first, "the planted claim first on another level is seen on the first level");
@@ -1822,35 +1822,35 @@ const badgesOf = (page) => page.evaluate(() => { // each node's and edge's badge
   pen.canvas.width = pen.canvas.height = 1;
   const pixel = (color, under) => { pen.clearRect(0, 0, 1, 1); pen.fillStyle = under; pen.fillRect(0, 0, 1, 1); pen.fillStyle = color; pen.fillRect(0, 0, 1, 1); return [...pen.getImageData(0, 0, 1, 1).data].slice(0, 3); };
   const out = {};
-  for (const holder of document.querySelectorAll("#stage .node[data-id], #stage .label[data-edge]")) {
-    const id = holder.dataset.id || holder.dataset.edge, tucked = holder.classList.contains("tucked"), node = holder.classList.contains("node");
-    const frame = box((node ? holder : document.querySelector(`#stage .label[data-edge="${CSS.escape(id)}"]`)).getBoundingClientRect()), reach = node ? 0.5 : 16;
+  for (const holder of document.querySelectorAll("#stage .node[data-id], #stage .label[data-edge], #stage .area[data-id]")) {
+    const id = holder.dataset.id || holder.dataset.edge, tucked = holder.classList.contains("tucked"), node = holder.classList.contains("node"), held = node || holder.classList.contains("area");
+    const frame = box(holder.getBoundingClientRect()), reach = held ? 0.5 : 16;
     const covered = node ? [...holder.querySelectorAll(":scope > b, :scope > small")].flatMap(words).concat([...holder.querySelectorAll(":scope > .open")].map((one) => box(one.getBoundingClientRect()))) : [];
-    for (const one of holder.querySelectorAll(":scope > .counts > .count")) {
+    for (const one of holder.querySelectorAll(":scope > .claims > .claim, :scope > header > .claims > .claim")) {
       const style = getComputedStyle(one), fill = pixel(style.backgroundColor, canvas), rect = one.getBoundingClientRect();
-      const strays = node ? rect.left < frame.left - reach || rect.right > frame.right + reach || rect.top < frame.top - reach || rect.bottom > frame.bottom + reach : Math.max(frame.left - rect.right, rect.left - frame.right) > reach || Math.max(frame.top - rect.bottom, rect.top - frame.bottom) > reach; // a node holds its badges, a label's sit within reach of it
-      (out[id] = out[id] || []).push({ kind: one.dataset.count, text: one.textContent, fill, ink: pixel(style.color, `rgb(${fill.join(",")})`), seen: one.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && rect.width > 0, tucked, strays: strays && `${[rect.left, rect.top, rect.right, rect.bottom].map(Math.round)} against ${Object.values(frame).map(Math.round)}`, covers: covered.some((part) => meets(box(rect), part)) });
+      const strays = held ? rect.left < frame.left - reach || rect.right > frame.right + reach || rect.top < frame.top - reach || rect.bottom > frame.bottom + reach : Math.max(frame.left - rect.right, rect.left - frame.right) > reach || Math.max(frame.top - rect.bottom, rect.top - frame.bottom) > reach; // a node or an area holds its badges, a label's sit within reach of it
+      (out[id] = out[id] || []).push({ kind: one.dataset.status, text: one.textContent, fill, ink: pixel(style.color, `rgb(${fill.join(",")})`), seen: one.checkVisibility({ opacityProperty: true, visibilityProperty: true }) && rect.width > 0, tucked, strays: strays && `${[rect.left, rect.top, rect.right, rect.bottom].map(Math.round)} against ${Object.values(frame).map(Math.round)}`, covers: covered.some((part) => meets(box(rect), part)) });
     }
   }
   return out;
 });
 const lit = (rgb) => { const [r, g, b] = rgb.map((c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
-async function countBadges(browser, copy) { // each node's and edge's badges say what the claims on it hold, in their own colours, a tucked label's included
+async function countBadges(browser, copy) { // each node's, edge's and area's badges say each claim on it, its kind and what it holds, in its status's colour, a tucked label's included
   let tucked = 0, bare = { node: 0, edge: 0 };
   const level = copy.example.contract.levels.find((one) => one.id === copy.level);
   for (const scheme of ["light", "dark"]) for (const size of SIZES) {
     const page = await open(browser, copy.example, size, { scheme, at: `#level=${copy.level}` }), where = `${scheme} at ${size.join("x")}`, seen = await badgesOf(page), fills = {};
-    for (const [kind, group] of [["node", level.nodes], ["edge", level.edges || []]]) for (const record of group) {
-      const want = Object.keys(COUNTED).filter((one) => copy.want[record.id] && copy.want[record.id][one]).map((one) => COUNTED[one][0] + copy.want[record.id][one].length), drawn = (seen[record.id] || []).map((badge) => badge.text);
+    for (const [kind, group] of [["node", level.nodes], ["edge", level.edges || []], ["area", level.areas || []]]) for (const record of group) {
+      const want = (copy.want[record.id] || []).map(face), drawn = (seen[record.id] || []).map((badge) => badge.text);
       check(same(want, drawn), `${where}: ${kind} ${record.id} shows the badges [${drawn}], not [${want}]`);
-      if (!want.length) bare[kind] += 1;
+      if (!want.length && kind !== "area") bare[kind] += 1;
       for (const badge of seen[record.id] || []) {
         check(badge.seen, `${where}: the ${badge.text} badge of ${kind} ${record.id} is hidden${badge.tucked ? " with its tucked label" : ""}`);
         if (badge.tucked) tucked += 1;
-        check(!badge.strays, `${where}: the ${badge.text} badge of ${kind} ${record.id} sits ${kind === "node" ? "outside its node" : "more than 16 px from its label's place"}: ${badge.strays}`);
+        check(!badge.strays, `${where}: the ${badge.text} badge of ${kind} ${record.id} sits ${kind === "edge" ? "more than 16 px from its label's place" : `outside its ${kind}`}: ${badge.strays}`);
         check(!badge.covers, `${where}: the ${badge.text} badge of node ${record.id} covers its name, its tag or its open button`);
-        const fill = oklab(badge.fill), [, at, by, least] = COUNTED[badge.kind], ratio = (Math.max(lit(badge.fill), lit(badge.ink)) + 0.05) / (Math.min(lit(badge.fill), lit(badge.ink)) + 0.05);
-        check(at === null ? chroma(fill) <= 0.02 : chroma(fill) >= least && turn(hue(fill), at) <= by, `${where}: the ${badge.text} badge of ${record.id} is filled at chroma ${chroma(fill).toFixed(3)} and hue ${hue(fill).toFixed(0)}, not ${badge.kind}'s colour`);
+        const fill = oklab(badge.fill), [at, by, least] = FILLS[badge.kind], ratio = (Math.max(lit(badge.fill), lit(badge.ink)) + 0.05) / (Math.min(lit(badge.fill), lit(badge.ink)) + 0.05);
+        check(chroma(fill) >= least && turn(hue(fill), at) <= by, `${where}: the ${badge.text} badge of ${record.id} is filled at chroma ${chroma(fill).toFixed(3)} and hue ${hue(fill).toFixed(0)}, not ${badge.kind}'s colour`);
         check(ratio >= 4.5, `${where}: the ${badge.text} badge of ${record.id} shows its text at ${ratio.toFixed(2)}:1 on its fill`);
         fills[badge.kind] = fill;
       }
@@ -1864,7 +1864,7 @@ async function countBadges(browser, copy) { // each node's and edge's badges say
   check(bare.node && bare.edge, `the copy's first level shows no node or no edge without claims, so a bare record's lack of badges is untested`);
   check(tucked, `no edge whose label is tucked held a badge at any size, so a tucked label's badges are untested`);
 }
-async function countLists(browser, copy) { // the pointer on each badge, and a click on it, shows its record's card listing what it counts, each chip opening its claim
+async function countLists(browser, copy) { // the pointer on each badge shows its record's card listing the claims on it, a click on it opens its claim, and each chip opens its claim
   const listed = (page) => page.evaluate(() => {
     const card = document.getElementById("card"), rows = {};
     for (let leaf = 0; leaf < 12; leaf++) {
@@ -1876,32 +1876,33 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
     }
     return rows;
   });
-  const names = { holds: "holds", unknown: "unknown", conflicting: "conflicting", fails: "fails" }, level = copy.example.contract.levels.find((one) => one.id === copy.level);
+  const level = copy.example.contract.levels.find((one) => one.id === copy.level), home = `#level=${copy.level}`;
   let jittered = false, stilled = false;
-  const shown = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".counts")).map((one) => one.dataset.edge));
+  const shown = await open(browser, copy.example, SIZES[1], { at: home }), tucked = await shown.evaluate(() => [...document.querySelectorAll("#stage .label.tucked[data-edge]")].filter((one) => one.querySelector(".claims")).map((one) => one.dataset.edge));
   await shown.context().close();
-  const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, ...tucked]; // every tucked label's badges, since a lit label moves to a free place
+  const edge = (level.edges || []).find((one) => copy.want[one.id] && !tucked.includes(one.id)), targets = [copy.node, edge.id, copy.area, ...tucked]; // every tucked label's badges, since a lit label moves to a free place
   check(tucked.length, `no edge whose label is tucked holds a badge at ${SIZES[1].join("x")}, so the pointer on a tucked label's badge is untested`);
   for (const id of targets) {
-    const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}` }), wanted = Object.entries(copy.want[id]).map(([kind, list]) => [names[kind], list]);
-    const badges = page.locator(`#stage [data-id="${id}"] .count, #stage [data-edge="${id}"] .count`);
+    const page = await open(browser, copy.example, SIZES[1], { at: home }), wanted = copy.want[id].map((claim) => claim.id);
+    const badges = page.locator(`#stage [data-id="${id}"] > .claims > .claim, #stage [data-id="${id}"] > header > .claims > .claim, #stage [data-edge="${id}"] > .claims > .claim`);
     check(await badges.count() === wanted.length, `${id} shows ${await badges.count()} badges, not ${wanted.length}`);
     for (let i = 0; i < wanted.length; i++) {
       await page.mouse.move(2, SIZES[1][1] - 2);
       const box = await badges.nth(i).boundingBox();
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); // straight onto the badge, since a card a path raises on the way may cover it
       await page.clock.fastForward(450);
-      await page.waitForFunction(CARDED, id, { timeout: 8000 }).catch(async () => { const [x, y] = [box.x + box.width / 2, box.y + box.height / 2], under = await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return `${one && one.className} of ${one && (one.closest("[data-id], [data-edge]") || {}).dataset && JSON.stringify((one.closest("[data-id], [data-edge]") || {}).dataset)}, card ${document.getElementById("card").dataset.for}`; }, [x, y]); throw new Error(`the pointer on the ${i + 1}. badge of ${id} raised no card for it; under it ${under}`); });
+      await page.waitForFunction(CARDED, id, { timeout: 8000 }).catch(async () => { const [x, y] = [box.x + box.width / 2, box.y + box.height / 2], under = await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return `${one && one.className} of ${one && (one.closest("[data-id], [data-edge]") || {}).dataset}`; }, [x, y]); throw new Error(`the pointer on the ${i + 1}. badge of ${id} raises no card for it, over ${under}`); });
       const rows = await listed(page);
-      for (const [name, list] of wanted) check(same(rows[name], list), `the card under the ${i + 1}. badge of ${id} lists [${rows[name]}] under ${name}, not [${list}]`);
+      check(same(rows.claims, wanted), `the card under the ${i + 1}. badge of ${id} lists [${rows.claims}] under claims, not [${wanted}]`);
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
       await rest(page);
-      check(await page.evaluate((id) => location.hash.includes("at=" + encodeURIComponent(id)) && document.getElementById("card").classList.contains("kept"), id), `a click on the ${i + 1}. badge of ${id} keeps no card for it`);
-      await page.keyboard.press("Escape");
-      await rest(page);
+      const [held, at] = await page.evaluate((claim) => [location.hash.includes("at=" + encodeURIComponent(claim)) && document.getElementById("card").classList.contains("kept") && document.getElementById("card").dataset.for === claim, new URLSearchParams(location.hash.slice(1)).get("level")], wanted[i]);
+      check(held && at === copy.homes[wanted[i]], `a click on the ${i + 1}. badge of ${id} keeps ${held ? "" : "no "}card for ${wanted[i]} on the level ${at}, not ${copy.homes[wanted[i]]}`);
+      await page.goto("file://" + copy.example.built + home);
+      await settled(page);
     }
-    for (const [, list] of wanted) for (const claim of list) {
-      await page.goto("file://" + copy.example.built + `#level=${copy.level}&at=${id}`);
+    for (const claim of wanted) {
+      await page.goto("file://" + copy.example.built + `${home}&at=${id}`);
       await settled(page);
       const chip = page.locator(`#card .ref[data-ref="${claim}"]`);
       for (let leaf = 0; leaf < 12 && !(await chip.count()); leaf++) await page.locator("#card footer .turn").click();
@@ -1918,18 +1919,14 @@ async function countLists(browser, copy) { // the pointer on each badge, and a c
       check(at === there, `a click on the chip for ${claim} in the card of ${id} shows the level ${at}, not ${there}`);
       if (!jittered) jittered = await jitter(page, claim, clicked);
       if (!stilled && await page.evaluate(([x, y]) => { const one = document.elementFromPoint(x, y); return !!(one && one.closest("#stage [data-id], #stage [data-edge]")); }, clicked))
-        stilled = await clickedResting(page, `#level=${copy.level}&at=${id}`, copy.example, claim, clicked); // a record the card uncovers, which a hover would raise
+        stilled = await clickedResting(page, `${home}&at=${id}`, copy.example, claim, clicked); // a record the card uncovers, which a hover would raise
     }
     quiet(page, `the badges of ${id}`);
     await page.context().close();
   }
   check(stilled, "no chip has a record under it once its card leaves, so a click by a resting pointer is untested");
-  const page = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.area}` }), rows = await listed(page); // an area holds a claim but shows no badge and lists no count row
-  check(!(await page.locator(`#stage [data-id="${copy.area}"] .count`).count()), `the area ${copy.area} shows a badge`);
-  check(!Object.values(names).some((name) => name in rows), `the card of the area ${copy.area} lists a row of ${Object.values(names).filter((name) => name in rows)}`);
-  await page.context().close();
-  const kept = await open(browser, copy.example, SIZES[1], { at: `#level=${copy.level}&at=${copy.node}` });
-  const faded = await kept.evaluate((node) => [...document.querySelectorAll("#stage .counts")].map((group) => { // each badge group's opacity as drawn, its holders' multiplied in
+  const kept = await open(browser, copy.example, SIZES[1], { at: `${home}&at=${copy.node}` });
+  const faded = await kept.evaluate((node) => [...document.querySelectorAll("#stage .claims")].map((group) => { // each badge group's opacity as drawn, its holders' multiplied in
     let shown = 1;
     for (let at = group; at && at.id !== "stage"; at = at.parentElement) shown *= Number(getComputedStyle(at).opacity);
     const holder = group.closest("[data-id], [data-edge]");

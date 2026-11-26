@@ -3,7 +3,7 @@
 
 usage: replay-part-builds.py [--seed N]
 
-edit: the self example of system and the name-lookup fixture of flow, each split into part files by `check-contract.py split`, are
+edit: the self example of system and the name-lookup example of flow, each split into part files by `check-contract.py split`, are
 built by `make-page.py`, which checks and builds every part; built again with no edit, it checks and builds none; after an edit to
 the `about` of the middle part, a level, which no other part reads, it checks and builds that level alone, and the page equals a
 build with no earlier page; an edit to the `purpose` of a record of that level, which the top's rules read, checks and builds that
@@ -88,7 +88,7 @@ def write(file, value):
 
 def edit_step(folder):
     found = []
-    for skill, source in (("system", PLUGIN / "skills/system/examples/self/contract.json"), ("flow", PLUGIN / "skills/flow/fixtures/name-lookup.json")):
+    for skill, source in (("system", PLUGIN / "skills/system/examples/self/contract.json"), ("flow", PLUGIN / "skills/flow/examples/name-lookup/contract.json")):
         parts_folder, page, fresh = folder / skill / "contract", folder / skill / "page.html", folder / skill / "fresh.html"
         status, _, said = run(skill, "check-contract.py", "split", source, parts_folder)
         if status:

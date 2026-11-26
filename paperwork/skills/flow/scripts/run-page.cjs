@@ -6,9 +6,9 @@
 // With no word it runs every step; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the step's seconds,
 // then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure and 2 on a word it does
 // not know.
-//   interaction  on the first level of name-lookup.json: every node in one row across the top; every edge lower than the
-//                one before it, its step number on its sender's line, its name above its arrow and its tag chip and a
-//                badge per status of its claims below it, then its code items and a pill per work row, a self-call a loop
+//   interaction  on the first level of examples/name-lookup: every node in one row across the top; every edge lower than the
+//                one before it, its step number on its sender's line, its name above its arrow with a badge per claim
+//                on it, its tag chip below it, then its code items and a pill per work row, a self-call a loop
 //                on its node's line with its parts starting just right of it, the arrow joining its two nodes' lines and
 //                its name, code items and work pills between them; each area's nodes in one fill and one 2 px border
 //                colour, the area's label inside each, the areas apart in colour, and each node, line, pill and task list
@@ -20,14 +20,14 @@
 //                node's area and the edge's step and formula on it; `/` and an edge's name listing that edge first, and
 //                Enter keeping its card; `/` and a question's id listing it as an open question when a claim with a fault
 //                is its every answer; a click on the nested edge's ref mark drawing the level it opens, a badge per
-//                status on its edges, with crumbs back, a double-click on the edge doing the same, and the first crumb
+//                claim on its edges, with crumbs back, a double-click on the edge doing the same, and the first crumb
 //                drawing the first level again; one anchor per node, edge, task, fragment and milestone; a contract the
 //                checker refuses building no page; arrowheads pointing at the receiver; on a crowded copy, a self-call's
 //                name inside its frame and the stage, a call's wide work pills between its two lines, a frame 8 px or
 //                more inside the frame holding it on each side, a milestone listed before the milestone it waits on drawn
-//                below it, and ten areas in eight colours taken in turn and again from the first; no console error and no
+//                below it, and ten areas in six colours taken in turn and again from the first; no console error and no
 //                request.
-//   plan         on the level of launch-plan.json: every node in one column down the left; each task a bar on one of its
+//   plan         on the level of examples/launch-plan: every node in one column down the left; each task a bar on one of its
 //                node's lines, right of the nodes, no two overlapping, starting right of the end of every task and
 //                milestone it waits on, by an edge or its `after`; each milestone's dotted line across every node's lane,
 //                right of the end of each task it waits on; each arrow from the right end of its task to the left end of
@@ -54,7 +54,7 @@ if (asked.some((word) => !STEPS.includes(word))) {
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "flow-page-"));
 
 function make(name) { // the page of one fixture contract, and its contract
-  const fixture = { name, source: path.join(ROOT, "fixtures", name + ".json"), built: path.join(scratch, name + ".html") };
+  const fixture = { name, source: path.join(ROOT, "examples", name, "contract.json"), built: path.join(scratch, name + ".html") };
   const made = python(path.join(ROOT, "scripts", "make-page.py"), fixture.source, fixture.built);
   check(made.status === 0, `make-page.py refused ${name}: ${(made.stdout + made.stderr).split("\n")[0]}`);
   fixture.contract = JSON.parse(fs.readFileSync(fixture.source, "utf8"));
@@ -103,7 +103,7 @@ const drawn = (page) => page.evaluate(() => { // what the shown level draws, as 
     const chips = document.querySelector(`#stage .edge-chips[data-for="${id}"]`), codes = document.querySelector(`#stage .edge-codes[data-for="${id}"]`), work = document.querySelector(`#stage .edge-work[data-for="${id}"]`);
     const disc = group.querySelector("circle.step"), number = group.querySelector("text.step-number");
     return [id, { tip, back, arrow: box(arrow), label: box(document.querySelector(`#stage .edge-label[data-id="${id}"]`)), text: document.querySelector(`#stage .edge-label[data-id="${id}"]`).firstChild.textContent,
-      chips: box(chips), chip: chips.querySelector(".chip").textContent, badges: [...chips.querySelectorAll(".count")].map((count) => count.dataset.count).sort(),
+      chips: box(chips), chip: chips.querySelector(".chip").textContent, badges: [...document.querySelectorAll(`#stage .edge-label[data-id="${id}"] > .claims > .claim`)].map((badge) => badge.dataset.claim),
       fill, codes: codes && { ...box(codes), text: codes.textContent }, work: work && { ...box(work), pills: [...work.querySelectorAll(".work-pill")].map((pill) => pill.textContent) }, step: disc && number && { x: +disc.getAttribute("cx"), y: +disc.getAttribute("cy"), text: number.textContent } }];
   }));
   const fragments = Object.fromEntries(all("#stage rect.fragment").map((frame) => {
@@ -123,7 +123,7 @@ const drawn = (page) => page.evaluate(() => { // what the shown level draws, as 
 
 async function interaction(browser) {
   const refused = python(path.join(ROOT, "scripts", "make-page.py"), (() => { // a copy the checker refuses, with an edge from no node
-    const copy = JSON.parse(fs.readFileSync(path.join(ROOT, "fixtures", "name-lookup.json"), "utf8"));
+    const copy = JSON.parse(fs.readFileSync(path.join(ROOT, "examples", "name-lookup", "contract.json"), "utf8"));
     copy.edges[0].from = "no-such-node";
     const file = path.join(scratch, "refused.json");
     fs.writeFileSync(file, JSON.stringify(copy));
@@ -137,7 +137,7 @@ async function interaction(browser) {
   const areas = new Set(level.nodes.map((id) => contract.nodes.find((node) => node.id === id).area));
   const tags = catalogue(path.join(ROOT, "assets", "tags.json"));
   const owed = (edge) => ((edge.info || {}).work || { rows: [] }).rows;
-  const statuses = (id) => [...new Set((contract.claims || []).filter((claim) => (claim.on || []).includes(id)).map((claim) => claim.status || "holds"))].sort();
+  const held = (id) => (contract.claims || []).filter((claim) => (claim.on || []).includes(id)), statuses = (id) => held(id).map((claim) => claim.id);
   const areaLabel = (id) => contract.areas.find((area) => area.id === id).label;
   const codes = (edge) => (tags.edge[edge.tag] ? tags.edge[edge.tag].items : []).filter((item) => item.form === "code" && typeof (edge.info || {})[item.name] === "string" && edge.info[item.name] !== edge.label).map((item) => edge.info[item.name]).join(" · ");
   check(areas.size >= 2 && fragments.some((one) => one.kind === "loop") && fragments.some((one) => one.kind === "break") && milestones.length && nested
@@ -295,7 +295,7 @@ async function interaction(browser) {
   const inside = await drawn(page), wanted = contract.levels.find((one) => one.id === nested.opens);
   check(wanted.nodes.every((id) => inside.nodes[id]) && Object.keys(inside.nodes).length === wanted.nodes.length, `${nested.opens} does not draw its own nodes`);
   check(contract.edges.filter((one) => one.level === nested.opens).every((one) => inside.edges[one.id]), `${nested.opens} does not draw its own edges`);
-  const unsure = contract.edges.filter((one) => one.level === nested.opens && statuses(one.id).some((status) => status !== "holds"));
+  const unsure = contract.edges.filter((one) => one.level === nested.opens && held(one.id).some((claim) => (claim.status || "holds") !== "holds"));
   check(unsure.length, `no edge of ${nested.opens} carries a claim that does not hold`);
   for (const one of unsure) check(same(inside.edges[one.id].badges, statuses(one.id)), `${one.id} shows the badges ${inside.edges[one.id].badges.join(" ")}, not ${statuses(one.id).join(" ")}`);
   const crumbs = await page.evaluate(() => [...document.querySelectorAll("#crumbs [data-level]")].map((crumb) => crumb.dataset.level));
@@ -321,7 +321,7 @@ async function interaction(browser) {
   crowded.milestones.unshift({ id: "reply-ready", level: level.id, label: "Reply ready", after: [milestones[0].id], purpose: "The reply is whole." });
   const resolves = crowded.edges[at("resolves-name")];
   resolves.info = { ...(resolves.info || {}), work: { columns: ["area", "change", "says"], rows: [["registry", "schema migration and index rebuild", "keep the owner of each name in one indexed table"]] } };
-  for (let k = crowded.areas.length; k < 10; k++) { // past the eighth area the colours come round again
+  for (let k = crowded.areas.length; k < 10; k++) { // past the sixth area the colours come round again
     crowded.areas.push({ id: `extra-${k}`, label: `Extra ${k}`, purpose: `Runs in place ${k}.` });
     crowded.nodes.push({ id: `extra-node-${k}`, area: `extra-${k}`, label: `Extra node ${k}`, tag: "service", purpose: `Stands by in place ${k}.`, evidence: ["runbook"], basis: "documented" });
     crowded.levels[0].nodes.push(`extra-node-${k}`);
@@ -339,7 +339,7 @@ async function interaction(browser) {
   check(inner.left - outer.left >= 7.5 && outer.right - inner.right >= 7.5, `the frame of ${loop.id} stands ${(inner.left - outer.left).toFixed(1)} and ${(outer.right - inner.right).toFixed(1)} px inside the frame of if-sharded, not 8 or more on each side`);
   check(between(packed, crowded.edges[at("resolves-name")]), "resolves-name's work pills reach past gateway's or name-service's line");
   const hues = crowded.areas.map((area) => { const node = Object.values(packed.nodes).find((one) => one.area === area.id); return node && node.fill + " " + node.border; });
-  check(hues.every(Boolean) && hues.every((hue, k) => k < 8 ? hues.indexOf(hue) === k : hue === hues[k - 8]), `the ten areas are drawn ${JSON.stringify(hues)}, not eight colours taken in turn and again from the first`);
+  check(hues.every(Boolean) && hues.every((hue, k) => k < 6 ? hues.indexOf(hue) === k : hue === hues[k - 6]), `the ten areas are drawn ${JSON.stringify(hues)}, not six colours taken in turn and again from the first`);
   const first = packed.milestones[milestones[0].id], later = packed.milestones["reply-ready"];
   check(later && packed.anchors.includes("reply-ready"), "the milestone that waits on a milestone is not drawn");
   const next = crowded.edges.filter((edge) => edge.level === level.id).find((edge, k, all) => k > all.findIndex((one) => one.id === milestones[0].after.slice(-1)[0]));

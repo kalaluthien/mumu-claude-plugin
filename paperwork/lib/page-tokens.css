@@ -1,0 +1,51 @@
+/* Every colour a paperwork page draws, light and dark, each with its source. A page's other style names these and mixes them only with
+   one another or with transparent.
+   Sources:
+   [neutral]  shadcn/ui's neutral theme, https://ui.shadcn.com/docs/theming
+   [text]     WCAG 2.2 1.4.3, text at 4.5:1 or more against what is behind it, https://www.w3.org/TR/WCAG22/#contrast-minimum
+   [non-text] WCAG 2.2 1.4.11, a badge, line or frame at 3:1 or more, https://www.w3.org/TR/WCAG22/#non-text-contrast
+   [colour]   WCAG 2.2 1.4.1, colour never the only sign; a badge also says its status by glyph and its kind by shape, https://www.w3.org/TR/WCAG22/#use-of-color
+   [status]   IEC 60073's indicator colours: green normal, amber abnormal, red fault; an unsettled one blue-grey
+   [cvd]      at least 0.1 apart in OKLab (https://bottosson.github.io/posts/oklab/) within its set, as seen and under protanopia, deuteranopia
+              and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, https://doi.org/10.1109/TVCG.2009.113 */
+:root {
+  color-scheme: light dark;
+  --radius: .625rem; --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  /* [neutral] [text] */
+  --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0); --canvas: oklch(.985 0 0);
+  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --accent: oklch(.97 0 0);
+  --destructive: oklch(.53 .19 27);
+  /* [neutral] a hairline of the page's chrome, which no reader needs to see the drawing */
+  --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --veil: oklch(0 0 0 / 50%);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 10%), 0 1px 2px -1px oklch(0 0 0 / 10%);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 10%), 0 2px 4px -2px oklch(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 10%), 0 4px 6px -4px oklch(0 0 0 / 10%);
+  --focus: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  /* [non-text] a frame or line of the drawing; the mark, what a search or a step points at */
+  --frame: oklch(.6 0 0); --line: oklch(.45 0 0); --mark: oklch(.55 .2 259);
+  /* [status] [non-text] [colour] [cvd] a badge's fill by its claim's status, and its glyph */
+  --status-holds: oklch(.55 .12 135); --status-unknown: oklch(.45 .06 290); --status-conflicting: oklch(.43 .1 50); --status-fails: oklch(.3 .12 20);
+  --status-glyph: oklch(1 0 0);
+  /* [non-text] [cvd] an area's colour, taken in turn so neighbours differ; its fill mixes it into the canvas */
+  --group-0: oklch(.49 .1 50); --group-1: oklch(.6 .12 100); --group-2: oklch(.3 .16 270); --group-3: oklch(.47 .16 270); --group-4: oklch(.31 .1 350); --group-5: oklch(.61 .18 350);
+  /* [text] a lane's or phase's tint, three in turn 70 degrees apart and 45 or more from the mark, faint enough for text at 4.5:1 */
+  --band-0: oklch(.955 .024 30); --band-1: oklch(.955 .024 100); --band-2: oklch(.955 .024 170);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* [neutral] [text] */
+    --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0); --canvas: oklch(.17 0 0);
+    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0); --accent: oklch(.269 0 0);
+    --destructive: oklch(.72 .15 22);
+    --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0);
+    /* [non-text] */
+    --frame: oklch(.58 0 0); --line: oklch(.75 0 0); --mark: oklch(.7 .16 259);
+    /* [status] [non-text] [colour] [cvd] */
+    --status-holds: oklch(.91 .1 150); --status-unknown: oklch(.71 .14 240); --status-conflicting: oklch(.77 .16 75); --status-fails: oklch(.6 .14 25);
+    --status-glyph: oklch(.145 0 0);
+    /* [non-text] [cvd] */
+    --group-0: oklch(.87 .06 90); --group-1: oklch(.56 .1 110); --group-2: oklch(.74 .16 120); --group-3: oklch(.84 .08 250); --group-4: oklch(.63 .18 260); --group-5: oklch(.61 .2 350);
+    /* [text] */
+    --band-0: oklch(.235 .022 30); --band-1: oklch(.235 .022 100); --band-2: oklch(.235 .022 170);
+  }
+}

@@ -3,12 +3,6 @@
   const read = id => JSON.parse(document.getElementById(id).textContent);
   const TAGS = read("page-tags"), FORMULAS = read("page-formulas");
   const $ = id => document.getElementById(id);
-  const make = (name, attributes = {}, ...children) => {
-    const element = document.createElement(name);
-    for (const [key, value] of Object.entries(attributes)) key === "class" ? (element.className = value) : element.setAttribute(key, value);
-    element.append(...children);
-    return element;
-  };
   const draw = (name, attributes) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
@@ -16,15 +10,15 @@
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
-  const recordCard = paperworkCard({ make, formulas: FORMULAS, record: id => records[id], terms: () => contract.terms, sources: () => contract.sources,
-    counted: () => counted, rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow });
-  const { words, bare, tagName, label, counts, prose } = recordCard;
-  const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
+  const recordCard = paperworkFrame({ placeholder: "Search nodes, edges, scenarios and claims", tools: [["scenarios", "Scenarios"]], formulas: FORMULAS,
+    record: id => records[id], terms: () => contract.terms, sources: () => contract.sources, claims: () => contract.claims, questions: () => contract.questions,
+    rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow, entries: () => entries, open,
     kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", claim: "Claims", question: "Questions" },
-    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Claims", "claim"]],
+    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"]],
     shelf: () => `paperwork-system-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
+  const { make, words, bare, tagName, label, badges, prose, search } = recordCard;
 
   // ---- the contract's records ----
   function load(data) {
@@ -37,12 +31,8 @@
     }
     for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
     for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
-    counted = {};
-    for (const claim of contract.claims || []) {
-      records[claim.id] = { kind: "claim", record: claim };
-      const status = claim.status || "holds";
-      for (const one of new Set(claim.on || [])) ((counted[one] = counted[one] || {})[status] = counted[one][status] || []).push(claim.id);
-    }
+    for (const claim of contract.claims || []) records[claim.id] = { kind: "claim", record: claim };
+    for (const question of contract.questions || []) records[question.id] = { kind: "question", record: question };
     entries = index();
   }
   const sentence = edge => edge.tag === "transition"
@@ -115,19 +105,19 @@
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const tally = node => recordCard.countRows(node.id).length * 28; // the badges share the tag's line
+    const tally = node => (contract.claims || []).filter(claim => (claim.on || []).includes(node.id)).length * 28; // a badge and its gap, sharing the tag's line
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tagName(node.tag).length * 7 + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
-    const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
+    const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node), tally(node) && need(node)); // a box never narrower than the label's longest word or the tag's line with its badges, so neither is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
     const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
     const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
     return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
-  const heading = (area, fit) => { // an area as wide as its header's label and tag, so neither reaches past its frame
+  const heading = (area, fit) => { // an area as wide as its header's label, tag and badges, so none reaches past its frame
     pen.font = `500 12px ${FONT}`;
-    const label = pen.measureText(area.label).width;
+    const label = pen.measureText(area.label).width, held = (contract.claims || []).filter(claim => (claim.on || []).includes(area.id)).length;
     pen.font = `400 12px ${FONT}`;
-    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width) + 2 * fit.pad;
+    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width + (held ? 4 + held * 28 : 0)) + 2 * fit.pad;
   };
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
@@ -328,15 +318,14 @@
     }
     return best;
   }
-  function settle(shown, first) { // a label with no free place at rest takes one among the lines and labels now lit
+  function settle(shown, first) { // a label with no free place at rest takes one among the lines and labels now lit, and one holding badges among the labels at rest too, since it stays in sight
     const taken = [...blocks, ...Object.values(faces).filter(face => !face.text.classList.contains("tucked")).map(face => face.spot)];
     const lines = [...shown].filter(id => curves[id]);
-    for (const id of Object.keys(faces).filter(id => faces[id].text.classList.contains("tucked")).sort((a, b) => (b === first) - (a === first))) {
-      const face = faces[id], best = shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first), point = seen ? best.point : face.point;
+    for (const id of Object.keys(faces).filter(id => faces[id].text.classList.contains("tucked")).sort((a, b) => !!faces[b].text.querySelector(".claims") - !!faces[a].text.querySelector(".claims") || (b === first) - (a === first))) {
+      const face = faces[id], badged = !!face.text.querySelector(".claims"), best = badged ? (face.rest = face.rest || seat(id, face.w, face.h, taken, runs([]), false)) // a label holding badges keeps the least crowded place it took at rest, so a badge stays under the pointer that found it
+        : shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first || badged), point = seen ? best.point : face.point;
       face.text.classList.toggle("shown", seen);
       face.text.style.left = point.x + "px"; face.text.style.top = point.y + "px";
-      const badges = face.text.querySelector(".counts");
-      if (badges) badges.style.transform = point === face.point ? "" : `translate(${face.point.x - point.x}px, ${face.point.y - point.y}px)`; // a badge stays where the pointer found it while its label moves
       if (seen) taken.push(best.spot);
     }
   }
@@ -355,7 +344,7 @@
     for (const area of level.areas || []) {
       const spot = boxes[area.id], band = bands.indexOf(area.id);
       if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, ...(band < 0 ? {} : { "data-band": band % 3 }), style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
-        make("header", {}, area.label, make("small", {}, tagName(area.tag)))));
+        make("header", {}, area.label, make("small", {}, tagName(area.tag)), badges(area.id))));
     }
     const svg = draw("svg", { width: plan.w, height: plan.h });
     stage.append(svg);
@@ -371,8 +360,8 @@
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
       }
-      const badges = counts(node.id);
-      if (badges) card.append(badges);
+      const held = badges(node.id);
+      if (held) card.append(held);
       stage.append(card);
     }
     blocks = level.nodes.map(node => ({ ...boxes[node.id] }));
@@ -391,8 +380,7 @@
       group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
         draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
       svg.append(group);
-      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true)), badges = counts(edge.id);
-      if (badges) text.append(badges);
+      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true), badges(edge.id));
       stage.append(text);
       if (!plans[key].seats[edge.id]) {
         const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
@@ -516,14 +504,7 @@
       path.unshift(id);
       id = openers[id] ? levelOf[openers[id][0]] : null;
     }
-    const bar = $("crumbs");
-    bar.replaceChildren();
-    path.forEach((id, i) => {
-      if (i) bar.append(make("span", { class: "sep" }, "/"));
-      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, ...prose(records[id].record.title, true));
-      item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
-      bar.append(item);
-    });
+    recordCard.crumbs(path.map(id => [id, prose(records[id].record.title, true)]), id => go({ level: id, at: null, scenario: null }));
   }
 
   // ---- hover, pin and the overlay ----
@@ -571,10 +552,10 @@
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
     if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
-    if (kind === "claim") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
+    for (const [name, form, data] of recordCard.rows(id)) add(name, form, data);
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    if (/^(node|edge)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) add(name, form, data);
+    for (const [name, form, data] of recordCard.claimRows(id)) add(name, form, data);
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
@@ -596,7 +577,7 @@
     points(id, 400);
     for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 4, records[one].kind === "node" ? 400 : 40); points(one, 12); }
     for (const node of records[view.level].record.nodes) if (!tied.has(node.id)) keep(lies(node.id), 0, apart);
-    for (const [one, face] of Object.entries(faces)) if ((open || one !== id) && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, open ? 400 : tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
+    for (const [one, face] of Object.entries(faces)) if ((open || one !== id) && (!face.text.classList.contains("tucked") || face.text.matches(".shown, :has(.claims)"))) keep(lies(one), 2, open ? 400 : tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
     if (open) for (const area of records[view.level].record.areas || []) if (lies(area.id)) keep(lies(area.id), 2, 400);
     for (const bar of [$("tools"), $("crumbs"), $("play")]) if (bar.id !== "play" || bar.classList.contains("show")) keep(bar.getBoundingClientRect(), 8, 400);
     const covers = (x, y, least) => dear.reduce((sum, held) => held.weight < least ? sum : sum + held.weight * Math.max(0, Math.min(x + w, held.right) - Math.max(x, held.left)) * Math.max(0, Math.min(y + h, held.bottom) - Math.max(y, held.top)), 0);
@@ -637,10 +618,12 @@
     stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
     if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
   }
-  function follow(id, event) { // a chip that names a claim opens that claim's card, which waits for the pointer to move
-    if (records[id].kind !== "claim") return false;
+  function follow(id, event) { // a chip or a badge opens its record's card on the level that draws it, which waits for the pointer to move
+    if (!records[id] || records[id].kind === "question") return false;
     parked = [event.clientX, event.clientY];
-    go({ level: home(id), at: id });
+    if (records[id].kind === "level") go({ level: id, at: null, scenario: null });
+    else if (records[id].kind === "scenario") start(id);
+    else go({ level: home(id), at: id, scenario: null });
     return true;
   }
   const halt = () => { clearTimeout(rest); clearTimeout(leave); };
@@ -759,8 +742,7 @@
       for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 0], [edge.id, 1], [edge.tag, 2], [sentence(edge), 3], [texts(edge.info), 4]], [["id", edge.id], ["tag", tagName(edge.tag)], ...details(edge.info)]);
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
-    for (const claim of contract.claims || []) add(claim.id, "claim", claim.title, claim.kind, [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], [["id", claim.id], ["kind", claim.kind], ["statement", claim.statement]]);
-    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers.every(name => (contract.claims || []).some(claim => claim.id === name && claim.fault)) ? "open question" : "question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
+    list.push(...recordCard.entries());
     return list;
   }
   function open(entry) { // the record a search picked
@@ -788,9 +770,7 @@
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
     $("card").addEventListener("pointerenter", halt);
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
-    $("search").addEventListener("click", () => search.ask());
     $("scenarios").addEventListener("click", () => search.ask("Scenarios"));
-    $("claims").addEventListener("click", () => search.ask("Claims"));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -798,7 +778,6 @@
     $("again").addEventListener("click", () => start(view.scenario));
     $("onward").addEventListener("click", () => start(contract.scenarios[(contract.scenarios.indexOf(records[view.scenario].record) + 1) % contract.scenarios.length].id));
     addEventListener("keydown", event => {
-      if (search.key(event)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
       else if (event.key === " " && view.scenario && !event.target.closest("button, input")) { event.preventDefault(); run(); }
@@ -818,7 +797,6 @@
     history.replaceState(state, "", address(state));
     document.title = contract.title;
     $("scenarios").hidden = !(contract.scenarios || []).length;
-    $("claims").hidden = !(contract.claims || []).length;
     show(state);
   };
   wire();

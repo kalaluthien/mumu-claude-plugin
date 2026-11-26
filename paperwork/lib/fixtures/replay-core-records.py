@@ -3,7 +3,7 @@
 
 usage: replay-core-records.py
 
-Each defect is planted in a copy of system's `parcel-locker.json` and of flow's `name-lookup.json`: both checkers must refuse it, by the
+Each defect is planted in a copy of system's `parcel-locker.json` and of flow's `examples/name-lookup/contract.json`: both checkers must refuse it, by the
 same rules with the same messages, a fixture's own source ids and node ids and labels left out, a break of `area-known` placed at its node
 or area and compared by that rule alone; a copy holding a claim of each kind and each status, a status other than `holds` with its fault, must pass both; both `rules`
 calls must word each rule of `../contract_core.py` alike; and both `fixtures` calls must pass, which hold each skill's own rules to the
@@ -21,7 +21,7 @@ sys.path.insert(0, str(LIB))
 from contract_core import KINDS, RULES, STATUSES  # noqa: E402
 
 MARKUP = "The planted text holds <b>markup</b>."
-FIXTURES = {"system": SKILLS / "system/fixtures/parcel-locker.json", "flow": SKILLS / "flow/fixtures/name-lookup.json"}
+FIXTURES = {"system": SKILLS / "system/fixtures/parcel-locker.json", "flow": SKILLS / "flow/examples/name-lookup/contract.json"}
 
 
 def claim(**fields):

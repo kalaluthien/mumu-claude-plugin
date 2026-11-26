@@ -4,14 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The system skill</title>
+<!-- page frame -->
 <style>
-/* The record card, its badges and the note over it; it reads the page's theme variables. */
-.counts { display: inline-flex; gap: 2px; vertical-align: top; }
-.counts > .count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 9999px; box-shadow: 0 0 0 2px var(--canvas); color: oklch(1 0 0); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.counts > [data-count="holds"] { background: oklch(.5 .13 150); }
-.counts > [data-count="unknown"] { background: oklch(.5 0 0); }
-.counts > [data-count="conflicting"] { background: oklch(.76 .16 65); color: oklch(.2 0 0); }
-.counts > [data-count="fails"] { background: oklch(.53 .21 27); }
+/* Every colour a paperwork page draws, light and dark, each with its source. A page's other style names these and mixes them only with
+   one another or with transparent.
+   Sources:
+   [neutral]  shadcn/ui's neutral theme, https://ui.shadcn.com/docs/theming
+   [text]     WCAG 2.2 1.4.3, text at 4.5:1 or more against what is behind it, https://www.w3.org/TR/WCAG22/#contrast-minimum
+   [non-text] WCAG 2.2 1.4.11, a badge, line or frame at 3:1 or more, https://www.w3.org/TR/WCAG22/#non-text-contrast
+   [colour]   WCAG 2.2 1.4.1, colour never the only sign; a badge also says its status by glyph and its kind by shape, https://www.w3.org/TR/WCAG22/#use-of-color
+   [status]   IEC 60073's indicator colours: green normal, amber abnormal, red fault; an unsettled one blue-grey
+   [cvd]      at least 0.1 apart in OKLab (https://bottosson.github.io/posts/oklab/) within its set, as seen and under protanopia, deuteranopia
+              and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, https://doi.org/10.1109/TVCG.2009.113 */
+:root {
+  color-scheme: light dark;
+  --radius: .625rem; --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  /* [neutral] [text] */
+  --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0); --canvas: oklch(.985 0 0);
+  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --accent: oklch(.97 0 0);
+  --destructive: oklch(.53 .19 27);
+  /* [neutral] a hairline of the page's chrome, which no reader needs to see the drawing */
+  --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --veil: oklch(0 0 0 / 50%);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 10%), 0 1px 2px -1px oklch(0 0 0 / 10%);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 10%), 0 2px 4px -2px oklch(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 10%), 0 4px 6px -4px oklch(0 0 0 / 10%);
+  --focus: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  /* [non-text] a frame or line of the drawing; the mark, what a search or a step points at */
+  --frame: oklch(.6 0 0); --line: oklch(.45 0 0); --mark: oklch(.55 .2 259);
+  /* [status] [non-text] [colour] [cvd] a badge's fill by its claim's status, and its glyph */
+  --status-holds: oklch(.55 .12 135); --status-unknown: oklch(.45 .06 290); --status-conflicting: oklch(.43 .1 50); --status-fails: oklch(.3 .12 20);
+  --status-glyph: oklch(1 0 0);
+  /* [non-text] [cvd] an area's colour, taken in turn so neighbours differ; its fill mixes it into the canvas */
+  --group-0: oklch(.49 .1 50); --group-1: oklch(.6 .12 100); --group-2: oklch(.3 .16 270); --group-3: oklch(.47 .16 270); --group-4: oklch(.31 .1 350); --group-5: oklch(.61 .18 350);
+  /* [text] a lane's or phase's tint, three in turn 70 degrees apart and 45 or more from the mark, faint enough for text at 4.5:1 */
+  --band-0: oklch(.955 .024 30); --band-1: oklch(.955 .024 100); --band-2: oklch(.955 .024 170);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* [neutral] [text] */
+    --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0); --canvas: oklch(.17 0 0);
+    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0); --accent: oklch(.269 0 0);
+    --destructive: oklch(.72 .15 22);
+    --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0);
+    /* [non-text] */
+    --frame: oklch(.58 0 0); --line: oklch(.75 0 0); --mark: oklch(.7 .16 259);
+    /* [status] [non-text] [colour] [cvd] */
+    --status-holds: oklch(.91 .1 150); --status-unknown: oklch(.71 .14 240); --status-conflicting: oklch(.77 .16 75); --status-fails: oklch(.6 .14 25);
+    --status-glyph: oklch(.145 0 0);
+    /* [non-text] [cvd] */
+    --group-0: oklch(.87 .06 90); --group-1: oklch(.56 .1 110); --group-2: oklch(.74 .16 120); --group-3: oklch(.84 .08 250); --group-4: oklch(.63 .18 260); --group-5: oklch(.61 .2 350);
+    /* [text] */
+    --band-0: oklch(.235 .022 30); --band-1: oklch(.235 .022 100); --band-2: oklch(.235 .022 170);
+  }
+}
+/* The frame every paperwork page shares: the base type, the crumbs at the top left and the tools at the top right; it reads page-tokens.css. */
+* { box-sizing: border-box; border-color: var(--border); }
+body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 12px/1 ui-sans-serif, system-ui, sans-serif; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+#crumbs { left: 16px; top: 16px; gap: 8px; padding: 0 12px; color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
+#crumbs > button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
+#crumbs > button:hover { color: var(--foreground); }
+#crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
+#crumbs .sep { color: var(--muted-foreground); }
+#tools { right: 16px; top: 16px; }
+.tool { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
+.tool:hover { background: var(--accent); }
+.tool:active { transform: scale(.96); }
+.tool:focus-visible, #crumbs > button:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
+.tool.quiet { color: var(--muted-foreground); font-weight: 400; }
+.tool.icon { width: 28px; padding: 0; justify-content: center; }
+.tool:disabled { opacity: .35; pointer-events: none; }
+#crumbs .claims { margin-left: -4px; }
+/* The record card, the claims' badges and the note over it; it reads page-tokens.css. */
+.claims { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: middle; }
+.claims > .claim { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 16px; padding: 0 4px; border: 0; background: var(--status-holds); color: var(--status-glyph); box-shadow: 0 0 0 2px var(--canvas); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; cursor: pointer; transition: transform .15s var(--ease); }
+.claims > .claim:hover { transform: scale(1.12); }
+.claims > .claim:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--canvas), var(--focus); }
+.claims > [data-kind="guarantee"] { border-radius: 2px; }
+.claims > [data-kind="assumption"] { border-radius: 9999px; }
+.claims > [data-status="unknown"] { background: var(--status-unknown); }
+.claims > [data-status="conflicting"] { background: var(--status-conflicting); }
+.claims > [data-status="fails"] { background: var(--status-fails); }
 #card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
 #card.kept { box-shadow: var(--shadow-lg); }
 #card.long { overflow-y: auto; }
@@ -37,8 +114,9 @@
 #card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
 #card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
 #card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
-#card .badge.guess, #card .badge.unknown { background: oklch(.95 .06 85); color: oklch(.42 .09 70); }
-#card .badge.fails, #card .badge.conflicting { background: oklch(.94 .05 25); color: oklch(.45 .17 25); }
+#card .badge.guess { background: var(--muted); color: var(--foreground); border-color: var(--frame); }
+#card .badge.unknown { background: var(--status-unknown); color: var(--status-glyph); } #card .badge.conflicting { background: var(--status-conflicting); color: var(--status-glyph); }
+#card .badge.fails { background: var(--status-fails); color: var(--status-glyph); }
 #card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
 #card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
 #card .cite:hover { background: var(--accent); }
@@ -54,7 +132,7 @@
   #card { transform: none !important; }
 }
 /* The search palette over a veil; it reads the page's theme variables. */
-#veil { position: fixed; inset: 0; z-index: 40; background: rgb(0 0 0 / .5); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
+#veil { position: fixed; inset: 0; z-index: 40; background: var(--veil); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
 #veil.show { opacity: 1; pointer-events: auto; }
 #palette { position: fixed; z-index: 41; left: 50%; top: 18vh; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
 #palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
@@ -85,313 +163,20 @@
 @media (prefers-reduced-motion: reduce) {
   #palette { transform: translate(-50%, 0) !important; }
 }
-:root {
-  --radius: .625rem; --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0);
-  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --destructive: oklch(.577 .245 27.325);
-  --accent: oklch(.97 0 0); --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --canvas: oklch(.985 0 0); --mark: oklch(.55 .2 259);
-  --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / .1), 0 2px 4px -2px rgb(0 0 0 / .1); --focus: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / .1), 0 4px 6px -4px rgb(0 0 0 / .1);
-  --band-0: oklch(.955 .024 30); --band-1: oklch(.955 .024 100); --band-2: oklch(.955 .024 170);
-  color-scheme: light dark;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0);
-    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0); --destructive: oklch(.704 .191 22.216);
-    --accent: oklch(.269 0 0); --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0); --canvas: oklch(.17 0 0); --mark: oklch(.7 .16 259);
-    --band-0: oklch(.235 .022 30); --band-1: oklch(.235 .022 100); --band-2: oklch(.235 .022 170);
-  }
-}
-* { box-sizing: border-box; border-color: var(--border); }
-html, body { height: 100%; margin: 0; overflow: hidden; }
-body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; }
-button { font: inherit; color: inherit; }
-[hidden] { display: none !important; }
-kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 12px/1 ui-sans-serif, system-ui, sans-serif; }
-code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-
-#diagram { position: fixed; inset: 0; overflow: hidden; background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 9%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
-.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-.stage.old { pointer-events: none; }
-.stage svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
-
-.area { position: absolute; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 55%, transparent); transition: opacity .25s var(--ease), border-color .2s var(--ease), color .25s var(--ease); }
-.area[data-tag="region"], .area[data-tag="trustZone"] { border-style: dashed; }
-.area[data-tag="lane"], .area[data-tag="phase"] { border-color: transparent; }
-.area[data-band="0"] { background: var(--band-0); } .area[data-band="1"] { background: var(--band-1); } .area[data-band="2"] { background: var(--band-2); }
-.area > header { display: flex; align-items: flex-start; gap: 4px; height: 32px; padding: 4px 16px 0; font-size: calc(12px * var(--grow, 1)); line-height: 16px; font-weight: 500; white-space: nowrap; }
-.area > header::first-letter { text-transform: uppercase; }
-.area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
-
-.node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--border); --corner: 3px; border-radius: var(--corner); background: var(--card); box-shadow: var(--shadow-sm); cursor: default; outline: none;
-  transition: opacity .25s var(--ease), transform .25s var(--spring), box-shadow .2s var(--ease), border-color .2s var(--ease), background-color .25s var(--ease), color .25s var(--ease); }
-.node b { font-size: calc(14px * var(--grow, 1)); font-weight: 500; overflow-wrap: anywhere; text-wrap: balance; }
-.node small { font-size: calc(12px * var(--grow, 1)); line-height: 16px; color: var(--muted-foreground); white-space: nowrap; }
-.stage.dense .node { padding: 4px 12px; gap: 0; }
-.stage.dense .node b { font-size: calc(12px * var(--grow, 1)); line-height: 16px; }
-.stage.dense .node small { font-size: calc(11px * var(--grow, 1)); line-height: 14px; }
-.stage.dense .node .open { right: 4px; top: 4px; width: 20px; height: 20px; }
-.stage.dense .area > header { height: 26px; padding: 2px 8px 0; }
-.node:hover, .node.on { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--ring); }
-.node:focus-visible { border-color: var(--ring); box-shadow: var(--focus); }
-.node.pinned { border-color: var(--foreground); }
-.node .open { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: min(6px, var(--corner)); background: transparent; color: var(--muted-foreground); cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease), transform .25s var(--spring); }
-.node .open:hover { background: var(--accent); color: var(--foreground); transform: scale(1.12); }
-.node[data-tag="state"] { --corner: 16px; }
-.node[data-tag="dataStore"] { --lid: 8px; border-radius: 50% / var(--lid); padding-top: calc(2 * var(--lid)); }
-.node[data-tag="dataStore"]::after { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: calc(2 * var(--lid)); border: inherit; border-radius: 50%; pointer-events: none; }
-.node[data-tag="dataStore"] .open { top: 16px; }
-.stage.dense .node[data-tag="dataStore"] { --lid: 6px; padding-top: calc(2 * var(--lid)); }
-.stage.dense .node[data-tag="dataStore"] .open { top: 13px; }
-.node.first::before { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--foreground); }
-
-.edge path.line { fill: none; stroke: var(--ring); stroke-width: 1.25; opacity: .7; transition: stroke .2s var(--ease), stroke-width .2s var(--ease), opacity .25s var(--ease); }
-.edge path.head { fill: var(--ring); opacity: .7; transition: fill .2s var(--ease), opacity .25s var(--ease); }
-.edge path.hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
-.edge.on path.line { stroke: var(--foreground); stroke-width: 1.75; opacity: 1; }
-.edge.on path.head { fill: var(--foreground); opacity: 1; }
-.edge[data-tag="dependsOn"] path.line, .edge[data-tag="governs"] path.line { stroke-dasharray: 4 4; }
-.label { position: absolute; transform: translate(-50%, -50%); padding: 0 4px; border-radius: 6px; background: var(--canvas); color: var(--muted-foreground); font-size: calc(12px * var(--grow, 1)); line-height: 16px; white-space: nowrap; cursor: default; transition: opacity .25s var(--ease), color .2s var(--ease), background-color .2s var(--ease); }
-.label.on { color: var(--foreground); background: var(--accent); z-index: 3; }
-.label.tucked:not(.shown) { visibility: hidden; pointer-events: none; }
-.label.tucked:not(.shown) .counts { visibility: visible; pointer-events: auto; } /* a label shown only while lit keeps its counts in sight at rest */
-.node .counts { position: absolute; right: 8px; bottom: 8px; }
-.stage.dense .node .counts { bottom: 4px; }
-.stage.dense .node .open ~ .counts { right: 32px; }
-.label .counts { margin-left: 4px; }
-.stage .dim .counts { opacity: .5; }
-
-.stage .edge.dim { opacity: .38; }
-.stage.playing .edge.dim { opacity: .62; }
-.stage .node.dim { border-color: color-mix(in oklab, var(--border) 60%, transparent); background: color-mix(in oklab, var(--card) 40%, transparent); box-shadow: none; color: var(--muted-foreground); }
-.stage .area.dim { color: var(--muted-foreground); }
-.edge.dim path.line, .edge.dim path.head { opacity: .5; }
-
-.bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
-#crumbs { left: 16px; top: 16px; gap: 8px; padding: 0 12px; color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
-#crumbs button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
-#crumbs button:hover { color: var(--foreground); }
-#crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
-#crumbs .sep { opacity: .6; }
-#tools { right: 16px; top: 16px; }
-.tool { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
-.tool:hover { background: var(--accent); }
-.tool:active { transform: scale(.96); }
-.tool:focus-visible, #crumbs button:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
-.tool.quiet { color: var(--muted-foreground); font-weight: 400; }
-
-.stage .named, .stage.playing .named { opacity: 1; }
-.node.named { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 28%, transparent), var(--shadow-md); }
-.area.named:not([data-band]) { border-color: var(--mark); }
-.area.named[data-band] { background-image: linear-gradient(color-mix(in oklab, var(--mark) 10%, transparent), color-mix(in oklab, var(--mark) 10%, transparent)); }
-.area.named[data-band] > header { color: color-mix(in oklab, var(--mark), var(--foreground) 20%); }
-.edge.named path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; } .edge.named path.head { fill: var(--mark); opacity: 1; }
-.label.named { color: var(--mark); background: var(--accent); z-index: 3; }
-
-#play { left: 50%; bottom: 20px; gap: 2px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; padding: 0 4px; transition: opacity .2s var(--ease), transform .32s var(--spring); max-width: min(960px, calc(100vw - 32px)); }
-#play.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-.tool.icon { width: 28px; padding: 0; justify-content: center; }
-.tool:disabled { opacity: .35; pointer-events: none; }
-#run .pause, #run[data-on="1"] .start { display: none; } #run[data-on="1"] .pause { display: block; }
-#play .count { margin-left: 12px; padding: 0 4px 0 8px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
-#play .title { padding: 0 8px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#play .dots { display: flex; margin-left: 8px; padding: 0 4px; }
-#origin { position: fixed; z-index: 5; outline: 2px solid var(--mark); outline-offset: 3px; border-radius: var(--radius); pointer-events: none; }
-#origin span { position: absolute; left: 4px; bottom: calc(100% + 8px); padding: 0 8px; border-radius: 6px; background: var(--canvas); color: var(--mark); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
-#onto { flex-shrink: 0; padding: 0 8px; color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
-#play .dots button { width: 14px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
-#play .dots button::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: var(--border); transition: background-color .2s var(--ease), width .3s var(--spring); }
-#play .dots button:hover::before { background: var(--ring); }
-#play .dots button.done::before { background: color-mix(in oklab, var(--mark) 55%, var(--border)); }
-#play .dots button.now::before { width: 14px; background: var(--mark); }
-#play .dots button.now { width: 22px; }
-#play .dots button:focus-visible { outline: none; } #play .dots button:focus-visible::before { box-shadow: var(--focus); }
-#chip { position: fixed; z-index: 25; max-width: 360px; padding: 4px 12px; border: 1px solid var(--border); border-left: 3px solid var(--mark); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow-md); font-size: 12px; line-height: 16px; pointer-events: none; opacity: 0; transform: translateY(4px) scale(.96); transition: opacity .2s var(--ease), transform .3s var(--spring); }
-#chip.show { opacity: 1; transform: none; }
-#chip code { font-size: 12px; }
-#chip small { display: block; color: var(--mark); font-size: 11px; line-height: 16px; font-weight: 600; }
-.node.past { border-color: color-mix(in oklab, var(--mark) 45%, var(--border)); }
-.node.next { border-color: var(--mark); border-style: dashed; }
-.node.step { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 30%, transparent), var(--shadow-lg); transform: translateY(-2px); }
-.label.past, .label.next { color: var(--foreground); }
-.label.step { color: var(--foreground); background: color-mix(in oklab, var(--mark) 14%, var(--canvas)); z-index: 3; }
-.edge.ahead path.line { opacity: .9; }
-.edge.past path.line { stroke: color-mix(in oklab, var(--mark) 60%, var(--ring)); stroke-width: 2; opacity: 1; }
-.edge.past path.head { fill: color-mix(in oklab, var(--mark) 60%, var(--ring)); opacity: 1; }
-.edge.next path.line { stroke: var(--mark); stroke-width: 1.5; stroke-dasharray: 3 5; opacity: 1; }
-.edge.next path.head { fill: var(--mark); opacity: 1; }
-.edge.step path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; }
-.edge.step path.head { fill: var(--mark); opacity: 1; }
-#token { position: absolute; left: 0; top: 0; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--mark); box-shadow: 0 0 0 4px color-mix(in oklab, var(--mark) 30%, transparent); offset-rotate: 0deg; opacity: 0; pointer-events: none; z-index: 4; }
-#token.run { animation: travel .9s cubic-bezier(.6, 0, .2, 1) both; }
-#token.run.carry { animation-name: carry; }
-@keyframes carry { 0% { offset-distance: 0%; opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
-@keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 14% { opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
-@keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow, stroke, fill !important; transition-duration: .2s !important; transition-delay: 0s !important; }
-  #token.run, #token.run.carry { animation: appear .24s var(--ease) both; offset-distance: 100%; }
-  #chip, .node, .node .open, .tool { transform: none !important; }
-  #play { transform: translate(-50%, 0) !important; }
-}
 </style>
-</head>
-<body>
-<main id="diagram"><div id="stage" class="stage"></div></main>
-<nav id="crumbs" class="bar" aria-label="Levels"></nav>
-<div id="tools" class="bar">
-<button id="scenarios" class="tool" type="button">Scenarios</button>
-<button id="claims" class="tool" type="button">Claims</button>
-<button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
-</div>
-<aside id="card" role="tooltip"></aside>
-<div id="gloss" role="tooltip"></div>
-<div id="chip"></div>
-<div id="play" class="bar" role="toolbar" aria-label="Scenario">
-<button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-<button id="run" class="tool icon" type="button" aria-label="Play" title="Play or pause (space)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="start" d="M7 4.5v15l12-7.5z" fill="currentColor"/><path class="pause" d="M8 5v14M16 5v14"/></svg></button>
-<button id="next" class="tool icon" type="button" aria-label="Next step" title="Next step (&rarr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
-<span class="count"></span><span class="title"></span><span class="dots"></span><span id="onto" hidden></span>
-<button id="again" class="tool" type="button" hidden>Replay</button>
-<button id="onward" class="tool" type="button" hidden>Next scenario</button>
-<button id="stop" class="tool icon quiet" type="button" aria-label="Close the scenario" title="Close (esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-</div>
-<div id="veil"></div>
-<div id="palette" role="dialog" aria-label="Search">
-<div id="field"><input id="query" type="text" placeholder="Search nodes, edges, scenarios and claims" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="hits" aria-autocomplete="list" aria-label="Search">
-<button id="regex" class="tool icon quiet" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression (Alt+R)">.*</button></div>
-<div id="hits" role="listbox"></div>
-<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span><span><kbd>alt</kbd><kbd>R</kbd> regex</span></footer>
-</div>
-<script type="application/json" id="page-data">{
-"title": "The system skill",
-"purpose": "The skill turns {subject}'s sources into {contract}, one checked file from which {reader} rebuilds {subject} without the sources.",
-"sources": [
-{"id": "skill-file", "path": "paperwork/skills/system/SKILL.md", "says": "the three cases and their order"},
-{"id": "extract-playbook", "path": "paperwork/skills/system/references/extract.md", "says": "the topics and where each finding goes"},
-{"id": "contract-playbook", "path": "paperwork/skills/system/references/contract.md", "says": "the record layout and how to write each part"},
-{"id": "tag-survey", "path": "paperwork/skills/system/references/tags.md", "says": "the survey behind each tag's items"},
-{"id": "checker-code", "path": "paperwork/skills/system/scripts/check-contract.py", "says": "every rule, and what `gaps` asks"},
-{"id": "tag-file", "path": "paperwork/skills/system/assets/tags.json", "says": "every tag and its items"}
-],
-"terms": [{"term": "contract", "meaning": "the one JSON file that holds all that is known of {subject}; every page is drawn from it", "coined": true}, {"term": "region", "meaning": "{area} that holds the states of one thing, exactly one of them current", "coined": false}, {"term": "sentence", "meaning": "a static edge read as `\u003cfrom> \u003clabel> \u003cto>`, which must be true of {subject}", "coined": true}, {"term": "gap", "aliases": ["빈틈", "누락"], "meaning": "a claim whose fault says what {contract} lacks, forbids wrongly, says twice or says with two meanings", "coined": false}],
-"levels": [
-{
-"id": "skill",
-"title": "system-skill",
-"about": "Between {subject} and {reader}, three jobs in turn carry what the sources say into two kept files, and {contract} is fit for {reader} only in the last of its three states.",
-"areas": [
-{"id": "outside", "label": "Outside the skill", "tag": "lane", "info": {"owner": "whoever asks for {contract}", "why": "Set apart what the skill meets and does not make."}},
-{"id": "work", "label": "Three jobs", "tag": "phase", "info": {"order": 1, "entry": "{subject} and its sources are named", "exit": "each open question on {contract} is answered or recorded", "why": "Order the jobs of one run as they act: find, place, check."}},
-{"id": "kept", "label": "Kept files", "tag": "module", "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."},
-{"id": "life", "label": "Contract states", "tag": "region", "info": {"of": "{contract}", "initial": "drafted", "why": "Tell how far {contract} is from fit for {reader}, one state at a time."}}
-],
-"nodes": [
-{"id": "subject", "label": "Subject", "tag": "actor", "area": "outside", "purpose": "Stand as the system, process or requirements that {reader} must rebuild.", "info": {"channels": ["code", "documents", "people who run it", "a run of it"]}, "evidence": ["extract-playbook"]},
-{"id": "session", "label": "Claude Code session", "aliases": ["세션", "에이전트"], "tag": "host", "area": "outside", "purpose": "Host the skill where {subject}'s sources can be read.", "info": {"system": "python3, standard library only", "runs": ["{extract}", "{write}", "{checker}"]}, "evidence": ["skill-file"], "basis": "documented"},
-{"id": "reader", "label": "Reader", "aliases": ["독자"], "tag": "actor", "area": "outside", "purpose": "Rebuild or change {subject} from {contract} alone.", "info": {"goal": "Rebuild {subject} with a recall of $\\frac{a}{q}$ near one, where $a$ of the $q$ rebuild questions name the records that answer them."}, "evidence": ["contract-playbook"]},
-{"id": "extract", "label": "Extraction run", "aliases": ["추출"], "tag": "job", "area": "work", "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.", "info": {"steps": ["list the sources and what each can settle", "walk the topics", "note each finding with where it was seen", "ask each open question"], "outputs": {"columns": ["name", "type", "to"], "rows": [["findings", "text by topic", "{write}"]]}, "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"}, "evidence": ["extract-playbook"], "files": ["extract-playbook"]},
-{"id": "write", "label": "Contract writing", "tag": "job", "area": "work", "purpose": "Place each finding in the one slot of {contract} that {checker} and a page can read.", "info": {"steps": ["choose levels", "name nodes as things and edges as sentences", "draw each lifecycle as a region of states", "fill each tag's items", "write scenarios and claims", "run {checker}, read aloud, answer each open question"], "failure": {"columns": ["case", "what happens"], "rows": [["a slot breaks a rule", "the place and the rule are named, and no page is built until the slot is mended"]]}}, "evidence": ["contract-playbook"], "files": ["contract-playbook"]},
-{"id": "checker", "label": "Checker", "aliases": ["검사기", "validator", "linter"], "tag": "job", "area": "work", "purpose": "Refuse {contract} while a page or {reader} could misread it, and list each open question.", "info": {"steps": ["check the form", "check each rule", "print ok or each break"], "signals": ["`where: rule: message` per break", "`ok`", "one line per open question"], "inputs": {"columns": ["name", "type", "from"], "rows": [["contract.json", "JSON file", "{write}"]]}}, "evidence": ["checker-code"], "files": ["checker-code"]},
-{"id": "catalogue", "label": "Tag catalogue", "aliases": ["태그 목록"], "tag": "artifact", "area": "kept", "purpose": "Fix, per tag, the items worth recording and the form of each.", "info": {"format": "one JSON file: kind, tag, meaning, items with a form and an example", "made-by": "a survey of 35 documented systems", "used-by": ["{checker}", "the page maker"]}, "evidence": ["tag-file", "tag-survey"], "files": ["tag-file"]},
-{"id": "contract", "label": "Contract", "aliases": ["계약서", "명세서"], "tag": "dataStore", "area": "kept", "opens": "parts", "purpose": "Hold all that is known of {subject} in one file that every later job reads.", "info": {"layout": [{"name": "contract.json", "children": [{"name": "title, purpose"}, {"name": "sources", "note": "what was read"}, {"name": "terms"}, {"name": "levels", "children": [{"name": "areas"}, {"name": "nodes"}, {"name": "edges"}]}, {"name": "scenarios"}, {"name": "claims"}]}], "access": {"columns": ["who", "mode", "how"], "rows": [["{write}", "write", "by hand or by a generator"], ["{checker}", "read", "check, read, gaps"], ["{reader}", "read", "alone, without the sources"]]}}, "evidence": ["contract-playbook"]},
-{"id": "drafted", "label": "Drafted contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as written and not yet accepted by {checker}.", "info": {"ignores": ["edit", "gaps"]}, "evidence": ["contract-playbook"]},
-{"id": "checked", "label": "Checked contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as one that {checker} printed `ok` for.", "info": {"ignores": ["check"]}, "evidence": ["contract-playbook", "checker-code"]},
-{"id": "answered", "label": "Answered contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as fit for {reader}: each open question is answered or recorded as a gap.", "info": {"meaning": "Every rebuild question is settled, by records that answer it or by a gap: $$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}$$", "ignores": ["check", "gaps"]}, "evidence": ["contract-playbook"]}
-],
-"edges": [
-{"id": "reads", "from": "extract", "to": "subject", "label": "reads", "tag": "access", "info": {"mode": "read"}, "evidence": ["extract-playbook"]},
-{"id": "takes-its", "from": "write", "to": "extract", "label": "takes its findings from", "tag": "sequence", "info": {"order": 2}, "evidence": ["skill-file"]},
-{"id": "writes", "from": "write", "to": "contract", "label": "writes", "tag": "produces", "info": {"output": "contract.json", "format": "JSON"}, "evidence": ["contract-playbook"]},
-{"id": "takes-its-items", "from": "write", "to": "catalogue", "label": "takes its items from", "tag": "dependsOn", "info": {"kind": "while writing"}, "evidence": ["contract-playbook"]},
-{"id": "judges", "from": "checker", "to": "contract", "label": "judges", "tag": "access", "info": {"mode": "read"}, "evidence": ["checker-code"]},
-{"id": "holds-each", "from": "checker", "to": "catalogue", "label": "holds each element to", "tag": "dependsOn", "info": {"kind": "at run time", "on-failure": "does not start"}, "evidence": ["checker-code"]},
-{"id": "sends-its", "from": "checker", "to": "extract", "label": "sends its open questions back to", "tag": "triggers", "info": {"filter": "only when a question is open"}, "evidence": ["contract-playbook"]},
-{"id": "check", "from": "drafted", "to": "checked", "label": "check", "tag": "transition", "info": {"guard": "no rule breaks"}, "evidence": ["contract-playbook"]},
-{"id": "edit", "from": "checked", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]},
-{"id": "gaps", "from": "checked", "to": "answered", "label": "gaps", "tag": "transition", "info": {"guard": "no open question"}, "evidence": ["contract-playbook"]},
-{"id": "edit-2", "from": "answered", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]},
-{"id": "rebuilds-from", "from": "reader", "to": "contract", "label": "rebuilds {subject} from", "tag": "access", "info": {"mode": "read"}, "evidence": ["skill-file"]},
-{"id": "runs-in", "from": "checker", "to": "session", "label": "runs in", "tag": "dependsOn", "info": {"kind": "at run time"}, "evidence": ["checker-code"]}
-]
-},
-{
-"id": "parts",
-"title": "parts-of-a-contract",
-"about": "{contract} draws {subject} with four parts on each level and holds all levels together with three more.",
-"areas": [
-{"id": "drawn", "label": "Parts of one level", "tag": "module", "purpose": "Draw one level as a graph with four parts."},
-{"id": "told", "label": "Parts across levels", "tag": "module", "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."}
-],
-"nodes": [
-{"id": "level", "label": "Level", "tag": "artifact", "area": "drawn", "purpose": "Show one depth of {subject}, small enough to read at once.", "info": {"format": "id, title, about, areas, nodes, edges"}, "evidence": ["contract-playbook"]},
-{"id": "area", "label": "Area", "tag": "artifact", "area": "drawn", "purpose": "Gather nodes for one reason, or hold the states of one thing.", "info": {"format": "id, label, tag, info"}, "evidence": ["contract-playbook"]},
-{"id": "node", "label": "Node", "tag": "artifact", "area": "drawn", "purpose": "Name one thing of {subject}, or one state a thing can be in.", "info": {"format": "id, label, tag, area, opens, purpose, info, evidence"}, "evidence": ["contract-playbook"]},
-{"id": "edge", "label": "Edge", "tag": "artifact", "area": "drawn", "purpose": "Join two nodes by one relation, or by one move between states.", "info": {"format": "from, to, label, tag, many, info, evidence"}, "evidence": ["contract-playbook"]},
-{"id": "tag", "label": "Tag", "tag": "policy", "area": "told", "purpose": "Fix which items {node}, {edge} or {area} holds.", "info": {"statement": "{node}, {edge} or {area} holds only the items of its tag, each item in its form", "enforced-by": "{checker}"}, "evidence": ["tag-file"]},
-{"id": "scenario", "label": "Scenario", "tag": "artifact", "area": "told", "purpose": "Show a purpose met, step by step, on the nodes and edges.", "info": {"format": "id, title, purpose, principle, steps of at, note"}, "evidence": ["contract-playbook"]},
-{"id": "claim", "label": "Claim", "tag": "artifact", "area": "told", "purpose": "State what {subject} keeps true and what it takes the world to be, each with whether it holds and, when it does not, why.", "info": {"format": "id, title, kind, strength, status, fault, source, statement, on, paths"}, "evidence": ["contract-playbook"]}
-],
-"edges": [
-{"id": "is-drawn", "from": "node", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]},
-{"id": "sits-in", "from": "node", "to": "area", "label": "sits in", "tag": "dependsOn", "evidence": ["contract-playbook"]},
-{"id": "is-drawn-on", "from": "area", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]},
-{"id": "leaves", "from": "edge", "to": "node", "label": "leaves", "tag": "dependsOn", "evidence": ["contract-playbook"]},
-{"id": "carries", "from": "node", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]},
-{"id": "carries-2", "from": "edge", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]},
-{"id": "steps-on", "from": "scenario", "to": "node", "label": "steps on", "many": true, "tag": "sequence", "evidence": ["contract-playbook"]},
-{"id": "constrains", "from": "claim", "to": "node", "label": "constrains", "many": true, "tag": "governs", "evidence": ["contract-playbook"]}
-]
-}
-],
-"scenarios": [
-{"id": "describe", "title": "describe-a-subject", "purpose": "{reader} rebuilds {subject} from {contract} alone.", "principle": true, "steps": [{"at": "reads"}, {"at": "writes"}, {"at": "check", "note": "prints ok, or names each break"}, {"at": "sends-its", "note": "one line per open question"}, {"at": "gaps"}, {"at": "rebuilds-from", "note": "never opens the sources"}]},
-{"id": "walk-parts", "title": "read-one-level", "purpose": "{reader} tells the static sentences from the moves between states.", "steps": [{"at": "contract", "note": "its parts show"}, {"at": "sits-in", "note": "true of every contract"}]}
-],
-"claims": [
-{"id": "one-file", "title": "one-file", "kind": "guarantee", "statement": "Every page of {subject} is made from {contract} and nothing else.", "strength": "must", "on": ["contract"], "evidence": ["skill-file"]},
-{"id": "same-level", "title": "same-level", "kind": "guarantee", "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.", "on": ["node", "area", "level"], "paths": [["is-drawn"], ["sits-in", "is-drawn-on"]], "evidence": ["checker-code"]},
-{"id": "ids-once", "title": "ids-once", "kind": "guarantee", "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.", "strength": "must", "source": "contract-playbook", "on": ["node", "edge"], "evidence": ["contract-playbook"]},
-{"id": "sources-reachable", "title": "sources-reachable", "kind": "assumption", "statement": "{subject}'s sources can be read by the session that extracts; what only a person knows must be asked.", "on": ["subject"]},
-{"id": "standard-library", "title": "standard-library", "kind": "guarantee", "statement": "{checker} uses the Python standard library only.", "strength": "must", "source": "checker-code", "on": ["checker"]},
-{"id": "sentence-truth", "title": "sentence-truth", "kind": "guarantee", "statement": "Each sentence `read` prints is true of {subject}.", "status": "unknown", "fault": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.", "on": ["edge", "subject", "reader", "catalogue"]}
-],
-"questions": [
-{"id": "who-rebuilds", "asks": "Who must be able to rebuild {subject}, and from what alone?", "answers": ["reader", "rebuilds-from", "one-file"]},
-{"id": "what-is-read", "asks": "What is read to find the facts, and in what order of work?", "answers": ["extract", "reads", "takes-its"]},
-{"id": "where-facts-go", "asks": "Where does every fact end up, and which parts does that file hold?", "answers": ["contract", "writes", "parts"]},
-{"id": "which-items", "asks": "What fixes the items a record of one tag must hold?", "answers": ["catalogue", "takes-its-items", "carries"]},
-{"id": "what-is-judged", "asks": "What does {checker} judge, and what does it send back?", "answers": ["checker", "judges", "sends-its"]},
-{"id": "when-done", "asks": "Which states does a description pass through before it is done?", "answers": ["drafted", "checked", "answered", "check", "gaps"]},
-{"id": "how-ids", "asks": "How is a record named so that another can point at it?", "answers": ["ids-once"]},
-{"id": "what-it-needs", "asks": "What does {checker} need installed to run?", "answers": ["standard-library", "runs-in"]},
-{"id": "is-it-true", "asks": "How is a sentence of the description known to be true?", "answers": ["sentence-truth"]}
-]
-}</script>
-<script type="application/json" id="page-threads">{"threads": {}}</script>
-<script type="application/json" id="page-tags">{"forms": ["text", "number", "list", "table", "tree", "code"], "common": {"node": [{"name": "signals", "label": "signals", "form": "list", "example": "prints one line per run"}, {"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "chosen over polling to keep the page static"}], "edge": [{"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "kept one way so the server never writes"}], "area": [{"name": "why", "label": "why", "form": "text", "example": "split so each part can be removed alone"}]}, "node": {"actor": {"meaning": "a person, role, team or outside party that starts or receives", "items": [{"name": "goal", "label": "goal", "form": "text", "example": "settle a refund within a day"}, {"name": "count", "label": "count", "form": "number", "example": "about 10,000 users a day"}, {"name": "permissions", "label": "permissions", "form": "list", "example": "refund:write"}, {"name": "channels", "label": "channels", "form": "list", "example": "admin web"}, {"name": "trust", "label": "trust", "form": "text", "example": "signed in, staff"}]}, "service": {"meaning": "a long-running part that answers requests or listens", "items": [{"name": "responsibilities", "label": "responsibilities", "form": "list", "example": "issues tokens"}, {"name": "interfaces", "label": "interfaces", "form": "table", "example": "name, protocol, address"}, {"name": "technology", "label": "technology", "form": "text", "example": "Go 1.22"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "3 replicas, 500 requests a second each"}, {"name": "targets", "label": "targets", "form": "table", "example": "measure, target, window"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}]}, "job": {"meaning": "a unit of work that runs to its end: a step, task, function or stage", "items": [{"name": "inputs", "label": "inputs", "form": "table", "example": "name, type, from"}, {"name": "outputs", "label": "outputs", "form": "table", "example": "name, type, to"}, {"name": "steps", "label": "steps", "form": "list", "example": "load, check, write", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "0 2 * * *"}, {"name": "limits", "label": "limits", "form": "text", "example": "timeout 10 min, 3 retries"}, {"name": "runs-on", "label": "runs on", "form": "text", "example": "the CI runner"}]}, "endpoint": {"meaning": "a named, addressable interface a part offers: a route, port, command, tool or screen", "items": [{"name": "address", "label": "address", "form": "code", "example": "POST /v1/payments", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "OAuth2 scope pay:write"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "limits", "label": "limits", "form": "text", "example": "100 requests a second"}, {"name": "stability", "label": "stability", "form": "text", "example": "v1, stable"}]}, "dataStore": {"meaning": "data kept and read back later: a database, table, file, folder, cache or registry", "items": [{"name": "schema", "label": "schema", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files", "key": true}, {"name": "volume", "label": "volume", "form": "number", "example": "40 GB, 2 GB more a day"}, {"name": "retention", "label": "retention", "form": "text", "example": "kept 90 days"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "3 replicas, quorum"}, {"name": "access", "label": "access", "form": "table", "example": "who, mode, how"}, {"name": "backup", "label": "backup", "form": "text", "example": "every 15 min"}]}, "queue": {"meaning": "an ordered buffer of work or messages in flight", "items": [{"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "1 million messages"}, {"name": "retention", "label": "retention", "form": "text", "example": "7 days"}, {"name": "partitioning", "label": "partitioning", "form": "text", "example": "12 partitions by order id"}, {"name": "dead-letters", "label": "dead letters", "form": "text", "example": "after 5 tries"}]}, "host": {"meaning": "where code runs: a machine, container, runner, browser or device", "items": [{"name": "size", "label": "size", "form": "text", "example": "4 CPUs, 16 GB"}, {"name": "count", "label": "count", "form": "number", "example": "3"}, {"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "system", "label": "system", "form": "text", "example": "Linux 6"}, {"name": "runs", "label": "runs", "form": "list", "example": "the API server"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16, port 443 open"}]}, "artifact": {"meaning": "an unchanging, versioned output: an image, binary, release, model or document", "items": [{"name": "version", "label": "version", "form": "text", "example": "app 1.4.2"}, {"name": "format", "label": "format", "form": "text", "example": "zip", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files"}, {"name": "made-by", "label": "made by", "form": "text", "example": "the release job"}, {"name": "retention", "label": "retention", "form": "text", "example": "last 10"}, {"name": "used-by", "label": "used by", "form": "list", "example": "the installer"}]}, "trigger": {"meaning": "what starts a job or flow: a schedule, event, timer or a person's call", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "schedule", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "*/5 * * * *"}, {"name": "filter", "label": "filter", "form": "code", "example": "on: pull_request"}, {"name": "rate", "label": "rate", "form": "number", "example": "20 a second"}, {"name": "timing", "label": "timing", "form": "text", "example": "waits 3 s of quiet"}]}, "policy": {"meaning": "a rule that is enforced: a permission, limit, cache or routing rule", "items": [{"name": "statement", "label": "statement", "form": "text", "example": "only the owner merges", "key": true}, {"name": "scope", "label": "scope", "form": "list", "example": "every push to main"}, {"name": "enforced-by", "label": "enforced by", "form": "text", "example": "the server"}, {"name": "decisions", "label": "decisions", "form": "table", "example": "condition, action"}, {"name": "exceptions", "label": "exceptions", "form": "list", "example": "none"}]}, "router": {"meaning": "a part that chooses where flow goes: a gateway, balancer, proxy or dispatcher", "items": [{"name": "rules", "label": "rules", "form": "table", "example": "match, goes to", "key": true}, {"name": "algorithm", "label": "algorithm", "form": "text", "example": "round robin"}, {"name": "fallback", "label": "fallback", "form": "text", "example": "404"}, {"name": "fan-out", "label": "fan-out", "form": "number", "example": "1 to 3"}, {"name": "latency", "label": "latency", "form": "number", "example": "under 5 ms"}]}, "credential": {"meaning": "a secret or proof of identity: a key, token or certificate", "items": [{"name": "type", "label": "type", "form": "text", "example": "JWT, RS256", "key": true}, {"name": "issuer", "label": "issuer", "form": "text", "example": "the auth service"}, {"name": "claims", "label": "claims", "form": "table", "example": "claim, meaning"}, {"name": "lifetime", "label": "lifetime", "form": "text", "example": "1 hour, renewed for 30 days"}, {"name": "kept-in", "label": "kept in", "form": "text", "example": "the secrets manager"}]}, "state": {"meaning": "one state of a lifecycle, when the lifecycle itself is the subject", "items": [{"name": "meaning", "label": "meaning", "form": "text", "example": "paid, not shipped"}, {"name": "on-entry", "label": "on entry", "form": "list", "example": "reserve stock"}, {"name": "on-exit", "label": "on exit", "form": "list", "example": "release the hold"}, {"name": "timers", "label": "timers", "form": "text", "example": "expires after 30 min"}, {"name": "terminal", "label": "terminal", "form": "text", "example": "no"}, {"name": "holds", "label": "holds", "form": "list", "example": "amount is fixed"}, {"name": "ignores", "label": "ignores", "form": "list", "example": "a second pay request"}, {"name": "refuses", "label": "refuses", "form": "list", "example": "a merge before the review"}]}}, "edge": {"call": {"meaning": "asks and waits for the answer", "items": [{"name": "protocol", "label": "protocol", "form": "code", "example": "HTTPS GET /exam/papers", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "bearer token"}, {"name": "timing", "label": "timing", "form": "text", "example": "timeout 2 s, 3 retries"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a minute"}]}, "publish": {"meaning": "sends a message or event without waiting", "items": [{"name": "channel", "label": "channel", "form": "text", "example": "topic orders"}, {"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "rate", "label": "rate", "form": "number", "example": "500 a second"}]}, "access": {"meaning": "reads or writes a data store", "items": [{"name": "mode", "label": "mode", "form": "text", "example": "read", "key": true}, {"name": "query", "label": "query", "form": "code", "example": "by id"}, {"name": "fields", "label": "fields", "form": "list", "example": "id, total"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a second"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "may be 1 s stale"}]}, "sequence": {"meaning": "comes next in the order of control", "items": [{"name": "condition", "label": "condition", "form": "text", "example": "when the check passes"}, {"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "branching", "label": "branching", "form": "text", "example": "one of"}]}, "dependsOn": {"meaning": "needs the other to build or run", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "at run time"}, {"name": "version", "label": "version", "form": "text", "example": "3.11 or newer"}, {"name": "on-failure", "label": "on failure", "form": "text", "example": "does not start"}]}, "transition": {"meaning": "moves from one state to another", "items": [{"name": "event", "label": "event", "form": "text", "example": "payment received"}, {"name": "guard", "label": "guard", "form": "text", "example": "amount matches"}, {"name": "action", "label": "action", "form": "text", "example": "send a receipt"}]}, "produces": {"meaning": "makes an artifact or data", "items": [{"name": "output", "label": "output", "form": "text", "example": "report.html"}, {"name": "format", "label": "format", "form": "text", "example": "one HTML file"}, {"name": "frequency", "label": "frequency", "form": "text", "example": "each run"}, {"name": "derivation", "label": "derivation", "form": "text", "example": "joined from two tables"}]}, "triggers": {"meaning": "starts the job or flow", "items": [{"name": "filter", "label": "filter", "form": "text", "example": "only on main"}, {"name": "delay", "label": "delay", "form": "text", "example": "after 3 s of quiet"}, {"name": "dedupe", "label": "dedupe", "form": "text", "example": "one per burst"}]}, "governs": {"meaning": "applies a rule to the target", "items": [{"name": "scope", "label": "scope", "form": "text", "example": "all write requests"}, {"name": "effect", "label": "effect", "form": "text", "example": "deny"}, {"name": "priority", "label": "priority", "form": "number", "example": "1"}]}, "partOf": {"meaning": "is a part the other holds or lists", "items": [{"name": "role", "label": "role", "form": "text", "example": "one folder per plugin"}, {"name": "count", "label": "count", "form": "text", "example": "one or more"}]}}, "area": {"module": {"meaning": "parts grouped by what they do: a system, domain or package", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "billing team"}, {"name": "interface", "label": "interface", "form": "list", "example": "POST /v1/payments"}, {"name": "rules", "label": "rules", "form": "list", "example": "nothing outside reads its tables"}]}, "deployment": {"meaning": "parts grouped by where they run: a region, cluster, network or machine", "items": [{"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "capacity", "label": "capacity", "form": "text", "example": "3 machines"}, {"name": "redundancy", "label": "redundancy", "form": "text", "example": "3 zones"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16"}]}, "trustZone": {"meaning": "parts inside one security boundary", "items": [{"name": "trust", "label": "trust", "form": "text", "example": "signed-in staff only"}, {"name": "entries", "label": "entries", "form": "list", "example": "the login page"}, {"name": "controls", "label": "controls", "form": "list", "example": "token on every call"}]}, "lane": {"meaning": "parts grouped by who is responsible: a team or role", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "the platform team"}, {"name": "on-call", "label": "on call", "form": "text", "example": "weekdays"}, {"name": "handoffs", "label": "handoffs", "form": "list", "example": "to support after release"}]}, "region": {"meaning": "the states one thing moves through, exactly one of them current; two regions of a level run side by side", "items": [{"name": "of", "label": "of", "form": "text", "example": "a change"}, {"name": "initial", "label": "initial", "form": "text", "example": "the id of its first state"}, {"name": "events", "label": "events", "form": "table", "example": "event, raised by"}]}, "phase": {"meaning": "parts grouped by when they act: a stage, environment or step of a lifecycle", "items": [{"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "entry", "label": "entry", "form": "text", "example": "build passed"}, {"name": "exit", "label": "exit", "form": "text", "example": "tests passed"}, {"name": "budget", "label": "budget", "form": "text", "example": "10 min"}]}}}</script>
-<script type="application/json" id="page-formulas">{"$\\frac{a}{q}": "\u003cmath display=\"inline\">\u003cmfrac>\u003cmrow>\u003cmi>a\u003c/mi>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003c/math>", "$a": "\u003cmath display=\"inline\">\u003cmi>a\u003c/mi>\u003c/math>", "$q": "\u003cmath display=\"inline\">\u003cmi>q\u003c/mi>\u003c/math>", "$$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}": "\u003cmath display=\"block\">\u003cmrow>\u003cmfrac>\u003cmrow>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003cmunderover>\u003cmo>∑\u003c/mo>\u003cmrow>\u003cmi>i\u003c/mi>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/munderover>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>,\u003c/mo>\u003cmspace width=\"1em\">\u003c/mspace>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>∈\u003c/mo>\u003cmo>{\u003c/mo>\u003cmn>0\u003c/mn>\u003cmo>,\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>}\u003c/mo>\u003c/mrow>\u003c/math>"}</script>
-<script type="application/json" id="page-parts">{
-"top": "b76732409183a27f",
-"levels/skill": "f452896c9b8e1f31",
-"levels/parts": "12bd89a18e0ed5ae"
-}</script>
 <script>
 // The record card of a paperwork page with its badges: a record's rows drawn as prose with its quotes, formulas, named records, terms and
 // guesses, paged to the room beside the record, and the note over the card that a term or the sources raise. A page calls
 // `paperworkCard(options)` once its `#card` and `#gloss` exist; each option is a function it answers from its own records:
 //   make(name, attributes, ...children)  the element maker
 //   record(id)       { kind, record } of a record, or nothing
-//   terms()          the contract's terms; sources() its sources; counted() each record's claims by the status a badge counts
+//   terms()          the contract's terms; sources() its sources; claimsOn(id) the claims on a record, each drawn as a badge
 //   formulas         the MathML of each formula, by `$tex` or `$$tex`
 //   rows(id)         the card's rows, each [name, form, data]
 //   place(id, w, h)  { left, top, cost, tied } where a card that big rests, `tied` what it still covers
 //   kept(id)         whether the card is kept open
 //   light(id)        mark in the drawing the record a chip names, or nothing for null
-//   follow(id, event) a click on a chip: true when the page moved for it, so the card does nothing more
+//   follow(id, event) a click on a chip or a badge: true when the page moved for it, so the card does nothing more
 window.paperworkCard = options => {
   "use strict";
   const { make, formulas } = options;
@@ -411,14 +196,18 @@ window.paperworkCard = options => {
   const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && options.record(id) ? label(id) : whole));
   const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
-  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["conflicting", "!", "conflicting"], ["fails", "✗", "fails"]]; // each status a badge counts: its symbol, so it reads without its colour, and its card row's name
-  const counts = id => { // the badges of a record the claims on it earn, one per status they hold
-    const held = options.counted()[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
-    if (!shown.length) return null;
-    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
-      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
+  const status = claim => claim.status || "holds"; // a claim that names no status holds
+  const GLYPHS = { holds: "✓", unknown: "?", conflicting: "!", fails: "✗" }, INITIALS = { guarantee: "G", assumption: "A" }; // a badge's status and kind as text, so it reads without its colour, and its kind as its shape too
+  const badges = id => { // a badge per claim on a record, each opening its claim's card
+    const claims = options.claimsOn(id);
+    if (!claims.length) return null;
+    return make("span", { class: "claims", "data-for": id }, ...claims.map(claim => {
+      const faulted = status(claim) === "holds" && !!claim.fault, said = `${claim.kind} ${claim.title || claim.id}: ${status(claim)}${faulted ? ", with a fault" : ""}`;
+      return make("button", { class: "claim", type: "button", "data-claim": claim.id, "data-kind": claim.kind, "data-status": status(claim), "data-fault": faulted ? "" : null, "aria-label": said, title: said },
+        INITIALS[claim.kind] + GLYPHS[status(claim)] + (faulted ? "*" : ""));
+    }));
   };
-  const countRows = id => COUNTS.filter(([kind]) => (options.counted()[id] || {})[kind]).map(([kind, , name]) => [name, "list", options.counted()[id][kind].map(one => `{${one}}`)]); // a card's row per status of badge its record earns
+  const claimRows = id => options.claimsOn(id).length ? [["claims", "list", options.claimsOn(id).map(claim => `{${claim.id}}`)]] : []; // a card's row of the claims its record's badges open
   const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
   let glossed = new Set(); // the terms the card has marked, each at its first match only
   const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
@@ -563,7 +352,13 @@ window.paperworkCard = options => {
     gloss(cite, ...sources(options.record($("card").dataset.for).record));
     $("gloss").dataset.for = $("card").dataset.for;
   });
-  return { MARKS, words, bare, tagName, label, counts, countRows, prose, show: card, hide };
+  addEventListener("click", event => { // a badge opens its claim, whatever the record it sits on would do with the click
+    const badge = event.target.closest && event.target.closest("button.claim[data-claim]");
+    if (!badge) return;
+    event.stopPropagation();
+    options.follow(badge.dataset.claim, event);
+  }, true);
+  return { MARKS, words, bare, tagName, label, status, badges, claimRows, prose, show: card, hide };
 };
 // The search palette of a paperwork page: a query ranked over the page's records by reciprocal rank fusion, read also as the keys of a
 // Korean layout and through the terms' aliases, or a regular expression; recent queries kept per page. A page calls
@@ -571,7 +366,8 @@ window.paperworkCard = options => {
 //   make(name, attributes, ...children)  the element maker
 //   entries()  each record as { id, kind, name, note, fields: [[text, place]], shown: [[field, text]] }, a field's place 0 for a name,
 //              then 1 for an id, 2 for a tag, 3 for prose and 4 for details, its shown texts as a hit's excerpt draws them
-//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind] groups an empty query lists
+//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind, group, under] groups an empty query lists,
+//              each the entries of KIND whose `group` is GROUP when given, listed too by `ask(UNDER)` when given
 //   terms()    the contract's terms; shelf(): the storage key of the page's recent queries
 //   open(entry) the page moves to a picked record
 window.paperworkSearch = options => {
@@ -733,7 +529,7 @@ window.paperworkSearch = options => {
     const list = options.entries();
     if (list === from) return ready;
     from = list;
-    ready = list.map(({ id, kind, name, note, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note,
+    ready = list.map(({ id, kind, name, note, group, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note, group,
       fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })), shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text })) }));
     for (const entry of ready) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
     lengths = ready.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, ready.length);
@@ -759,7 +555,7 @@ window.paperworkSearch = options => {
     const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
     const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
     const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : options.browse.filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
+      : options.browse.filter(([title, , , under]) => !scope || (under || title) === scope).map(([title, kind, group]) => [title, entries.filter(entry => entry.kind === kind && (!group || entry.group === group))]))];
     listed = groups.flatMap(group => group[1]);
     if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
     chosen = Math.min(chosen, Math.max(0, listed.length - 1));
@@ -844,17 +640,319 @@ window.paperworkSearch = options => {
   $("regex").addEventListener("click", () => regex(!regular));
   return { ask, key };
 };
+// The frame of every paperwork page: the crumbs at the top left, the tools at the top right with the search bar last, the record card and
+// the search palette over them, and one Claims list grouped by status. A page calls `paperworkFrame(options)` before it draws, with
+// paperworkCard's options but `make` and `claimsOn`, paperworkSearch's but `make`, and:
+//   placeholder  what the search box says while empty
+//   tools        the page's own buttons, each [id, label], before Claims and the search bar
+//   claims()     the contract's claims; questions() its questions
+// It returns the card's calls, `search`, `make`, crumbs(trail, pick), and entries() and rows(id) of the claims and questions.
+window.paperworkFrame = options => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const make = (name, attributes = {}, ...children) => {
+    const element = document.createElement(name);
+    for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null && value !== false) element.setAttribute(key, value);
+    element.append(...children.flat().filter(child => child !== null && child !== undefined && child !== false));
+    return element;
+  };
+  const STATUSES = ["fails", "conflicting", "unknown", "holds"]; // the Claims list's groups, the least settled first
+  const hint = (...keys) => keys.map(key => make("kbd", {}, key));
+  document.body.append(
+    make("nav", { id: "crumbs", class: "bar", "aria-label": "Levels" }),
+    make("div", { id: "tools", class: "bar" }, ...(options.tools || []).map(([id, label]) => make("button", { id, class: "tool", type: "button" }, label)),
+      make("button", { id: "claims", class: "tool", type: "button" }, "Claims"),
+      make("button", { id: "search", class: "tool quiet", type: "button", title: options.placeholder }, "Search", make("kbd", {}, "/"))),
+    make("aside", { id: "card", role: "tooltip" }), make("div", { id: "gloss", role: "tooltip" }), make("div", { id: "veil" }),
+    make("div", { id: "palette", role: "dialog", "aria-label": "Search" },
+      make("div", { id: "field" }, make("input", { id: "query", type: "text", placeholder: options.placeholder, autocomplete: "off", spellcheck: "false", role: "combobox",
+        "aria-expanded": "true", "aria-controls": "hits", "aria-autocomplete": "list", "aria-label": "Search" }),
+      make("button", { id: "regex", class: "tool icon quiet", type: "button", "aria-pressed": "false", "aria-label": "Regular expression", title: "Regular expression (Alt+R)" }, ".*")),
+      make("div", { id: "hits", role: "listbox" }),
+      make("footer", { id: "keys" }, make("span", {}, ...hint("↑", "↓"), " move"), make("span", {}, ...hint("↵"), " open"), make("span", {}, ...hint("esc"), " close"), make("span", {}, ...hint("alt", "R"), " regex"))));
+  const claimsOn = id => (options.claims() || []).filter(claim => (claim.on || []).includes(id));
+  const card = paperworkCard({ ...options, make, claimsOn });
+  const browse = [...options.browse.filter(([, kind]) => kind !== "claim"), ...STATUSES.map(status => [`Claims: ${status}`, "claim", status, "Claims"])];
+  const search = paperworkSearch({ ...options, make, browse });
+  addEventListener("keydown", event => { if (search.key(event)) event.stopImmediatePropagation(); }, true); // an open palette, and the keys that open it, come before the page's own keys
+  $("search").addEventListener("click", () => search.ask());
+  $("claims").addEventListener("click", () => search.ask("Claims"));
+
+  function crumbs(trail, pick) { // the way down from the first level to the shown one, each [id, title], the last the shown one, with each level's badges
+    $("claims").hidden = !(options.claims() || []).length;
+    $("crumbs").replaceChildren(...trail.flatMap(([id, title], k) => {
+      const step = make("button", { type: "button", "data-level": id, ...(k === trail.length - 1 ? { "aria-current": "page" } : {}) }, title);
+      step.addEventListener("click", () => pick(id));
+      return [...(k ? [make("span", { class: "sep", "aria-hidden": "true" }, "/")] : []), step, card.badges(id)];
+    }).filter(Boolean));
+  }
+  function entries() { // the search's entry of each claim, grouped by its status, and of each question, open when no answer settles it
+    const claims = options.claims() || [], { words, bare, status } = card;
+    return [...claims.map(claim => ({ id: claim.id, kind: "claim", name: claim.title, note: claim.kind, group: status(claim),
+      fields: [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], shown: [["kind", claim.kind], ["status", status(claim)], ["statement", bare(claim.statement)]] })),
+    ...(options.questions() || []).map(question => ({ id: question.id, kind: "question", name: words(question.asks),
+      note: question.answers.every(name => claims.some(claim => claim.id === name && claim.fault)) ? "open question" : "question",
+      fields: [[words(question.asks), 0], [question.id, 1]], shown: [["id", question.id]] }))];
+  }
+  function rows(id) { // a claim's or a question's card rows, each naming the records it is about so the card leads back to each
+    const { kind, record } = options.record(id), named = ids => (ids || []).map(one => `{${one}}`);
+    if (kind === "claim") return [["statement", "text", record.statement], ["on", "list", named(record.on)], ...(record.fault ? [["fault", "text", record.fault]] : [])];
+    if (kind === "question") return [["asks", "text", record.asks], ["answers", "list", named(record.answers)]];
+    return [];
+  }
+  return { ...card, make, search, crumbs, entries, rows };
+};
+</script>
+<!-- /page frame -->
+<style>
+html, body { height: 100%; margin: 0; overflow: hidden; }
+
+#diagram { position: fixed; inset: 0; overflow: hidden; background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 9%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+.stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.stage.old { pointer-events: none; }
+.stage svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+
+.area { position: absolute; border: 1px solid var(--frame); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 55%, transparent); transition: opacity .25s var(--ease), border-color .2s var(--ease), color .25s var(--ease); }
+.area[data-tag="region"], .area[data-tag="trustZone"] { border-style: dashed; }
+.area[data-tag="lane"], .area[data-tag="phase"] { border-color: transparent; }
+.area[data-band="0"] { background: var(--band-0); } .area[data-band="1"] { background: var(--band-1); } .area[data-band="2"] { background: var(--band-2); }
+.area > header { display: flex; align-items: flex-start; gap: 4px; height: 32px; padding: 4px 16px 0; font-size: calc(12px * var(--grow, 1)); line-height: 16px; font-weight: 500; white-space: nowrap; }
+.area > header::first-letter { text-transform: uppercase; }
+.area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
+.area > header .claims { margin-left: -2px; } /* a badge no taller than the header's words, so the header stays one group apart from the nodes under it */
+.area > header .claims > .claim { height: 14px; }
+
+.node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 8px 12px; border: 1px solid var(--frame); --corner: 3px; border-radius: var(--corner); background: var(--card); box-shadow: var(--shadow-sm); cursor: default; outline: none;
+  transition: opacity .25s var(--ease), transform .25s var(--spring), box-shadow .2s var(--ease), border-color .2s var(--ease), background-color .25s var(--ease), color .25s var(--ease); }
+.node b { font-size: calc(14px * var(--grow, 1)); font-weight: 500; overflow-wrap: anywhere; text-wrap: balance; }
+.node small { font-size: calc(12px * var(--grow, 1)); line-height: 16px; color: var(--muted-foreground); white-space: nowrap; }
+.stage.dense .node { padding: 4px 12px; gap: 0; }
+.stage.dense .node b { font-size: calc(12px * var(--grow, 1)); line-height: 16px; }
+.stage.dense .node small { font-size: calc(11px * var(--grow, 1)); line-height: 14px; }
+.stage.dense .node .open { right: 4px; top: 4px; width: 20px; height: 20px; }
+.stage.dense .area > header { height: 26px; padding: 2px 8px 0; }
+.node:hover, .node.on { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--line); }
+.node:focus-visible { border-color: var(--line); box-shadow: var(--focus); }
+.node.pinned { border-color: var(--foreground); }
+.node .open { position: absolute; right: 6px; top: 6px; width: 24px; height: 24px; display: grid; place-items: center; padding: 0; border: 0; border-radius: min(6px, var(--corner)); background: transparent; color: var(--muted-foreground); cursor: pointer; transition: background-color .15s var(--ease), color .15s var(--ease), transform .25s var(--spring); }
+.node .open:hover { background: var(--accent); color: var(--foreground); transform: scale(1.12); }
+.node[data-tag="state"] { --corner: 16px; }
+.node[data-tag="dataStore"] { --lid: 8px; border-radius: 50% / var(--lid); padding-top: calc(2 * var(--lid)); }
+.node[data-tag="dataStore"]::after { content: ""; position: absolute; left: -1px; right: -1px; top: -1px; height: calc(2 * var(--lid)); border: inherit; border-radius: 50%; pointer-events: none; }
+.node[data-tag="dataStore"] .open { top: 16px; }
+.stage.dense .node[data-tag="dataStore"] { --lid: 6px; padding-top: calc(2 * var(--lid)); }
+.stage.dense .node[data-tag="dataStore"] .open { top: 13px; }
+.node.first::before { content: ""; position: absolute; left: -11px; top: 50%; width: 6px; height: 6px; margin-top: -3px; border-radius: 50%; background: var(--foreground); }
+
+.edge path.line { fill: none; stroke: var(--frame); stroke-width: 1.25; transition: stroke .2s var(--ease), stroke-width .2s var(--ease), opacity .25s var(--ease); }
+.edge path.head { fill: var(--frame); transition: fill .2s var(--ease), opacity .25s var(--ease); }
+.edge path.hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; }
+.edge.on path.line { stroke: var(--foreground); stroke-width: 1.75; opacity: 1; }
+.edge.on path.head { fill: var(--foreground); opacity: 1; }
+.edge[data-tag="dependsOn"] path.line, .edge[data-tag="governs"] path.line { stroke-dasharray: 4 4; }
+.label { position: absolute; transform: translate(-50%, -50%); padding: 0 4px; border-radius: 6px; background: var(--canvas); color: var(--muted-foreground); font-size: calc(12px * var(--grow, 1)); line-height: 16px; white-space: nowrap; cursor: default; transition: opacity .25s var(--ease), color .2s var(--ease), background-color .2s var(--ease); }
+.label.on { color: var(--foreground); background: var(--accent); z-index: 3; }
+.label.tucked:not(.shown) { visibility: hidden; pointer-events: none; }
+.label.tucked:not(.shown):has(.claims) { visibility: visible; pointer-events: auto; } /* a label whose claims need a badge stays in sight with them, so no badge floats on a bare line */
+.node > .claims { position: absolute; right: 8px; bottom: 8px; }
+.stage.dense .node > .claims { bottom: 4px; }
+.stage.dense .node .open ~ .claims { right: 32px; }
+
+.stage .dim .claims { opacity: .5; }
+
+.stage .edge.dim { opacity: .38; }
+.stage.playing .edge.dim { opacity: .62; }
+.stage .node.dim { border-color: color-mix(in oklab, var(--border) 60%, transparent); background: color-mix(in oklab, var(--card) 40%, transparent); box-shadow: none; color: var(--muted-foreground); }
+.stage .area.dim { color: var(--muted-foreground); }
+.edge.dim path.line, .edge.dim path.head { opacity: .5; }
+
+
+.stage .named, .stage.playing .named { opacity: 1; }
+.node.named { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 28%, transparent), var(--shadow-md); }
+.area.named:not([data-band]) { border-color: var(--mark); }
+.area.named[data-band] { background-image: linear-gradient(color-mix(in oklab, var(--mark) 10%, transparent), color-mix(in oklab, var(--mark) 10%, transparent)); }
+.area.named[data-band] > header { color: color-mix(in oklab, var(--mark), var(--foreground) 20%); }
+.edge.named path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; } .edge.named path.head { fill: var(--mark); opacity: 1; }
+.label.named { color: var(--mark); background: var(--accent); z-index: 3; }
+
+#play { left: 50%; bottom: 20px; gap: 2px; transform: translate(-50%, 16px); opacity: 0; pointer-events: none; padding: 0 4px; transition: opacity .2s var(--ease), transform .32s var(--spring); max-width: min(960px, calc(100vw - 32px)); }
+#play.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#run .pause, #run[data-on="1"] .start { display: none; } #run[data-on="1"] .pause { display: block; }
+#play .count { margin-left: 12px; padding: 0 4px 0 8px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#play .title { padding: 0 8px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#play .dots { display: flex; margin-left: 8px; padding: 0 4px; }
+#origin { position: fixed; z-index: 5; outline: 2px solid var(--mark); outline-offset: 3px; border-radius: var(--radius); pointer-events: none; }
+#origin span { position: absolute; left: 4px; bottom: calc(100% + 8px); padding: 0 8px; border-radius: 6px; background: var(--canvas); color: var(--mark); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+#onto { flex-shrink: 0; padding: 0 8px; color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
+#play .dots button { width: 14px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; }
+#play .dots button::before { content: ""; width: 6px; height: 6px; border-radius: 3px; background: var(--border); transition: background-color .2s var(--ease), width .3s var(--spring); }
+#play .dots button:hover::before { background: var(--ring); }
+#play .dots button.done::before { background: color-mix(in oklab, var(--mark) 55%, var(--border)); }
+#play .dots button.now::before { width: 14px; background: var(--mark); }
+#play .dots button.now { width: 22px; }
+#play .dots button:focus-visible { outline: none; } #play .dots button:focus-visible::before { box-shadow: var(--focus); }
+#chip { position: fixed; z-index: 25; max-width: 360px; padding: 4px 12px; border: 1px solid var(--border); border-left: 3px solid var(--mark); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow-md); font-size: 12px; line-height: 16px; pointer-events: none; opacity: 0; transform: translateY(4px) scale(.96); transition: opacity .2s var(--ease), transform .3s var(--spring); }
+#chip.show { opacity: 1; transform: none; }
+#chip code { font-size: 12px; }
+#chip small { display: block; color: var(--mark); font-size: 11px; line-height: 16px; font-weight: 600; }
+.node.past { border-color: color-mix(in oklab, var(--mark) 45%, var(--border)); }
+.node.next { border-color: var(--mark); border-style: dashed; }
+.node.step { border-color: var(--mark); box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 30%, transparent), var(--shadow-lg); transform: translateY(-2px); }
+.label.past, .label.next { color: var(--foreground); }
+.label.step { color: var(--foreground); background: color-mix(in oklab, var(--mark) 14%, var(--canvas)); z-index: 3; }
+.edge.ahead path.line { opacity: .9; }
+.edge.past path.line { stroke: color-mix(in oklab, var(--mark) 60%, var(--frame)); stroke-width: 2; opacity: 1; }
+.edge.past path.head { fill: color-mix(in oklab, var(--mark) 60%, var(--frame)); opacity: 1; }
+.edge.next path.line { stroke: var(--mark); stroke-width: 1.5; stroke-dasharray: 3 5; opacity: 1; }
+.edge.next path.head { fill: var(--mark); opacity: 1; }
+.edge.step path.line { stroke: var(--mark); stroke-width: 2.25; opacity: 1; }
+.edge.step path.head { fill: var(--mark); opacity: 1; }
+#token { position: absolute; left: 0; top: 0; width: 12px; height: 12px; margin: -6px; border-radius: 50%; background: var(--mark); box-shadow: 0 0 0 4px color-mix(in oklab, var(--mark) 30%, transparent); offset-rotate: 0deg; opacity: 0; pointer-events: none; z-index: 4; }
+#token.run { animation: travel .9s cubic-bezier(.6, 0, .2, 1) both; }
+#token.run.carry { animation-name: carry; }
+@keyframes carry { 0% { offset-distance: 0%; opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
+@keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 14% { opacity: 1; } 100% { offset-distance: 100%; opacity: 1; } }
+@keyframes appear { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-property: opacity, color, background-color, border-color, box-shadow, stroke, fill !important; transition-duration: .2s !important; transition-delay: 0s !important; }
+  #token.run, #token.run.carry { animation: appear .24s var(--ease) both; offset-distance: 100%; }
+  #chip, .node, .node .open, .tool { transform: none !important; }
+  #play { transform: translate(-50%, 0) !important; }
+}
+</style>
+</head>
+<body>
+<main id="diagram"><div id="stage" class="stage"></div></main>
+<div id="chip"></div>
+<div id="play" class="bar" role="toolbar" aria-label="Scenario">
+<button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+<button id="run" class="tool icon" type="button" aria-label="Play" title="Play or pause (space)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="start" d="M7 4.5v15l12-7.5z" fill="currentColor"/><path class="pause" d="M8 5v14M16 5v14"/></svg></button>
+<button id="next" class="tool icon" type="button" aria-label="Next step" title="Next step (&rarr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+<span class="count"></span><span class="title"></span><span class="dots"></span><span id="onto" hidden></span>
+<button id="again" class="tool" type="button" hidden>Replay</button>
+<button id="onward" class="tool" type="button" hidden>Next scenario</button>
+<button id="stop" class="tool icon quiet" type="button" aria-label="Close the scenario" title="Close (esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+</div>
+<script type="application/json" id="page-data">{
+"title": "The system skill",
+"purpose": "The skill turns {subject}'s sources into {contract}, one checked file from which {reader} rebuilds {subject} without the sources.",
+"sources": [
+{"id": "skill-file", "path": "paperwork/skills/system/SKILL.md", "says": "the three cases and their order"},
+{"id": "extract-playbook", "path": "paperwork/skills/system/references/extract.md", "says": "the topics and where each finding goes"},
+{"id": "contract-playbook", "path": "paperwork/skills/system/references/contract.md", "says": "the record layout and how to write each part"},
+{"id": "tag-survey", "path": "paperwork/skills/system/references/tags.md", "says": "the survey behind each tag's items"},
+{"id": "checker-code", "path": "paperwork/skills/system/scripts/check-contract.py", "says": "every rule, and what `gaps` asks"},
+{"id": "tag-file", "path": "paperwork/skills/system/assets/tags.json", "says": "every tag and its items"}
+],
+"terms": [{"term": "contract", "meaning": "the one JSON file that holds all that is known of {subject}; every page is drawn from it", "coined": true}, {"term": "region", "meaning": "{area} that holds the states of one thing, exactly one of them current", "coined": false}, {"term": "sentence", "meaning": "a static edge read as `\u003cfrom> \u003clabel> \u003cto>`, which must be true of {subject}", "coined": true}, {"term": "gap", "aliases": ["빈틈", "누락"], "meaning": "a claim whose fault says what {contract} lacks, forbids wrongly, says twice or says with two meanings", "coined": false}],
+"levels": [
+{
+"id": "skill",
+"title": "system-skill",
+"about": "Between {subject} and {reader}, three jobs in turn carry what the sources say into two kept files, and {contract} is fit for {reader} only in the last of its three states.",
+"areas": [
+{"id": "outside", "label": "Outside the skill", "tag": "lane", "info": {"owner": "whoever asks for {contract}", "why": "Set apart what the skill meets and does not make."}},
+{"id": "work", "label": "Three jobs", "tag": "phase", "info": {"order": 1, "entry": "{subject} and its sources are named", "exit": "each open question on {contract} is answered or recorded", "why": "Order the jobs of one run as they act: find, place, check."}},
+{"id": "kept", "label": "Kept files", "tag": "module", "purpose": "Hold the two files that outlast a run: {catalogue} and {contract}."},
+{"id": "life", "label": "Contract states", "tag": "region", "info": {"of": "{contract}", "initial": "drafted", "why": "Tell how far {contract} is from fit for {reader}, one state at a time."}}
+],
+"nodes": [
+{"id": "subject", "label": "Subject", "tag": "actor", "area": "outside", "purpose": "Stand as the system, process or requirements that {reader} must rebuild.", "info": {"channels": ["code", "documents", "people who run it", "a run of it"]}, "evidence": ["extract-playbook"]},
+{"id": "session", "label": "Claude Code session", "aliases": ["세션", "에이전트"], "tag": "host", "area": "outside", "purpose": "Host the skill where {subject}'s sources can be read.", "info": {"system": "python3, standard library only", "runs": ["{extract}", "{write}", "{checker}"]}, "evidence": ["skill-file"], "basis": "documented"},
+{"id": "reader", "label": "Reader", "aliases": ["독자"], "tag": "actor", "area": "outside", "purpose": "Rebuild or change {subject} from {contract} alone.", "info": {"goal": "Rebuild {subject} with a recall of $\\frac{a}{q}$ near one, where $a$ of the $q$ rebuild questions name the records that answer them."}, "evidence": ["contract-playbook"]},
+{"id": "extract", "label": "Extraction run", "aliases": ["추출"], "tag": "job", "area": "work", "purpose": "Find, topic by topic, what {reader} needs to rebuild {subject}.", "info": {"steps": ["list the sources and what each can settle", "walk the topics", "note each finding with where it was seen", "ask each open question"], "outputs": {"columns": ["name", "type", "to"], "rows": [["findings", "text by topic", "{write}"]]}, "why": "a fixed topic list finds what a free reading skips: constants, wire formats, failure cases"}, "evidence": ["extract-playbook"], "files": ["extract-playbook"]},
+{"id": "write", "label": "Contract writing", "tag": "job", "area": "work", "purpose": "Place each finding in the one slot of {contract} that {checker} and a page can read.", "info": {"steps": ["choose levels", "name nodes as things and edges as sentences", "draw each lifecycle as a region of states", "fill each tag's items", "write scenarios and claims", "run {checker}, read aloud, answer each open question"], "failure": {"columns": ["case", "what happens"], "rows": [["a slot breaks a rule", "the place and the rule are named, and no page is built until the slot is mended"]]}}, "evidence": ["contract-playbook"], "files": ["contract-playbook"]},
+{"id": "checker", "label": "Checker", "aliases": ["검사기", "validator", "linter"], "tag": "job", "area": "work", "purpose": "Refuse {contract} while a page or {reader} could misread it, and list each open question.", "info": {"steps": ["check the form", "check each rule", "print ok or each break"], "signals": ["`where: rule: message` per break", "`ok`", "one line per open question"], "inputs": {"columns": ["name", "type", "from"], "rows": [["contract.json", "JSON file", "{write}"]]}}, "evidence": ["checker-code"], "files": ["checker-code"]},
+{"id": "catalogue", "label": "Tag catalogue", "aliases": ["태그 목록"], "tag": "artifact", "area": "kept", "purpose": "Fix, per tag, the items worth recording and the form of each.", "info": {"format": "one JSON file: kind, tag, meaning, items with a form and an example", "made-by": "a survey of 35 documented systems", "used-by": ["{checker}", "the page maker"]}, "evidence": ["tag-file", "tag-survey"], "files": ["tag-file"]},
+{"id": "contract", "label": "Contract", "aliases": ["계약서", "명세서"], "tag": "dataStore", "area": "kept", "opens": "parts", "purpose": "Hold all that is known of {subject} in one file that every later job reads.", "info": {"layout": [{"name": "contract.json", "children": [{"name": "title, purpose"}, {"name": "sources", "note": "what was read"}, {"name": "terms"}, {"name": "levels", "children": [{"name": "areas"}, {"name": "nodes"}, {"name": "edges"}]}, {"name": "scenarios"}, {"name": "claims"}]}], "access": {"columns": ["who", "mode", "how"], "rows": [["{write}", "write", "by hand or by a generator"], ["{checker}", "read", "check, read, gaps"], ["{reader}", "read", "alone, without the sources"]]}}, "evidence": ["contract-playbook"]},
+{"id": "drafted", "label": "Drafted contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as written and not yet accepted by {checker}.", "info": {"ignores": ["edit", "gaps"]}, "evidence": ["contract-playbook"]},
+{"id": "checked", "label": "Checked contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as one that {checker} printed `ok` for.", "info": {"ignores": ["check"]}, "evidence": ["contract-playbook", "checker-code"]},
+{"id": "answered", "label": "Answered contract", "tag": "state", "area": "life", "purpose": "Mark {contract} as fit for {reader}: each open question is answered or recorded as a gap.", "info": {"meaning": "Every rebuild question is settled, by records that answer it or by a gap: $$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}$$", "ignores": ["check", "gaps"]}, "evidence": ["contract-playbook"]}
+],
+"edges": [
+{"id": "reads", "from": "extract", "to": "subject", "label": "reads", "tag": "access", "info": {"mode": "read"}, "evidence": ["extract-playbook"]},
+{"id": "takes-its", "from": "write", "to": "extract", "label": "takes its findings from", "tag": "sequence", "info": {"order": 2}, "evidence": ["skill-file"]},
+{"id": "writes", "from": "write", "to": "contract", "label": "writes", "tag": "produces", "info": {"output": "contract.json", "format": "JSON"}, "evidence": ["contract-playbook"]},
+{"id": "takes-its-items", "from": "write", "to": "catalogue", "label": "takes its items from", "tag": "dependsOn", "info": {"kind": "while writing"}, "evidence": ["contract-playbook"]},
+{"id": "judges", "from": "checker", "to": "contract", "label": "judges", "tag": "access", "info": {"mode": "read"}, "evidence": ["checker-code"]},
+{"id": "holds-each", "from": "checker", "to": "catalogue", "label": "holds each element to", "tag": "dependsOn", "info": {"kind": "at run time", "on-failure": "does not start"}, "evidence": ["checker-code"]},
+{"id": "sends-its", "from": "checker", "to": "extract", "label": "sends its open questions back to", "tag": "triggers", "info": {"filter": "only when a question is open"}, "evidence": ["contract-playbook"]},
+{"id": "check", "from": "drafted", "to": "checked", "label": "check", "tag": "transition", "info": {"guard": "no rule breaks"}, "evidence": ["contract-playbook"]},
+{"id": "edit", "from": "checked", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]},
+{"id": "gaps", "from": "checked", "to": "answered", "label": "gaps", "tag": "transition", "info": {"guard": "no open question"}, "evidence": ["contract-playbook"]},
+{"id": "edit-2", "from": "answered", "to": "drafted", "label": "edit", "tag": "transition", "info": {}, "evidence": ["contract-playbook"]},
+{"id": "rebuilds-from", "from": "reader", "to": "contract", "label": "rebuilds {subject} from", "tag": "access", "info": {"mode": "read"}, "evidence": ["skill-file"]},
+{"id": "runs-in", "from": "checker", "to": "session", "label": "runs in", "tag": "dependsOn", "info": {"kind": "at run time"}, "evidence": ["checker-code"]}
+]
+},
+{
+"id": "parts",
+"title": "parts-of-a-contract",
+"about": "{contract} draws {subject} with four parts on each level and holds all levels together with three more.",
+"areas": [
+{"id": "drawn", "label": "Parts of one level", "tag": "module", "purpose": "Draw one level as a graph with four parts."},
+{"id": "told", "label": "Parts across levels", "tag": "module", "purpose": "Hold all levels together with three parts: one fixes items, one walks the graph, one constrains it."}
+],
+"nodes": [
+{"id": "level", "label": "Level", "tag": "artifact", "area": "drawn", "purpose": "Show one depth of {subject}, small enough to read at once.", "info": {"format": "id, title, about, areas, nodes, edges"}, "evidence": ["contract-playbook"]},
+{"id": "area", "label": "Area", "tag": "artifact", "area": "drawn", "purpose": "Gather nodes for one reason, or hold the states of one thing.", "info": {"format": "id, label, tag, info"}, "evidence": ["contract-playbook"]},
+{"id": "node", "label": "Node", "tag": "artifact", "area": "drawn", "purpose": "Name one thing of {subject}, or one state a thing can be in.", "info": {"format": "id, label, tag, area, opens, purpose, info, evidence"}, "evidence": ["contract-playbook"]},
+{"id": "edge", "label": "Edge", "tag": "artifact", "area": "drawn", "purpose": "Join two nodes by one relation, or by one move between states.", "info": {"format": "from, to, label, tag, many, info, evidence"}, "evidence": ["contract-playbook"]},
+{"id": "tag", "label": "Tag", "tag": "policy", "area": "told", "purpose": "Fix which items {node}, {edge} or {area} holds.", "info": {"statement": "{node}, {edge} or {area} holds only the items of its tag, each item in its form", "enforced-by": "{checker}"}, "evidence": ["tag-file"]},
+{"id": "scenario", "label": "Scenario", "tag": "artifact", "area": "told", "purpose": "Show a purpose met, step by step, on the nodes and edges.", "info": {"format": "id, title, purpose, principle, steps of at, note"}, "evidence": ["contract-playbook"]},
+{"id": "claim", "label": "Claim", "tag": "artifact", "area": "told", "purpose": "State what {subject} keeps true and what it takes the world to be, each with whether it holds and, when it does not, why.", "info": {"format": "id, title, kind, strength, status, fault, source, statement, on, paths"}, "evidence": ["contract-playbook"]}
+],
+"edges": [
+{"id": "is-drawn", "from": "node", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]},
+{"id": "sits-in", "from": "node", "to": "area", "label": "sits in", "tag": "dependsOn", "evidence": ["contract-playbook"]},
+{"id": "is-drawn-on", "from": "area", "to": "level", "label": "is drawn on", "tag": "dependsOn", "evidence": ["contract-playbook"]},
+{"id": "leaves", "from": "edge", "to": "node", "label": "leaves", "tag": "dependsOn", "evidence": ["contract-playbook"]},
+{"id": "carries", "from": "node", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]},
+{"id": "carries-2", "from": "edge", "to": "tag", "label": "carries", "tag": "governs", "info": {"effect": "fixes its items"}, "evidence": ["tag-file"]},
+{"id": "steps-on", "from": "scenario", "to": "node", "label": "steps on", "many": true, "tag": "sequence", "evidence": ["contract-playbook"]},
+{"id": "constrains", "from": "claim", "to": "node", "label": "constrains", "many": true, "tag": "governs", "evidence": ["contract-playbook"]}
+]
+}
+],
+"scenarios": [
+{"id": "describe", "title": "describe-a-subject", "purpose": "{reader} rebuilds {subject} from {contract} alone.", "principle": true, "steps": [{"at": "reads"}, {"at": "writes"}, {"at": "check", "note": "prints ok, or names each break"}, {"at": "sends-its", "note": "one line per open question"}, {"at": "gaps"}, {"at": "rebuilds-from", "note": "never opens the sources"}]},
+{"id": "walk-parts", "title": "read-one-level", "purpose": "{reader} tells the static sentences from the moves between states.", "steps": [{"at": "contract", "note": "its parts show"}, {"at": "sits-in", "note": "true of every contract"}]}
+],
+"claims": [
+{"id": "one-file", "title": "one-file", "kind": "guarantee", "statement": "Every page of {subject} is made from {contract} and nothing else.", "strength": "must", "on": ["contract"], "evidence": ["skill-file"]},
+{"id": "same-level", "title": "same-level", "kind": "guarantee", "statement": "{node} sits in {area} of its own level: {node} and its area are drawn on one level.", "on": ["node", "area", "level"], "paths": [["is-drawn"], ["sits-in", "is-drawn-on"]], "evidence": ["checker-code"]},
+{"id": "ids-once", "title": "ids-once", "kind": "guarantee", "statement": "An id is lowercase words joined by `-`, used once in the whole contract; the id of {edge} says what {edge} does and holds neither end's id, so moving an end leaves it true.", "strength": "must", "source": "contract-playbook", "on": ["node", "edge"], "evidence": ["contract-playbook"]},
+{"id": "sources-reachable", "title": "sources-reachable", "kind": "assumption", "statement": "{subject}'s sources can be read by the session that extracts; what only a person knows must be asked.", "on": ["subject"]},
+{"id": "standard-library", "title": "standard-library", "kind": "guarantee", "statement": "{checker} uses the Python standard library only.", "strength": "must", "source": "checker-code", "on": ["checker"]},
+{"id": "sentence-truth", "title": "sentence-truth", "kind": "guarantee", "statement": "Each sentence `read` prints is true of {subject}.", "status": "unknown", "fault": "No script can tell whether a sentence is true of {subject}; only a reading of `read` against the sources can.", "on": ["edge", "subject", "reader", "catalogue"]}
+],
+"questions": [
+{"id": "who-rebuilds", "asks": "Who must be able to rebuild {subject}, and from what alone?", "answers": ["reader", "rebuilds-from", "one-file"]},
+{"id": "what-is-read", "asks": "What is read to find the facts, and in what order of work?", "answers": ["extract", "reads", "takes-its"]},
+{"id": "where-facts-go", "asks": "Where does every fact end up, and which parts does that file hold?", "answers": ["contract", "writes", "parts"]},
+{"id": "which-items", "asks": "What fixes the items a record of one tag must hold?", "answers": ["catalogue", "takes-its-items", "carries"]},
+{"id": "what-is-judged", "asks": "What does {checker} judge, and what does it send back?", "answers": ["checker", "judges", "sends-its"]},
+{"id": "when-done", "asks": "Which states does a description pass through before it is done?", "answers": ["drafted", "checked", "answered", "check", "gaps"]},
+{"id": "how-ids", "asks": "How is a record named so that another can point at it?", "answers": ["ids-once"]},
+{"id": "what-it-needs", "asks": "What does {checker} need installed to run?", "answers": ["standard-library", "runs-in"]},
+{"id": "is-it-true", "asks": "How is a sentence of the description known to be true?", "answers": ["sentence-truth"]}
+]
+}</script>
+<script type="application/json" id="page-threads">{"threads": {}}</script>
+<script type="application/json" id="page-tags">{"forms": ["text", "number", "list", "table", "tree", "code"], "common": {"node": [{"name": "signals", "label": "signals", "form": "list", "example": "prints one line per run"}, {"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "chosen over polling to keep the page static"}], "edge": [{"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "kept one way so the server never writes"}], "area": [{"name": "why", "label": "why", "form": "text", "example": "split so each part can be removed alone"}]}, "node": {"actor": {"meaning": "a person, role, team or outside party that starts or receives", "items": [{"name": "goal", "label": "goal", "form": "text", "example": "settle a refund within a day"}, {"name": "count", "label": "count", "form": "number", "example": "about 10,000 users a day"}, {"name": "permissions", "label": "permissions", "form": "list", "example": "refund:write"}, {"name": "channels", "label": "channels", "form": "list", "example": "admin web"}, {"name": "trust", "label": "trust", "form": "text", "example": "signed in, staff"}]}, "service": {"meaning": "a long-running part that answers requests or listens", "items": [{"name": "responsibilities", "label": "responsibilities", "form": "list", "example": "issues tokens"}, {"name": "interfaces", "label": "interfaces", "form": "table", "example": "name, protocol, address"}, {"name": "technology", "label": "technology", "form": "text", "example": "Go 1.22"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "3 replicas, 500 requests a second each"}, {"name": "targets", "label": "targets", "form": "table", "example": "measure, target, window"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}]}, "job": {"meaning": "a unit of work that runs to its end: a step, task, function or stage", "items": [{"name": "inputs", "label": "inputs", "form": "table", "example": "name, type, from"}, {"name": "outputs", "label": "outputs", "form": "table", "example": "name, type, to"}, {"name": "steps", "label": "steps", "form": "list", "example": "load, check, write", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "0 2 * * *"}, {"name": "limits", "label": "limits", "form": "text", "example": "timeout 10 min, 3 retries"}, {"name": "runs-on", "label": "runs on", "form": "text", "example": "the CI runner"}]}, "endpoint": {"meaning": "a named, addressable interface a part offers: a route, port, command, tool or screen", "items": [{"name": "address", "label": "address", "form": "code", "example": "POST /v1/payments", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "OAuth2 scope pay:write"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "limits", "label": "limits", "form": "text", "example": "100 requests a second"}, {"name": "stability", "label": "stability", "form": "text", "example": "v1, stable"}]}, "dataStore": {"meaning": "data kept and read back later: a database, table, file, folder, cache or registry", "items": [{"name": "schema", "label": "schema", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files", "key": true}, {"name": "volume", "label": "volume", "form": "number", "example": "40 GB, 2 GB more a day"}, {"name": "retention", "label": "retention", "form": "text", "example": "kept 90 days"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "3 replicas, quorum"}, {"name": "access", "label": "access", "form": "table", "example": "who, mode, how"}, {"name": "backup", "label": "backup", "form": "text", "example": "every 15 min"}]}, "queue": {"meaning": "an ordered buffer of work or messages in flight", "items": [{"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "1 million messages"}, {"name": "retention", "label": "retention", "form": "text", "example": "7 days"}, {"name": "partitioning", "label": "partitioning", "form": "text", "example": "12 partitions by order id"}, {"name": "dead-letters", "label": "dead letters", "form": "text", "example": "after 5 tries"}]}, "host": {"meaning": "where code runs: a machine, container, runner, browser or device", "items": [{"name": "size", "label": "size", "form": "text", "example": "4 CPUs, 16 GB"}, {"name": "count", "label": "count", "form": "number", "example": "3"}, {"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "system", "label": "system", "form": "text", "example": "Linux 6"}, {"name": "runs", "label": "runs", "form": "list", "example": "the API server"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16, port 443 open"}]}, "artifact": {"meaning": "an unchanging, versioned output: an image, binary, release, model or document", "items": [{"name": "version", "label": "version", "form": "text", "example": "app 1.4.2"}, {"name": "format", "label": "format", "form": "text", "example": "zip", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files"}, {"name": "made-by", "label": "made by", "form": "text", "example": "the release job"}, {"name": "retention", "label": "retention", "form": "text", "example": "last 10"}, {"name": "used-by", "label": "used by", "form": "list", "example": "the installer"}]}, "trigger": {"meaning": "what starts a job or flow: a schedule, event, timer or a person's call", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "schedule", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "*/5 * * * *"}, {"name": "filter", "label": "filter", "form": "code", "example": "on: pull_request"}, {"name": "rate", "label": "rate", "form": "number", "example": "20 a second"}, {"name": "timing", "label": "timing", "form": "text", "example": "waits 3 s of quiet"}]}, "policy": {"meaning": "a rule that is enforced: a permission, limit, cache or routing rule", "items": [{"name": "statement", "label": "statement", "form": "text", "example": "only the owner merges", "key": true}, {"name": "scope", "label": "scope", "form": "list", "example": "every push to main"}, {"name": "enforced-by", "label": "enforced by", "form": "text", "example": "the server"}, {"name": "decisions", "label": "decisions", "form": "table", "example": "condition, action"}, {"name": "exceptions", "label": "exceptions", "form": "list", "example": "none"}]}, "router": {"meaning": "a part that chooses where flow goes: a gateway, balancer, proxy or dispatcher", "items": [{"name": "rules", "label": "rules", "form": "table", "example": "match, goes to", "key": true}, {"name": "algorithm", "label": "algorithm", "form": "text", "example": "round robin"}, {"name": "fallback", "label": "fallback", "form": "text", "example": "404"}, {"name": "fan-out", "label": "fan-out", "form": "number", "example": "1 to 3"}, {"name": "latency", "label": "latency", "form": "number", "example": "under 5 ms"}]}, "credential": {"meaning": "a secret or proof of identity: a key, token or certificate", "items": [{"name": "type", "label": "type", "form": "text", "example": "JWT, RS256", "key": true}, {"name": "issuer", "label": "issuer", "form": "text", "example": "the auth service"}, {"name": "claims", "label": "claims", "form": "table", "example": "claim, meaning"}, {"name": "lifetime", "label": "lifetime", "form": "text", "example": "1 hour, renewed for 30 days"}, {"name": "kept-in", "label": "kept in", "form": "text", "example": "the secrets manager"}]}, "state": {"meaning": "one state of a lifecycle, when the lifecycle itself is the subject", "items": [{"name": "meaning", "label": "meaning", "form": "text", "example": "paid, not shipped"}, {"name": "on-entry", "label": "on entry", "form": "list", "example": "reserve stock"}, {"name": "on-exit", "label": "on exit", "form": "list", "example": "release the hold"}, {"name": "timers", "label": "timers", "form": "text", "example": "expires after 30 min"}, {"name": "terminal", "label": "terminal", "form": "text", "example": "no"}, {"name": "holds", "label": "holds", "form": "list", "example": "amount is fixed"}, {"name": "ignores", "label": "ignores", "form": "list", "example": "a second pay request"}, {"name": "refuses", "label": "refuses", "form": "list", "example": "a merge before the review"}]}}, "edge": {"call": {"meaning": "asks and waits for the answer", "items": [{"name": "protocol", "label": "protocol", "form": "code", "example": "HTTPS GET /exam/papers", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "bearer token"}, {"name": "timing", "label": "timing", "form": "text", "example": "timeout 2 s, 3 retries"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a minute"}]}, "publish": {"meaning": "sends a message or event without waiting", "items": [{"name": "channel", "label": "channel", "form": "text", "example": "topic orders"}, {"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "rate", "label": "rate", "form": "number", "example": "500 a second"}]}, "access": {"meaning": "reads or writes a data store", "items": [{"name": "mode", "label": "mode", "form": "text", "example": "read", "key": true}, {"name": "query", "label": "query", "form": "code", "example": "by id"}, {"name": "fields", "label": "fields", "form": "list", "example": "id, total"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a second"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "may be 1 s stale"}]}, "sequence": {"meaning": "comes next in the order of control", "items": [{"name": "condition", "label": "condition", "form": "text", "example": "when the check passes"}, {"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "branching", "label": "branching", "form": "text", "example": "one of"}]}, "dependsOn": {"meaning": "needs the other to build or run", "items": [{"name": "kind", "label": "kind", "form": "text", "example": "at run time"}, {"name": "version", "label": "version", "form": "text", "example": "3.11 or newer"}, {"name": "on-failure", "label": "on failure", "form": "text", "example": "does not start"}]}, "transition": {"meaning": "moves from one state to another", "items": [{"name": "event", "label": "event", "form": "text", "example": "payment received"}, {"name": "guard", "label": "guard", "form": "text", "example": "amount matches"}, {"name": "action", "label": "action", "form": "text", "example": "send a receipt"}]}, "produces": {"meaning": "makes an artifact or data", "items": [{"name": "output", "label": "output", "form": "text", "example": "report.html"}, {"name": "format", "label": "format", "form": "text", "example": "one HTML file"}, {"name": "frequency", "label": "frequency", "form": "text", "example": "each run"}, {"name": "derivation", "label": "derivation", "form": "text", "example": "joined from two tables"}]}, "triggers": {"meaning": "starts the job or flow", "items": [{"name": "filter", "label": "filter", "form": "text", "example": "only on main"}, {"name": "delay", "label": "delay", "form": "text", "example": "after 3 s of quiet"}, {"name": "dedupe", "label": "dedupe", "form": "text", "example": "one per burst"}]}, "governs": {"meaning": "applies a rule to the target", "items": [{"name": "scope", "label": "scope", "form": "text", "example": "all write requests"}, {"name": "effect", "label": "effect", "form": "text", "example": "deny"}, {"name": "priority", "label": "priority", "form": "number", "example": "1"}]}, "partOf": {"meaning": "is a part the other holds or lists", "items": [{"name": "role", "label": "role", "form": "text", "example": "one folder per plugin"}, {"name": "count", "label": "count", "form": "text", "example": "one or more"}]}}, "area": {"module": {"meaning": "parts grouped by what they do: a system, domain or package", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "billing team"}, {"name": "interface", "label": "interface", "form": "list", "example": "POST /v1/payments"}, {"name": "rules", "label": "rules", "form": "list", "example": "nothing outside reads its tables"}]}, "deployment": {"meaning": "parts grouped by where they run: a region, cluster, network or machine", "items": [{"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "capacity", "label": "capacity", "form": "text", "example": "3 machines"}, {"name": "redundancy", "label": "redundancy", "form": "text", "example": "3 zones"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16"}]}, "trustZone": {"meaning": "parts inside one security boundary", "items": [{"name": "trust", "label": "trust", "form": "text", "example": "signed-in staff only"}, {"name": "entries", "label": "entries", "form": "list", "example": "the login page"}, {"name": "controls", "label": "controls", "form": "list", "example": "token on every call"}]}, "lane": {"meaning": "parts grouped by who is responsible: a team or role", "items": [{"name": "owner", "label": "owner", "form": "text", "example": "the platform team"}, {"name": "on-call", "label": "on call", "form": "text", "example": "weekdays"}, {"name": "handoffs", "label": "handoffs", "form": "list", "example": "to support after release"}]}, "region": {"meaning": "the states one thing moves through, exactly one of them current; two regions of a level run side by side", "items": [{"name": "of", "label": "of", "form": "text", "example": "a change"}, {"name": "initial", "label": "initial", "form": "text", "example": "the id of its first state"}, {"name": "events", "label": "events", "form": "table", "example": "event, raised by"}]}, "phase": {"meaning": "parts grouped by when they act: a stage, environment or step of a lifecycle", "items": [{"name": "order", "label": "order", "form": "number", "example": "2"}, {"name": "entry", "label": "entry", "form": "text", "example": "build passed"}, {"name": "exit", "label": "exit", "form": "text", "example": "tests passed"}, {"name": "budget", "label": "budget", "form": "text", "example": "10 min"}]}}}</script>
+<script type="application/json" id="page-formulas">{"$\\frac{a}{q}": "\u003cmath display=\"inline\">\u003cmfrac>\u003cmrow>\u003cmi>a\u003c/mi>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003c/math>", "$a": "\u003cmath display=\"inline\">\u003cmi>a\u003c/mi>\u003c/math>", "$q": "\u003cmath display=\"inline\">\u003cmi>q\u003c/mi>\u003c/math>", "$$\\frac{1}{q}\\sum_{i=1}^{q} s_i = 1, \\quad s_i \\in \\{0, 1\\}": "\u003cmath display=\"block\">\u003cmrow>\u003cmfrac>\u003cmrow>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/mfrac>\u003cmunderover>\u003cmo>∑\u003c/mo>\u003cmrow>\u003cmi>i\u003c/mi>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003c/mrow>\u003cmrow>\u003cmi>q\u003c/mi>\u003c/mrow>\u003c/munderover>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>=\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>,\u003c/mo>\u003cmspace width=\"1em\">\u003c/mspace>\u003cmsub>\u003cmi>s\u003c/mi>\u003cmi>i\u003c/mi>\u003c/msub>\u003cmo>∈\u003c/mo>\u003cmo>{\u003c/mo>\u003cmn>0\u003c/mn>\u003cmo>,\u003c/mo>\u003cmn>1\u003c/mn>\u003cmo>}\u003c/mo>\u003c/mrow>\u003c/math>"}</script>
+<script type="application/json" id="page-parts">{
+"top": "b7b075556baac6a0",
+"levels/skill": "e75b2a26e53c2520",
+"levels/parts": "57a1a2ce0f050508"
+}</script>
+<script>
 (() => {
   "use strict";
   const read = id => JSON.parse(document.getElementById(id).textContent);
   const TAGS = read("page-tags"), FORMULAS = read("page-formulas");
   const $ = id => document.getElementById(id);
-  const make = (name, attributes = {}, ...children) => {
-    const element = document.createElement(name);
-    for (const [key, value] of Object.entries(attributes)) key === "class" ? (element.className = value) : element.setAttribute(key, value);
-    element.append(...children);
-    return element;
-  };
   const draw = (name, attributes) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
@@ -862,15 +960,15 @@ window.paperworkSearch = options => {
   };
   const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  let contract, records, levelOf, openers, counted, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
+  let contract, records, levelOf, openers, entries, shownLevel = null, boxes = {}, curves = {}, blocks = [], faces = {}, plans = {};
   const view = { level: null, at: null, scenario: null, step: 0 };
-  const recordCard = paperworkCard({ make, formulas: FORMULAS, record: id => records[id], terms: () => contract.terms, sources: () => contract.sources,
-    counted: () => counted, rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow });
-  const { words, bare, tagName, label, counts, prose } = recordCard;
-  const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
+  const recordCard = paperworkFrame({ placeholder: "Search nodes, edges, scenarios and claims", tools: [["scenarios", "Scenarios"]], formulas: FORMULAS,
+    record: id => records[id], terms: () => contract.terms, sources: () => contract.sources, claims: () => contract.claims, questions: () => contract.questions,
+    rows, place: (id, w, h) => beside(id, w, h), kept: id => view.at === id, light, follow, entries: () => entries, open,
     kinds: { node: "Nodes", level: "Levels", area: "Areas", edge: "Edges", scenario: "Scenarios", claim: "Claims", question: "Questions" },
-    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"], ["Claims", "claim"]],
+    browse: [["Questions", "question"], ["Scenarios", "scenario"], ["Levels", "level"]],
     shelf: () => `paperwork-system-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
+  const { make, words, bare, tagName, label, badges, prose, search } = recordCard;
 
   // ---- the contract's records ----
   function load(data) {
@@ -883,12 +981,8 @@ window.paperworkSearch = options => {
     }
     for (const level of contract.levels) for (const node of level.nodes) if (node.opens) (openers[node.opens] = openers[node.opens] || []).push(node.id);
     for (const scenario of contract.scenarios || []) records[scenario.id] = { kind: "scenario", record: scenario };
-    counted = {};
-    for (const claim of contract.claims || []) {
-      records[claim.id] = { kind: "claim", record: claim };
-      const status = claim.status || "holds";
-      for (const one of new Set(claim.on || [])) ((counted[one] = counted[one] || {})[status] = counted[one][status] || []).push(claim.id);
-    }
+    for (const claim of contract.claims || []) records[claim.id] = { kind: "claim", record: claim };
+    for (const question of contract.questions || []) records[question.id] = { kind: "question", record: question };
     entries = index();
   }
   const sentence = edge => edge.tag === "transition"
@@ -961,19 +1055,19 @@ window.paperworkSearch = options => {
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     pen.font = `500 ${fit.dense ? 12 : 14}px ${FONT}`;
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const tally = node => recordCard.countRows(node.id).length * 28; // the badges share the tag's line
+    const tally = node => (contract.claims || []).filter(claim => (claim.on || []).includes(node.id)).length * 28; // a badge and its gap, sharing the tag's line
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tagName(node.tag).length * 7 + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
-    const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node)); // a box never narrower than the label's longest word, so no word is split
+    const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node), tally(node) && need(node)); // a box never narrower than the label's longest word or the tag's line with its badges, so neither is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
     const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
     const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
     return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
-  const heading = (area, fit) => { // an area as wide as its header's label and tag, so neither reaches past its frame
+  const heading = (area, fit) => { // an area as wide as its header's label, tag and badges, so none reaches past its frame
     pen.font = `500 12px ${FONT}`;
-    const label = pen.measureText(area.label).width;
+    const label = pen.measureText(area.label).width, held = (contract.claims || []).filter(claim => (claim.on || []).includes(area.id)).length;
     pen.font = `400 12px ${FONT}`;
-    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width) + 2 * fit.pad;
+    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width + (held ? 4 + held * 28 : 0)) + 2 * fit.pad;
   };
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
@@ -1174,15 +1268,14 @@ window.paperworkSearch = options => {
     }
     return best;
   }
-  function settle(shown, first) { // a label with no free place at rest takes one among the lines and labels now lit
+  function settle(shown, first) { // a label with no free place at rest takes one among the lines and labels now lit, and one holding badges among the labels at rest too, since it stays in sight
     const taken = [...blocks, ...Object.values(faces).filter(face => !face.text.classList.contains("tucked")).map(face => face.spot)];
     const lines = [...shown].filter(id => curves[id]);
-    for (const id of Object.keys(faces).filter(id => faces[id].text.classList.contains("tucked")).sort((a, b) => (b === first) - (a === first))) {
-      const face = faces[id], best = shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first), point = seen ? best.point : face.point;
+    for (const id of Object.keys(faces).filter(id => faces[id].text.classList.contains("tucked")).sort((a, b) => !!faces[b].text.querySelector(".claims") - !!faces[a].text.querySelector(".claims") || (b === first) - (a === first))) {
+      const face = faces[id], badged = !!face.text.querySelector(".claims"), best = badged ? (face.rest = face.rest || seat(id, face.w, face.h, taken, runs([]), false)) // a label holding badges keeps the least crowded place it took at rest, so a badge stays under the pointer that found it
+        : shown.has(id) ? seat(id, face.w, face.h, taken, runs(lines.filter(other => other !== id)), id === first) : null, seen = !!best && (!best.over || id === first || badged), point = seen ? best.point : face.point;
       face.text.classList.toggle("shown", seen);
       face.text.style.left = point.x + "px"; face.text.style.top = point.y + "px";
-      const badges = face.text.querySelector(".counts");
-      if (badges) badges.style.transform = point === face.point ? "" : `translate(${face.point.x - point.x}px, ${face.point.y - point.y}px)`; // a badge stays where the pointer found it while its label moves
       if (seen) taken.push(best.spot);
     }
   }
@@ -1201,7 +1294,7 @@ window.paperworkSearch = options => {
     for (const area of level.areas || []) {
       const spot = boxes[area.id], band = bands.indexOf(area.id);
       if (spot) stage.append(make("div", { class: "area", "data-id": area.id, "data-tag": area.tag, ...(band < 0 ? {} : { "data-band": band % 3 }), style: `left:${spot.x}px;top:${spot.y}px;width:${spot.w}px;height:${spot.h}px` },
-        make("header", {}, area.label, make("small", {}, tagName(area.tag)))));
+        make("header", {}, area.label, make("small", {}, tagName(area.tag)), badges(area.id))));
     }
     const svg = draw("svg", { width: plan.w, height: plan.h });
     stage.append(svg);
@@ -1217,8 +1310,8 @@ window.paperworkSearch = options => {
         open.addEventListener("click", event => { event.stopPropagation(); go({ level: node.opens, at: null }); });
         card.append(open);
       }
-      const badges = counts(node.id);
-      if (badges) card.append(badges);
+      const held = badges(node.id);
+      if (held) card.append(held);
       stage.append(card);
     }
     blocks = level.nodes.map(node => ({ ...boxes[node.id] }));
@@ -1237,8 +1330,7 @@ window.paperworkSearch = options => {
       group.append(draw("path", { class: "line", d: curves[edge.id].d }), draw("path", { class: "hit", d: curves[edge.id].d }),
         draw("path", { class: "head", d: "M-7,-3.5 L0,0 L-7,3.5 z", transform: `translate(${tip.x},${tip.y}) rotate(${curves[edge.id].turn})` }));
       svg.append(group);
-      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true)), badges = counts(edge.id);
-      if (badges) text.append(badges);
+      const text = make("div", { class: "label", "data-edge": edge.id }, ...prose(edge.label, true), badges(edge.id));
       stage.append(text);
       if (!plans[key].seats[edge.id]) {
         const w = text.offsetWidth, h = text.offsetHeight, best = seat(edge.id, w, h, taken, runs(level.edges.filter(other => other !== edge).map(other => other.id)).concat(frames));
@@ -1362,14 +1454,7 @@ window.paperworkSearch = options => {
       path.unshift(id);
       id = openers[id] ? levelOf[openers[id][0]] : null;
     }
-    const bar = $("crumbs");
-    bar.replaceChildren();
-    path.forEach((id, i) => {
-      if (i) bar.append(make("span", { class: "sep" }, "/"));
-      const item = make("button", { type: "button", "data-level": id, ...(i === path.length - 1 ? { "aria-current": "page" } : {}) }, ...prose(records[id].record.title, true));
-      item.addEventListener("click", () => go({ level: id, at: null, scenario: null }));
-      bar.append(item);
-    });
+    recordCard.crumbs(path.map(id => [id, prose(records[id].record.title, true)]), id => go({ level: id, at: null, scenario: null }));
   }
 
   // ---- hover, pin and the overlay ----
@@ -1417,10 +1502,10 @@ window.paperworkSearch = options => {
   function rows(id) {
     const { kind, record } = records[id], list = [], add = (name, form, data) => data !== undefined && data !== null && data !== "" && list.push([name, form, data]);
     if (kind === "edge") add(record.tag === "transition" ? "transition" : "sentence", "text", record.tag === "transition" ? `{${record.from}} → {${record.to}} on ${record.label}` : `{${record.from}} ${record.label} {${record.to}}.`);
-    if (kind === "claim") { add("statement", "text", record.statement); add("on", "list", (record.on || []).map(one => `{${one}}`)); add("fault", "text", record.fault); }
+    for (const [name, form, data] of recordCard.rows(id)) add(name, form, data);
     if (kind === "scenario") add("steps", "list", record.steps.map(step => `{${step.at}}` + (step.note ? " · " + step.note : "")));
     add("purpose", "text", record.purpose);
-    if (/^(node|edge)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) add(name, form, data);
+    for (const [name, form, data] of recordCard.claimRows(id)) add(name, form, data);
     const items = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = items.find(one => one.name === name);
@@ -1442,7 +1527,7 @@ window.paperworkSearch = options => {
     points(id, 400);
     for (const one of tied) if (one !== id && records[one] && records[one].kind !== "area") { if (lies(one)) keep(lies(one), 4, records[one].kind === "node" ? 400 : 40); points(one, 12); }
     for (const node of records[view.level].record.nodes) if (!tied.has(node.id)) keep(lies(node.id), 0, apart);
-    for (const [one, face] of Object.entries(faces)) if ((open || one !== id) && (!face.text.classList.contains("tucked") || face.text.classList.contains("shown"))) keep(lies(one), 2, open ? 400 : tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
+    for (const [one, face] of Object.entries(faces)) if ((open || one !== id) && (!face.text.classList.contains("tucked") || face.text.matches(".shown, :has(.claims)"))) keep(lies(one), 2, open ? 400 : tied.has(one) || face.text.matches(".past, .next") ? 40 : 4);
     if (open) for (const area of records[view.level].record.areas || []) if (lies(area.id)) keep(lies(area.id), 2, 400);
     for (const bar of [$("tools"), $("crumbs"), $("play")]) if (bar.id !== "play" || bar.classList.contains("show")) keep(bar.getBoundingClientRect(), 8, 400);
     const covers = (x, y, least) => dear.reduce((sum, held) => held.weight < least ? sum : sum + held.weight * Math.max(0, Math.min(x + w, held.right) - Math.max(x, held.left)) * Math.max(0, Math.min(y + h, held.bottom) - Math.max(y, held.top)), 0);
@@ -1483,10 +1568,12 @@ window.paperworkSearch = options => {
     stage.querySelectorAll(".named").forEach(element => element.classList.remove("named"));
     if (one) stage.querySelectorAll(`[data-id="${one}"], .label[data-edge="${one}"]`).forEach(element => element.classList.add("named"));
   }
-  function follow(id, event) { // a chip that names a claim opens that claim's card, which waits for the pointer to move
-    if (records[id].kind !== "claim") return false;
+  function follow(id, event) { // a chip or a badge opens its record's card on the level that draws it, which waits for the pointer to move
+    if (!records[id] || records[id].kind === "question") return false;
     parked = [event.clientX, event.clientY];
-    go({ level: home(id), at: id });
+    if (records[id].kind === "level") go({ level: id, at: null, scenario: null });
+    else if (records[id].kind === "scenario") start(id);
+    else go({ level: home(id), at: id, scenario: null });
     return true;
   }
   const halt = () => { clearTimeout(rest); clearTimeout(leave); };
@@ -1605,8 +1692,7 @@ window.paperworkSearch = options => {
       for (const edge of level.edges || []) add(edge.id, "edge", sentence(edge), tagName(edge.tag), [[words(edge.label), 0], [edge.id, 1], [edge.tag, 2], [sentence(edge), 3], [texts(edge.info), 4]], [["id", edge.id], ["tag", tagName(edge.tag)], ...details(edge.info)]);
     }
     for (const scenario of contract.scenarios || []) add(scenario.id, "scenario", words(scenario.title), `${scenario.steps.length} steps`, [[words(scenario.title), 0], [scenario.id, 1], [scenario.purpose && words(scenario.purpose), 3]], [["id", scenario.id], ["purpose", scenario.purpose]]);
-    for (const claim of contract.claims || []) add(claim.id, "claim", claim.title, claim.kind, [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], [["id", claim.id], ["kind", claim.kind], ["statement", claim.statement]]);
-    for (const question of contract.questions || []) add(question.id, "question", words(question.asks), question.answers.every(name => (contract.claims || []).some(claim => claim.id === name && claim.fault)) ? "open question" : "question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
+    list.push(...recordCard.entries());
     return list;
   }
   function open(entry) { // the record a search picked
@@ -1634,9 +1720,7 @@ window.paperworkSearch = options => {
     $("diagram").addEventListener("click", event => { if (event.target === $("diagram") || event.target === stage) go({ at: null }); });
     $("card").addEventListener("pointerenter", halt);
     $("card").addEventListener("pointerleave", () => { if (hovered) unhover(); });
-    $("search").addEventListener("click", () => search.ask());
     $("scenarios").addEventListener("click", () => search.ask("Scenarios"));
-    $("claims").addEventListener("click", () => search.ask("Claims"));
     $("prev").addEventListener("click", () => stride(-1));
     $("next").addEventListener("click", () => stride(1));
     $("stop").addEventListener("click", () => go({ scenario: null }));
@@ -1644,7 +1728,6 @@ window.paperworkSearch = options => {
     $("again").addEventListener("click", () => start(view.scenario));
     $("onward").addEventListener("click", () => start(contract.scenarios[(contract.scenarios.indexOf(records[view.scenario].record) + 1) % contract.scenarios.length].id));
     addEventListener("keydown", event => {
-      if (search.key(event)) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === "Escape") { if (view.at) go({ at: null }); else if (view.scenario) go({ scenario: null }); else { hovered = null; mark(); } }
       else if (event.key === " " && view.scenario && !event.target.closest("button, input")) { event.preventDefault(); run(); }
@@ -1664,7 +1747,6 @@ window.paperworkSearch = options => {
     history.replaceState(state, "", address(state));
     document.title = contract.title;
     $("scenarios").hidden = !(contract.scenarios || []).length;
-    $("claims").hidden = !(contract.claims || []).length;
     show(state);
   };
   wire();

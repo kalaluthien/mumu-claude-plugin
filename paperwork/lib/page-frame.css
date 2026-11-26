@@ -1,0 +1,22 @@
+/* The frame every paperwork page shares: the base type, the crumbs at the top left and the tools at the top right; it reads page-tokens.css. */
+* { box-sizing: border-box; border-color: var(--border); }
+body { background: var(--canvas); color: var(--foreground); font: 14px/20px ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 4px; border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 12px/1 ui-sans-serif, system-ui, sans-serif; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+#crumbs { left: 16px; top: 16px; gap: 8px; padding: 0 12px; color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
+#crumbs > button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
+#crumbs > button:hover { color: var(--foreground); }
+#crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
+#crumbs .sep { color: var(--muted-foreground); }
+#tools { right: 16px; top: 16px; }
+.tool { display: inline-flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
+.tool:hover { background: var(--accent); }
+.tool:active { transform: scale(.96); }
+.tool:focus-visible, #crumbs > button:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
+.tool.quiet { color: var(--muted-foreground); font-weight: 400; }
+.tool.icon { width: 28px; padding: 0; justify-content: center; }
+.tool:disabled { opacity: .35; pointer-events: none; }
+#crumbs .claims { margin-left: -4px; }

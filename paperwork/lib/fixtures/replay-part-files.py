@@ -30,7 +30,7 @@ sys.path.insert(0, str(LIB))
 from contract_parts import FLOW, SYSTEM, load  # noqa: E402
 
 CONTRACTS = [("system", path) for path in sorted((PLUGIN / "skills/system/examples").glob("*/contract.json"))] + [
-    ("flow", PLUGIN / "skills/flow/fixtures/name-lookup.json"), ("flow", PLUGIN / "skills/flow/fixtures/launch-plan.json")]
+    ("flow", PLUGIN / "skills/flow/examples/name-lookup/contract.json"), ("flow", PLUGIN / "skills/flow/examples/launch-plan/contract.json")]
 SHAPES = {"system": SYSTEM, "flow": FLOW}
 
 
