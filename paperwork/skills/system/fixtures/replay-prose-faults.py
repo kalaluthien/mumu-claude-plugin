@@ -29,11 +29,12 @@ import tempfile
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
 from contract_levels import flat, nested  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 SYSTEM = HERE.parent
 CHECK = SYSTEM / "scripts" / "check-contract.py"
-TAGS = json.loads((SYSTEM / "assets" / "tags.json").read_text())
+TAGS = catalogue(SYSTEM / "assets" / "tags.json")
 KOREAN = re.compile(r"[ㄱ-ㆎ가-힣]")
 NAMED = re.compile(r"\{([a-z0-9-]+)\}")
 WORDS = {"English": ("passkey", "watchword", ("{}", "{}s")),

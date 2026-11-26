@@ -30,10 +30,11 @@ from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_levels import nested  # noqa: E402
 from contract_parts import SYSTEM, checked, load, split_to  # noqa: E402
 from contract_prose import KOREAN, MARKUP, REFERENCE, shown, text_breaks, wording_breaks  # noqa: E402
+from contract_tags import SHARED, catalogue as skill_catalogue, merged  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
-CATALOGUE = json.loads((HERE.parent / "assets" / "tags.json").read_text())
+CATALOGUE = skill_catalogue(HERE.parent / "assets" / "tags.json")
 TAGS = CATALOGUE
 KINDS = ("property", "invariant", "fact", "gap", "assumption", "constraint", "convention")
 STRENGTHS = ("must", "should", "may")
@@ -614,9 +615,9 @@ READ = {"statement": "text", "guard": "text", "action": "text", "initial": "text
 
 
 def catalogue(path):
-    """The tag catalogue the file at PATH holds, or None when it is no catalogue the calls can read."""
+    """The tag catalogue the file at PATH holds over the shared one, or None when it is no catalogue the calls can read."""
     try:
-        tags = json.loads(pathlib.Path(path).read_text())
+        tags = merged(json.loads(pathlib.Path(path).read_text()), json.loads(SHARED.read_text()))
         whole = tags["forms"] == CATALOGUE["forms"]
         for kind in ("node", "edge", "area"):
             entries = list(tags[kind].values()) + [{"meaning": "", "items": tags["common"][kind]}]

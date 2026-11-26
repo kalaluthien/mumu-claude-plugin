@@ -37,7 +37,7 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
-const { check, same, python } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
+const { check, same, python, tags: catalogue } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZE = [1440, 900];
 const STEPS = ["interaction", "plan"];
 const asked = process.argv.slice(2);
@@ -121,7 +121,7 @@ async function interaction(browser) {
   const edges = contract.edges.filter((edge) => edge.level === level.id), fragments = (contract.fragments || []).filter((one) => one.level === level.id);
   const milestones = (contract.milestones || []).filter((one) => one.level === level.id), nested = edges.find((edge) => edge.opens);
   const groups = new Set(level.nodes.map((id) => contract.nodes.find((node) => node.id === id).group));
-  const tags = JSON.parse(fs.readFileSync(path.join(ROOT, "assets", "tags.json"), "utf8"));
+  const tags = catalogue(path.join(ROOT, "assets", "tags.json"));
   const owed = (edge) => ((edge.info || {}).work || { rows: [] }).rows;
   const groupLabel = (id) => contract.groups.find((group) => group.id === id).label;
   const codes = (edge) => (tags.edge[edge.tag] ? tags.edge[edge.tag].items : []).filter((item) => item.form === "code" && typeof (edge.info || {})[item.name] === "string" && edge.info[item.name] !== edge.label).map((item) => edge.info[item.name]).join(" · ");

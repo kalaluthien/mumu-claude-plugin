@@ -19,7 +19,6 @@ usage: check-contract.py fixtures                           check every contract
 CONTRACT.json may be a folder of part files that `split` wrote.
 
 Exit status 0 means ok, 1 a break, 2 a call it cannot read."""
-import json
 import pathlib
 import re
 import sys
@@ -29,11 +28,12 @@ from contract_copies import copies  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_parts import FLOW, checked, load, split_to  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 from flow_order import before, critical, cycle, ranks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
-TAGS = json.loads((HERE.parent / "assets" / "tags.json").read_text())
+TAGS = catalogue(HERE.parent / "assets" / "tags.json")
 LEVEL_KINDS = ("interaction", "plan")
 PLAN_EDGES = ("request", "wait")
 FRAGMENTS = {"alt": 2, "opt": 1, "loop": 1, "par": 2, "break": 1}  # each kind's least operand count; only alt and par hold more

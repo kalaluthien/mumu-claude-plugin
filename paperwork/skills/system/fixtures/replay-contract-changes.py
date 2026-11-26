@@ -17,10 +17,11 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import flat, nested  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 CHECK = HERE.parent / "scripts" / "check-contract.py"
-TAGS = json.loads((HERE.parent / "assets" / "tags.json").read_text())
+TAGS = catalogue(HERE.parent / "assets" / "tags.json")
 
 
 def records(contract):

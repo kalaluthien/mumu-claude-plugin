@@ -10,7 +10,6 @@ exit status is 1.
 The page keeps each part's key, made of the part, what its check reads of the other parts and the code that checks and builds it; over
 an earlier page, a part whose key is unchanged keeps its pieces from it, and only the other parts are checked and built again. It prints
 the parts checked and built, the parts kept, then the page's path."""
-import json
 import pathlib
 import subprocess
 import sys
@@ -18,12 +17,13 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from flow_order import before, critical, ranks  # noqa: E402
 from contract_parts import FLOW, TOP, code_digest, join, keys, load, split  # noqa: E402
+from contract_tags import catalogue  # noqa: E402
 from page_parts import CARD, assembled, earlier, page, report  # noqa: E402
 from tex_mathml import drawn, named  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
-CODE = [HERE / "check-contract.py", HERE / "make-page.py", ASSETS / "tags.json", *(HERE.parents[2] / "lib").glob("*.py")]
+CODE = [HERE / "check-contract.py", HERE / "make-page.py", ASSETS / "tags.json", *(HERE.parents[2] / "lib").glob("*.py"), HERE.parents[2] / "lib" / "tags.json"]
 MARKUP = f"""<main id="diagram"><div id="stage"></div></main>
 <nav id="crumbs" class="bar" aria-label="Levels"></nav>
 <div id="tools" class="bar"><button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button></div>
@@ -81,7 +81,7 @@ def main(args):
     pieces, made = assembled(keyed, shown, make, keep)
     formulas = {key: markup for piece in pieces.values() for key, markup in piece["formulas"].items()}
     order = {level: entry for piece in pieces.values() for level, entry in piece["order"].items()}
-    blocks = {"data": contract, "tags": json.loads((ASSETS / "tags.json").read_text()), "formulas": formulas, "order": order, "parts": keyed}
+    blocks = {"data": contract, "tags": catalogue(ASSETS / "tags.json"), "formulas": formulas, "order": order, "parts": keyed}
     target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, tasks and properties", blocks))
     print(report(keyed, made))
     print(target)
