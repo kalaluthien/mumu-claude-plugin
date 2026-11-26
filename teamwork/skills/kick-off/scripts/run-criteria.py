@@ -44,8 +44,9 @@ halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<
 printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer is. A hunk no check can
 see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
-for each whose branch no criterion reaches; each other comparison it adds is then negated alone, and each number made 0, or 1 when it is 0, and
-`<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound or a weight no check
+for each whose branch no criterion reaches; each other comparison it adds is then negated alone, each number made 0, or 1 when it is 0, each codec
+name given to `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each element of a list or tuple and each operand of `and` or `or` dropped, and
+`<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound, a weight, an argument or a codec no check
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, so give a long check time with `--timeout`; it never fetches.
@@ -68,6 +69,7 @@ may stand, and the first word is no `if`, `while`, `for` or other compound keywo
 or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import ast
+import codecs
 import hashlib
 import html.parser
 import json
@@ -473,7 +475,9 @@ def take_back(text, patches):
 
 def added_mutants(line, patch, text):
     """(line, start, end, replacement, kind) of each mutant of the lines a Python hunk adds in TEXT, its first added line being LINE, as byte spans:
-    each `if` or `elif` test made `False`, each other comparison negated, and each number made 0, or 1 when it is 0."""
+    each `if` or `elif` test made `False`, each other comparison negated, each number made 0, or 1 when it is 0, each codec name given to
+    `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each list or tuple written without one element and each
+    `and` or `or` without one operand; a mutant that is not valid Python is left out."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
@@ -497,7 +501,33 @@ def added_mutants(line, patch, text):
             found.append((node.lineno, start, end, b"(not (" + data[start:end] + b"))", "comparison"))
         elif isinstance(node, ast.Constant) and type(node.value) in (int, float) and node.lineno in added:
             found.append((node.lineno, *span(node), b"1" if node.value == 0 else b"0", "number"))
-    return sorted(found)
+        elif isinstance(node, ast.Call):
+            named = node.args[:1] if isinstance(node.func, ast.Attribute) and node.func.attr in ("decode", "encode") else []
+            for codec in named + [keyword.value for keyword in node.keywords if keyword.arg == "encoding"]:
+                if isinstance(codec, ast.Constant) and isinstance(codec.value, str) and codec.lineno in added:
+                    try:
+                        latin = codecs.lookup(codec.value).name == "iso8859-1"
+                    except LookupError:
+                        continue
+                    found.append((codec.lineno, *span(codec), b'"utf-8"' if latin else b'"latin-1"', "codec"))
+        parts = []
+        if isinstance(node, (ast.List, ast.Tuple)) and isinstance(node.ctx, ast.Load):
+            parts, kind = node.elts, type(node).__name__.lower()
+        elif isinstance(node, ast.BoolOp):
+            parts, kind = node.values, "operands"
+        for index, part in enumerate(parts):
+            if part.lineno in added:
+                rest = parts[:index] + parts[index + 1:]
+                # the rest is written out whole, since cutting the part's own bytes would leave its comma, operator or bracket behind
+                found.append((part.lineno, *span(node), ast.unparse(ast.BoolOp(node.op, rest) if kind == "operands" else type(node)(rest)).encode(), kind))
+    valid = []
+    for line, start, end, replacement, kind in sorted(found):
+        try:
+            ast.parse(data[:start] + replacement + data[end:])
+        except SyntaxError:
+            continue
+        valid.append((line, start, end, replacement, kind))
+    return valid
 
 
 def run_per_hunk(options, task, root, live):
