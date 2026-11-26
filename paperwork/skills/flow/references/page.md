@@ -13,7 +13,7 @@ Show a checked flow contract as one HTML page a person reads and searches withou
 
 ## Steps
 
-1. Build: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/make-page.py <contract> [<page>]`; a contract the checker refuses builds no page, and its breaks are printed.
+1. Build: `python3 ${CLAUDE_PLUGIN_ROOT}/skills/flow/scripts/make-page.py <contract> [<page>]`; a contract the checker refuses builds no page, and its breaks are printed; over the page it rewrites, it checks and builds again only the parts whose key changed, a key covering the part, what it reads of the other parts and the code, keeps the rest, and prints both lists.
 2. Hand the page's path to the person, who opens it in a desktop browser.
 3. Only when the owner asks to take comments on it, connect and serve the page as [relay.md](../../system/references/relay.md) says; apply a comment to the contract, and build again.
 

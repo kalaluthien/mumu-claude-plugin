@@ -3,6 +3,10 @@
 
 usage: check-contract.py check CONTRACT.json [--root DIR]   print each break as `where: rule: message`, then `ok`, or the break count
                                                             on stderr; with --root, each source path must exist under DIR
+usage: check-contract.py check CONTRACT.json --part PART    the same for the part PART alone, `top` or `levels/<id>`, reading of the
+                                                            other parts only what its rules compare; --part may come once per part
+usage: check-contract.py split CONTRACT.json FOLDER         write the contract's parts as files under FOLDER, `top.json` and
+                                                            `levels/<id>.json`, and print each path
 usage: check-contract.py order CONTRACT.json                print each plan level's critical path as `critical-path <level> <n> tasks: <id> ...`,
                                                             the ids in order, milestones among them, then each of its records' place on the time axis
 usage: check-contract.py tags                               print each tag with its meaning and the items it calls for
@@ -11,6 +15,8 @@ usage: check-contract.py fixtures                           check every contract
                                                             holds as changes to one, with the skill's folder as its root: one whose name opens
                                                             with a rule's must break that rule alone, any other must pass; prints `ok <name>`
                                                             or `refused <name>: <rules>` per contract, `FAIL <reason>` per miss, then PASS or FAIL
+
+CONTRACT.json may be a folder of part files that `split` wrote.
 
 Exit status 0 means ok, 1 a break, 2 a call it cannot read."""
 import json
@@ -21,6 +27,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
+from contract_parts import FLOW, checked, load, split_to  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
 from flow_order import before, critical, cycle, ranks  # noqa: E402
 from tex_mathml import SUBSET  # noqa: E402
@@ -422,15 +429,28 @@ def main(args):
             print(f"FAIL no fixture breaks {rule}")
         print("FAIL" if failed or missing else "PASS")
         return 1 if failed or missing else 0
-    root = None
-    if len(args) == 4 and args[0] == "check" and args[2] == "--root":
-        root, args = pathlib.Path(args[3]), args[:2]
+    if len(args) == 3 and args[0] == "split" and not any(arg.startswith("-") for arg in args[1:]):
+        try:
+            print("\n".join(str(path) for path in split_to(args[1], args[2], FLOW)))
+        except (OSError, ValueError, RecursionError) as e:
+            print(f"{args[1]}: {e}", file=sys.stderr)
+            return 1
+        return 0
+    root, chosen = None, []
+    while len(args) >= 4 and args[0] == "check" and args[-2] in ("--root", "--part") and not args[-1].startswith("-"):
+        option, value, args = args[-2], args[-1], args[:-2]
+        if option == "--part":
+            chosen.append(value)
+        elif root is None:
+            root = pathlib.Path(value)
+        else:
+            args = []
     if len(args) != 2 or args[0] not in ("check", "order") or args[1].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        contract = json.loads(pathlib.Path(args[1]).read_text())
-        found = breaks(contract, root)
+        contract = load(args[1], FLOW)
+        found = checked(contract, chosen, FLOW, lambda shown: breaks(shown, root)) if chosen else breaks(contract, root)
     except (OSError, ValueError, RecursionError) as e:  # a contract nested past Python's depth is refused, not a traceback
         print(f"{args[1]}: {e}", file=sys.stderr)
         return 1

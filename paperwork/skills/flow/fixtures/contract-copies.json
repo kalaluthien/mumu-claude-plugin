@@ -87,6 +87,7 @@
   "text-plain-term-meaning": [[["terms", 0, "meaning"], "the account id and the time a name was taken, as {nobody} keeps them"]]
  },
  "launch-plan": {
+  "two-levels": [[["levels", 1], {"id": "publish", "title": "publish", "kind": "interaction", "nodes": ["ci-runner", "package-registry"], "about": "How {ci-runner} hands the package to {package-registry}."}], [["edges", 8], {"id": "uploads-package", "level": "publish", "from": "ci-runner", "to": "package-registry", "label": "upload the package", "tag": "call", "evidence": ["release-guide"]}], [["edges", 7, "opens"], "publish"]],
   "task-place": [[["tasks", 0, "node"], "nobody"]],
   "milestone-order-plan": [[["tasks", 2, "after"], ["merge-change"]]],
   "order-acyclic": [[["edges", 8], {"id": "sends-version", "level": "release", "from": "publish-package", "to": "write-notes", "label": "send the version number", "tag": "wait"}]],

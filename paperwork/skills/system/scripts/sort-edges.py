@@ -3,6 +3,8 @@
 
 usage: sort-edges.py <contract> --root <subject root>
 
+The contract is a JSON file or a folder of part files that `check-contract.py split` wrote.
+
 A node maps to the sources its `files` names. One file refers to another when its text holds the other's file name, or the other's
 name without its extension as a whole word when that one is code. For each pair of mapped nodes that share no file it prints
 `convergent` when an edge joins them and a file of one refers to a file of the other, `divergent` when an edge joins them and no
@@ -11,10 +13,12 @@ or a wrong one, and an absent one is a relation the contract leaves out, so each
 `missing path` for each mapped source that is no file under the root, and exits 1 on one, 0 otherwise.
 """
 import itertools
-import json
 import pathlib
 import re
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_parts import SYSTEM, load  # noqa: E402
 
 CODE = (".py", ".js", ".cjs", ".mjs", ".ts", ".sh")
 
@@ -57,7 +61,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        missing, lines = sorted_edges(json.loads(pathlib.Path(args[0]).read_text()), pathlib.Path(args[2]))
+        missing, lines = sorted_edges(load(args[0], SYSTEM), pathlib.Path(args[2]))
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
         print(f"{args[0]}: {e!r}; run check-contract.py check on it first", file=sys.stderr)
         return 2

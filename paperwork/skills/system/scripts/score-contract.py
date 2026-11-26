@@ -3,15 +3,19 @@
 
 usage: score-contract.py <contract> --root <subject root>
 
+The contract is a JSON file or a folder of part files that `check-contract.py split` wrote.
+
 Prints `recall <answered> of <asked>` with each question left to a gap, `precision <found> of <quoted>` with each quote its record's
 sources do not hold, and each source whose path is no file under the root; exit 1 when a quote or a path is missing, 0 otherwise.
 A quote is a text between backticks, placeholders such as `<port>` left out of it, or a line of an item of the code form, in a record
 that carries evidence; it is looked for in the whole text of the sources that record cites.
 """
-import json
 import pathlib
 import re
 import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
+from contract_parts import SYSTEM, load  # noqa: E402
 
 QUOTE = re.compile(r"`([^`]+)`")
 PLACEHOLDER = re.compile(r"<[^<>]*>")
@@ -67,7 +71,7 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     try:
-        contract = json.loads(pathlib.Path(args[0]).read_text())
+        contract = load(args[0], SYSTEM)
         answered, asked, gaps, found, quoted, missing, lost = score(contract, pathlib.Path(args[2]))
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as e:
         print(f"{args[0]}: {e!r}; run check-contract.py check on it first", file=sys.stderr)

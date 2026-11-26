@@ -53,6 +53,15 @@ def mathml(tex, display=False):
     return f'<math display="{"block" if display else "inline"}">{row_of(inner)}</math>'
 
 
+def named(value):
+    """The name of each formula a text of VALUE holds, however deep, the page's lookup name for it."""
+    if isinstance(value, dict):
+        return [name for part in value.values() for name in named(part)]
+    if isinstance(value, list):
+        return [name for part in value for name in named(part)]
+    return [key(tex, display) for tex, display in formulas(value)] if isinstance(value, str) else []
+
+
 def drawn(value):
     """The MathML of each formula a text of VALUE holds, by the name the page looks it up by; an item of the code form may hold TeX the
     checker never reads, which the page shows as it is."""

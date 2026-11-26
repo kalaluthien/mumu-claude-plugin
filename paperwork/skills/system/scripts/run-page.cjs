@@ -190,7 +190,7 @@ const launch = () => { launches += 1; return browsers.launch(); };
 function make(example) { // the page of one contract file, and what its page data says of each record
   const made = python(path.join(ROOT, "scripts", "make-page.py"), example.source, example.built);
   check(made.status === 0, `make-page.py refused ${example.name}: ${(made.stdout + made.stderr).split("\n")[0]}`);
-  example.contract = JSON.parse(fs.readFileSync(example.built, "utf8").match(/<script type="application\/json" id="page-data">(.*)<\/script>/)[1]);
+  example.contract = JSON.parse(fs.readFileSync(example.built, "utf8").match(/<script type="application\/json" id="page-data">([\s\S]*?)<\/script>/)[1]);
   example.levelOf = {};
   for (const level of example.contract.levels) {
     example.levelOf[level.id] = level.id;
