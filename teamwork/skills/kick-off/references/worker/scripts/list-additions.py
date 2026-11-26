@@ -9,15 +9,20 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
+import board_refs  # noqa: E402
 import data_folder  # noqa: E402
 import decisions  # noqa: E402
 
 
 def main(args):
     args = data_folder.enter(args, __doc__)
-    number = decisions.task_number(args[0]) if len(args) == 1 else None
-    if number is None:
+    if len(args) != 1:
         print(__doc__, file=sys.stderr)
+        return 2
+    try:
+        number = board_refs.TaskRef.parse(args[0]).number
+    except board_refs.Refused as e:
+        print(f"list-additions: {args[0]!r} {e}\n{__doc__}", file=sys.stderr)
         return 2
     try:
         tasks = decisions.read(number, board.fresh)
@@ -26,8 +31,8 @@ def main(args):
         return 1
     task = tasks[number]
     edit_lines = [comment["body"].lstrip().split("\n", 1)[0] for comment in task["comments"] if "```diff" in comment["body"]]
-    added = [d for d in decisions.binding(number, tasks) if d["task"] == number and d["role"] == "owner"
-             and not any(re.search(re.escape(d["url"]) + r"(?!\w)", line) for line in edit_lines)]
+    folded = {board_refs.stored(found) for line in edit_lines for found in re.findall(r"git\+file://.*?#comment-\d+(?!\d)", line)}
+    added = [d for d in decisions.binding(number, tasks) if d["task"] == number and d["role"] == "owner" and board_refs.stored(d["url"]) not in folded]
     body_sha = board.body_sha(task["body"])
     print(f"#{number} body sha: {body_sha}")
     print(f"owner additions not in the body: {len(added)}")

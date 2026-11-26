@@ -4,6 +4,7 @@ import json
 import pathlib
 import re
 
+import board_refs
 import team_names
 
 
@@ -199,28 +200,26 @@ def role(decider):
     return "owner" if decider == "owner" else "manager" if decider == "manager" or team_names.role(decider.removesuffix("-next")) == "manager" else "worker"
 
 
-def place(url):
-    """URL's path after the board ref, since the same comment is named by another git dir when the board is read from another checkout path; any other url whole."""
-    return url.partition("refs/teamwork-blackboard/")[2] or url
-
-
 def questions(task):
-    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment, 'fields': its fields, 'answer': the comment that settles it or None}:
-    a later decision settles each question whose url it names and each earlier open ask with the same first line, since an ask
-    posted again is one question, a question to the owner only when the decider is the owner or it is an event, which `decide` never writes; one that names none settles each open question its decider may answer: the owner any, a manager any
-    not asked of the owner, a worker none."""
+    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment that opened it, 'fields': its fields, 'answer': the comment that settles it or None,
+    'links': the stored refs of every ask it holds}. A BLOCKED with `again` joins the question that url names, so one question holds each ask posted
+    for it. A decision or event with `answers` settles each question its links name, when its decider may answer it: the owner any, anyone else any
+    not asked of the owner; an event answers any. One with no `answers` settles none."""
     found = []
     for word, held, comment in records(task)[1:]:
         if word == ASK:
-            found.append({"ask": comment, "fields": held, "answer": None})
-        elif word == ANSWER and (not event(held) or "answers" in held):
-            named, decider = held.get("answers", []), role(held.get("by", ""))
-            named = {place(url) for url in ([named] if isinstance(named, str) else named)}
-            said = {first_line(question["ask"]["body"]) for question in found if place(question["ask"]["url"]) in named}
+            again = board_refs.stored(held.get("again", ""))
+            joined = next((question for question in found if again in question["links"]), None)
+            if joined:
+                joined["links"].add(board_refs.stored(comment["url"]))
+            else:
+                found.append({"ask": comment, "fields": held, "answer": None, "links": {board_refs.stored(comment["url"])}})
+        elif word == ANSWER and "answers" in held:
+            named, decider = held["answers"], role(held.get("by", ""))
+            named = {board_refs.stored(url) for url in ([named] if isinstance(named, str) else named)}
             for question in found:
                 allowed = event(held) or decider == "owner" or question["fields"].get("asks") != "owner"
-                general = allowed and decider != "worker"
-                if question["answer"] is None and (general if not named else allowed and (place(question["ask"]["url"]) in named or first_line(question["ask"]["body"]) in said)):
+                if question["answer"] is None and allowed and question["links"] & named:
                     question["answer"] = comment
     return found
 

@@ -34,8 +34,8 @@ A comment is kept as its text and the fields [board-record-schema.json](../asset
 - **Binds**: a decision binds its task and that task's parts. A task's binding set, which `read` prints, is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting as **One-way** says supersedes nothing yet.
 - **One-way**: a one-way decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its sentence or supersedes it.
 - **Authority**: `decide` refuses a decision that supersedes one by the owner unless it is `--by owner` too.
-- **Questions**: a `BLOCKED` is an open question until a later decision settles it: one with `--answers` settles the question it names and each earlier open ask with the same first line, since an ask posted again is one question, a question to the owner only when the decision is `--by owner`, which `decide` refuses otherwise; one without settles each open question its decider may answer, which is every one for the owner, those not asked of the owner for a manager, and none for a worker.
-- **Events**: a `DECIDED` with no decision field binds nothing and answers nothing: the note of a `hold`, a `depend`, a body edit or a stop.
+- **Questions**: a `BLOCKED` is an open question until a later decision settles it: one with `--answers` settles each question whose url it names, a question to the owner only when the decision is `--by owner`, which `decide` refuses otherwise; one without `--answers` settles none. A `BLOCKED` with `--again <url>` repeats the question that url names: it joins that question and closes with it, so two questions with the same first line stay two.
+- **Events**: a `DECIDED` with no decision field binds nothing: the note of a `hold`, a `depend`, a body edit or a stop. An old event whose only field is `answers` still settles the questions it names; no verb writes one now.
 
 ## Sections
 

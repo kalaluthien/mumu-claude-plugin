@@ -86,9 +86,9 @@ import tempfile
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import board_refs  # noqa: E402
 import criteria_check  # noqa: E402
 import data_folder  # noqa: E402
-import decisions  # noqa: E402
 import task_state  # noqa: E402
 import usage_parser  # noqa: E402
 
@@ -126,9 +126,10 @@ def read_task(source):
     if source == "-":
         task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
         return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
-    number = decisions.task_number(source)
-    if number is None:
-        sys.exit(f"run-criteria: {source} is no file here, and no task's number or url")
+    try:
+        number = board_refs.TaskRef.parse(source).number
+    except board_refs.Refused as e:
+        sys.exit(f"run-criteria: {source} is no file here, and {e}")
     try:
         found = board.fresh(number)
     except LookupError as e:

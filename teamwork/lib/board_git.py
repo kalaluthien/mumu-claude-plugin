@@ -9,9 +9,10 @@ import threading
 import time
 
 import board_records
+import board_refs
 import data_folder
 
-REF = "refs/teamwork-blackboard"
+REF = board_refs.REF
 TRIES = 100  # 40 writers racing gc on one task needed at most 34 in the probes
 STALE = 10  # seconds a ref lock may stand before it is taken for a killed writer's, since a live write holds it for milliseconds
 WRITER = {"GIT_AUTHOR_NAME": "teamwork", "GIT_AUTHOR_EMAIL": "teamwork@localhost", "GIT_COMMITTER_NAME": "teamwork", "GIT_COMMITTER_EMAIL": "teamwork@localhost"}
@@ -78,16 +79,19 @@ class Ref(board_records.Store):
         """When PATH's commit was made, read from the log once per commit, since a comment's time is not in its file."""
         if self.timed != self.tip:
             self.times = {}
-            log = self.git("log", "--format=%x00%ct", "--name-only", "--diff-filter=A", self.tip).stdout.decode() if self.tip else ""
-            for commit in log.split("\0")[1:]:
-                seconds, *paths = commit.split()
-                for added in paths:
-                    self.times[added] = int(seconds)  # the log runs newest first, so the oldest add stays
+            log = self.git("log", "-z", "--format=%x01%ct", "--name-only", "--diff-filter=A", self.tip).stdout.decode() if self.tip else ""
+            seconds = 0
+            for token in log.split("\0"):
+                if token.startswith("\x01"):
+                    seconds = int(token[1:])
+                elif token:
+                    self.times[token.removeprefix("\n")] = seconds  # the log runs newest first, so the oldest add overwrites
             self.timed = self.tip
         return self.times.get(path, 0)
 
     def url(self, path):
-        return f"git+file://{self.common}/{REF}/{path}"
+        scope, _, number = path.rpartition("/")
+        return board_refs.url(scope, int(number))
 
     def commit(self, staged):
         """A commit on the read tip with STAGED's files over its tree, built in an index of its own, since the checkout's index is the person's."""

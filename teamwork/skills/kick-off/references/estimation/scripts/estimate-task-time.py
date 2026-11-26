@@ -12,13 +12,12 @@ else the transcripts of every named session), and each `--wait` adds its hours o
 `--from-json` is a fixture {"history": [...], "tasks": [{"number": 1, "labels": [...]}]} in place of the board."""
 import argparse
 import json
-import os
 import pathlib
-import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
+import board_refs  # noqa: E402
 import claude_config  # noqa: E402
 import data_folder  # noqa: E402
 import session_gaps  # noqa: E402
@@ -46,15 +45,13 @@ def load(options, urls):
     if not urls:
         print(__doc__, file=sys.stderr)
         sys.exit(2)
-    tasks, history = [], {}
+    tasks, history, repo = [], {}, task_history.own_repository()
     for url in urls:
-        match = re.match(r"git\+file://(.+)/refs/teamwork-blackboard/(?:.+/)?(\d+)$", url)
-        if not match:
-            print(__doc__, file=sys.stderr)
+        try:
+            number = board_refs.TaskRef.parse(url).number
+        except board_refs.Refused as e:
+            print(f"estimate-task-time.py: {e}; run it inside that project's checkout", file=sys.stderr)
             sys.exit(2)
-        repo, number = match.groups()
-        if os.path.realpath(repo) != task_history.own_repository():
-            sys.exit(f"estimate-task-time.py: {url} is on the board of {repo}, which this folder's board is not; run it inside that project's checkout")
         if repo not in history:
             history[repo] = task_history.rows(task_history.fetch(repo))
         task = board.fresh(number, repo, comments=False)

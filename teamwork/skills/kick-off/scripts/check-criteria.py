@@ -34,9 +34,9 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import board_refs  # noqa: E402
 import criteria_check  # noqa: E402
 import data_folder  # noqa: E402
-import decisions  # noqa: E402
 import task_state  # noqa: E402
 
 def main(args):
@@ -51,9 +51,10 @@ def main(args):
         return 1 if written else 0
     task = None
     if len(args) == 3 and args[0] == "--task" and not args[1].startswith("-"):
-        task, word, args = decisions.task_number(args[1]), args[1], args[2:]
-        if task is None:
-            sys.exit(f"check-criteria: --task wants a task's number or url, got {word}")
+        try:
+            task, args = board_refs.TaskRef.parse(args[1]).number, args[2:]
+        except board_refs.Refused as e:
+            sys.exit(f"check-criteria: --task wants a task's number or url, and {args[1]} {e}")
     if len(args) != 1 or args[0].startswith("-") and args[0] != "-":
         print(__doc__, file=sys.stderr)
         return 2
@@ -65,15 +66,18 @@ def main(args):
             body = pathlib.Path(source).read_text()
         except (OSError, UnicodeDecodeError) as e:
             sys.exit(f"check-criteria: could not read {source}: {e}")
-    elif task is None and decisions.task_number(source) is not None:
-        task = decisions.task_number(source)
+    elif task is None:
+        try:
+            task = board_refs.TaskRef.parse(source).number
+        except board_refs.Refused as e:
+            sys.exit(f"check-criteria: {source} is no file here, and {e}")
         try:
             found = board.fresh(task, comments=False)
         except LookupError as e:
             sys.exit(f"check-criteria: {e}")
         body = found["body"] if found else sys.exit(f"check-criteria: the board holds no task #{task}")
     else:
-        sys.exit(f"check-criteria: {source} is no file here" + ("" if task is not None else ", and no task's number or url"))
+        sys.exit(f"check-criteria: {source} is no file here")
     new_rules = task is None or task >= criteria_check.CUT_OFF
     flagged = [(position, found) for position, _, found in criteria_check.lint(body, task)]
     # `file` and `edit` refuse a body that breaks the Plain words caps, so a lint that passes it would only move the refusal to the write

@@ -2,11 +2,11 @@
 """Do one board operation through the board port, so a session writes the same way on any board.
 
 usage: use-board.py read <task> [--as worker|judge] [--full] [--body]
-usage: use-board.py comment <task> (--blocked [<question>] | --reported [<line>]) [--text <file>] [--asks owner] [--option <answer>]...
+usage: use-board.py comment <task> (--blocked [<question>] | --reported [<line>]) [--text <file>] [--asks owner] [--option <answer>]... [--again <url>]
 usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by <who>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
 usage: use-board.py hold <task> --holders <names>
 usage: use-board.py depend <task> --depends <numbers>
-usage: use-board.py file --title <title> --body <file> [--label <name>]... [--scope <folder>] [--depends <numbers>]
+usage: use-board.py file --title <title> --body <file> [--label <name>]... [--scope <folder>] [--depends <numbers>] [--parent <task>]
 usage: use-board.py edit <task> --body <file> --reason <what changed> --base <sha>
 usage: use-board.py title <task> --title <title>
 usage: use-board.py resolve <task> --summary <line> [--text <file>] [--not-planned]
@@ -25,6 +25,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
+import board_refs  # noqa: E402
 import criteria_check  # noqa: E402
 import data_folder  # noqa: E402
 import decisions  # noqa: E402
@@ -78,8 +79,12 @@ def refuse(verb, found):
 
 def numbers(words, option="--depends"):
     """The task numbers WORDS names, `12` or `#12`, split by spaces."""
-    found = [decisions.task_number(word) for word in words.split()]
-    refuse("write", [f"`{option}` takes task numbers split by spaces, as `{option} '12 #13'`"] if None in found else [])
+    found = []
+    for word in words.split():
+        try:
+            found.append(board_refs.TaskRef.parse(word).number)
+        except board_refs.Refused as e:
+            refuse("write", [f"`{option}` takes task numbers split by spaces, as `{option} '12 #13'`; {word!r} {e}"])
     return found
 
 
@@ -125,13 +130,31 @@ def post_comment(options):
         refuse("comment", ["write `--asks owner` or drop `--asks`, since a question without it goes to the manager"])
     if (options.asks or offered) and keyword != task_state.ASK:
         refuse("comment", ["`--asks owner` and `--option` go only on a question, `--blocked '<question>'`"])
+    if options.again is not None and keyword != task_state.ASK:
+        refuse("comment", ["`--again` goes only on a question, `--blocked '<question>' --again <url>`"])
+    if options.again is not None:
+        refuse("comment", board_link("--again", options.again))
+        tasks = decisions.read(options.task, board.fresh)
+        asked = {link for question in task_state.questions(decisions.as_task(tasks[options.task])) for link in question["links"]}
+        if board_refs.stored(options.again) not in asked:
+            refuse("comment", [f"`--again` names {options.again}, which is no question on #{options.task}; give the url of the question this one repeats"])
     if options.asks and len(offered) < 2:
         refuse("comment", ["a question to the owner offers two answers or more, each as `--option '<answer>'`, since the owner answers with a number"])
     refuse("comment", task_state.defects("comment", text))
-    url = board.comment(options.task, text, {**({"asks": "owner"} if options.asks else {}), **({"options": offered} if offered else {})})
+    url = board.comment(options.task, text, {**({"asks": "owner"} if options.asks else {}), **({"options": offered} if offered else {}),
+                                             **({"again": options.again} if options.again is not None else {})})
     keep_own(url, text)
     print(url)
     return 0
+
+
+def board_link(option, value):
+    """Why VALUE, given to OPTION, is no link of this board; empty when it is one."""
+    try:
+        board_refs.TaskRef.parse(value)
+    except board_refs.Refused as e:
+        return [f"`{option}` takes a comment's url; {value!r} {e}"]
+    return []
 
 
 def decide_task(options):
@@ -142,6 +165,7 @@ def decide_task(options):
         found.append("no session name tells who decides; pass `--by owner` or `--by <your session's name>`")
     if not (options.live_runs or "0").isdigit():
         found.append("`--live-runs` takes one count, as `--live-runs 12`")
+    found += [why for key in ("supersedes", "answers") if getattr(options, key) is not None for why in board_link(f"--{key}", getattr(options, key))]
     refuse("decide", found)
     fields = {"decision": task_state.first_line(said), "by": by, **{key: getattr(options, key) for key in ("supersedes", "answers") if getattr(options, key) is not None}}
     fields.update({"one_way": True} if options.one_way else {})
@@ -168,9 +192,51 @@ def file_task(options):
     title, body = options.title, read_text(options.body)
     # a Goal that names no flow of its changed part would sit on the board until a lint found it, so it is refused before it is filed
     refuse("file", task_state.defects("file", body) + task_state.defects("title", title) + criteria_check.body_refusals(body))
+    if options.parent is not None:
+        return file_part(options, title, body)
     scope = {"scope": options.scope} if options.scope is not None else {}
     print(board.fresh(board.file(title, body, options.label, depends=numbers(options.depends or ""), **scope), comments=False)["url"])
     return 0
+
+
+def file_part(options, title, body):
+    """Files the task in its parent's folder, and adds its `[task]` line to the parent's Definition of done, in one board commit; prints the new task's url."""
+    try:
+        parent = board_refs.TaskRef.parse(options.parent).number
+    except board_refs.Refused as e:
+        refuse("file", [f"`--parent` takes a task's number or url; {options.parent!r} {e}"])
+    refuse("file", ["`--parent` files in the parent's folder, so `--scope` goes"] if options.scope is not None else [])
+    depends = numbers(options.depends or "")
+
+    def land():
+        found = board.fresh(parent, comments=False)
+        if found is None:
+            raise LookupError(f"`--parent` names #{parent}, which the board does not hold")
+        number = board.file(title, body, options.label or found["labels"], scope=found["scope"], depends=depends)
+        # a fenced block's lines are blanked, so a `## ` or numbered line inside one neither ends the section nor counts as an item
+        unfenced = re.sub(r"^(`{3,}|~{3,}).*?^\1", lambda block: re.sub(r"[^\n]", " ", block.group(0)), found["body"], flags=re.M | re.S)
+        section = re.search(r"^## Definition of done\n(.*?)(?=^## |\Z)", unfenced, re.M | re.S)
+        if not section:
+            raise LookupError(f"#{parent} has no `## Definition of done` to add the part to")
+        text = found["body"][section.start(1):section.end()]
+        new = (found["body"][:section.start(1)] + text.rstrip("\n") + f"\n{len(task_state.ITEM.findall(section.group())) + 1}. [task] #{number} {title}"
+               + (text[len(text.rstrip("\n")):] or "\n") + found["body"][section.end():])
+        board.comment(parent, body_diff(f"{task_state.ANSWER}: files #{number} as a part", found["body"], new))
+        board.edit(parent, new)
+        return number
+    number = board.atomic(land)
+    hold_new_parts(parent, [number])
+    print(board.fresh(number, comments=False)["url"])
+    return 0
+
+
+def body_diff(line, old, new):
+    """The comment text LINE, then the unified diff from the body OLD to NEW in a fence."""
+    # split at the newline alone: str.splitlines also splits at a form feed or U+2028, which a diff reads as part of a line
+    old_lines, new_lines = (re.findall(r"[^\n]*\n|[^\n]+", text) for text in (old, new))
+    diff = "".join(piece if piece.endswith("\n") else piece + "\n\\ No newline at end of file\n" for piece in difflib.unified_diff(old_lines, new_lines, "body", "body"))
+    fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
+    return f"{line}\n\n{fence}diff\n{diff}{fence}\n"
 
 
 def hold_new_parts(task, parts):
@@ -216,11 +282,7 @@ def edit_body(options):
         except LookupError as e:
             refusal.append((1, str(e)))
             return None
-        # split at the newline alone: str.splitlines also splits at a form feed or U+2028, which a diff reads as part of a line
-        old_lines, new_lines = (re.findall(r"[^\n]*\n|[^\n]+", text) for text in (old, new))
-        diff = "".join(piece if piece.endswith("\n") else piece + "\n\\ No newline at end of file\n" for piece in difflib.unified_diff(old_lines, new_lines, "body", "body"))
-        fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
-        url = board.comment(task, f"{line}\n\n{fence}diff\n{diff}{fence}\n")
+        url = board.comment(task, body_diff(line, old, new))
         board.edit(task, new)
         added[:] = [part for part in task_links.parts(new) if part not in task_links.parts(old)]
         return url
@@ -264,13 +326,13 @@ def label_task(options):
 TEXT = ("--text", {"metavar": "FILE"})
 # verb -> (what it does, whether it names a task by place, its options as (flag, argparse keywords)); a flag with no keywords takes one value
 VERBS = {"read": (read_task, True, [("--as", {"dest": "as_role", "choices": ("worker", "judge")}), ("--full", {"action": "store_true"}), ("--body", {"action": "store_true"})]),
-         "comment": (post_comment, True, [("--blocked", {"group": "line", "nargs": "?", "const": ""}), ("--reported", {"group": "line", "nargs": "?", "const": ""}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []})]),
+         "comment": (post_comment, True, [("--blocked", {"group": "line", "nargs": "?", "const": ""}), ("--reported", {"group": "line", "nargs": "?", "const": ""}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []}), ("--again", {})]),
          "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--one-way", {"action": "store_true"}), ("--supersedes", {}),
                                         ("--answers", {}), ("--holders", {}), ("--live-runs", {})]),
          "hold": (hold_task, True, [("--holders", {"required": True})]),
          "depend": (depend_task, True, [("--depends", {"required": True})]),
          "file": (file_task, False, [("--title", {"required": True}), ("--body", {"required": True}), ("--label", {"action": "append", "default": []}), ("--scope", {}),
-                                     ("--depends", {})]),
+                                     ("--depends", {}), ("--parent", {})]),
          "edit": (edit_body, True, [("--body", {"required": True}), ("--reason", {"required": True}), ("--base", {"required": True})]),
          "title": (retitle_task, True, [("--title", {"required": True})]),
          "resolve": (resolve_task, True, [("--summary", {"required": True}), TEXT, ("--not-planned", {"action": "store_true"})]),
@@ -311,11 +373,11 @@ def main(args):
     try:
         if getattr(options, "task", None) is not None:
             # a caller holds a task as its number or as the url a write printed, so either names it
-            number = decisions.task_number(options.task)
-            if number is None:
-                print(f"use-board: {options.task!r} names no task; give its number or its url", file=sys.stderr)
+            try:
+                options.task = board_refs.TaskRef.parse(options.task).number
+            except board_refs.Refused as e:
+                print(f"use-board: {options.task!r} {e}", file=sys.stderr)
                 usage_parser.refuse(__doc__)
-            options.task = number
         return options.run(options)
     except task_state.Refused as e:
         print(f"use-board: {e}", file=sys.stderr)

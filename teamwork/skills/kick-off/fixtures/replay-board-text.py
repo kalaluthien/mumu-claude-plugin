@@ -15,6 +15,7 @@ The title also holds a newline, a carriage return, an ESC, a DEL and a double qu
 
 usage: replay-board-text.py"""
 import pathlib
+import re
 import sys
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[3]
@@ -86,9 +87,14 @@ def main(args):
         stopped = box.route(event, pane="w1:p2").get("reason", "")
         started = box.route({**event, "hook_event_name": "SessionStart"}, pane="w1:p2").get("hookSpecificOutput", {}).get("additionalContext", "")
         filing = f"held: {held.stdout}{held.stderr}"
-        cases.step("stop", shows(stopped.replace("\n", " "), f"#{number} is open", title=TITLE), f"{filing} {stopped!r}")
+        goal = re.compile(rf"#{number} is open \(git\+file://\S+/{number}\): title: {re.escape(quoted(TITLE))}")
+        told = stopped.split("\n")
+        cases.step("stop", shows(stopped.replace("\n", " "), f"#{number} is open", title=TITLE) and told[0] == "Your goal still waits on you:"
+                   and told[-1].startswith("Take its next step;") and any(goal.fullmatch(line) for line in told[1:-1]), f"{filing} {stopped!r}")
         cases.step("wait", f"#{number} is open" in stopped and f"#{waiting} " not in stopped and f"#{blocked} " not in stopped and "#99" not in stopped, f"{waiting} {blocked} {stopped!r}")
-        cases.step("start", shows(started.replace("\n", " "), f"#{number} is open", title=TITLE), f"{filing} {started!r}")
+        opened = started.split("\n")
+        cases.step("start", shows(started.replace("\n", " "), f"#{number} is open", title=TITLE) and re.fullmatch(r"You are \S+, a teamwork worker: follow \S+/worker\.md\.", opened[0]) is not None
+                   and any(goal.fullmatch(line) for line in opened[1:]), f"{filing} {started!r}")
         with box.monitor("w1:p1", 80, work / "feed.log") as live:
             live.until(lambda: live.lists() >= 3)  # a first read feeds nothing old
             # one board commit holds both, so every poll sees them together and one feed line must cite the later

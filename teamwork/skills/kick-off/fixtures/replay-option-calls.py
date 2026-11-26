@@ -41,7 +41,7 @@ CALLS = {
     "skills/kick-off/references/adapters/message-herdr/scripts/tell-session.py": [["name", "body"]],
     "skills/kick-off/scripts/use-board.py": [
         ["read", "1", "--as", "worker", "--full"], ["comment", "1", "--blocked", "which", "--text", "body", "--asks", "owner", "--option", "x", "--option", "y"],
-        ["hold", "1", "--holders", "name"], ["depend", "1", "--depends", "2"], ["file", "--title", "Add thing", "--body", "body", "--label", "label", "--scope", "", "--depends", "1"],
+        ["hold", "1", "--holders", "name"], ["depend", "1", "--depends", "2"], ["file", "--title", "Add thing", "--body", "body", "--label", "label", "--scope", "", "--depends", "1", "--parent", "1"],
         ["edit", "1", "--body", "diff", "--reason", "x", "--base", "abc"], ["title", "1", "--title", "Add thing"], ["resolve", "1", "--summary", "done", "--text", "body", "--not-planned"],
         ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name",
                           "--live-runs", "1"], ["label", "1", "--label", "label", "--remove"]],

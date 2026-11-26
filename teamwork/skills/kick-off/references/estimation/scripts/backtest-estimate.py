@@ -14,19 +14,29 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+import board_refs  # noqa: E402
 import data_folder  # noqa: E402
 import task_backtest  # noqa: E402
 import task_history  # noqa: E402
 import usage_parser  # noqa: E402
 
 
+def task_numbers(value):
+    """The numbers of the tasks VALUE names, split by commas; a link of another board exits 2 naming its board."""
+    try:
+        return {board_refs.TaskRef.parse(word).number for word in value.split(",") if word}
+    except board_refs.Refused as e:
+        print(f"backtest-estimate.py: {value!r} {e}; run it inside that project's checkout", file=sys.stderr)
+        sys.exit(2)
+
+
 def main(args):
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
-    parser.add_argument("--tasks", type=lambda value: {int(task_number) for task_number in value.split(",")}, default=set())
+    parser.add_argument("--tasks", default="")
     options = parser.parse_args(data_folder.enter(args, __doc__))
-    fixture, cutoff, numbers = options.from_json, options.as_of, options.tasks
+    fixture, cutoff, numbers = options.from_json, options.as_of, task_numbers(options.tasks)
     repos = list(fixture) if fixture else [task_history.own_repository()]
     pooled = [0, 0]
     for repo in repos:

@@ -4,10 +4,10 @@ decision to, and the gaps the manager's heartbeat lists. TASKS is {number: task}
 import datetime
 import re
 
+import board_refs
 import board_text
 import task_state
 import task_links
-
 
 
 def as_task(node):
@@ -56,12 +56,12 @@ def binds(decision, every):
     if decision["role"] != "worker" or decision["door"] != "one-way":
         return True
     return any(later["task"] == decision["task"] and later["index"] > decision["index"] and later["role"] != "worker"
-               and (later["decision"] == decision["decision"] or later["supersedes"] == decision["url"]) for later in every)
+               and (later["decision"] == decision["decision"] or board_refs.stored(later["supersedes"]) == board_refs.stored(decision["url"])) for later in every)
 
 
 def replaced(every):
-    """The urls of the decisions in EVERY that a decision passed by its door supersedes; one still behind its door replaces nothing."""
-    return {decision["supersedes"] for decision in every if decision["supersedes"] and binds(decision, every)}
+    """The refs, as `board_refs.stored` reads them, of the decisions in EVERY that a decision passed by its door supersedes; one still behind its door replaces nothing."""
+    return {board_refs.stored(decision["supersedes"]) for decision in every if binds(decision, every)}
 
 
 def binding(number, tasks):
@@ -73,7 +73,7 @@ def binding(number, tasks):
         return []
     every = [decision for task in tree_of(lineage[-1], tasks) for decision in typed(task, tasks[task])]
     superseded = replaced(every)
-    return sorted((decision for decision in every if decision["task"] in lineage and decision["url"] not in superseded and binds(decision, every)),
+    return sorted((decision for decision in every if decision["task"] in lineage and board_refs.stored(decision["url"]) not in superseded and binds(decision, every)),
                   key=lambda decision: (decision["createdAt"], decision["task"], decision["index"]))
 
 
@@ -103,20 +103,20 @@ def refusals(number, text, fields, tasks):
     if owner and not quoted(text):
         found.append("`--by owner` quotes no words of the owner's, as a `>` line or in double quotes")
     answered = fields.get("answers")
-    asked = {task_state.place(question["ask"]["url"]): question["fields"].get("asks") for question in task_state.questions(as_task(tasks[int(number)]))}
-    if answered and asked.get(task_state.place(answered)) == "owner" and not owner:
+    asked = {link: question["fields"].get("asks") for question in task_state.questions(as_task(tasks[int(number)])) for link in question["links"]}
+    if answered and asked.get(board_refs.stored(answered)) == "owner" and not owner:
         found.append(f"{answered} asks the owner, so only a decision `--by owner`, quoting the owner's words, answers it")
-    if answered and task_state.place(answered) not in asked:
-        place = next((home for home, task in tasks.items() for comment in as_task(task)["comments"] if task_state.place(comment.get("url") or "") == task_state.place(answered)), None)
+    if answered and board_refs.stored(answered) not in asked:
+        place = next((home for home, task in tasks.items() for comment in as_task(task)["comments"] if board_refs.stored(comment.get("url")) == board_refs.stored(answered)), None)
         found.append(f"`--answers` names {answered}, which is no question on #{number}"
                      + (f"; post the decision on #{place}, the question's own task" if place and place != int(number) else ""))
     target = fields.get("supersedes")
     if target:
         root = chain(int(number), tasks)[-1]
-        every = {decision["url"]: decision for task in tree_of(root, tasks) for decision in typed(task, tasks[task])}
-        if target not in every:
+        every = {board_refs.stored(decision["url"]): decision for task in tree_of(root, tasks) for decision in typed(task, tasks[task])}
+        if board_refs.stored(target) not in every:
             found.append(f"`--supersedes` names {target}, which is no decision in #{root}'s tree")
-        elif every[target]["role"] == "owner" and not owner:
+        elif every[board_refs.stored(target)]["role"] == "owner" and not owner:
             found.append(f"{target} was decided by the owner, so only a decision `--by owner`, quoting the owner's words, supersedes it")
     return found
 
@@ -137,10 +137,10 @@ def owner_questions(tasks):
 def superseded_twice(every):
     """The lines for the decisions in EVERY that two later ones supersede."""
     lines = []
-    for url in sorted({decision["supersedes"] for decision in every if decision["supersedes"]}):
-        later = [decision for decision in every if decision["supersedes"] == url]
+    for target in sorted({board_refs.stored(decision["supersedes"]) for decision in every if decision["supersedes"]}):
+        later = [decision for decision in every if decision["supersedes"] and board_refs.stored(decision["supersedes"]) == target]
         if len(later) > 1:
-            lines.append(f"superseded twice #{later[0]['task']}: {url} is superseded by {' and '.join(decision['url'] for decision in later)}; "
+            lines.append(f"superseded twice #{later[0]['task']}: {later[0]['supersedes']} is superseded by {' and '.join(decision['url'] for decision in later)}; "
                          f"keep one by a decision that supersedes the other")
     return lines
 
@@ -149,7 +149,7 @@ def one_way_waiting(every):
     """The lines for a worker's one-way decision in EVERY that nothing supersedes and no manager or owner decision follows."""
     superseded = replaced(every)
     return [f"one-way #{decision['task']}: {decision['decider']}'s {decision['url']} binds only once you repeat or supersede it by `decide`"
-            for decision in every if decision["url"] not in superseded and not binds(decision, every)]
+            for decision in every if board_refs.stored(decision["url"]) not in superseded and not binds(decision, every)]
 
 
 def gaps(found):
@@ -158,12 +158,6 @@ def gaps(found):
     tasks = {task["number"]: as_task(task) for task in found}
     every = [decision for number, task in tasks.items() for decision in typed(number, task)]
     return [*owner_questions(tasks), *superseded_twice(every), *one_way_waiting(every)]
-
-
-def task_number(argument):
-    """The task number a `7`, a `#7` or a task's url names, else None."""
-    found = re.fullmatch(r"(?:#|\S+://\S*/)?(\d+)", argument)
-    return int(found.group(1)) if found else None
 
 
 def lines(number, tasks, questions=True):
@@ -181,7 +175,7 @@ def lines(number, tasks, questions=True):
 
 
 def superseded_in(nodes):
-    """The urls of the decisions among NODES that a decision passed by its door supersedes, read once for a whole draw."""
+    """The refs of the decisions among NODES that a decision passed by its door supersedes, read once for a whole draw."""
     return replaced([decision for node in nodes for decision in typed(node["number"], node)])
 
 
@@ -198,9 +192,10 @@ def shown(node, superseded=frozenset()):
     """What the pane draws under a task: its open questions' first lines, which of them the team answers, per question the answers one to the owner offers, and its decisions that no decision in SUPERSEDED replaced, newest first.
     A decision is {decision, time, mark}: `mark` is `◆` for the owner's and `◇` for a manager's or a worker's."""
     task = as_task(node)
-    live = sorted((decision for decision in typed(node["number"], node) if decision["url"] not in superseded),
+    live = sorted((decision for decision in typed(node["number"], node) if board_refs.stored(decision["url"]) not in superseded),
                   key=lambda decision: (decision["createdAt"], decision["index"]), reverse=True)
-    asked = {first_line(question["ask"]): question["fields"] for question in task_state.open_questions(task)}  # an ask posted again is one question
-    return {"questions": list(asked), "team_questions": [k for k, fields in enumerate(asked.values()) if fields.get("asks") != "owner"],
-            "options": [fields.get("options", []) if fields.get("asks") == "owner" else [] for fields in asked.values()],
+    asked = [question for question in task_state.open_questions(task)]  # one entry per question, whatever its first line
+    return {"questions": [first_line(question["ask"]) for question in asked],
+            "team_questions": [k for k, question in enumerate(asked) if question["fields"].get("asks") != "owner"],
+            "options": [question["fields"].get("options", []) if question["fields"].get("asks") == "owner" else [] for question in asked],
             "decided": [{"decision": decision["decision"], "time": pane_time(decision["createdAt"]), "mark": "◆" if decision["role"] == "owner" else "◇"} for decision in live]}

@@ -7,6 +7,7 @@
     "text": { "type": "string", "description": "Markdown a person reads; no code reads it for data" },
     "holders": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }, "description": "the sessions that hold the task from now on, replacing every earlier value; empty when no one does" },
     "asks": { "enum": ["owner"], "description": "on a BLOCKED, that the owner answers it, not the manager" },
+    "again": { "type": "string", "pattern": "#comment-\\d+$", "description": "on a BLOCKED, the url of the question it repeats, which it joins and closes with" },
     "options": { "type": "array", "items": { "type": "string", "pattern": "\\S" }, "description": "on a BLOCKED, the answers it offers, which a reader numbers from 1 in this order" },
     "live_runs": { "type": "integer", "minimum": 0, "description": "how many live sessions the checks run in one worktree may start in all, replacing every earlier value" },
     "decision": { "type": "string", "pattern": "\\S", "description": "one binding sentence; a DECIDED without it is an event, which binds nothing and answers only what its `answers` names" },

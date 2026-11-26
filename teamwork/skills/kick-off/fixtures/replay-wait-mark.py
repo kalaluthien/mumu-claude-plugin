@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Replay the answers a task's question gets on a temporary git board, written only by use-board.py and read as the tasks pane reads it
 (list-task-board.py --json), and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail.
-- answer-no-answers, answer-owner, answer-by-owner: a decision with no `--answers` clears a manager's question by a manager or the owner, and an owner's question by the owner
-- answer-reposted: a decision naming the last of three identical asks clears all three
+- answer-named, answer-owner, answer-by-owner: a decision naming a question with `--answers` clears it, a manager's by a manager or the owner, an owner's by the owner; keep-unnamed: a decision with no `--answers` clears none
+- answer-reposted: a decision naming the last of three asks, each re-asked with `--again` the first, clears all three
 - answer-both: two different questions each need their own decision
 - answer-signal: the decision touches the file the pane rereads on
 - keep-other-question, keep-comment-only, keep-worker-decision, keep-event, keep-owner-by-manager: a decision naming another question, a report, a worker's own decision, a holders event, or a manager's decision on a question asked of the owner, leave the mark, which is the open question alone for one the team answers and `waits on the owner` too for one asked of the owner
@@ -33,8 +33,8 @@ def file(title):
     return int(use("file", "--title", title, "--body", replay_probe.write_text(sandbox.work, "body.md", replay_probe.BODY)).rsplit("/", 1)[1])
 
 
-def ask(number, question, owner=False):
-    return use("comment", number, "--blocked", question, *(("--asks", "owner", "--option", "yes", "--option", "no") if owner else ()))
+def ask(number, question, owner=False, again=""):
+    return use("comment", number, "--blocked", question, *(("--asks", "owner", "--option", "yes", "--option", "no") if owner else ()), *(("--again", again) if again else ()))
 
 
 def decide(number, text, answers="", by="probe-manager"):
@@ -66,24 +66,26 @@ def signal_stamp():
 
 def replay():
     task = file("Probe a plain answer")
-    ask(task, "which cache")
+    cache = ask(task, "which cache")
     cases.step("keep-comment-only", marks(task) == ("", ["which cache"]), marks(task))
     use("comment", task, "--reported", "probe findings")
     cases.step("keep-comment-only-after", marks(task) == ("", ["which cache"]), marks(task))
-    signal = signal_stamp()
     decide(task, "use the shared cache")
-    cases.step("answer-no-answers", cleared(task), marks(task))
+    cases.step("keep-unnamed", marks(task) == ("", ["which cache"]), marks(task))
+    signal = signal_stamp()
+    decide(task, "use the shared cache", answers=cache)
+    cases.step("answer-named", cleared(task), marks(task))
     cases.step("answer-signal", signal_stamp() > signal, f"stamp {signal} -> {signal_stamp()}")
 
     owned = file("Probe an owner's question")
-    ask(owned, "may the sync run", owner=True)
+    owned_ask = ask(owned, "may the sync run", owner=True)
     cases.step("keep-owner", marks(owned)[0] == "waits on the owner", marks(owned))
-    decide(owned, "run the sync", by="owner")
+    decide(owned, "run the sync", by="owner", answers=owned_ask)
     cases.step("answer-owner", cleared(owned), marks(owned))
 
     answered_by_owner = file("Probe an owner's decision")
-    ask(answered_by_owner, "which cache")
-    decide(answered_by_owner, "use the shared cache", by="owner")
+    by_owner_ask = ask(answered_by_owner, "which cache")
+    decide(answered_by_owner, "use the shared cache", by="owner", answers=by_owner_ask)
     cases.step("answer-by-owner", cleared(answered_by_owner), marks(answered_by_owner))
 
     own = file("Probe a worker's own decision")
@@ -99,7 +101,8 @@ def replay():
     cases.step("keep-owner-by-manager", marks(to_owner) == ("waits on the owner", ["may the sync run"]), marks(to_owner))
 
     again = file("Probe a reposted question")
-    asks = [ask(again, "may the sync run") for _ in range(3)]
+    first = ask(again, "may the sync run")
+    asks = [first, ask(again, "may the sync run", again=first), ask(again, "may the sync run", again=first)]
     decide(again, "run the sync", answers=asks[-1])
     cases.step("answer-reposted", cleared(again), marks(again))
 
