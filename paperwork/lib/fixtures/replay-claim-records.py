@@ -6,9 +6,10 @@ usage: replay-claim-records.py
 Every contract of both skills' `examples/` and `fixtures/`, and every copy in `contract-copies.json`, must hold `claims` and no
 `properties`, each claim a guarantee or an assumption; for each system example and fixture, `read` must say each claim's kind, strength
 and status, the written one or, under `paths`, the one the checker settles, and `score-contract.py` must leave out of its recall, and
-list, exactly the questions whose every answer is a claim with a fault; each system example's page, built again, must equal the shipped
-one; and system's `run-page.cjs badges counts` and flow's `run-page.cjs interaction` must pass, which draw each claim's status as a badge on
-its records. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
+list, exactly the questions whose every answer is a claim with a fault, and list as missing a quote a claim of system's own example takes
+from a source that does not hold it; each system example's page, built again, must equal the shipped one; and system's `run-page.cjs
+badges counts` and flow's `run-page.cjs interaction plan` must pass, which draw each claim's status as a badge on its records and each
+mark in its area's colour. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
 import pathlib
 import subprocess
@@ -21,6 +22,8 @@ ROOT = PLUGIN.parent
 SKILLS = PLUGIN / "skills"
 KINDS = ("guarantee", "assumption")
 STATUSES = ("holds", "fails", "conflicting", "unknown")
+QUOTE = "planted-text-no-source-holds"
+QUOTED = SKILLS / "system/examples/self/contract.json"
 
 
 def run(*command):
@@ -88,6 +91,16 @@ def score_faults(path, contract):
     return found
 
 
+def quote_faults(scratch):
+    """Whether `score-contract.py` lists a quote a claim of system's own example takes from a source that does not hold it."""
+    contract = json.loads(QUOTED.read_text())
+    planted = pathlib.Path(scratch) / "quoted.json"
+    claim = {"id": "planted-quote", "evidence": [contract["sources"][0]["id"]], "statement": f"It holds `{QUOTE}`."}
+    planted.write_text(json.dumps({**contract, "claims": contract["claims"] + [claim]}))
+    _, printed = run(sys.executable, SKILLS / "system/scripts/score-contract.py", planted, "--root", ROOT)
+    return [] if f"  planted-quote: `{QUOTE}`" in printed.splitlines() else [f"`score-contract.py` misses the quote `{QUOTE}` of a claim whose source does not hold it"]
+
+
 def page_faults(path, scratch):
     built = pathlib.Path(scratch) / f"{path.parent.name}.html"
     status, printed = run(sys.executable, SKILLS / "system/scripts/make-page.py", path, built)
@@ -116,11 +129,12 @@ def main(args):
                 if path.name == "contract.json":
                     faults += page_faults(path, scratch)
             report(f"{skill} {path.relative_to(SKILLS / skill)}", faults)
+        report("system quotes", quote_faults(scratch))
     for skill in ("system", "flow"):
         report(f"{skill} copies", copy_faults(skill))
-    for skill, steps in (("system", ("badges", "counts")), ("flow", ("interaction",))):
+    for skill, steps in (("system", ("badges", "counts")), ("flow", ("interaction", "plan"))):
         status, printed = run("node", SKILLS / skill / "scripts/run-page.cjs", *steps)
-        report(f"{skill} badges", [line for line in printed.splitlines() if line.startswith("FAIL")] or ([] if status == 0 else [f"exit {status}"]))
+        report(f"{skill} page", [line for line in printed.splitlines() if line.startswith("FAIL")] or ([] if status == 0 else [f"exit {status}"]))
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
 

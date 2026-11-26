@@ -249,7 +249,7 @@ def breaks(contract, root=None):
                         found.append((where, "info-form", f"`{name}` must be a {allowed[name]['form']}"))
                 found += [(where, "evidence-source", message) for entry in element.get("evidence", []) for message in cited(entry, sources, root)]
                 found += [(where, "files-source", f"`files` names `{name}`, which is no source") for name in element.get("files", []) if not isinstance(name, str) or name not in sources]
-        found += area_breaks(level.get("areas", []), level["nodes"], lambda record: f"{home}/{record['id']}", " of this level")
+        found += area_breaks(level.get("areas", []), level["nodes"], lambda kind, record: f"{home}/{kind}/{record['id']}", " of this level")
         for node in level["nodes"]:
             where = f"{home}/{node['id']}"
             if "opens" in node:

@@ -10,7 +10,7 @@ STRENGTHS = ("must", "should", "may")
 STATUSES = ("holds", "fails", "conflicting", "unknown")
 BASES = ("observed", "documented", "inferred")
 SLUG = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
-LISTS = ("avoid", "aliases", "on", "answers", "evidence")  # each a list of strings, `aliases` the one whose empty entry its rule names
+LISTS = ("avoid", "aliases", "on", "answers", "evidence")  # each a list of strings, `aliases` the one that may hold an empty entry
 FIELDS = {
     "sources": ({"id": str, "path": str, "says": str}, {"authority": str}),
     "terms": ({"term": str, "meaning": str}, {"coined": bool, "avoid": list, "aliases": list}),
@@ -33,8 +33,9 @@ RULES = {
 }
 
 
-def record_breaks(where, holder, fields, optional):
-    """Breaks of the `form` rule on one record HOLDER: its required FIELDS and OPTIONAL ones, each a name over its type."""
+def record_breaks(where, holder, fields, optional, texts=LISTS):
+    """Breaks of the `form` rule on one record HOLDER: its required FIELDS and OPTIONAL ones, each a name over its type, and
+    each of them named in TEXTS a list of strings."""
     if not isinstance(holder, dict):
         return [(where, "form", "must be an object")]
     found = []
@@ -46,7 +47,8 @@ def record_breaks(where, holder, fields, optional):
     for name, form in optional.items():
         if name in holder and not isinstance(holder[name], form):
             found.append((where, "form", f"`{name}` must be a {form.__name__}"))
-        elif name in LISTS and name in holder and not all(isinstance(entry, str) and (entry.strip() or name == "aliases") for entry in holder[name]):
+    for name in texts:
+        if isinstance(holder.get(name), list) and not all(isinstance(entry, str) and (entry.strip() or name == "aliases") for entry in holder[name]):
             found.append((where, "form", f"`{name}` must be a list of strings"))
     if "basis" in holder and holder["basis"] not in BASES:
         found.append((where, "form", f"`basis` is one of {', '.join(BASES)}"))
@@ -72,12 +74,12 @@ def source_breaks(sources, root):
 
 
 def area_breaks(areas, nodes, where, beyond=""):
-    """Breaks of `area-known` among AREAS and the NODES that may sit in them, each placed by WHERE; BEYOND says where else an
-    area would have to be."""
+    """Breaks of `area-known` among AREAS and the NODES that may sit in them, each placed by WHERE of its kind, `nodes` or
+    `areas`, and its record; BEYOND says where else an area would have to be."""
     named = {area["id"] for area in areas}
-    found = [(where(node), "area-known", f"`area` names `{node['area']}`, which is no area{beyond}") for node in nodes if "area" in node and node["area"] not in named]
+    found = [(where("nodes", node), "area-known", f"`area` names `{node['area']}`, which is no area{beyond}") for node in nodes if "area" in node and node["area"] not in named]
     held = {node.get("area") for node in nodes}
-    return found + [(where(area), "area-known", "holds no node; an area groups one node at least") for area in areas if area["id"] not in held]
+    return found + [(where("areas", area), "area-known", "holds no node; an area groups one node at least") for area in areas if area["id"] not in held]
 
 
 def chained(paths, edges):

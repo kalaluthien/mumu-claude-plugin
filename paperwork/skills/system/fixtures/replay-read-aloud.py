@@ -46,7 +46,7 @@ def expected(contract):
     steps = {f"{'principle' if scenario.get('principle') else 'scenario'} {scenario['id']}: ": [
         f"  {k + 1}. {said.get(step['at'], labels.get(step['at']))}" + (f" ({shown(step['note'])})" if "note" in step else "") for k, step in enumerate(scenario["steps"])]
         for scenario in contract.get("scenarios", [])}
-    return lines, [shown(item["statement"]) for item in contract.get("claims", [])], steps
+    return lines, [shown(item["statement"]) for item in contract["claims"]], steps
 
 
 def unread(printed, lines, statements, steps):

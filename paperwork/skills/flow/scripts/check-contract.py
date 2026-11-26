@@ -25,7 +25,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_copies import copies  # noqa: E402
-from contract_core import FIELDS as CORE_FIELDS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
+from contract_core import FIELDS as CORE_FIELDS, LISTS as CORE_LISTS, RULES as CORE, SLUG, area_breaks, claim_breaks, id_breaks, question_breaks, record_breaks, source_breaks  # noqa: E402
 from contract_fields import cited, fits, tag_items  # noqa: E402
 from contract_parts import FLOW, checked, load, split_to  # noqa: E402
 from contract_prose import MARKUP, REFERENCE, text_breaks, wording_breaks  # noqa: E402
@@ -82,7 +82,7 @@ FIELDS = {
     **{kind: CORE_FIELDS[kind] for kind in ("claims", "questions")},
 }
 LISTED = ("sources", "terms", "areas", "levels", "nodes", "edges", "tasks", "fragments", "milestones", "claims", "questions")
-TEXT_LISTS = ("after", "nodes", "edges", "evidence")
+TEXT_LISTS = (*CORE_LISTS, "after", "nodes", "edges")
 
 
 def form_breaks(contract):
@@ -90,10 +90,7 @@ def form_breaks(contract):
     found = []
 
     def need(where, holder, kind):
-        found.extend(record_breaks(where, holder, *FIELDS[kind]))
-        for name in TEXT_LISTS:
-            if isinstance(holder, dict) and name in holder and kind not in ("contract", *CORE_FIELDS) and not (isinstance(holder[name], list) and all(isinstance(entry, str) and entry.strip() for entry in holder[name])):
-                found.append((where, "form", f"`{name}` must be a list of strings"))
+        found.extend(record_breaks(where, holder, *FIELDS[kind], CORE_LISTS if kind == "contract" else TEXT_LISTS))  # the contract's own `nodes` and `edges` hold records
 
     need("contract", contract, "contract")
     if found:
@@ -211,7 +208,7 @@ def breaks(contract, root=None):
             found += [(where, "evidence-source", message) for entry in record.get("evidence", []) for message in cited(entry, sources, root)]
             if kind != "edges" and not record.get("purpose", "").strip():
                 found.append((where, "purpose-missing", "say what it is for, in one sentence"))
-    found += area_breaks(records["areas"], records["nodes"], lambda record: f"{'nodes' if 'tag' in record else 'areas'} {record['id']}")
+    found += area_breaks(records["areas"], records["nodes"], lambda kind, record: f"{kind} {record['id']}")
     for area in records["areas"]:
         found += [(f"areas {area['id']}", "evidence-source", message) for entry in area.get("evidence", []) for message in cited(entry, sources, root)]
     listed = set()
@@ -306,8 +303,8 @@ def prose_breaks(contract, records):
     for kind in LISTED:
         for record in records[kind]:
             where = f"{kind}/{record.get('id', '')}"
-            for name in ("purpose", "about", "statement", "fault", "asks", "says"):
-                said += placed(record.get(name), f"{where}/{name}") if kind != "sources" or name != "says" else []
+            for name in ("purpose", "about", "statement", "fault", "asks"):
+                said += placed(record.get(name), f"{where}/{name}")
             said += placed(record.get("info", {}), f"{where}/info", quoted)
             if kind == "fragments":
                 said += [(f"{where}/operands/{j + 1}/guard", operand["guard"]) for j, operand in enumerate(record["operands"]) if "guard" in operand]

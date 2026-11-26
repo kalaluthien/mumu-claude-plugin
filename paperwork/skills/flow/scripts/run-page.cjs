@@ -11,7 +11,7 @@
 //                it, then its code items and a pill per work row, a self-call a loop on its node's line with its parts starting
 //                just right of it, the arrow joining its two nodes' lines and its name, code items and work pills between them;
 //                each area's nodes in one fill and one 2 px border colour, the area's label inside each, the areas apart in
-//                colour; each fragment's frame round all its edges, its kind written inside its top left corner, each guard
+//                colour, and each node, line, pill and task list drawn in its area's border colour; each fragment's frame round all its edges, its kind written inside its top left corner, each guard
 //                inside it; below the diagram a task list per area with work, its rows in step order, a click on the first
 //                step's row bringing that arrow into view with its card; each milestone a dotted line across every node's line,
 //                between the edges before and after it, its name on it; the pointer on a node's line and on an edge raising
@@ -29,7 +29,8 @@
 //                task it waits on; each arrow from the right end of its task to the left end of the one it leads to, its head
 //                pointing in there, crossing no task, and between two lanes keeping to the band from one bar to the other; each
 //                request arrow solid and each wait arrow dotted; the bold tasks and edges exactly the chain
-//                `check-contract.py order` prints, as many bold tasks as it counts; the pointer on a task raising its card; no
+//                `check-contract.py order` prints, as many bold tasks as it counts, each other task bordered in its area's colour;
+//                the pointer on a task raising its card; no
 //                console error and no request.
 const fs = require("fs");
 const os = require("os");
@@ -75,6 +76,13 @@ const carded = (page, id, where) => page.waitForFunction((id) => { const card = 
   .catch(() => { throw new Error(`${where}: no card for ${id} came`); });
 const shownLevel = (page) => page.evaluate(() => [...document.querySelectorAll("#crumbs [aria-current]")].map((crumb) => crumb.dataset.level)[0]);
 
+const unpainted = (page) => page.evaluate(() => [...document.querySelectorAll("[style*='--area-edge']:not(.critical)")].filter((element) => { // each mark given an area's colour that draws its border or line in another; a critical task is drawn bold in the text's colour
+  const style = getComputedStyle(element), probe = document.body.appendChild(document.createElement("div"));
+  probe.style.color = style.getPropertyValue("--area-edge");
+  const wanted = getComputedStyle(probe).color;
+  probe.remove();
+  return ![style.borderTopColor, style.stroke].includes(wanted);
+}).map((element) => (element.getAttribute("class") || element.tagName) + " " + (element.dataset.id || element.dataset.area || "")));
 const drawn = (page) => page.evaluate(() => { // what the shown level draws, as boxes in the stage's own pixels
   const stage = document.getElementById("stage").getBoundingClientRect();
   const box = (element) => { const at = element.getBoundingClientRect(); return { left: at.left - stage.left, right: at.right - stage.left, top: at.top - stage.top, bottom: at.bottom - stage.top }; };
@@ -130,6 +138,8 @@ async function interaction(browser) {
     "the fixture's first level lacks two areas, a loop, a break, a milestone, a nested edge, a self-call with work, a code item or work for two areas");
   const page = await open(browser, fixture);
   const seen = await drawn(page);
+  const stray = await unpainted(page);
+  check(!stray.length, `${stray.join(", ")} take an area's colour but draw their border or line in another`);
 
   // nodes in one row, each area one colour with a 2px border and its label, the areas apart
   const nodes = level.nodes.map((id) => seen.nodes[id]);
@@ -343,6 +353,8 @@ async function plan(browser) {
     const marks = Object.fromEntries([...document.querySelectorAll("#stage line.milestone")].map((line) => [line.dataset.for, { x: +line.getAttribute("x1"), top: +line.getAttribute("y1"), bottom: +line.getAttribute("y2"), dash: getComputedStyle(line).strokeDasharray }]));
     return { nodes, lines, bars, arrows, marks };
   });
+  const stray = await unpainted(page);
+  check(!stray.length, `${stray.join(", ")} take an area's colour but draw their border or line in another`);
 
   // the nodes in one column down the left, each task on one of its node's lines, right of them
   const nodes = level.nodes.map((id) => seen.nodes[id]);

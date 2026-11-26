@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Replay a change to the tag catalogue both skills share on a copy of the plugin, and fail when a skill misses it or writes a shared tag again.
+"""Replay a change to the tag catalogue both skills share on a copy of the plugin, and fail when a skill misses it or writes a shared entry again.
 
 usage: replay-shared-tags.py
 
 On a copy of the plugin whose `../tags.json` alone gives the `service` node's `responsibilities` item a new label, both skills' `tags`
-calls must print it, both checkers must accept system's `parcel-locker.json` and flow's `name-lookup.json`, whose `service` nodes hold that
-item, and both `make-page.py` builds must carry it in the page's tags block; and no tag or common item may be written in both skills'
-own catalogues. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
+calls and the page runners' `tags` reader in `../check-step.cjs` must give it, both checkers must accept system's `parcel-locker.json` and
+flow's `name-lookup.json`, whose `service` nodes hold that item, and both `make-page.py` builds must carry it in the page's tags block;
+and no skill's own catalogue may write again the forms, a tag or a common item the shared catalogue holds. It prints `PASS <step>` or
+`FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
 import pathlib
 import re
@@ -46,6 +47,10 @@ def reached(copied, skill, scratch):
     _, printed = run(script / "check-contract.py", "tags")
     if f"{ITEM} ({LABEL})" not in printed:
         found.append(f"its `tags` call does not print `{ITEM} ({LABEL})`")
+    read = subprocess.run(["node", "-e", "console.log(JSON.stringify(require(process.argv[1]).tags(process.argv[2])))", copied / "lib/check-step.cjs",
+                           copied / "skills" / skill / "assets/tags.json"], capture_output=True, text=True).stdout
+    if f'"label":"{LABEL}"' not in read:
+        found.append(f"the page runners' `tags` reader does not give `{ITEM}` the label `{LABEL}`")
     fixture = copied / FIXTURES[skill]
     if not any(node["tag"] == TAG and ITEM in node.get("info", {}) for node in json.loads(fixture.read_text())["nodes"]):
         found.append(f"{fixture.name} holds no `{TAG}` node with `{ITEM}`")
@@ -62,18 +67,23 @@ def reached(copied, skill, scratch):
     return found
 
 
-def written_twice():
-    """Each tag or common item both skills' own catalogues write."""
-    own = {skill: json.loads((PLUGIN / "skills" / skill / "assets/tags.json").read_text()) for skill in FIXTURES}
-    twice = []
-    for kind in sorted({*own["system"], *own["flow"]} - {"forms"}):
-        if kind == "common":
-            for part in sorted(set(own["system"]["common"]) & set(own["flow"]["common"])):
-                names = {item["name"] for item in own["system"]["common"][part]} & {item["name"] for item in own["flow"]["common"][part]}
-                twice += [f"common {part} item {name}" for name in sorted(names)]
-        else:
-            twice += [f"{kind} tag {name}" for name in sorted(set(own["system"].get(kind, {})) & set(own["flow"].get(kind, {})))]
-    return twice
+def repeated():
+    """Each form list, tag or common item a skill's own catalogue writes that the shared catalogue already holds."""
+    path = PLUGIN / "lib/tags.json"
+    if not path.exists():
+        return ["the plugin holds no shared catalogue `lib/tags.json`"]
+    shared = json.loads(path.read_text())
+    found = []
+    for skill in FIXTURES:
+        own = json.loads((PLUGIN / "skills" / skill / "assets/tags.json").read_text())
+        if "forms" in own and own["forms"] == shared["forms"]:
+            found.append(f"{skill} writes the shared forms")
+        for kind in sorted(set(own) - {"forms", "common"}):
+            found += [f"{skill} writes the {kind} tag {name}" for name in sorted(set(own[kind]) & set(shared.get(kind, {})))]
+        for kind, items in sorted(own.get("common", {}).items()):
+            names = {item["name"] for item in items} & {item["name"] for item in shared.get("common", {}).get(kind, [])}
+            found += [f"{skill} writes the common {kind} item {name}" for name in sorted(names)]
+    return found
 
 
 def main(args):
@@ -89,8 +99,8 @@ def main(args):
             missed = [reason] if reason else reached(copied, skill, scratch)
             print(f"FAIL {skill} reach: {'; '.join(missed)}" if missed else f"PASS {skill} reach")
             failed |= bool(missed)
-    twice = written_twice()
-    print(f"FAIL written once: both skills write {', '.join(twice)}" if twice else "PASS written once")
+    twice = repeated()
+    print(f"FAIL written once: {'; '.join(twice)}" if twice else "PASS written once")
     failed |= bool(twice)
     print("FAIL" if failed else "PASS")
     return 1 if failed else 0
