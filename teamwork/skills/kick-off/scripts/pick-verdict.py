@@ -93,6 +93,8 @@ def main(args):
             sys.exit(f"pick-verdict: git cannot read {args[1]}: {top.stderr.strip()}")
         root = top.stdout.rstrip("\n")
         changed = changed_files(root, args[1])
+        if git(root, "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").returncode:
+            sys.exit(f"pick-verdict: git cannot read {ref}: no such commit")
         if git(root, "merge-base", "--is-ancestor", args[1], "HEAD").returncode:
             changed = moved_files(root, args[1], ref)
         judged = [file for file in changed if not unjudged(root, args[1], file)]
