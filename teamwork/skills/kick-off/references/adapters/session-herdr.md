@@ -2,6 +2,8 @@
 
 Each session is a herdr agent in a herdr pane, shown by a herdr tab, and a team's tabs share one herdr workspace. herdr may move a pane, and a shell's `$HERDR_PANE_ID` keeps the pane it started in, so name a session, never a pane id kept from an earlier read: herdr resolves the name on each call, and the scripts find your own session by its session id.
 
+Every script path below resolves from this file's folder: `../../scripts/` is `teamwork/skills/kick-off/scripts/`, never `teamwork/scripts/`, which does not exist.
+
 | operation | how |
 | --- | --- |
 | `start` | [start-session.py](../../scripts/start-session.py) `<name> <cwd> "<kick-off arguments>" --model <m> --effort <e> [--allow <tool>] [--steer <key>]`, the model of the tier as the agent adapter says; it takes no flag for the place; a start it cannot finish says whether the session is live and whether it got its kick-off, and names a `herdr pane read <pane>` that shows it, so start no second one while it is live |
