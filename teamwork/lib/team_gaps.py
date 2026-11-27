@@ -233,7 +233,7 @@ def run_lines(team, listed, readings):
     readings = {} if readings is None else readings  # the hook's one-shot call keeps none, so no run reads as stuck there
     for name in team:
         for pid, command, reading, criteria in found.get(session_of.get(name), []):
-            key = (session_of[name], pid)
+            key = pid  # a process id is unique on the machine, so it keeps two runs of one session apart
             seen.add(key)
             last, since = readings.get(key, (None, now))
             readings[key] = (reading, since if last == reading else now)

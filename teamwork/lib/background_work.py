@@ -100,7 +100,7 @@ def runs(session_ids):
 
 def shown(command):
     """COMMAND without the environment `ps -E` appends to it, cut to 100 characters."""
-    return re.split(r" [A-Z][A-Z0-9_]*=", command, maxsplit=1)[0][:100]
+    return re.sub(r" [A-Z][A-Z0-9_]*=.*", "", command)[:100]
 
 
 def heartbeat_running(session_id):
