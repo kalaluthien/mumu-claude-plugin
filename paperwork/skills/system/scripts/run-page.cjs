@@ -160,7 +160,7 @@
 //   fonts    on a copy of each example whose token sheet sets every type size and line height 1.75 times as large, at 1440 by
 //            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
 //            badges included, split no word across two lines, keep each word inside their box across and their lines inside
-//            the node or area down, and no node's tag runs under its badges, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
+//            the node or area down, no node's tag runs under its badges, and no area's badge is shorter than its text, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -2504,6 +2504,12 @@ async function fonts(browser) {
         return range.getBoundingClientRect().right > badges.getBoundingClientRect().left + 0.5;
       }).map((node) => node.dataset.id));
       check(!crowded.length, `${where}: the tag of ${crowded[0]} runs under its badges`);
+      const cut = await view.evaluate(() => [...document.querySelectorAll("#stage .area > header .claims > .claim")].filter((claim) => { // a header badge shorter than its text
+        const range = document.createRange();
+        range.selectNodeContents(claim);
+        return range.getBoundingClientRect().height > claim.getBoundingClientRect().height + 0.5;
+      }).map((claim) => claim.closest(".area").dataset.id));
+      check(!cut.length, `${where}: a badge of area ${cut[0]} is shorter than its text`);
       read += seen.length;
       quiet(view, where);
       await view.context().close();
