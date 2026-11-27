@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
-SPIN, SLEEP = "while True: pass", "import time; time.sleep(120)"
+SPIN, SLEEP = 'import time; t = time.time(); exec("while time.time() - t < 120: pass")', "import time; time.sleep(120)"  # each ends on its own, so a killed runner leaves none
 CODE = {"none": None, "sleep": SLEEP, "busy": SPIN, "check": SPIN,
         "wait": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SPIN}']); {SLEEP}",
         "nest": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SLEEP}']); {SLEEP}"}
@@ -57,9 +57,9 @@ def replay(work):
             return replay_probe.fail(f"print-team-gaps.py --polls {POLLS} ended {done.returncode}: {done.stderr.strip()[-300:]}")
     seen = sorted(line.split(":")[0] for line in short.stdout.splitlines() if line.startswith(("stuck ", "slow ")))
     wrong = [line for line in default.stdout.splitlines() if line.startswith(("stuck ", "slow "))]
-    # the command shown is the process's own words cut short of its environment, which `ps -E` appends
+    # the command shown is the process's own words, each path cut to its file name and the environment `ps -E` appends left out
     shown = [line for line in short.stdout.splitlines() if line.startswith("stuck c-sleep")]
-    if seen != ["slow c-check-worker", "stuck c-nest-worker", "stuck c-sleep-worker"] or wrong or not all("time.sleep(120)" in line and "CLAUDE_CODE_SESSION_ID" not in line for line in shown):
+    if seen != ["slow c-check-worker", "stuck c-nest-worker", "stuck c-sleep-worker"] or wrong or not all("(`python3 -c import time; time.sleep(120)`)" in line for line in shown):
         return replay_probe.fail(f"short limits gave {seen}, default limits gave {wrong}: {short.stdout.strip()[-600:]}")
     return replay_probe.Cases().finish()
 
