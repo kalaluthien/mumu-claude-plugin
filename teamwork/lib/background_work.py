@@ -62,6 +62,47 @@ def running_commands(session_id):
             if mark in line and "/monitors/print-team-gaps.py " not in line and seconds(line.split()[1]) < LIMIT_SECONDS]
 
 
+def clock_seconds(clock):
+    """The seconds of a `ps` CPU time, `[hh:]mm:ss.ss`, or None for a field of another form."""
+    try:
+        return sum(float(field) * 60 ** place for place, field in enumerate(reversed(clock.split(":"))))
+    except ValueError:
+        return None
+
+
+def runs(session_ids):
+    """Per session id, each process tree it still runs, as (root pid, root command, the tree's pids and CPU seconds, its oldest `run-criteria.py` as
+    (seconds, command) or None); a root is a process carrying the id whose parent does not, and its tree is every process under it, the system
+    binaries `ps -E` shows no environment for among them. The session's own heartbeat is no run."""
+    listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,ppid=,etime=,time=,command="], capture_output=True, text=True).stdout
+    processes = {}
+    for line in listing.splitlines():
+        fields = line.split(None, 4)
+        if len(fields) == 5 and fields[0].isdigit() and fields[1].isdigit() and re.fullmatch(r"(\d+-)?(\d+:)?\d+:\d+", fields[2]) and (cpu := clock_seconds(fields[3])) is not None:
+            processes[int(fields[0])] = (int(fields[1]), seconds(fields[2]), cpu, fields[4])
+    children = {}
+    for pid, (parent, *_) in processes.items():
+        children.setdefault(parent, []).append(pid)
+    owner = {pid: next((session_id for session_id in session_ids if session_id and f" CLAUDE_CODE_SESSION_ID={session_id}" in command), None)
+             for pid, (_, _, _, command) in processes.items()}
+    found = {session_id: [] for session_id in session_ids}
+    for pid, (parent, _, _, command) in processes.items():
+        if owner[pid] is None or owner.get(parent) == owner[pid] or "/monitors/print-team-gaps.py " in command:
+            continue
+        tree, waiting = [], [pid]
+        while waiting:
+            tree.append(waiting.pop())
+            waiting += children.get(tree[-1], [])
+        criteria = max(((processes[member][1], shown(processes[member][3])) for member in tree if "run-criteria.py" in processes[member][3]), default=None)
+        found[owner[pid]].append((pid, shown(command), (frozenset(tree), round(sum(processes[member][2] for member in tree), 2)), criteria))
+    return found
+
+
+def shown(command):
+    """COMMAND without the environment `ps -E` appends to it, cut to 100 characters."""
+    return re.split(r" [A-Z][A-Z0-9_]*=", command, maxsplit=1)[0][:100]
+
+
 def heartbeat_running(session_id):
     """Whether the heartbeat `print-team-gaps.py` runs under SESSION_ID, which a manager's watch needs while any task it routed is held."""
     listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout
