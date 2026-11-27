@@ -157,7 +157,7 @@
 //            the checker accepts the copy, and at each size each of those notes shows whole over two lines or more inside
 //            the window, and the note, the node's label and each text of the node's kept card split no word across two
 //            lines and reach past no side of their box.
-//   fonts    on a copy of each example whose token sheet sets every type size and line height a third larger, at 1440 by
+//   fonts    on a copy of each example whose token sheet sets every type size and line height 1.75 times as large, at 1440 by
 //            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
 //            badges included, split no word across two lines, keep each word inside their box across and their lines inside
 //            the node or area down, and no node's tag runs under its badges, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
@@ -2479,7 +2479,7 @@ const fitted = ([selector, frame]) => [...document.querySelectorAll(selector)].f
   }
   return found;
 });
-const GROWN = 4 / 3; // each type size and line height of the copy's token sheet against the sheet's own
+const GROWN = 1.75; // each type size and line height of the copy's token sheet against the sheet's own
 async function fonts(browser) {
   let read = 0, sizes = "";
   for (const example of examples) {
