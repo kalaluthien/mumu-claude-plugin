@@ -73,7 +73,7 @@ def clock_seconds(clock):
 def runs(session_ids):
     """Per session id, each process tree it still runs, as (root pid, root command, the tree's pids and CPU seconds, its oldest `run-criteria.py` as
     (seconds, command) or None); a root is a process carrying the id whose parent does not, and its tree is every process under it, the system
-    binaries `ps -E` shows no environment for among them. The session's own heartbeat is no run."""
+    binaries `ps -E` shows no environment for among them. The session's own heartbeat is no run, and a process older than LIMIT_SECONDS is a left-behind daemon, no run."""
     listing = subprocess.run(["ps", "-E", "-ww", "-A", "-o", "pid=,ppid=,etime=,time=,command="], capture_output=True, text=True).stdout
     processes = {}
     for line in listing.splitlines():
@@ -87,7 +87,7 @@ def runs(session_ids):
              for pid, (_, _, _, command) in processes.items()}
     found = {session_id: [] for session_id in session_ids}
     for pid, (parent, _, _, command) in processes.items():
-        if owner[pid] is None or owner.get(parent) == owner[pid] or "/monitors/print-team-gaps.py " in command:
+        if owner[pid] is None or owner.get(parent) == owner[pid] or "/monitors/print-team-gaps.py " in command or processes[pid][1] >= LIMIT_SECONDS:
             continue
         tree, waiting = [], [pid]
         while waiting:
@@ -99,8 +99,8 @@ def runs(session_ids):
 
 
 def shown(command):
-    """COMMAND without the environment `ps -E` appends to it, cut to 100 characters."""
-    return re.sub(r" [A-Z][A-Z0-9_]*=.*", "", command)[:100]
+    """COMMAND without the environment `ps -E` appends to it and with each path cut to its file name, so a run's script and arguments stay in 100 characters."""
+    return re.sub(r"\S*/", "", re.sub(r" [A-Z][A-Z0-9_]*=.*", "", command))[:100]
 
 
 def heartbeat_running(session_id):
