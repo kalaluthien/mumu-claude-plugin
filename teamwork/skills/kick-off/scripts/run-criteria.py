@@ -55,7 +55,7 @@ made to raise at its first line, which a criterion that only finds two runs equa
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
-in parallel, each job in its own export of the head, as many as `--jobs` or else the CPU count, so give a long check time with `--timeout`; it never fetches.
+in parallel, each job in its own export of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
 A revert's or mutant's result is kept in the git common dir's `teamwork-sweeps/` and replayed, by any session, while the head's files, that file's text, the
 passing criteria, the timeout and the files outside the repository they name are the same: `cached: <n> reverts and mutants replayed` follows, and `--fresh` sweeps them again.
 With `--since <sha>`, the head of the last sweep, it reverts and mutates only the hunks a line of which changed between that sha and the head,
@@ -1040,7 +1040,7 @@ def main(args):
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
-    if options.hunks and options.base or options.since and options.base:
+    if options.hunks and options.base or options.since and options.base or options.jobs is not None and options.jobs < 1:
         usage_parser.refuse(__doc__)
     if options.since and not options.hunks:
         return run_since(options, task, root)
