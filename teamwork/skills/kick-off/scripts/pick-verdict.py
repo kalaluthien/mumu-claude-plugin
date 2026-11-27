@@ -86,8 +86,8 @@ def main(args):
         else:
             print("approve")
         return 0
-    ref = args[3] if len(args) == 4 and args[2] == "--ref" and not args[3].startswith("-") else "main"
-    if len(args) in (2, 4) and args[0] == "--since" and not args[1].startswith("-") and (len(args) == 2 or args[2] == "--ref" and not args[3].startswith("-")):
+    ref = dict(zip(args[2::2], args[3::2])).get("--ref", "main")
+    if args[:1] == ["--since"] and len(args) in (2, 4) and not any(word.startswith("-") for word in args[1::2]) and args[2:3] in ([], ["--ref"]):
         top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
         if top.returncode:
             sys.exit(f"pick-verdict: git cannot read {args[1]}: {top.stderr.strip()}")

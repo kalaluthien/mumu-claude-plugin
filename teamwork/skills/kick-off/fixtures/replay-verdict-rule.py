@@ -6,7 +6,7 @@
 - `blocking`: a code fault, a failed scenario or a check not run prints `fix` and names the class, alone, last among listed gaps and
   first among them, two blocking classes named once each in order;
 - `refused`: a class the script lacks, a class beside one, no option, an option it lacks, `--since` with no sha, two or an option
-  for one print the usage, exit 2;
+  for one, `--ref` with no ref, an option for it or a word after it, and an option it lacks print the usage, exit 2;
 - `unjudged`: after the approved head, no change, a document, one whose name is not ASCII, a file under a `fixtures/` folder at the
   root or deeper, a plugin's `plugin.json` with a new `version`, a document not yet added, one so named and a script git ignores
   print `merge`, from the root and from a folder below it;
@@ -17,7 +17,7 @@
   a folder outside any repository are named, exit 1;
 - `rebase-kept`: after main gains a script and a line far above the change's in the change's script, and the approved branch is
   rebased onto it with no conflict, `--since` prints `merge`, with
-  a fixture also fixed `merge`, and with the change's script also edited `judge again` naming that script alone; `--ref` naming main before it moved names main's script too;
+  a fixture also fixed `merge`, and with the change's script also edited `judge again` naming that script alone; `--ref` naming main before it moved names main's script too, one git lacks is named, exit 1, and the change undone names its script;
 - `follow-up-offered`: each `judge again` also offers to merge the approved head and file the fix as a task with the same parent;
 - `wired`: judge.md, worker.md, protocol.md and the repository's AGENTS.md each send their reader to the rule, and judge.md, worker.md
   and protocol.md name the follow-up task.
@@ -69,9 +69,15 @@ def rebased(work):
     (box.repository / "tool.py").write_text("import os\n" + lines + "y = 3\n")
     got["script"] = run("--since", approved)
     got["ref"] = run("--since", approved, "--ref", "trunk")
+    unknown = box.python(SCRIPT, "--since", approved, "--ref", "nowhere")
+    got["unknown ref"] = unknown.returncode, unknown.stderr
+    box.git("checkout", "-q", "main", "--", "tool.py")
+    got["undone"] = run("--since", approved)
     merge = "merge\n"
     passed = (got["rebased"].startswith(merge) and got["fixture"].startswith(merge)
-              and got["script"].startswith("judge again\nThe fix changes what no judge read: tool.py.") and got["ref"].startswith("judge again\nThe fix changes what no judge read: other.py, tool.py."))
+              and got["script"].startswith("judge again\nThe fix changes what no judge read: tool.py.") and got["ref"].startswith("judge again\nThe fix changes what no judge read: other.py, tool.py.")
+              and got["unknown ref"] == (1, "pick-verdict: git cannot read nowhere: no merge base with the head\n")
+              and got["undone"].startswith("judge again\nThe fix changes what no judge read: tool.py."))
     return passed, got
 
 
@@ -106,7 +112,8 @@ def main(args):
         cases.step("blocking", hard == {classes: (0, f"fix\nA gap of class {named[classes]} sends the change back.\n", "") for classes in hard}, hard)
         usage = (2, "", SCRIPT.read_text().split('"""')[1] + "\n")
         refused = [run(*argv) for argv in (["--gaps", "minor"], ["--gaps", "document", "typo"], ["document"], [], ["--x"], ["--since"],
-                                           ["--since", approved, approved], ["--since", "--gaps"], ["--gaps", "--since", approved])]
+                                           ["--since", approved, approved], ["--since", "--gaps"], ["--gaps", "--since", approved], ["--since", approved, "--ref"], ["--since", approved, "--x", "main"],
+                                           ["--since", approved, "x--ref", "main"], ["--since", approved, "--ref", "--gaps"], ["--since", approved, "--ref", "main", "x"])]
         cases.step("refused", refused == [usage] * len(refused), refused)
         merge = (0, "merge\nThe fix changes only documents, fixtures and the version, so the approval holds.\n", "")
         unjudged = [run("--since", approved)]
