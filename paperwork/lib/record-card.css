@@ -1,6 +1,6 @@
 /* The record card, the claims' badges and the note over it; it reads page-tokens.css. */
-.claims { display: inline-flex; gap: 2px; margin-left: 4px; vertical-align: middle; }
-.claims > .claim { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 16px; padding: 0 4px; border: 0; background: var(--status-holds); color: var(--status-glyph); box-shadow: 0 0 0 2px var(--canvas); font: 600 11px/16px ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; cursor: pointer; transition: transform .15s var(--ease); }
+.claims { display: inline-flex; gap: var(--spacing-01); margin-left: var(--spacing-02); vertical-align: middle; }
+.claims > .claim { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 16px; padding: 0 var(--spacing-02); border: 0; background: var(--status-holds); color: var(--status-glyph); box-shadow: 0 0 0 2px var(--canvas); font: 600 var(--type-01)/var(--leading-01) ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; cursor: pointer; transition: transform .15s var(--ease); }
 .claims > .claim:hover { transform: scale(1.12); }
 .claims > .claim:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--canvas), var(--focus); }
 .claims > [data-kind="guarantee"] { border-radius: 2px; }
@@ -8,45 +8,44 @@
 .claims > [data-status="unknown"] { background: var(--status-unknown); }
 .claims > [data-status="conflicting"] { background: var(--status-conflicting); }
 .claims > [data-status="fails"] { background: var(--status-fails); }
-#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
+#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: var(--spacing-04) var(--spacing-05); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
 #card.kept { box-shadow: var(--shadow-lg); }
 #card.long { overflow-y: auto; }
 #card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
 #card.show { opacity: 1; transform: none; pointer-events: auto; }
-#card h2 { margin: 0; font-size: 14px; line-height: 20px; font-weight: 600; }
-#card .tag { display: inline-flex; margin: 0 4px 4px 0; padding: 2px 8px; border: 1px solid var(--border); border-radius: 9999px; font-size: 12px; line-height: 16px; font-weight: 500; }
+#card h2 { margin: 0; font-size: var(--type-02); line-height: var(--leading-03); font-weight: 600; }
+#card .tag { display: inline-flex; margin: 0 var(--spacing-02) var(--spacing-02) 0; padding: var(--spacing-01) var(--spacing-03); border: 1px solid var(--border); border-radius: 9999px; font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; }
 #card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
-#card dl { margin: 16px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-#card dt { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--muted-foreground); }
-#card dd { margin: 2px 0 0; word-break: keep-all; }
-#card ul { margin: 0; padding-left: 16px; }
-#card table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 16px; }
-#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: 4px 8px 4px 0; border: 0; vertical-align: top; }
+#card dl { margin: var(--spacing-05) 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-03); }
+#card dt { font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; color: var(--muted-foreground); }
+#card dd { margin: var(--spacing-01) 0 0; word-break: keep-all; }
+#card ul { margin: 0; padding-left: var(--spacing-05); }
+#card table { width: 100%; border-collapse: collapse; font-size: var(--type-01); line-height: var(--leading-01); }
+#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: var(--spacing-02) var(--spacing-03) var(--spacing-02) 0; border: 0; vertical-align: top; }
 #card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
-#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: 12px; } #card pre { margin: 0; padding: 4px 8px; white-space: pre-wrap; } #card code { padding: 0 4px; }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: var(--type-01); } #card pre { margin: 0; padding: var(--spacing-02) var(--spacing-03); white-space: pre-wrap; } #card code { padding: 0 var(--spacing-02); }
 #card pre code { padding: 0; background: none; }
-#card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; line-height: 16px; white-space: nowrap; }
-#card footer .hints { display: inline-flex; gap: 12px; margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: 4px; }
-#card .turn { height: 24px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
+#card footer { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-04); margin-top: var(--spacing-04); padding-top: var(--spacing-03); border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: var(--type-01); line-height: var(--leading-01); white-space: nowrap; }
+#card footer .hints { display: inline-flex; gap: var(--spacing-04); margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: var(--spacing-02); }
+#card .turn { height: 24px; padding: 0 var(--spacing-03); border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: var(--type-01); font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
 #card .turn:hover { background: var(--accent); }
-#card .ref { padding: 0 4px; border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
+#card .ref { padding: 0 var(--spacing-02); border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
 #card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
 #card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
-#card .badge { display: inline-flex; padding: 0 6px; border: 1px solid transparent; border-radius: 9999px; font-size: 11px; line-height: 16px; font-weight: 500; vertical-align: 1px; }
+#card .badge { display: inline-flex; padding: 0 var(--spacing-03); border: 1px solid transparent; border-radius: 9999px; font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; vertical-align: 1px; }
 #card .badge.guess { background: var(--muted); color: var(--foreground); border-color: var(--frame); }
 #card .badge.unknown { background: var(--status-unknown); color: var(--status-glyph); } #card .badge.conflicting { background: var(--status-conflicting); color: var(--status-glyph); }
 #card .badge.fails { background: var(--status-fails); color: var(--status-glyph); }
-#card .tag.badge { margin: 6px 6px 0 0; padding: 2px 8px; font-size: 12px; vertical-align: baseline; }
+#card .tag.badge { margin: var(--spacing-03) var(--spacing-03) 0 0; padding: var(--spacing-01) var(--spacing-03); font-size: var(--type-01); vertical-align: baseline; }
 #card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
 #card .cite:hover { background: var(--accent); }
-#card pre.fence { margin: 4px 0; overflow-x: auto; white-space: pre; }
-#card math { font-size: 1.05em; }
-#card math[display="block"] { margin: 6px 0; text-align: center; }
-#gloss { position: fixed; z-index: 31; max-width: 360px; padding: 8px 10px; border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: 12px; line-height: 16px; opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
+#card pre.fence { margin: var(--spacing-02) 0; overflow-x: auto; white-space: pre; }
+#card math[display="block"] { margin: var(--spacing-03) 0; text-align: center; }
+#gloss { position: fixed; z-index: 31; max-width: 360px; padding: var(--spacing-03) var(--spacing-04); border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: var(--type-01); line-height: var(--leading-01); opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
 #gloss.show { opacity: 1; pointer-events: auto; }
-#gloss p { margin: 2px 0 0; } #gloss .source + .source { margin-top: 8px; }
-#gloss code { padding: 1px 4px; border-radius: 6px; background: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
-#gloss blockquote { margin: 4px 0 0; padding-left: 8px; border-left: 2px solid var(--border); color: var(--muted-foreground); }
+#gloss p { margin: var(--spacing-01) 0 0; } #gloss .source + .source { margin-top: var(--spacing-03); }
+#gloss code { padding: var(--spacing-01) var(--spacing-02); border-radius: 6px; background: var(--muted); font-size: var(--type-01); overflow-wrap: anywhere; }
+#gloss blockquote { margin: var(--spacing-02) 0 0; padding-left: var(--spacing-03); border-left: 2px solid var(--border); color: var(--muted-foreground); }
 @media (prefers-reduced-motion: reduce) {
   #card { transform: none !important; }
 }

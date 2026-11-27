@@ -1,5 +1,5 @@
-/* Every colour a paperwork page draws, light and dark, each with its source. A page's other style names these and mixes them only with
-   one another or with transparent.
+/* Every colour a paperwork page draws, light and dark, and every space and type size it sets, each with its source. A page's other
+   style names these, mixes a colour only with another or with transparent, and scales a size only by the page's own zoom.
    Sources:
    [neutral]  shadcn/ui's neutral theme, https://ui.shadcn.com/docs/theming
    [text]     WCAG 2.2 1.4.3, text at 4.5:1 or more against what is behind it, https://www.w3.org/TR/WCAG22/#contrast-minimum
@@ -7,10 +7,17 @@
    [colour]   WCAG 2.2 1.4.1, colour never the only sign; a badge also says its status by glyph and its kind by shape, https://www.w3.org/TR/WCAG22/#use-of-color
    [status]   IEC 60073's indicator colours: green normal, amber abnormal, red fault; an unsettled one blue-grey
    [cvd]      at least 0.1 apart in OKLab (https://bottosson.github.io/posts/oklab/) within its set, as seen and under protanopia, deuteranopia
-              and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, https://doi.org/10.1109/TVCG.2009.113 */
+              and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, https://doi.org/10.1109/TVCG.2009.113
+   [space]    IBM Carbon's spacing scale, https://carbondesignsystem.com/elements/spacing/overview/
+   [type]     IBM Carbon's type scale and the line heights of its type sets, https://carbondesignsystem.com/elements/typography/type-sets/ */
 :root {
   color-scheme: light dark;
   --radius: .625rem; --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  /* [space] a margin, padding or gap */
+  --spacing-01: 2px; --spacing-02: 4px; --spacing-03: 8px; --spacing-04: 12px; --spacing-05: 16px; --spacing-06: 24px; --spacing-10: 64px;
+  /* [type] a font size, and a line height set in px */
+  --type-01: 12px; --type-02: 14px; --type-05: 20px;
+  --leading-01: 16px; --leading-02: 18px; --leading-03: 20px; --leading-04: 22px; --leading-05: 24px; --leading-06: 28px;
   /* [neutral] [text] */
   --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0); --canvas: oklch(.985 0 0);
   --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --accent: oklch(.97 0 0);
