@@ -66,7 +66,7 @@ def main(args):
         manager = team_names.role(me.get("name")) == "manager"
         if not watching and not (awake and manager):
             # a plugin monitor that exits is never started again, so a team with no worker is waited out here; the next worker's first read shows every open gap
-            shown, waiting, read_of, fed_urls, readings, data, read_at, awake = set(), set(), {}, set(), {}, None, 0.0, False
+            shown, waiting, read_of, fed_urls, data, read_at, awake = set(), set(), {}, set(), None, 0.0, False
             time.sleep(POLL if polls != 0 else 0)
             continue
         # the last worker may have posted a report just before it left, which only this one more read feeds

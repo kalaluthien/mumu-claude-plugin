@@ -230,20 +230,20 @@ def run_lines(team, listed, readings):
     session_of = {agent.get("name"): (agent.get("agent_session") or {}).get("value") for agent in listed}
     found = background_work.runs([session_of.get(name) for name in team])
     now, lines, seen = time.monotonic(), [], set()
+    readings = {} if readings is None else readings  # the hook's one-shot call keeps none, so no run reads as stuck there
     for name in team:
         for pid, command, reading, criteria in found.get(session_of.get(name), []):
             key = (session_of[name], pid)
             seen.add(key)
-            if readings is not None:
-                last, since = readings.get(key, (None, now))
-                readings[key] = (reading, since if last == reading else now)
-                if now - readings[key][1] >= STUCK_SECONDS:
-                    lines.append(f"stuck {name}: pid {pid} (`{command}`) has used no CPU for {STUCK_SECONDS / 60:g} minutes; ask {name} what it waits on, "
-                                 f"and to stop it by TaskStop or `kill {pid}` and name the cause on its task if it hangs")
+            last, since = readings.get(key, (None, now))
+            readings[key] = (reading, since if last == reading else now)
+            if now - readings[key][1] >= STUCK_SECONDS:
+                lines.append(f"stuck {name}: pid {pid} (`{command}`) has used no CPU for {STUCK_SECONDS / 60:g} minutes; ask {name} what it waits on, "
+                             f"and to stop it by TaskStop or `kill {pid}` and name the cause on its task if it hangs")
             if criteria and criteria[0] >= SLOW_SECONDS:
                 lines.append(f"slow {name}: `{criteria[1]}` has run over {SLOW_SECONDS / 60:g} minutes; ask {name} whether its progress lines still move, "
                              f"and weigh a narrower run, such as `--since <sha>` or fewer criteria")
-    for key in set(readings or ()) - seen:
+    for key in set(readings) - seen:
         del readings[key]
     return lines
 

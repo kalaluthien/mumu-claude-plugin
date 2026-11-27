@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the heartbeat `print-team-gaps.py --polls <n>` as a manager on a sandbox repository with a git board and the fake herdr, over three workers
-each running one process under its session id: `c-sleep`, which sleeps at no CPU; `c-busy`, which spins; and `c-check`, which spins with
-`run-criteria.py` in its command. Under limits of 1.5 s with no CPU and 1 s for a check, only `c-sleep` gets a `stuck` line and only `c-check` a `slow`
+each running one process under its session id: `c-sleep`, which sleeps at no CPU beside a second process of its session that spins; `c-busy`, which spins;
+and `c-check`, which spins with `run-criteria.py` in its command. Under limits of 1.5 s with no CPU and 1 s for a check, only `c-sleep` gets a `stuck` line and only `c-check` a `slow`
 line; under the default limits of 15 and 60 minutes none gets either. Print `PASS` or `FAIL: <what it saw>`, and exit 1 on FAIL.
 
 usage: replay-stuck-runs.py"""
@@ -15,7 +15,8 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
-CODE = {"sleep": "import time; time.sleep(120)", "busy": "while True: pass", "check": "while True: pass"}
+CODE = {"sleep": "import time; time.sleep(120)", "busy": "while True: pass", "check": "while True: pass", "mate": "while True: pass"}
+SESSION = {"mate": "sleep"}  # a second process in the sleeper's session, so two runs of one session keep apart
 POLLS = 15  # 0.3 s apart, so a run is read for longer than the 1.5 s limit
 WAIT_SECONDS = 60
 
@@ -30,10 +31,10 @@ def main(args):
 
 def replay(work):
     agents = [replay_probe.agent("x-manager", 1, "working"),
-              *[replay_probe.agent(f"c-{name}-worker", pane, "working", agent_session={"value": f"sess-{name}"}) for pane, name in enumerate(CODE, 2)]]
+              *[replay_probe.agent(f"c-{name}-worker", pane, "working", agent_session={"value": f"sess-{name}"}) for pane, name in enumerate(CODE, 2) if name not in SESSION]]
     sandbox = replay_probe.Sandbox(work, agents)
     started = [replay_probe.Group([sys.executable, "-c", code, *(["run-criteria.py"] if name == "check" else [])],
-                                  env={**sandbox.environment, "CLAUDE_CODE_SESSION_ID": f"sess-{name}"},
+                                  env={**sandbox.environment, "CLAUDE_CODE_SESSION_ID": f"sess-{SESSION.get(name, name)}"},
                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) for name, code in CODE.items()]
     try:
         time.sleep(1.5)  # so the check's elapsed time, which `ps` gives in whole seconds, passes its 1 s limit
