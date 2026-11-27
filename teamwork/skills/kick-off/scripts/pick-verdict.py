@@ -2,16 +2,18 @@
 """Print a judge's verdict for the classes of its gaps, or whether a fix made after an approval needs another judge.
 
 usage: pick-verdict.py --gaps [<class>...]
-usage: pick-verdict.py --since <sha>
+usage: pick-verdict.py --since <sha> [--ref <ref>]
 
 `--gaps` takes the class of each gap the round found: `code-fault` (the code does what its task or callers do not expect),
 `failed-scenario` (a scenario or probe fails at the head, or passes at the base), `not-run` (a check approval rests on did not run),
 `fixture-gap` (a surviving mutant or an input no criterion tries), `document`, `form`, `scope`, `release` or `other` (a gap none of these names). It prints `fix` when any is
 one of the first three, else `approve` and, with a gap, a line telling the judge to list them for the worker.
 `--since` lists the files the head changes against <sha>, the head a judge approved, committed or not, from any folder of the
-repository, a moved file under both its names, and prints `merge` when each is a document (`*.md`), a file under a `fixtures/` folder
-or a plugin's `plugin.json` that differs in its `version` alone, else `judge again` with the other files.
-Exits 0 after a verdict, 1 naming the cause when git cannot read <sha>, 2 with this text for a class it does not know or a call it
+repository, a moved file under both its names; when the head was rebased, so <sha> is not its ancestor, only the files whose patch from
+the merge base with `--ref` (default `main`) differs from that file's patch at <sha>, so a file main gained is never named. It prints
+`merge` when each is a document (`*.md`), a file under a `fixtures/` folder or a plugin's `plugin.json` that differs in its `version`
+alone, else `judge again` with the other files and the other way: merge <sha> as approved and file each such fix as a task.
+Exits 0 after a verdict, 1 naming the cause when git cannot read <sha> or <ref>, 2 with this text for a class it does not know or a call it
 cannot read. Standard library only, Python 3.9."""
 
 import fnmatch
@@ -39,6 +41,27 @@ def changed_files(root, sha):
     return sorted(set(listed.stdout.splitlines() + git(root, "ls-files", "--others", "--exclude-standard").stdout.splitlines()))
 
 
+def patches(root, *words):
+    """{file: its patch} of `git diff WORDS`, without the index and hunk lines, which a rebase moves while the change stays the same."""
+    found = {}
+    for part in git(root, "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", *words, "--").stdout.split("\ndiff --git "):
+        lines = part.removeprefix("diff --git ").split("\n")
+        if lines[0]:
+            found[lines[0].rsplit(" b/", 1)[-1]] = [line for line in lines[1:] if not line.startswith(("index ", "@@"))]
+    return found
+
+
+def moved_files(root, sha, ref):
+    """The files whose patch from the head's merge base with REF, work tree included, differs from their patch at SHA from its fork point."""
+    fork = git(root, "merge-base", sha, "HEAD").stdout.strip()
+    base = git(root, "merge-base", "HEAD", ref).stdout.strip()
+    if not fork or not base:
+        sys.exit(f"pick-verdict: git cannot read {ref}: no merge base with the head")
+    before, after = patches(root, fork, sha), patches(root, base)
+    untracked = git(root, "ls-files", "--others", "--exclude-standard").stdout.splitlines()
+    return sorted({file for file in set(before) | set(after) if before.get(file) != after.get(file)} | set(untracked))
+
+
 def only_version(root, sha, file):
     """Whether the manifest FILE differs from its text at SHA in nothing but its `version`."""
     try:
@@ -63,14 +86,19 @@ def main(args):
         else:
             print("approve")
         return 0
-    if len(args) == 2 and args[0] == "--since" and not args[1].startswith("-"):
+    ref = args[3] if len(args) == 4 and args[2] == "--ref" and not args[3].startswith("-") else "main"
+    if len(args) in (2, 4) and args[0] == "--since" and not args[1].startswith("-") and (len(args) == 2 or args[2] == "--ref" and not args[3].startswith("-")):
         top = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True)
         if top.returncode:
             sys.exit(f"pick-verdict: git cannot read {args[1]}: {top.stderr.strip()}")
         root = top.stdout.rstrip("\n")
-        judged = [file for file in changed_files(root, args[1]) if not unjudged(root, args[1], file)]
+        changed = changed_files(root, args[1])
+        if git(root, "merge-base", "--is-ancestor", args[1], "HEAD").returncode:
+            changed = moved_files(root, args[1], ref)
+        judged = [file for file in changed if not unjudged(root, args[1], file)]
         if judged:
-            print(f"judge again\nThe fix changes what no judge read: {', '.join(judged)}. Brief the judge with `Last judged: {args[1]}`.")
+            print(f"judge again\nThe fix changes what no judge read: {', '.join(judged)}. Brief the judge with `Last judged: {args[1]}`;"
+                  f" or, for a gap the approval listed, merge {args[1]} as approved and file each such fix as a task with the same parent.")
         else:
             print("merge\nThe fix changes only documents, fixtures and the version, so the approval holds.")
         return 0

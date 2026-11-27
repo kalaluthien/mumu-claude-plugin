@@ -15,7 +15,12 @@
   `judge again`, the files named in order and the sha in the brief line, a script staged and one committed alike; so do a plugin's
   `plugin.json` that gains a key beside its new `version`, one that is no JSON, one removed and one the approved head lacks; a sha git lacks and
   a folder outside any repository are named, exit 1;
-- `wired`: judge.md, worker.md, protocol.md and the repository's AGENTS.md each send their reader to the rule.
+- `rebase-kept`: after main gains a script and a line far above the change's in the change's script, and the approved branch is
+  rebased onto it with no conflict, `--since` prints `merge`, with
+  a fixture also fixed `merge`, and with the change's script also edited `judge again` naming that script alone; `--ref` naming main before it moved names main's script too;
+- `follow-up-offered`: each `judge again` also offers to merge the approved head and file the fix as a task with the same parent;
+- `wired`: judge.md, worker.md, protocol.md and the repository's AGENTS.md each send their reader to the rule, and judge.md, worker.md
+  and protocol.md name the follow-up task.
 
 usage: replay-verdict-rule.py"""
 import pathlib
@@ -34,6 +39,40 @@ BLOCKING = ("code-fault", "failed-scenario", "not-run")
 
 def listed_line(count):
     return f"approve\nList the {count} gaps under `Fix before merging:`; the worker fixes them and runs `pick-verdict.py --since <this head>` before it merges.\n"
+
+
+def rebased(work):
+    """(passed, detail) of `--since` on a branch rebased onto a main that gained a script after the approval."""
+    box = replay_probe.Sandbox(work / "rebase")
+    run = lambda *argv: box.python(SCRIPT, *argv).stdout
+    lines = "".join(f"x{n} = {n}\n" for n in range(20))
+    for name in ("tool.py", "p/fixtures/data.txt"):
+        (box.repository / name).parent.mkdir(parents=True, exist_ok=True)
+        (box.repository / name).write_text(lines)
+    box.git("add", "-A")
+    box.git("commit", "-qm", "base")
+    box.git("checkout", "-qb", "change")
+    (box.repository / "tool.py").write_text(lines + "y = 2\n")
+    box.git("commit", "-qam", "approved")
+    approved = box.git("rev-parse", "HEAD").strip()
+    box.git("checkout", "-q", "main")
+    box.git("branch", "-q", "trunk")
+    (box.repository / "other.py").write_text("z = 3\n")
+    (box.repository / "tool.py").write_text("import os\n" + lines)  # far from the change, so its hunk moves and keeps its text
+    box.git("add", "-A")
+    box.git("commit", "-qm", "main moved")
+    box.git("checkout", "-q", "change")
+    box.git("rebase", "-q", "main")
+    got = {"rebased": run("--since", approved)}
+    (box.repository / "p/fixtures/data.txt").write_text("x = 2\n")
+    got["fixture"] = run("--since", approved)
+    (box.repository / "tool.py").write_text("import os\n" + lines + "y = 3\n")
+    got["script"] = run("--since", approved)
+    got["ref"] = run("--since", approved, "--ref", "trunk")
+    merge = "merge\n"
+    passed = (got["rebased"].startswith(merge) and got["fixture"].startswith(merge)
+              and got["script"].startswith("judge again\nThe fix changes what no judge read: tool.py.") and got["ref"].startswith("judge again\nThe fix changes what no judge read: other.py, tool.py."))
+    return passed, got
 
 
 def main(args):
@@ -78,7 +117,8 @@ def main(args):
             write(name, '{"version": "1.0.1", "name": "p"}\n' if name == MANIFEST else "y = 2\n")
             unjudged += [run("--since", approved), run("--since", approved, folder="p/q")]
         cases.step("unjudged", unjudged == [merge] * len(unjudged), unjudged)
-        again = lambda *files: (0, f"judge again\nThe fix changes what no judge read: {', '.join(files)}. Brief the judge with `Last judged: {approved}`.\n", "")
+        offer = f" or, for a gap the approval listed, merge {approved} as approved and file each such fix as a task with the same parent."
+        again = lambda *files: (0, f"judge again\nThe fix changes what no judge read: {', '.join(files)}. Brief the judge with `Last judged: {approved}`;{offer}\n", "")
         judged = {}
         write("tool.py", "x = 2\n")
         judged["script"] = run("--since", approved), again("tool.py")
@@ -116,11 +156,14 @@ def main(args):
         cases.step("judged", all(got == expected for got, expected in judged.values()) and (code, out) == (1, "")
                    and re.fullmatch(r"pick-verdict: git cannot read nowhere: \S[^\n]*\n", error) and (outside.returncode, outside.stdout) == (1, "")
                    and re.fullmatch(rf"pick-verdict: git cannot read {approved}: \S[^\n]*\n", outside.stderr), (judged, code, out, error, outside))
+        cases.step("follow-up-offered", all(got[1].endswith(offer + "\n") for got, expected in judged.values() if got[1].startswith("judge again")), judged)
+        cases.step("rebase-kept", *rebased(work))
     references = SKILL / "references"
     judge, worker, protocol = ((references / name).read_text() for name in ("judge.md", "worker.md", "protocol.md"))
     agents = (pathlib.Path(__file__).resolve().parents[4] / "AGENTS.md").read_text()
     wired = {"judge": "pick-verdict.py](../scripts/pick-verdict.py) `--gaps" in judge and "Fix before merging:" in judge,
-             "worker": "pick-verdict.py](../scripts/pick-verdict.py) `--since" in worker, "protocol": "pick-verdict.py" in protocol, "agents": "pick-verdict.py" in agents}
+             "worker": "pick-verdict.py](../scripts/pick-verdict.py) `--since" in worker, "protocol": "pick-verdict.py" in protocol, "agents": "pick-verdict.py" in agents,
+             **{f"{name} follow-up": "merge the approved head" in text and "task with the same parent" in text for name, text in (("judge", judge), ("worker", worker), ("protocol", protocol))}}
     cases.step("wired", all(wired.values()), wired)
     return cases.finish()
 
