@@ -278,6 +278,7 @@ def reminder(call, role, session_id=None):
 def expanded_path(word):
     """WORD with `${CLAUDE_PLUGIN_ROOT}`, `$CLAUDE_PLUGIN_ROOT`, `$HOME` and a leading tilde written as the folders they name; None when another variable or a substitution is left in it."""
     folders = {"CLAUDE_PLUGIN_ROOT": str(ROOT), "HOME": os.path.expanduser("~")}
+    word = re.sub(r"^[A-Za-z_][A-Za-z0-9_]*=", "", word)
     word = os.path.expanduser(re.sub(r"\$\{(CLAUDE_PLUGIN_ROOT|HOME)\}|\$(CLAUDE_PLUGIN_ROOT|HOME)\b", lambda found: folders[found[1] or found[2]], word))
     return None if "$" in word or "`" in word else word
 
