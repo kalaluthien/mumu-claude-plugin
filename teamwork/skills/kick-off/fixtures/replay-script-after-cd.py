@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Check that `use-board.py` refuses a body or a comment that runs a teamwork script after a `cd`, in a scratch git repository, and print `ok <case>` or `fail <case>: <what it saw>`
 per case, then `PASS script after cd` or `FAIL script after cd`; exit 1 on any failure:
-- `refused`: `file` with a body, `comment` with a text and `edit` with a new body that each hold `cd <folder> && python3 use-board.py read 1` exit 2 naming the `cd`, and post and store nothing;
-- `allowed`: the same three writes with `use-board.py read 1 --repository <folder>` or `cd ~ && use-board.py read 1` in place of it exit 0.
+- `refused`: `file` with a body, `comment` with a text and `edit` with a new body that each run `use-board.py` after a `cd` into a folder in one command line exit 2 naming the `cd`, and post and store nothing;
+- `allowed`: the same three writes with the call made by `--repository <folder>`, or after a `cd ~`, in place of it exit 0.
 
 usage: replay-script-after-cd.py"""
 import pathlib
@@ -13,8 +13,9 @@ sys.path.insert(0, str(SKILL.parents[1] / "lib"))
 import replay_probe  # noqa: E402
 
 USE = SKILL / "scripts" / "use-board.py"
-BAD = "cd /somewhere && python3 use-board.py read 1"
-GOOD = ("python3 use-board.py read 1 --repository /somewhere", "cd ~ && python3 use-board.py read 1")
+CALL = "python3 use-board.py read 1"
+BAD = f"cd /somewhere && {CALL}"
+GOOD = (f"{CALL} --repository /somewhere", f"cd ~ && {CALL}")
 
 
 def writes(box, repository, work, line):

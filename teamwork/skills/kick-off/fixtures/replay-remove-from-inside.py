@@ -4,6 +4,8 @@ per case, then `PASS remove from inside` or `FAIL remove from inside`; exit 1 on
 - `inside`: called from inside the worktree it removes, it removes nothing, exits 2 and prints a call that starts with `cd ~`, names the main checkout by `--repository`
   and the script by its path;
 - `printed-call`: that printed call, run from the worktree, removes the worktree;
+- `subfolder`: called from a folder under the worktree, it removes nothing and exits 2;
+- `linked`: called from inside the worktree with `--repository` a symbolic link to the main checkout, it removes nothing and exits 2;
 - `outside`: called from the main checkout, it removes the worktree.
 
 usage: replay-remove-from-inside.py"""
@@ -38,6 +40,15 @@ def main(args):
         # the stand-in shell is at $HOME of the sandbox, which is where the printed call moves to
         ran = replay_probe.sh("sh", "-c", call, cwd=tree, environment={**box.environment}, check=False)
         cases.step("printed-call", ran.returncode == 0 and not tree.exists(), [ran.returncode, ran.stdout, ran.stderr, shlex.quote(call)])
+        tree = worktree(box, "probe-sub-worker")
+        (tree / "sub").mkdir()
+        sub = box.python(SCRIPTS / "remove-worktree.py", "probe-sub-worker", cwd=tree / "sub", check=False)
+        cases.step("subfolder", sub.returncode == 2 and tree.is_dir(), [sub.returncode, sub.stderr])
+        link = work / "linked-checkout"
+        link.symlink_to(box.repository)
+        linked = box.python(SCRIPTS / "remove-worktree.py", "probe-sub-worker", "--repository", link, cwd=tree, check=False)
+        cases.step("linked", linked.returncode == 2 and tree.is_dir(), [linked.returncode, linked.stderr])
+        box.python(SCRIPTS / "remove-worktree.py", "probe-sub-worker", cwd=box.repository)
         tree = worktree(box, "probe-other-worker")
         outside = box.python(SCRIPTS / "remove-worktree.py", "probe-other-worker", cwd=box.repository)
         cases.step("outside", outside.returncode == 0 and not tree.exists(), [outside.returncode, outside.stdout, outside.stderr])

@@ -18,7 +18,6 @@ import json
 import pathlib
 import re
 import shutil
-import subprocess
 import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
