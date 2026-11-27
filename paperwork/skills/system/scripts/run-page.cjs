@@ -3,8 +3,8 @@
 // 1920 by 1080 pixels, and drive it as a person with a pointer and a keyboard would.
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
-// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [counts] [note] [formulas] [code] [tables] [layout] [wrap]
-// With no word it runs the twenty-five steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
+// usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [counts] [note] [formulas] [code] [tables] [layout] [wrap] [fonts]
+// With no word it runs the twenty-six steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
 //   diagram  make-page.py builds each example's page and it equals the built page kept beside the contract; a
@@ -157,6 +157,10 @@
 //            the checker accepts the copy, and at each size each of those notes shows whole over two lines or more inside
 //            the window, and the note, the node's label and each text of the node's kept card split no word across two
 //            lines and reach past no side of their box.
+//   fonts    on a copy of each example whose token sheet sets every type size and line height 1.75 times as large, at 1440 by
+//            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
+//            badges included, split no word across two lines, keep each word inside their box across and their lines inside
+//            the node or area down, no node's tag runs under its badges, and no area's badge is shorter than its text, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -170,7 +174,7 @@ const ROOT = path.resolve(__dirname, "..");
 const browsers = require(path.join(__dirname, "..", "..", "..", "lib", "launch-browser.cjs"));
 const { check, same, python, tags: catalogue } = require(path.join(__dirname, "..", "..", "..", "lib", "check-step.cjs"));
 const SIZES = [[1024, 768], [1440, 900], [1920, 1080]];
-const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap"];
+const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes", "search", "titles", "results", "regex", "ranking", "recent", "tasks", "sweep", "names", "glosses", "badges", "counts", "note", "formulas", "code", "tables", "layout", "wrap", "fonts"];
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
@@ -2460,6 +2464,60 @@ async function layout(browser) {
   console.log(`groups measured: ${GROUPS.join(", ")}`);
 }
 
+// ---- fonts ----
+const fitted = ([selector, frame]) => [...document.querySelectorAll(selector)].filter((element) => element.getClientRects().length).map((element) => { // per text: a word split across two lines, a word past its box or FRAME across, or its lines past FRAME down; a glyph's own box may stand a pixel over its line, which no reader sees
+  const own = element.getBoundingClientRect(), outer = element.closest(frame).getBoundingClientRect(), left = Math.max(own.left, outer.left), right = Math.min(own.right, outer.right);
+  const found = { text: element.textContent, split: "", out: own.top < outer.top - 0.5 || own.bottom > outer.bottom + 0.5 ? element.textContent : "", wide: element.scrollWidth > element.clientWidth + 1 };
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  for (let text = walker.nextNode(); text; text = walker.nextNode()) for (const word of text.data.matchAll(/\S+/g)) {
+    const range = document.createRange();
+    range.setStart(text, word.index);
+    range.setEnd(text, word.index + word[0].length);
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0.5);
+    if (!found.split && rects.some((rect) => Math.abs(rect.top - rects[0].top) > 6)) found.split = word[0];
+    if (!found.out && rects.some((rect) => rect.left < left - 0.5 || rect.right > right + 0.5)) found.out = word[0];
+  }
+  return found;
+});
+const GROWN = 1.75; // each type size and line height of the copy's token sheet against the sheet's own
+async function fonts(browser) {
+  let read = 0, sizes = "";
+  for (const example of examples) {
+    const flat = JSON.parse(fs.readFileSync(example.source, "utf8")), copy = { name: example.name + "-fonts", source: path.join(scratch, example.name + "-fonts.json"), built: path.join(scratch, example.name + "-fonts.html") };
+    for (const area of flat.areas || []) area.label += " with every part it holds"; // a header wider than the nodes under it sets its area's width
+    fs.writeFileSync(copy.source, JSON.stringify(flat));
+    make(copy);
+    const page = fs.readFileSync(copy.built, "utf8"), grown = page.replace(/(--(?:type|leading)-\d+): (\d+)px/g, (whole, name, px) => `${name}: ${Math.round(px * GROWN)}px`);
+    check(grown !== page, `${copy.name}: the page holds no type size of the token sheet`);
+    sizes = [...grown.matchAll(/--(?:type|leading)-\d+: \d+px/g)].map(([one]) => one).join(", ");
+    fs.writeFileSync(copy.built, grown);
+    await each(copy.contract.levels, async (level) => {
+      const view = await open(browser, copy, SIZES[1], { still: true, at: "#level=" + level.id }), where = `${copy.name} level ${level.id}`;
+      const seen = [...(await view.evaluate(fitted, ["#stage .node b, #stage .node small", ".node"])), ...(await view.evaluate(fitted, ["#stage .area > header", ".area"]))];
+      check(seen.length >= level.nodes.length, `${where}: ${seen.length} labels, tags and headers shown for ${level.nodes.length} nodes`);
+      unbroken(seen, where);
+      const crowded = await view.evaluate(() => [...document.querySelectorAll("#stage .node")].filter((node) => { // a tag line running under the node's badges
+        const tag = node.querySelector("small"), badges = node.querySelector(":scope > .claims");
+        if (!tag || !badges || !badges.getClientRects().length) return false;
+        const range = document.createRange();
+        range.selectNodeContents(tag);
+        return range.getBoundingClientRect().right > badges.getBoundingClientRect().left + 0.5;
+      }).map((node) => node.dataset.id));
+      check(!crowded.length, `${where}: the tag of ${crowded[0]} runs under its badges`);
+      const cut = await view.evaluate(() => [...document.querySelectorAll("#stage .area > header .claims > .claim")].filter((claim) => { // a header badge shorter than its text
+        const range = document.createRange();
+        range.selectNodeContents(claim);
+        return range.getBoundingClientRect().height > claim.getBoundingClientRect().height + 0.5;
+      }).map((claim) => claim.closest(".area").dataset.id));
+      check(!cut.length, `${where}: a badge of area ${cut[0]} is shorter than its text`);
+      read += seen.length;
+      quiet(view, where);
+      await view.context().close();
+    });
+  }
+  console.log(`${read} labels, tags and headers read at ${sizes}, none split or cut off`);
+}
+
 async function main() {
   if (browsers.missing()) {
     console.log(`FAIL setup: ${browsers.missing()}`);
@@ -2470,7 +2528,7 @@ async function main() {
     const names = asked.length ? asked : STEPS;
     if (names.some((name) => name !== "sweep")) build(examples);
     browser = await launch();
-    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, counts, note, formulas, code, tables, layout, wrap };
+    const steps = { diagram, shapes, overlay, fit, clear, moves, changes, search, titles, results, regex, ranking, recent, tasks, sweep, names: nameChips, glosses, badges, counts, note, formulas, code, tables, layout, wrap, fonts };
     for (const name of names) { // one step at a time, since pages that share a busy machine miss the pointer's timing
       const started = Date.now(), line = await steps[name](browser).then(() => `PASS ${name}`, (error) => `FAIL ${name}: ${error.message.split("\n")[0]}`);
       failed += line.startsWith("FAIL");
