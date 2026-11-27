@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-// Check every colour each example page of system and flow draws, and print `PASS <step>` or `FAIL <step>: <reasons>` per step, then
+// Check every colour each example page of system and flow and the relay's starter page draw, and print `PASS <step>` or `FAIL <step>: <reasons>` per step, then
 // PASS or FAIL.
 //   tokens   each colour token of ../page-tokens.css stands under a comment citing a source its header lists.
 //   cvd      the status tokens, and the group tokens, of each scheme are each 0.1 or more apart in OKLab, as seen and under protanopia,
 //            deuteranopia and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, on linear sRGB.
-//   literals no page holds a colour literal outside the tokens' own text.
+//   literals no page holds a colour literal outside the tokens' own text and the relay's own overlay, which runs on any page and so
+//            draws its own colours.
 //   <page> <width> <scheme>  once a level move ends, in a headless Chromium at 390 by 844 and 1200 by 800, light and dark, with the page as loaded, with the
 //            search open on a query, and with a badge's card open: once with every token's colour swapped for one planted colour,
 //            every colour drawn is that colour, so none comes from elsewhere; then with the tokens as written, every text is at 4.5:1
 //            or more against what is behind it, and every badge, line and frame at 3:1 or more, a frame against both its sides. A
 //            hairline drawn in the chrome's `--border` is not a frame of the drawing, what an opaque layer covers is not drawn, and a
 //            part system dims while the reader keeps another record (`.dim`) is not measured.
-//            Flow's diagram, which scrolls, is checked at each viewport-sized step of its scroll.
+//            Flow's diagram, which scrolls, is checked at each viewport-sized step of its scroll, and the relay's overlay is hidden.
 //
 // usage: drive-page-colours.cjs
 const fs = require("fs");
@@ -29,7 +30,7 @@ const PLANTED = "rgb(200, 40, 120)";
 const pages = ["system", "flow"].flatMap((skill) => {
   const folder = path.join(PLUGIN, "skills", skill, "examples");
   return fs.existsSync(folder) ? fs.readdirSync(folder).sort().map((name) => path.join(folder, name, "page.html")).filter((file) => fs.existsSync(file)) : [];
-});
+}).concat(path.join(PLUGIN, "skills", "system", "assets", "diagram-page.html"));
 
 // ---- the palette's arithmetic: OKLCH to linear sRGB, the simulated views and their OKLab distances ----
 const MACHADO = {
@@ -104,7 +105,7 @@ const NAMES = new Set(NAMED.split(" "));
 function literals(text) {
   const found = [];
   for (const page of pages) {
-    const own = fs.readFileSync(page, "utf8").split(text.trim()).join(""), name = path.relative(PLUGIN, page);
+    const own = fs.readFileSync(page, "utf8").split(text.trim()).join("").replace(/<!-- relay runtime -->[\s\S]*?<!-- \/relay runtime -->/g, ""), name = path.relative(PLUGIN, page);
     const styled = [...own.matchAll(/<style[^>]*>([\s\S]*?)<\/style>|<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>|\sstyle="([^"]*)"/g)].map((match) => match[1] || match[2] || match[3] || "").join("\n");
     const seen = [...styled.matchAll(/\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^)]*\)/g), ...styled.matchAll(/(?::\s*|["'])#[0-9a-fA-F]{3,8}\b(?![-\w])/g)].map((match) => match[0]);
     for (const match of styled.matchAll(/\b(?:color|background(?:-color)?|fill|stroke|border(?:-[a-z]+)*|outline(?:-color)?|box-shadow|text-shadow|caret-color|accent-color|stop-color)\s*:\s*([^;{}\n"']*)/g))
@@ -247,7 +248,7 @@ async function drive(browser, page, [width, height], scheme, planted, overrides)
   tab.on("pageerror", (error) => faults.push(String(error)));
   await tab.goto("file://" + page);
   await tab.waitForTimeout(700);
-  await tab.addStyleTag({ content: "* { pointer-events: auto !important; transition: none !important; animation: none !important; }" + (planted ? overrides : "") });
+  await tab.addStyleTag({ content: "* { pointer-events: auto !important; transition: none !important; animation: none !important; } #relay-ui { display: none !important; }" + (planted ? overrides : "") });
   const run = async () => found.push(...await tab.evaluate(measure, { planted: PLANTED, mode: planted ? "planted" : "ratios" }));
   const steps = await tab.evaluate(() => { const diagram = document.getElementById("diagram"); if (!diagram || getComputedStyle(diagram).overflow === "hidden") return [[0, 0]];
     const xs = [], ys = []; for (let x = 0; x < diagram.scrollWidth; x += diagram.clientWidth) xs.push(x); for (let y = 0; y < diagram.scrollHeight; y += diagram.clientHeight) ys.push(y);
