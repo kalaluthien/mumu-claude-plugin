@@ -45,7 +45,9 @@ printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer 
 see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
 for each whose branch no criterion reaches; each other comparison it adds is then negated alone, each number made 0, or 1 when it is 0, each codec
-name given to `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each element of a list or tuple and each operand of `and` or `or` dropped, and
+name given to `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each element of a list or tuple and each operand of `and` or `or` dropped, each path call swapped for its sibling (`resolve` and `absolute` for each other, `realpath` for `abspath`,
+`abspath` and `normpath` for each other, `is_dir` or `is_file` for `exists`, `exists` for `is_dir`) and each `<side> == <text>` widened to `<text> in <side>`; once per Python file it sweeps, the file is
+made to raise at its first line, which a criterion that only finds two runs equal lets survive, so make a criterion read what a run prints; and
 `<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound, a weight, an argument or a codec no check
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
@@ -96,6 +98,9 @@ HEADER = "REPORTED: criteria at "
 CELL = 160
 LIVE_RUNS = 4
 FEW_HUNKS = 4  # a file with more hunks is reverted whole, then by halves
+# a path call and the sibling a mutant swaps it for, each pair differing on a link, a relative path or a file that is no folder
+SIBLINGS = {"resolve": "absolute", "absolute": "resolve", "realpath": "abspath", "abspath": "normpath", "normpath": "abspath", "is_dir": "exists", "is_file": "exists",
+            "exists": "is_dir"}
 RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 UNWATCHED = {".git", "__pycache__", ".DS_Store"}
 TEXT_SCAN_FIX = """
@@ -498,7 +503,8 @@ def added_mutants(line, patch, text):
     """(line, start, end, replacement, kind) of each mutant of the lines a Python hunk adds in TEXT, its first added line being LINE, as byte spans:
     each `if` or `elif` test made `False`, each other comparison negated, each number made 0, or 1 when it is 0, each codec name given to
     `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each list or tuple written without one element and each
-    `and` or `or` without one operand; a mutant that is not valid Python is left out."""
+    `and` or `or` without one operand, each path call swapped for its sibling in SIBLINGS, and each `<side> == <text>` widened to
+    `<text> in <side>`; a mutant that is not valid Python is left out."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
@@ -520,6 +526,13 @@ def added_mutants(line, patch, text):
         elif isinstance(node, ast.Compare) and node.lineno in added and id(node) not in tests:
             start, end = span(node)
             found.append((node.lineno, start, end, b"(not (" + data[start:end] + b"))", "comparison"))
+        if isinstance(node, ast.Compare) and node.lineno in added and isinstance(node.ops[0], ast.Eq):
+            text_side = node.comparators[0]
+            if isinstance(text_side, ast.Constant) and isinstance(text_side.value, str):
+                found.append((node.lineno, *span(node), ast.unparse(ast.Compare(text_side, [ast.In()], [node.left])).encode(), "equality"))
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in SIBLINGS and node.func.end_lineno in added:
+            end = span(node.func)[1]
+            found.append((node.func.end_lineno, end - len(node.func.attr), end, SIBLINGS[node.func.attr].encode(), "path call"))
         elif isinstance(node, ast.Constant) and type(node.value) in (int, float) and node.lineno in added:
             found.append((node.lineno, *span(node), b"1" if node.value == 0 else b"0", "number"))
         elif isinstance(node, ast.Call):
@@ -549,6 +562,17 @@ def added_mutants(line, patch, text):
             continue
         valid.append((line, start, end, replacement, kind))
     return valid
+
+
+def raised_at_start(text):
+    """[(line, start, end, replacement, kind)] of the one mutant that makes the Python TEXT raise at its first line, so every run of it
+    fails alike; none for a text that is empty, as that of a file the sweep does not mutate is, or no Python."""
+    try:
+        ast.parse(text)
+    except SyntaxError:
+        return []
+    first = 0  # the mutant goes before the first byte, since a later place may sit inside a comment
+    return [(1, first, first, b"raise RuntimeError\n", "start of the file")] if text else []
 
 
 def run_per_hunk(options, task, root, live):
@@ -635,8 +659,10 @@ def run_per_hunk(options, task, root, live):
             unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone]
             path = pathlib.Path(copy, file)
             text = path.read_text() if file.endswith(".py") and path.is_file() and "fixtures" not in pathlib.PurePosixPath(file).parts else ""
-            for _, line, patch in (hunk for hunk in group if hunk not in alone):
-                for number, start, end, replacement, kind in added_mutants(line, patch, text):
+            needed = [added_mutants(line, patch, text) for _, line, patch in group if (file, line, patch) not in alone]
+            # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
+            for made in needed + [raised_at_start(text)] * bool(needed):
+                for number, start, end, replacement, kind in made:
                     data = text.encode()
                     path.write_bytes(data[:start] + replacement + data[end:])
                     alive = kept_passing(copy)
@@ -648,7 +674,7 @@ def run_per_hunk(options, task, root, live):
                     if alive and kind == "condition":
                         unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
                     elif alive:
-                        unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode()}`, so make a criterion fail on it or drop it")
+                        unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode().strip()}`, so make a criterion fail on it or drop it")
     print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded"
           + (f", {len(kept)} unchanged since {options.since}, not swept" if options.since else ""))
     print(*unneeded, sep="\n")

@@ -4,10 +4,10 @@ its output, writes it by two codecs and joins two tests by `and`, adds a line to
 checker under `fixtures/` that holds them too. Print `ok <case>` or `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `survivors-named`: a check that needs only the scripts' last lines makes `--hunks` name, as surviving mutants with what each becomes, the
   argument list without its second and without its third element, a subscript's tuple without its slice, each of the three codecs swapped, and
-  the `and` without each operand, beside the argument's index, exit 1; twelve mutants are made, the list without `git` and a pair without
+  the `and` without each operand, beside the argument's index, exit 1; fourteen mutants are made, each script raising at its first line, the list without `git` and a pair without
   either word among them, which stop the script, and none for the tuple without its last element, which is no Python, a pair that is
   assigned to, a codec no Python knows or its second argument, one that is no text, or a word that names a codec given to another call;
-- `all-killed`: a check that reads what the script prints and writes for a name outside ASCII, an empty one and a refused one names none, twelve made, exit 0;
+- `all-killed`: a check that reads what the script prints and writes for a name outside ASCII, an empty one and a refused one names none, fourteen made, exit 0;
 - `old-lines-spared`: neither sweep names a line the change did not add, nor a line of the checker under `fixtures/`.
 
 usage: replay-hunk-mutants.py"""
@@ -103,9 +103,9 @@ def main(args):
         box.git("add", "-A")
         box.git("commit", "-qm", "change")
         code, counts, weak, text = sweep(box, "weak")
-        cases.step("survivors-named", (code, counts, weak) == (1, [12, 9], SURVIVORS), text)
+        cases.step("survivors-named", (code, counts, weak) == (1, [14, 9], SURVIVORS), text)
         code, counts, strong, text = sweep(box, "strong")
-        cases.step("all-killed", (code, counts, strong) == (0, [12, 0], set()), text)
+        cases.step("all-killed", (code, counts, strong) == (0, [14, 0], set()), text)
         cases.step("old-lines-spared", not any("old.py" in line or "fixtures/" in line for line in weak | strong) and len(weak | strong) == len(SURVIVORS), sorted(weak | strong))
     return cases.finish()
 
