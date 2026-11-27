@@ -3,10 +3,12 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--run-timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
 `--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
-on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started.
+on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started. It bounds each git, tar
+or ps call too: one past it is killed the same way, and the run exits 1 naming it. `--run-timeout` is the whole run's limit, 7200 s unless
+given: the check or call running at it is killed the same way, and the run exits 1 naming that limit.
 A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
 file is the worker's own draft, so it runs.
 
@@ -37,7 +39,7 @@ A check run in an export of `--base` or `--hunks` has every process still runnin
 `--hunks` holds beside the `[check]`s each fixture runner the change adds or edits, a `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, run to exit 0,
 so a task of `[score]`s alone is swept too; a runner that fails at the head is not held.
 `--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
-runs the `[check]`s there, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
+runs the `[check]`s there, prints to stderr one progress line per reverted group and per mutant below, its count and the seconds since the run began, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
 hunk; a git check, which the export cannot run, never counts. A file of more than 4 hunks is reverted whole, then by
 halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<file>: <n> hunks not judged one by one` is
@@ -85,6 +87,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import board  # noqa: E402
@@ -116,8 +119,49 @@ To fix a `wrong pass` row, run the criterion's command on the sample by hand and
 `exits` or `more`; a check that reads its input twice can never pass on a pipe."""
 
 
+call_limit = None  # `--timeout`, which main sets before any call
+run_limit, started = None, time.monotonic()  # `--run-timeout`, which main sets, and when the run began
+
+
+def within(limit):
+    """LIMIT cut to what is left of the whole run's limit; past that the run exits 1 naming it, since a limit per check never bounds a run of many checks."""
+    left = run_limit - (time.monotonic() - started)
+    if left <= 0:
+        sys.exit(f"run-criteria: the run passed its whole limit of {run_limit} s; give a longer one with --run-timeout <s>, or run fewer checks, such as by --since <sha>")
+    return min(limit, left)
+
+
+def progress(text):
+    """A line to stderr saying how far the run is, so a run that still moves reads apart from one that hangs."""
+    print(f"run-criteria: {text}, {time.monotonic() - started:.0f} s", file=sys.stderr, flush=True)
+
+
+def call(argv, cwd=None, env=None, text=False):
+    """ARGV's finished process, its stdout and stderr read; past `call_limit` it is killed with every process it started and the run exits 1 naming it,
+    since a git, tar or ps call that never answers would hang the run."""
+    limit = within(call_limit)
+    process = subprocess.Popen(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text, start_new_session=True)
+    try:
+        out, err = process.communicate(timeout=limit)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait()  # never the output, which a process that left the group may hold open
+        within(call_limit)
+        sys.exit(f"run-criteria: `{' '.join(argv[:2])}` gave no answer in {call_limit} s; give a longer limit with --timeout <s>")
+    return subprocess.CompletedProcess(argv, process.returncode, out, err)
+
+
 def git_output(*argv, cwd=None):
-    return subprocess.run(["git", *argv], cwd=cwd, capture_output=True, text=True).stdout.strip()
+    return call(["git", *argv], cwd=cwd, text=True).stdout.strip()
+
+
+def export(root, ref, folder):
+    """FOLDER/tree holding REF's files, or None when git or tar fails; the archive goes through a file, since a pipe between them is a read no limit bounds."""
+    archive, copy = os.path.join(folder, "tree.tar"), os.path.join(folder, "tree")
+    os.mkdir(copy)
+    if call(["git", "archive", "--output", archive, ref], cwd=root).returncode or call(["tar", "-x", "-f", archive, "-C", copy]).returncode:
+        return None
+    return copy
 
 
 def read_file(file):
@@ -164,7 +208,7 @@ def outside_files(command, root):
         try:
             if path.resolve().is_relative_to(pathlib.Path(root).resolve()) or not path.exists():
                 continue
-            if path.is_dir():
+            if not path.is_file():  # a folder's files are not read, and a pipe, a FIFO or a device would be read until its writer ends
                 return None
             digest.update(str(path).encode() + b"\0" + path.read_bytes())
         except OSError:
@@ -270,7 +314,7 @@ class Memory:
 
 def git_state(root):
     """The commit, branch and index state of ROOT as text, since a check may read them and equal files do not make them equal."""
-    status = subprocess.run(["git", "status", "--porcelain=v1", "-z"], cwd=root, capture_output=True, text=True).stdout
+    status = call(["git", "status", "--porcelain=v1", "-z"], cwd=root, text=True).stdout
     return "\0".join([git_output("rev-parse", "HEAD", cwd=root), git_output("symbolic-ref", "-q", "HEAD", cwd=root), status])
 
 
@@ -278,8 +322,8 @@ def tree_of_files(root):
     """The git tree of every file in ROOT not ignored, as a sha, so equal files give an equal tree whoever wrote them; empty when git cannot say."""
     with tempfile.TemporaryDirectory(prefix="run-criteria-index-") as folder:
         environment = {**os.environ, "GIT_INDEX_FILE": str(pathlib.Path(folder, "index"))}
-        added = subprocess.run(["git", "add", "-A"], cwd=root, env=environment, capture_output=True)
-        written = subprocess.run(["git", "write-tree"], cwd=root, env=environment, capture_output=True, text=True)
+        added = call(["git", "add", "-A"], cwd=root, env=environment)
+        written = call(["git", "write-tree"], cwd=root, env=environment, text=True)
         return written.stdout.strip() if not added.returncode and not written.returncode else ""
 
 
@@ -358,11 +402,8 @@ def base_ref(ref):
 
 def run_on_base(root, ref, rows, timeout, live, memory):
     """Rows of every criterion run in a `git archive` copy of the base, so the head's files never answer."""
-    with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as copy:
-        exported = subprocess.Popen(["git", "archive", ref], cwd=root, stdout=subprocess.PIPE)
-        subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
-        if exported.wait():
-            sys.exit(f"run-criteria: could not export {ref}; fetch it first")
+    with tempfile.TemporaryDirectory(prefix="run-criteria-base-") as folder:
+        copy = export(root, ref, folder) or sys.exit(f"run-criteria: could not export {ref}; fetch it first")
         # the list is made before any check runs, so a file a check writes is not taken for one the base holds
         with tempfile.NamedTemporaryFile("w", prefix="run-criteria-files-") as exported_files:
             exported_files.write("".join(f"./{path.relative_to(copy)}\n" for path in pathlib.Path(copy).rglob("*") if path.is_file()))
@@ -372,7 +413,7 @@ def run_on_base(root, ref, rows, timeout, live, memory):
 
 def end_strays(folder):
     """Kill every process that runs a file of the temporary copy FOLDER, since a check may start a monitor in a session of its own that outlives it, and a copy with a hunk reverted can miss the call that ends it."""
-    listed = subprocess.run(["ps", "-A", "-o", "pid=,command="], capture_output=True, text=True).stdout.splitlines()
+    listed = call(["ps", "-A", "-o", "pid=,command="], text=True).stdout.splitlines()
     for line in listed:
         pid, _, command = line.strip().partition(" ")
         if pid.isdigit() and int(pid) != os.getpid() and str(folder) + os.sep in command:
@@ -382,7 +423,7 @@ def end_strays(folder):
 def descendants(pid):
     """Every running process PID started, in its session or not."""
     children = {}
-    for line in subprocess.run(["ps", "-A", "-o", "pid=,ppid="], capture_output=True, text=True).stdout.splitlines():
+    for line in call(["ps", "-A", "-o", "pid=,ppid="], text=True).stdout.splitlines():
         child, parent = map(int, line.split())
         children.setdefault(parent, []).append(child)
     found, waiting = [], [pid]
@@ -395,10 +436,11 @@ def descendants(pid):
 
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
+    limit = within(timeout)
     process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                start_new_session=True)
     try:
-        out, _ = process.communicate(timeout=timeout)
+        out, _ = process.communicate(timeout=limit)
         return process.returncode, out.strip()
     except subprocess.TimeoutExpired:
         # read before the kill, since a child that left the check's session keeps its pipe open and is reparented once the session dies
@@ -410,6 +452,7 @@ def run(command, cwd, timeout):
             except ProcessLookupError:  # it ended with the session
                 pass
         process.wait()  # never the output, which a process that left the tree before the timeout may hold open for good
+        within(timeout)
         return None, f"timed out after {timeout} s; give a longer limit with --timeout <s>"
     finally:
         if pathlib.Path(cwd).resolve().is_relative_to(pathlib.Path(tempfile.gettempdir()).resolve()):
@@ -578,7 +621,7 @@ def raised_at_start(text):
 def run_per_hunk(options, task, root, live):
     """Names each hunk of the change whose revert alone turns no passing row into another result; exit 1 on one."""
     ref = base_ref(options.ref)
-    diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root, capture_output=True).stdout
+    diff = call(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", f"{ref}...HEAD"], cwd=root).stdout
     hunks = split_hunks(diff.decode("latin-1"))
     found = [(str(n), criterion) for n, criterion in enumerate(task_criteria(task), 1)]
     runners = sorted({file for file, _, _ in hunks if RUNNER.search(file)})
@@ -595,11 +638,8 @@ def run_per_hunk(options, task, root, live):
         """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
         return {label: row(label, *criterion, copy, options.timeout, live)[2] for label, criterion in found}
 
-    with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as copy:
-        exported = subprocess.Popen(["git", "archive", "HEAD"], cwd=root, stdout=subprocess.PIPE)
-        subprocess.run(["tar", "-x", "-C", copy], stdin=exported.stdout, check=True)
-        if exported.wait():
-            sys.exit("run-criteria: could not export HEAD")
+    with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as folder:
+        copy = export(root, "HEAD", folder) or sys.exit("run-criteria: could not export HEAD")
         at_head = results(copy)
         failing = [label for label, result in at_head.items() if result == "fail" and label not in runners]
         if failing:
@@ -615,6 +655,7 @@ def run_per_hunk(options, task, root, live):
 
         def survives(group):
             """True when no passing row changes with every hunk of GROUP, all of one file or link, reverted together."""
+            progress(f"reverting {len(group)} hunks of {group[0][0]}, file {place} of {len(by_file)}")
             path = pathlib.Path(copy, group[0][0])
             link = os.readlink(path) if path.is_symlink() else None
             kept = path.read_bytes() if link is None and path.is_file() else None
@@ -645,7 +686,7 @@ def run_per_hunk(options, task, root, live):
         by_file = {}
         for hunk in hunks:
             by_file.setdefault(hunk[0], []).append(hunk)
-        for file, group in by_file.items():
+        for place, (file, group) in enumerate(by_file.items(), 1):
             if len(group) > FEW_HUNKS and not options.each:
                 # a file of many hunks, such as a built page, is judged whole and by halves, so the rest of it is judged only when --each asks
                 halves = [] if survives(group) else [group[:len(group) // 2], group[len(group) // 2:]]
@@ -661,8 +702,12 @@ def run_per_hunk(options, task, root, live):
             text = path.read_text() if file.endswith(".py") and path.is_file() and "fixtures" not in pathlib.PurePosixPath(file).parts else ""
             needed = [added_mutants(line, patch, text) for _, line, patch in group if (file, line, patch) not in alone]
             # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
-            for made in needed + [raised_at_start(text)] * bool(needed):
+            made_here = needed + [raised_at_start(text)] * bool(needed)
+            count = 0
+            for made in made_here:
                 for number, start, end, replacement, kind in made:
+                    count += 1
+                    progress(f"mutant {count} of {sum(map(len, made_here))} in {file}, file {place} of {len(by_file)}")
                     data = text.encode()
                     path.write_bytes(data[:start] + replacement + data[end:])
                     alive = kept_passing(copy)
@@ -809,10 +854,10 @@ def hunk_lines(hunk):
 
 def changed_lines(root, since):
     """{file: set of head lines} each hunk between SINCE and the head touches; a hunk that only removes touches the line before it, and a file changed with no hunk, or whose name git quotes, maps to an empty set."""
-    diff = subprocess.run(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", since, "HEAD"], cwd=root, capture_output=True)
+    diff = call(["git", "-c", "core.quotepath=false", "diff", "--no-renames", "--src-prefix=a/", "--dst-prefix=b/", "-U0", since, "HEAD"], cwd=root)
     if diff.returncode:
         sys.exit(f"run-criteria: --since {since} names no commit here")
-    names = subprocess.run(["git", "diff", "--no-renames", "--name-only", "-z", since, "HEAD"], cwd=root, capture_output=True, text=True)
+    names = call(["git", "diff", "--no-renames", "--name-only", "-z", since, "HEAD"], cwd=root, text=True)
     found = {file: set() for file in names.stdout.split("\0") if file}  # a file with no hunk keeps an empty set: it changed as a whole
     # a name git quotes in a header, one with a `"`, a tab or a backslash, gets no hunk read, so it changed as a whole
     named = "".join(part for part in re.split(r"(?m)^(?=diff --git )", diff.stdout.decode("latin-1")) if not part.startswith('diff --git "'))
@@ -836,7 +881,7 @@ def run_since(options, task, root):
                 touched.setdefault(n, []).extend(part for file in changed if file == path or file.startswith(path + "/"))
                 continue
             # the head commit's file, since the hunks are the head commit's and an uncommitted edit would shift its lines
-            head = subprocess.run(["git", "show", f"HEAD:{path}"], cwd=root, capture_output=True)
+            head = call(["git", "show", f"HEAD:{path}"], cwd=root)
             span = section_span(head.stdout.decode(errors="replace"), path, section)  # a file the head lacks prints nothing, so it holds no section
             if span is None:
                 missing.append(f"{n}: covers `{part}`, which the head lacks: name a section by its Markdown heading's anchor or an HTML element's `id`")
@@ -874,6 +919,7 @@ def run_since(options, task, root):
 def main(args):
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=900)
+    parser.add_argument("--run-timeout", type=int, default=7200)
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--hunks", action="store_true")
     parser.add_argument("--each", action="store_true")
@@ -883,6 +929,8 @@ def main(args):
     parser.add_argument("--pass", dest="samples", action="append", default=[], metavar="N=FILE")
     parser.add_argument("task")
     options = parser.parse_args(data_folder.enter(args, __doc__))
+    global call_limit, run_limit
+    call_limit, run_limit = options.timeout, options.run_timeout
     file = pathlib.Path(options.task)
     task = {"body": read_file(file), "comments": []} if file.is_file() else runnable(read_task(options.task))
     root = git_output("rev-parse", "--show-toplevel") or "."
