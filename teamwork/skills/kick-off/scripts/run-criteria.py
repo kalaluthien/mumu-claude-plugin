@@ -49,7 +49,7 @@ see, such as a `version` bump, a usage line, a docstring or a document, is alway
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
 for each whose branch no criterion reaches; each other comparison it adds is then negated alone, each number made 0, or 1 when it is 0, each codec
 name given to `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each element of a list or tuple and each operand of `and` or `or` dropped, each path call swapped for its sibling (`resolve` and `absolute` for each other, `realpath` for `abspath`,
-`abspath` and `normpath` for each other, `is_dir` or `is_file` for `exists`, `exists` for `is_dir`) and each `<side> == <text>` widened to `<text> in <side>`; once per Python file it sweeps, the file is
+`abspath` and `normpath` for each other, `is_dir` or `is_file` for `exists`, `exists` for `is_dir`) each `<side> == <text>` widened to `<text> in <side>` and each `sorted(<items>, ...)` made `list(<items>)`; once per Python file it sweeps, the file is
 made to raise at its first line, which a criterion that only finds two runs equal lets survive, so make a criterion read what a run prints; and
 `<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound, a weight, an argument or a codec no check
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
@@ -603,8 +603,8 @@ def added_mutants(line, patch, text):
     """(line, start, end, replacement, kind) of each mutant of the lines a Python hunk adds in TEXT, its first added line being LINE, as byte spans:
     each `if` or `elif` test made `False`, each other comparison negated, each number made 0, or 1 when it is 0, each codec name given to
     `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each list or tuple written without one element and each
-    `and` or `or` without one operand, each path call swapped for its sibling in SIBLINGS, and each `<side> == <text>` widened to
-    `<text> in <side>`; a mutant that is not valid Python is left out."""
+    `and` or `or` without one operand, each path call swapped for its sibling in SIBLINGS, each `<side> == <text>` widened to
+    `<text> in <side>` and each `sorted(<items>, ...)` made `list(<items>)`; a mutant that is not valid Python is left out."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
@@ -630,6 +630,8 @@ def added_mutants(line, patch, text):
             text_side = node.comparators[0]
             if isinstance(text_side, ast.Constant) and isinstance(text_side.value, str):
                 found.append((node.lineno, *span(node), ast.unparse(ast.Compare(text_side, [ast.In()], [node.left])).encode(), "equality"))
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "sorted" and node.args and node.lineno in added:
+            found.append((node.lineno, *span(node), ast.unparse(ast.Call(ast.Name("list"), node.args[:1], [])).encode(), "sort"))
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in SIBLINGS and node.func.end_lineno in added:
             end = span(node.func)[1]
             found.append((node.func.end_lineno, end - len(node.func.attr), end, SIBLINGS[node.func.attr].encode(), "path call"))
