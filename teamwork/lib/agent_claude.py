@@ -101,8 +101,9 @@ def last_title(transcript):
 
 def typed(transcript):
     """The prompts TRANSCRIPT marks as typed by a person (`origin.kind` `human`), oldest first, without a kick-off, which herdr types for the
-    session that started this one and the transcript marks as typed too; a message from another session is `peer`, never `human`."""
-    found = []
+    session that started this one and the transcript marks as typed too, and each answer a person picked or typed in an AskUserQuestion dialog,
+    its result's `answers`, a multiple pick a list; a message from another session is `peer`, never `human`, and the dialog's questions and options are the session's own."""
+    found, asked = [], []
     try:
         lines = pathlib.Path(transcript or "").read_text(errors="replace").splitlines()
     except OSError:
@@ -112,10 +113,18 @@ def typed(transcript):
             row = json.loads(line)
         except ValueError:
             continue
-        content = (row.get("message") or {}).get("content") if (row.get("origin") or {}).get("kind") == "human" else None
-        text = content if isinstance(content, str) else "".join(block.get("text", "") for block in content or [] if isinstance(block, dict))
-        if not text.startswith(kickoff("")):
-            found.append(text)
+        content = (row.get("message") or {}).get("content")
+        blocks = [block for block in content if isinstance(block, dict)] if isinstance(content, list) else []
+        asked += [block["id"] for block in blocks if block.get("name") == "AskUserQuestion" and isinstance(block.get("id"), str)]
+        if (row.get("origin") or {}).get("kind") == "human":
+            text = content if isinstance(content, str) else "".join(block.get("text", "") for block in blocks)
+            if not text.startswith(kickoff("")):
+                found.append(text)
+        if any(block.get("tool_use_id") in asked for block in blocks):
+            result = row.get("toolUseResult")
+            answers = result.get("answers") if isinstance(result, dict) else None
+            for answer in answers.values() if isinstance(answers, dict) else ():
+                found.extend(pick for pick in (answer if isinstance(answer, list) else [answer]) if isinstance(pick, str))
     return found
 
 

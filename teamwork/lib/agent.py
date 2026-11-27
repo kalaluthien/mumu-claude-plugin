@@ -9,7 +9,8 @@ Every adapter has these names:
 - `interactive()` whether the session running this process is one a person types into, not a one-shot run
 - `own_id()` the session id of the session running this process, `own_transcript()` its transcript file, each or None
 - `started_name()` the name the session running this process was started with, which a rename never changes, or None
-- `typed(transcript)` the prompts a person typed into that session, never one another session sent or its kick-off
+- `typed(transcript)` the prompts a person typed into that session and the answers they picked in its AskUserQuestion dialogs, never one another session
+  sent or its kick-off
 - `draft(screen)` the text typed in the prompt box and not sent, from a styled screen: '' when the box is empty, None when the screen shows no box"""
 import importlib
 import os

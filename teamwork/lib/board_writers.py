@@ -1,7 +1,7 @@
 """The one gate of every board write and change close: who the writer is, taken from what started its session, never from a flag or a rename,
 and the one table `MAY` of which role may write which kind of record.
 - `writer()` the session running this process as `Writer(name, role, typed)`: the name it was started with, else the one `record` kept for its session id,
-  its role by that name's form (None for a session in no team, such as the owner's own), and the prompts a person typed into it
+  its role by that name's form (None for a session in no team, such as the owner's own), and the prompts a person typed into it and the answers they picked in it
 - `check(verb, number, fields, writer)` why WRITER may not do VERB (a board write verb, or `close`) on task or change NUMBER, whose record FIELDS
   holds (for a comment its `text` and fields, for a close the change); empty when it may
 - `record(name)` keeps NAME as this session's name, raising ValueError when it would change the role it has"""
@@ -84,9 +84,10 @@ def check(verb, number, fields, writer):
         found.append(f"a decision is its writer's own, by {writer.name}, never by {fields['by']}")
     if what == "owner decision":
         prose = re.sub(r"^(`{3,}|~{3,}).*?^\1", "", fields.get("text", ""), flags=re.M | re.S)
-        said = flat("\n".join(QUOTE.findall(prose)))
+        # each run of `>` lines is one quote, so a quote repeated or taken from two prompts or answers is still the owner's
+        said = [quote for run in re.findall(r"(?:^>.*(?:\n|$))+", prose, re.M) if (quote := flat("\n".join(QUOTE.findall(run))))]
         if not said:
             found.append("a decision by the owner quotes the owner's words as its `>` lines: pass them by `--owner-said <file>`")
-        elif not any(said in flat(prompt) for prompt in writer.typed):
-            found.append("the `>` lines are no words the owner typed in this session; quote the owner's prompt as they typed it")
+        elif not all(any(quote in flat(prompt) for prompt in writer.typed) for quote in said):
+            found.append("the `>` lines are no words the owner typed or picked in this session; quote the owner's prompt as they typed it, or the answer they picked")
     return found

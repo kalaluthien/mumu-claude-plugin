@@ -24,7 +24,7 @@ A comment is kept as its text and the fields [board-record-schema.json](../asset
 | live runs | `decide --live-runs <n>` | how many live sessions the checks run in one worktree may start in all; 4 when none says |
 | depends | `depend <task> --depends <numbers>`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
 | decision | `decide --decision <sentence>` | one binding sentence |
-| by | `decide --by owner --owner-said <file>`, else the calling session | who decided: `owner`, the owner's words as they typed them in the writing session quoted as `>` lines, else the writing session's own name |
+| by | `decide --by owner --owner-said <file>`, else the calling session | who decided: `owner`, the owner's words as they typed or picked them in the writing session quoted as `>` lines, else the writing session's own name |
 | one-way | `decide --one-way` | the decision is hard to undo |
 | supersedes | `decide --supersedes <url>` | the decision it replaces, anywhere in the same root's tree |
 | answers | `decide --answers <url>` | the `BLOCKED` it settles, on the same task |
