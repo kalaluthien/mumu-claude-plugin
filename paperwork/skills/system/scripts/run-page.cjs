@@ -159,8 +159,8 @@
 //            lines and reach past no side of their box.
 //   fonts    on a copy of each example whose token sheet sets every type size and line height a third larger, at 1440 by
 //            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
-//            badges included, split no word across two lines and reach past no side of their box, and no node's tag runs
-//            under its badges, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
+//            badges included, split no word across two lines, keep each word inside their box across and their lines inside
+//            the node or area down, and no node's tag runs under its badges, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -2465,6 +2465,20 @@ async function layout(browser) {
 }
 
 // ---- fonts ----
+const fitted = ([selector, frame]) => [...document.querySelectorAll(selector)].filter((element) => element.getClientRects().length).map((element) => { // per text: a word split across two lines, a word past its box or FRAME across, or its lines past FRAME down; a glyph's own box may stand a pixel over its line, which no reader sees
+  const own = element.getBoundingClientRect(), outer = element.closest(frame).getBoundingClientRect(), left = Math.max(own.left, outer.left), right = Math.min(own.right, outer.right);
+  const found = { text: element.textContent, split: "", out: own.top < outer.top - 0.5 || own.bottom > outer.bottom + 0.5 ? element.textContent : "", wide: element.scrollWidth > element.clientWidth + 1 };
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  for (let text = walker.nextNode(); text; text = walker.nextNode()) for (const word of text.data.matchAll(/\S+/g)) {
+    const range = document.createRange();
+    range.setStart(text, word.index);
+    range.setEnd(text, word.index + word[0].length);
+    const rects = [...range.getClientRects()].filter((rect) => rect.width > 0.5);
+    if (!found.split && rects.some((rect) => Math.abs(rect.top - rects[0].top) > 6)) found.split = word[0];
+    if (!found.out && rects.some((rect) => rect.left < left - 0.5 || rect.right > right + 0.5)) found.out = word[0];
+  }
+  return found;
+});
 const GROWN = 4 / 3; // each type size and line height of the copy's token sheet against the sheet's own
 async function fonts(browser) {
   let read = 0, sizes = "";
@@ -2479,7 +2493,7 @@ async function fonts(browser) {
     fs.writeFileSync(copy.built, grown);
     await each(copy.contract.levels, async (level) => {
       const view = await open(browser, copy, SIZES[1], { still: true, at: "#level=" + level.id }), where = `${copy.name} level ${level.id}`;
-      const seen = [...(await view.evaluate(spread, ["#stage .node b, #stage .node small", ".node"])), ...(await view.evaluate(spread, ["#stage .area > header", ".area"]))];
+      const seen = [...(await view.evaluate(fitted, ["#stage .node b, #stage .node small", ".node"])), ...(await view.evaluate(fitted, ["#stage .area > header", ".area"]))];
       check(seen.length >= level.nodes.length, `${where}: ${seen.length} labels, tags and headers shown for ${level.nodes.length} nodes`);
       unbroken(seen, where);
       const crowded = await view.evaluate(() => [...document.querySelectorAll("#stage .node")].filter((node) => { // a tag line running under the node's badges

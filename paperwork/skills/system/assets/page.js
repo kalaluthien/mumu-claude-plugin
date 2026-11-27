@@ -102,7 +102,8 @@
     { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: 26, dense: true },
   ];
   const pen = document.createElement("canvas").getContext("2d"), LID = 10;
-  const type = (weight, name) => `${weight} ${getComputedStyle(document.documentElement).getPropertyValue(name).trim()} ${FONT}`; // a font of the token sheet's type size, as the page draws it
+  const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const type = (weight, name) => `${weight} ${token(name)} ${FONT}`; // a font of the token sheet's type size, as the page draws it
   const badge = () => { pen.font = type(600, "--type-01"); return Math.max(22, Math.ceil(pen.measureText("G✓").width) + 8) + 6; }; // a badge, at least 22 px or its text and padding, then its gap and ring
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
     const spot = badge();
@@ -114,16 +115,16 @@
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tags[node.id] * grown + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
     const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node), tally(node) && need(node)); // a box never narrower than the label's longest word or the tag's line with its badges, so neither is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
-    const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 58 + 20 * (Math.max(...level.nodes.map(lines)) - 1);
+    const widest = Math.max(Math.min(most, Math.max(196, ...level.nodes.map(need))), ...level.nodes.map(room).filter(width => width > most)), tallest = 22 + parseFloat(token("--leading-03")) * Math.max(...level.nodes.map(lines)) + parseFloat(token("--leading-01")); // padding, border and gap, the label's lines, then the tag's
     const lid = node => node.tag === "dataStore" ? LID : 0; // a data store's cylinder lid sits above its label
-    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
+    return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 8 + parseFloat(token("--leading-01")) * (lines(node) + 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
   const heading = (area, fit) => { // an area as wide as its header's label, tag and badges, so none reaches past its frame
     const room = badge();
     pen.font = type(500, "--type-01");
     const label = pen.measureText(area.label).width, held = (contract.claims || []).filter(claim => (claim.on || []).includes(area.id)).length;
     pen.font = type(400, "--type-01");
-    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width + (held ? 4 + held * room : 0)) + 2 * fit.pad;
+    return Math.ceil((label + pen.measureText(tagName(area.tag)).width) * (fit.grown || 1) + 4 + (held ? 4 + held * room : 0)) + 2 * fit.pad;
   };
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
@@ -144,13 +145,14 @@
     };
     for (const fit of FITS) { // the roomiest drawing that fits near full size, turned the way that uses the window most
       const least = fit.dense ? 1 : .85;
-      const pick = sizes => {
-        const plans = [false, true].flatMap(outerDown => [false, true].map(innerDown => spread({ ...attempt(level, fit, sizes, outerDown, innerDown, 1, 1), fit, sizes, outerDown, innerDown })));
+      const pick = (sizes, grown = 1) => {
+        const drawn = { ...fit, grown }; // a header measured at the size its level draws its type
+        const plans = [false, true].flatMap(outerDown => [false, true].map(innerDown => spread({ ...attempt(level, drawn, sizes, outerDown, innerDown, 1, 1), fit: drawn, sizes, outerDown, innerDown })));
         const fitting = plans.filter(plan => fill(plan) >= least);
         return fitting.length ? fitting.reduce((a, b) => used(b) > used(a) + .01 ? b : a) : plans.reduce((a, b) => fill(b) > fill(a) + .01 ? b : a);
       };
       let best = pick(size(level, fit));
-      for (let turn = 0; turn < 2 && fill(best) < 1; turn++) best = pick(size(level, fit, 1 / Math.max(fill(best), .85))); // a level drawn smaller keeps its type's size, so its nodes are measured for the larger type
+      for (let turn = 0; turn < 2 && fill(best) < 1; turn++) { const grown = 1 / Math.max(fill(best), .85); best = pick(size(level, fit, grown), grown); } // a level drawn smaller keeps its type's size, so its nodes are measured for the larger type
       if (fill(best) >= least || fit === FITS[FITS.length - 1]) return best;
     }
   }
