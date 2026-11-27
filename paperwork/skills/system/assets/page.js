@@ -103,12 +103,14 @@
   ];
   const pen = document.createElement("canvas").getContext("2d"), LID = 10;
   const type = (weight, name) => `${weight} ${getComputedStyle(document.documentElement).getPropertyValue(name).trim()} ${FONT}`; // a font of the token sheet's type size, as the page draws it
+  const badge = () => { pen.font = type(600, "--type-01"); return Math.max(22, Math.ceil(pen.measureText("G✓").width) + 8) + 6; }; // a badge, at least 22 px or its text and padding, then its gap and ring
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
+    const spot = badge();
     pen.font = type(400, "--type-01");
     const tags = Object.fromEntries(level.nodes.map(node => [node.id, pen.measureText(tagName(node.tag)).width])); // the tag line's type, measured before the label's
     pen.font = type(500, fit.dense ? "--type-01" : "--type-02");
     const most = fit.dense ? 260 : 320, beside = node => (node.opens ? 32 : 0) + (fit.dense ? 26 : 30), text = node => Math.ceil(pen.measureText(node.label).width * 1.1 * grown);
-    const tally = node => (contract.claims || []).filter(claim => (claim.on || []).includes(node.id)).length * 28; // a badge and its gap, sharing the tag's line
+    const tally = node => (contract.claims || []).filter(claim => (claim.on || []).includes(node.id)).length * spot; // a badge and its gap, sharing the tag's line
     const need = node => Math.max(text(node) + beside(node), tally(node) && Math.ceil(tags[node.id] * grown + 32 + tally(node) + (fit.dense && node.opens ? 32 : 0))); // a dense node's badges sit left of its open button
     const room = node => Math.max(most, Math.ceil(Math.max(...node.label.split(/\s+/).map(word => pen.measureText(word).width)) * 1.1 * grown) + beside(node), tally(node) && need(node)); // a box never narrower than the label's longest word or the tag's line with its badges, so neither is split
     const lines = node => need(node) <= room(node) ? 1 : Math.ceil(text(node) * 1.15 / (room(node) - beside(node))); // a label too long for the widest box goes on over more lines
@@ -117,10 +119,11 @@
     return Object.fromEntries(level.nodes.map(node => [node.id, fit.dense ? { w: Math.min(room(node), Math.max(96, need(node))), h: 40 + 16 * (lines(node) - 1) + lid(node) } : { w: widest, h: tallest + lid(node) }]));
   }
   const heading = (area, fit) => { // an area as wide as its header's label, tag and badges, so none reaches past its frame
+    const room = badge();
     pen.font = type(500, "--type-01");
     const label = pen.measureText(area.label).width, held = (contract.claims || []).filter(claim => (claim.on || []).includes(area.id)).length;
     pen.font = type(400, "--type-01");
-    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width + (held ? 4 + held * 28 : 0)) + 2 * fit.pad;
+    return Math.ceil(label + 4 + pen.measureText(tagName(area.tag)).width + (held ? 4 + held * room : 0)) + 2 * fit.pad;
   };
   const wide = edges => Math.max(0, ...edges.map(edge => words(edge.label).length)) * 6.4 + 56;
   const across = () => innerWidth - 2 * ROOM.side, down = () => innerHeight - ROOM.top - ROOM.bottom;
