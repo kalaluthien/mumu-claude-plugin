@@ -18,7 +18,7 @@ A contract holds the records every paperwork contract holds, as [contract.md](..
 - **milestone**: `id`, `level`, `label`, `after` (what it waits on), `purpose`: one point in time; what comes after it names it in its own `after`.
 - **after**: the ids of the edges, tasks or milestones of the same level that come first. An interaction's edges also come in their list's order; a plan's tasks also follow the tasks their edges come from.
 
-`${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/name-lookup.json` is a whole interaction with a nested level, and `${CLAUDE_PLUGIN_ROOT}/skills/flow/fixtures/launch-plan.json` a whole plan.
+`${CLAUDE_PLUGIN_ROOT}/skills/flow/examples/name-lookup/contract.json` is a whole interaction with a nested level, and `${CLAUDE_PLUGIN_ROOT}/skills/flow/examples/launch-plan/contract.json` a whole plan.
 
 ## Steps
 

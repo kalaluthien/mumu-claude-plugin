@@ -3,13 +3,13 @@
 // `paperworkCard(options)` once its `#card` and `#gloss` exist; each option is a function it answers from its own records:
 //   make(name, attributes, ...children)  the element maker
 //   record(id)       { kind, record } of a record, or nothing
-//   terms()          the contract's terms; sources() its sources; counted() each record's claims by the status a badge counts
+//   terms()          the contract's terms; sources() its sources; claimsOn(id) the claims on a record, each drawn as a badge
 //   formulas         the MathML of each formula, by `$tex` or `$$tex`
 //   rows(id)         the card's rows, each [name, form, data]
 //   place(id, w, h)  { left, top, cost, tied } where a card that big rests, `tied` what it still covers
 //   kept(id)         whether the card is kept open
 //   light(id)        mark in the drawing the record a chip names, or nothing for null
-//   follow(id, event) a click on a chip: true when the page moved for it, so the card does nothing more
+//   follow(id, event) a click on a chip or a badge: true when the page moved for it, so the card does nothing more
 window.paperworkCard = options => {
   "use strict";
   const { make, formulas } = options;
@@ -29,14 +29,18 @@ window.paperworkCard = options => {
   const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && options.record(id) ? label(id) : whole));
   const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
   const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
-  const COUNTS = [["holds", "✓", "holds"], ["unknown", "?", "unknown"], ["conflicting", "!", "conflicting"], ["fails", "✗", "fails"]]; // each status a badge counts: its symbol, so it reads without its colour, and its card row's name
-  const counts = id => { // the badges of a record the claims on it earn, one per status they hold
-    const held = options.counted()[id] || {}, shown = COUNTS.filter(([kind]) => held[kind]);
-    if (!shown.length) return null;
-    return make("span", { class: "counts", "data-for": id }, ...shown.map(([kind, symbol, name]) =>
-      make("span", { class: "count", "data-count": kind, "aria-label": `${held[kind].length} ${name}` }, symbol + held[kind].length)));
+  const status = claim => claim.status || "holds"; // a claim that names no status holds
+  const GLYPHS = { holds: "✓", unknown: "?", conflicting: "!", fails: "✗" }, INITIALS = { guarantee: "G", assumption: "A" }; // a badge's status and kind as text, so it reads without its colour, and its kind as its shape too
+  const badges = id => { // a badge per claim on a record, each opening its claim's card
+    const claims = options.claimsOn(id);
+    if (!claims.length) return null;
+    return make("span", { class: "claims", "data-for": id }, ...claims.map(claim => {
+      const faulted = status(claim) === "holds" && !!claim.fault, said = `${claim.kind} ${claim.title || claim.id}: ${status(claim)}${faulted ? ", with a fault" : ""}`;
+      return make("button", { class: "claim", type: "button", "data-claim": claim.id, "data-kind": claim.kind, "data-status": status(claim), "data-fault": faulted ? "" : null, "aria-label": said, title: said },
+        INITIALS[claim.kind] + GLYPHS[status(claim)] + (faulted ? "*" : ""));
+    }));
   };
-  const countRows = id => COUNTS.filter(([kind]) => (options.counted()[id] || {})[kind]).map(([kind, , name]) => [name, "list", options.counted()[id][kind].map(one => `{${one}}`)]); // a card's row per status of badge its record earns
+  const claimRows = id => options.claimsOn(id).length ? [["claims", "list", options.claimsOn(id).map(claim => `{${claim.id}}`)]] : []; // a card's row of the claims its record's badges open
   const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
   let glossed = new Set(); // the terms the card has marked, each at its first match only
   const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
@@ -181,5 +185,11 @@ window.paperworkCard = options => {
     gloss(cite, ...sources(options.record($("card").dataset.for).record));
     $("gloss").dataset.for = $("card").dataset.for;
   });
-  return { MARKS, words, bare, tagName, label, counts, countRows, prose, show: card, hide };
+  addEventListener("click", event => { // a badge opens its claim, whatever the record it sits on would do with the click
+    const badge = event.target.closest && event.target.closest("button.claim[data-claim]");
+    if (!badge) return;
+    event.stopPropagation();
+    options.follow(badge.dataset.claim, event);
+  }, true);
+  return { MARKS, words, bare, tagName, label, status, badges, claimRows, prose, show: card, hide };
 };

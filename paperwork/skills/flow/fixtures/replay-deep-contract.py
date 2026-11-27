@@ -20,7 +20,7 @@ TREE = 3000
 
 def deep_tree():
     """The interaction fixture, its name store's `layout` a tree TREE entries deep."""
-    contract = json.loads((HERE / "name-lookup.json").read_text())
+    contract = json.loads((HERE.parent / "examples/name-lookup/contract.json").read_text())
     tree = [{"name": "leaf"}]
     for k in range(TREE):
         tree = [{"name": f"folder-{k}", "children": tree}]

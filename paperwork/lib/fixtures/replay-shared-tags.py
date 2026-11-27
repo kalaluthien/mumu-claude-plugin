@@ -5,7 +5,7 @@ usage: replay-shared-tags.py
 
 On a copy of the plugin whose `../tags.json` alone gives the `service` node's `responsibilities` item a new label, both skills' `tags`
 calls and the page runners' `tags` reader in `../check-step.cjs` must give it, both checkers must accept system's `parcel-locker.json` and
-flow's `name-lookup.json`, system's also under `--tags` its own catalogue, whose `service` nodes hold that item, and both `make-page.py`
+flow's `examples/name-lookup/contract.json`, system's also under `--tags` its own catalogue, whose `service` nodes hold that item, and both `make-page.py`
 builds must carry it in the page's tags block; and no skill's own catalogue may write again the forms, a tag or a common item the shared
 catalogue holds. It prints `PASS <step>` or `FAIL <step>: <reason>` per step, then PASS or FAIL."""
 import json
@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[2]
-FIXTURES = {"system": "skills/system/fixtures/parcel-locker.json", "flow": "skills/flow/fixtures/name-lookup.json"}
+FIXTURES = {"system": "skills/system/fixtures/parcel-locker.json", "flow": "skills/flow/examples/name-lookup/contract.json"}
 TAG, ITEM, LABEL = "service", "responsibilities", "planted duties"
 
 

@@ -4,7 +4,8 @@
 //   make(name, attributes, ...children)  the element maker
 //   entries()  each record as { id, kind, name, note, fields: [[text, place]], shown: [[field, text]] }, a field's place 0 for a name,
 //              then 1 for an id, 2 for a tag, 3 for prose and 4 for details, its shown texts as a hit's excerpt draws them
-//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind] groups an empty query lists
+//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind, group, under] groups an empty query lists,
+//              each the entries of KIND whose `group` is GROUP when given, listed too by `ask(UNDER)` when given
 //   terms()    the contract's terms; shelf(): the storage key of the page's recent queries
 //   open(entry) the page moves to a picked record
 window.paperworkSearch = options => {
@@ -166,7 +167,7 @@ window.paperworkSearch = options => {
     const list = options.entries();
     if (list === from) return ready;
     from = list;
-    ready = list.map(({ id, kind, name, note, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note,
+    ready = list.map(({ id, kind, name, note, group, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note, group,
       fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })), shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text })) }));
     for (const entry of ready) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
     lengths = ready.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, ready.length);
@@ -192,7 +193,7 @@ window.paperworkSearch = options => {
     const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
     const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
     const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
-      : options.browse.filter(group => !scope || group[0] === scope).map(([title, kind]) => [title, entries.filter(entry => entry.kind === kind)]))];
+      : options.browse.filter(([title, , , under]) => !scope || (under || title) === scope).map(([title, kind, group]) => [title, entries.filter(entry => entry.kind === kind && (!group || entry.group === group))]))];
     listed = groups.flatMap(group => group[1]);
     if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
     chosen = Math.min(chosen, Math.max(0, listed.length - 1));

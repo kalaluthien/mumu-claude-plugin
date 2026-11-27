@@ -3,32 +3,22 @@
   const read = id => JSON.parse(document.getElementById(id).textContent);
   const contract = read("page-data"), TAGS = read("page-tags"), FORMULAS = read("page-formulas"), ORDER = read("page-order");
   const $ = id => document.getElementById(id);
-  const make = (name, attributes = {}, ...children) => {
-    const element = document.createElement(name);
-    for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null && value !== false) element.setAttribute(key, value);
-    element.append(...children.flat().filter(child => child !== null && child !== undefined && child !== false));
-    return element;
-  };
   const draw = (name, attributes = {}, ...children) => {
     const element = document.createElementNS("http://www.w3.org/2000/svg", name);
     for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null) element.setAttribute(key, value);
     element.append(...children);
     return element;
   };
-  const AREA_COLOURS = 8; // the KRDS scales page.css names, taken in turn and again past the eighth area
+  const AREA_COLOURS = 6; // the group colours page-tokens.css names, taken in turn and again past the sixth area
   const GAP = 48, TOP = 72, ROW = 64, HEAD = 28, PAD = 56;
 
   // ---- the contract's records ----
-  const records = {}, counted = {}, openers = {};
+  const records = {}, openers = {};
   const add = (kind, list) => (list || []).forEach(record => { records[record.id] = { kind, record }; });
   add("area", contract.areas); add("level", contract.levels); add("node", contract.nodes); add("edge", contract.edges);
   add("task", contract.tasks); add("fragment", contract.fragments); add("milestone", contract.milestones);
   add("claim", contract.claims); add("question", contract.questions);
   for (const edge of contract.edges || []) if (edge.opens) openers[edge.opens] = edge.id;
-  for (const claim of contract.claims || []) {
-    const status = claim.status || "holds";
-    for (const one of new Set(claim.on || [])) ((counted[one] = counted[one] || {})[status] = counted[one][status] || []).push(claim.id);
-  }
   const areaIndex = Object.fromEntries((contract.areas || []).map((area, k) => [area.id, k % AREA_COLOURS]));
   const of = (kind, level) => (contract[kind] || []).filter(record => record.level === level);
   const step = edge => of("edges", edge.level).indexOf(edge) + 1;
@@ -40,15 +30,15 @@
     return record.level || view.level;
   };
 
-  // ---- the card and the search lib holds ----
+  // ---- the frame lib holds: the bars, the card and the search ----
   let kept = null;
-  const recordCard = paperworkCard({ make, formulas: FORMULAS, record: id => records[id], terms: () => contract.terms, sources: () => contract.sources,
-    counted: () => counted, rows, place, kept: id => kept === id, light, follow });
-  const { words, tagName, counts } = recordCard;
-  const search = paperworkSearch({ make, entries: () => entries, terms: () => contract.terms, open,
+  const recordCard = paperworkFrame({ placeholder: "Search nodes, edges, tasks and claims", formulas: FORMULAS, record: id => records[id], terms: () => contract.terms,
+    sources: () => contract.sources, claims: () => contract.claims, questions: () => contract.questions, rows, place, kept: id => kept === id, light, follow,
+    entries: () => entries, open,
     kinds: { node: "Nodes", edge: "Edges", task: "Tasks", milestone: "Milestones", fragment: "Fragments", level: "Levels", claim: "Claims", question: "Questions" },
-    browse: [["Questions", "question"], ["Levels", "level"], ["Claims", "claim"]],
+    browse: [["Questions", "question"], ["Levels", "level"]],
     shelf: () => `paperwork-flow-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
+  const { make, words, tagName, badges } = recordCard;
 
   function rows(id) {
     const { kind, record } = records[id], list = [], put = (name, form, data) => data !== undefined && data !== null && data !== "" && !(Array.isArray(data) && !data.length) && list.push([name, form, data]);
@@ -57,11 +47,10 @@
     if (kind === "task") put("on", "text", `{${record.node}}`);
     if (kind === "node") put("area", "text", records[record.area].record.label);
     if (kind === "fragment") put("operands", "list", record.operands.map(operand => (operand.guard ? `[${operand.guard}] ` : "") + named(operand.edges).join(", ")));
-    if (kind === "claim") { put("statement", "text", record.statement); put("on", "list", named(record.on)); put("fault", "text", record.fault); }
-    if (kind === "question") { put("asks", "text", record.asks); put("answers", "list", named(record.answers)); }
+    for (const row of recordCard.rows(id)) put(...row);
     if (kind === "level") put("about", "text", record.about);
     put("purpose", "text", record.purpose);
-    if (/^(node|edge|task|milestone|fragment)$/.test(kind)) for (const [name, form, data] of recordCard.countRows(id)) put(name, form, data);
+    for (const row of recordCard.claimRows(id)) put(...row);
     const catalogue = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
     for (const [name, data] of Object.entries(record.info || {})) {
       const item = catalogue.find(one => one.name === name);
@@ -104,8 +93,7 @@
       [["id", record.id], ["purpose", record.purpose], ...Object.entries(record.info || {}).map(([name, data]) => [name, values(data)])]);
   for (const fragment of contract.fragments || []) entry(fragment.id, "fragment", `${fragment.kind} ${fragment.operands.map(operand => operand.guard || "").join(" / ")}`.trim(), fragment.kind,
     [[fragment.kind, 0], [fragment.id, 1], [fragment.operands.map(operand => operand.guard || "").join(" "), 3]], [["id", fragment.id]]);
-  for (const claim of contract.claims || []) entry(claim.id, "claim", claim.title, claim.kind, [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], [["statement", claim.statement]]);
-  for (const question of contract.questions || []) entry(question.id, "question", words(question.asks), question.answers.every(name => (contract.claims || []).some(claim => claim.id === name && claim.fault)) ? "open question" : "question", [[words(question.asks), 0], [question.id, 1]], [["id", question.id]]);
+  entries.push(...recordCard.entries());
   function open(hit) { // the record a search picked
     if (hit.kind === "question") {
       const question = records[hit.id].record;
@@ -129,27 +117,26 @@
   function crumbs() { // the way down from the first level to the shown one, each step an edge that opens the next
     const trail = [view.level];
     while (openers[trail[0]]) trail.unshift(records[openers[trail[0]]].record.level);
-    $("crumbs").replaceChildren(...trail.flatMap((level, k) => [
-      ...(k ? [make("span", { class: "sep", "aria-hidden": "true" }, "›")] : []),
-      make("button", { type: "button", "data-level": level, ...(level === view.level ? { "aria-current": "page" } : {}) }, records[level].record.title)]));
+    recordCard.crumbs(trail.map(level => [level, records[level].record.title]), level => go(level, null));
   }
 
   // ---- drawing ----
   const stage = $("stage");
   const measure = element => { stage.append(element); const size = { w: element.offsetWidth, h: element.offsetHeight }; element.remove(); return size; };
-  const colour = node => `--area-fill: var(--area-fill-${areaIndex[node.area]}); --area-edge: var(--area-edge-${areaIndex[node.area]})`;
-  const nodeBox = node => make("div", { class: "node", "data-id": node.id, "data-area": node.area, style: colour(node) },
-    make("span", { class: "area" }, records[node.area].record.label), make("span", { class: "label" }, node.label));
+  const colour = node => `--area-edge: var(--group-${areaIndex[node.area]}); --area-fill: color-mix(in oklab, var(--group-${areaIndex[node.area]}) 12%, var(--card))`;
+  const nodeBox = (node, level) => make("div", { class: "node", "data-id": node.id, "data-area": node.area, style: colour(node) }, // a lifeline's head, the first of its area on the level carrying the area's badges
+    make("span", { class: "area" }, records[node.area].record.label, level.nodes.find(id => records[id].record.area === node.area) === node.id ? badges(node.area) : null),
+    make("span", { class: "label" }, node.label, badges(node.id)));
   const work = edge => { const table = (edge.info || {}).work; return table && Array.isArray(table.rows) ? table.rows.map(([area, change, says]) => ({ area, change, says })) : []; };
   const edgeWork = edge => work(edge).length ? make("div", { class: "edge-work", "data-for": edge.id },
     work(edge).map(one => make("span", { class: "work-pill", "data-area": one.area, style: colour(one) }, `${one.change} · ${records[one.area].record.label}`))) : null;
   const edgeCodes = edge => codes(edge).length ? make("div", { class: "edge-codes", "data-for": edge.id }, codes(edge).join(" · ")) : null;
-  const edgeLabel = edge => make("div", { class: "edge-label", "data-id": edge.id }, edge.label, ...(edge.opens ? [make("span", { class: "opens-mark", "data-opens": edge.opens, title: `Open ${records[edge.opens].record.title}` }, "ref")] : []));
+  const edgeLabel = edge => make("div", { class: "edge-label", "data-id": edge.id }, edge.label, ...(edge.opens ? [make("span", { class: "opens-mark", "data-opens": edge.opens, title: `Open ${records[edge.opens].record.title}` }, "ref")] : []), badges(edge.id));
   const head = (x, y, toward) => draw("polygon", { class: "head", points: `${x},${y} ${x - 10 * toward},${y - 5} ${x - 10 * toward},${y + 5}` });
 
   function interaction(level, svg, put) {
     const nodes = level.nodes.map(id => records[id].record), edges = of("edges", level.id);
-    const boxes = nodes.map(node => measure(nodeBox(node)));
+    const boxes = nodes.map(node => measure(nodeBox(node, level)));
     const index = Object.fromEntries(nodes.map((node, k) => [node.id, k]));
     const gaps = nodes.map((node, k) => k ? boxes[k - 1].w / 2 + boxes[k].w / 2 + GAP : 0);
     const labels = edges.map(edge => Math.max(...[edgeLabel(edge), edgeCodes(edge), edgeWork(edge)].filter(Boolean).map(part => measure(part).w)) + 24);
@@ -162,7 +149,7 @@
     gaps.forEach((gap, k) => xs.push((k ? xs[k - 1] : left) + gap));
     const headHeight = Math.max(...boxes.map(box => box.h));
     nodes.forEach((node, k) => {
-      const box = nodeBox(node);
+      const box = nodeBox(node, level);
       box.style.left = xs[k] - boxes[k].w / 2 + "px"; box.style.top = TOP + "px"; box.style.width = boxes[k].w + "px"; box.style.height = headHeight + "px";
       put(box);
     });
@@ -184,7 +171,7 @@
       for (const one of milestones.filter(one => one.after === k).sort((a, b) => a.depth - b.depth)) {
         const lineY = y + 12;
         svg.append(draw("line", { class: "milestone", "data-for": one.milestone.id, x1: lineEnds[0], x2: lineEnds[1], y1: lineY, y2: lineY }));
-        const label = make("div", { class: "milestone-label", "data-id": one.milestone.id }, one.milestone.label);
+        const label = make("div", { class: "milestone-label", "data-id": one.milestone.id }, one.milestone.label, badges(one.milestone.id));
         label.style.left = lineEnds[0] + "px"; label.style.top = lineY - 24 + "px";
         put(label);
         y += 40;
@@ -204,7 +191,7 @@
       const label = edgeLabel(edge);
       const middle = self ? from + 48 : (from + to) / 2; // a self-call's parts start right of its loop, since its row may be wide
       label.style.left = middle + "px"; label.style.top = (self ? arrowY - 30 : y) + "px";
-      const chips = make("div", { class: "edge-chips", "data-for": edge.id }, make("span", { class: "chip" }, tagName(edge.tag)), counts(edge.id));
+      const chips = make("div", { class: "edge-chips", "data-for": edge.id }, make("span", { class: "chip" }, tagName(edge.tag)));
       chips.style.left = middle + "px"; chips.style.top = arrowY + (self ? 14 : 6) + "px"; // below a self-call's loop too
       put(label, chips);
       if (self) [label, chips].forEach(part => part.classList.add("self"));
@@ -219,13 +206,13 @@
     for (const one of fragments.slice().sort((a, b) => b.depth - a.depth)) { // the inner frames first, so each outer one takes their width
       const inner = fragments.filter(other => other.depth > one.depth && one.first <= other.first && other.last <= one.last);
       const ends = one.fragment.operands.flatMap(operand => operand.edges).flatMap(id => [xs[index[records[id].record.from]], xs[index[records[id].record.to]], reach[order.indexOf(id)] - PAD + 16]);
-      const tab = measure(make("div", { class: "fragment-kind" }, one.fragment.kind)).w;
+      const tab = measure(make("div", { class: "fragment-kind" }, one.fragment.kind, badges(one.fragment.id))).w;
       const room = Math.max(...one.guards.map(([guard], j) => (j ? 8 : tab + 8) + (guard ? measure(make("div", { class: "guard" }, `[${guard}]`)).w + 8 : 0)));
       const x1 = Math.min(Math.min(...ends) - PAD + 8 * one.depth, ...inner.map(other => other.left - 8));
       const x2 = Math.max(Math.max(...ends) + PAD - 8 * one.depth, x1 + room, ...inner.map(other => other.right + 8));
       one.left = x1; one.right = x2;
       svg.append(draw("rect", { class: "fragment", "data-for": one.fragment.id, x: x1, y: one.top, width: x2 - x1, height: one.bottom - one.top, rx: 4 }));
-      const kind = make("div", { class: "fragment-kind", "data-id": one.fragment.id }, one.fragment.kind);
+      const kind = make("div", { class: "fragment-kind", "data-id": one.fragment.id }, one.fragment.kind, badges(one.fragment.id));
       kind.style.left = x1 + "px"; kind.style.top = one.top + "px";
       put(kind);
       one.guards.forEach(([guard, at], j) => {
@@ -254,11 +241,11 @@
   }
 
   const taskBar = (task, chain) => { const node = records[task.node].record;
-    return make("div", { class: "task" + (chain.has(task.id) ? " critical" : ""), "data-id": task.id, style: colour(node) }, task.label); };
+    return make("div", { class: "task" + (chain.has(task.id) ? " critical" : ""), "data-id": task.id, style: colour(node) }, task.label, badges(task.id)); };
   function plan(level, svg, put) { // actors and resources down the left, each task in the column of its place in time
     const { ranks, critical } = ORDER[level.id], chain = new Set(critical), BAR = 28, LANE_ROW = 64, BEND = 8;
     const nodes = level.nodes.map(id => records[id].record), tasks = of("tasks", level.id), edges = of("edges", level.id), milestones = of("milestones", level.id);
-    const lane = Object.fromEntries(nodes.map((node, k) => [node.id, k])), lead = Math.max(...nodes.map(node => measure(nodeBox(node)).w));
+    const lane = Object.fromEntries(nodes.map((node, k) => [node.id, k])), lead = Math.max(...nodes.map(node => measure(nodeBox(node, level)).w));
     const columns = Math.max(0, ...Object.values(ranks)) + 1, widths = Array(columns).fill(40), slot = {}, rowsOf = nodes.map(() => 1);
     for (const task of tasks) {
       widths[ranks[task.id]] = Math.max(widths[ranks[task.id]], measure(taskBar(task, chain)).w);
@@ -282,7 +269,7 @@
     nodes.forEach((node, k) => { laneTops.push(y); y += rowsOf[k] * LANE_ROW + channelHeight[k + 1]; });
     const bottom = y, barY = task => laneTops[lane[task.node]] + slot[task.id] * LANE_ROW + 8, right = starts[columns - 1] + widths[columns - 1] + PAD;
     nodes.forEach((node, k) => {
-      const box = nodeBox(node), height = rowsOf[k] * LANE_ROW - 8;
+      const box = nodeBox(node, level), height = rowsOf[k] * LANE_ROW - 8;
       box.style.left = PAD + 24 + "px"; box.style.top = laneTops[k] + "px"; box.style.width = lead + "px"; box.style.height = height + "px";
       put(box);
       const lines = Array.from({ length: rowsOf[k] }, (_, row) => { const at = laneTops[k] + row * LANE_ROW + 8 + BAR / 2; return { x1: PAD + 24 + lead, x2: right - PAD + 24, y1: at, y2: at }; });
@@ -291,10 +278,18 @@
     for (const task of tasks) {
       const bar = taskBar(task, chain), x = starts[ranks[task.id]];
       bar.style.left = x + "px"; bar.style.top = barY(task) + "px"; bar.style.width = widths[ranks[task.id]] + "px";
-      const chips = make("div", { class: "task-chips", "data-for": task.id }, make("span", { class: "chip" }, tagName(task.tag)), counts(task.id));
+      const chips = make("div", { class: "task-chips", "data-for": task.id }, make("span", { class: "chip" }, tagName(task.tag)));
       chips.style.left = x + "px"; chips.style.top = barY(task) + BAR + 4 + "px";
       put(bar, chips);
     }
+    const taken = tasks.map(task => ({ x: starts[ranks[task.id]], y: barY(task), w: widths[ranks[task.id]], h: BAR + 24 })); // each bar with its chips, then each label placed
+    const seat = (label, spans) => { // the first spot along the arrow's runs, nearest their middles and then a row or two off them, where the label overlaps no bar and no label
+      const w = measure(label).w, h = 20, clear = (x, y) => !taken.some(r => x - w / 2 < r.x + r.w && x + w / 2 > r.x && y < r.y + r.h && y + h > r.y);
+      const spots = [0, -22, 22, -44, 44].flatMap(shift => spans.map(([lo, hi, y]) => [lo, hi, y + shift])).flatMap(([lo, hi, y]) => { const mid = (lo + hi) / 2, xs = [mid]; for (let d = 8; mid - d >= lo || mid + d <= hi; d += 8) xs.push(mid - d, mid + d); return xs.filter(x => x >= lo && x <= hi).map(x => [x, y - h / 2]); });
+      const [x, y] = spots.find(([x, y]) => clear(x, y)) || spots[0];
+      taken.push({ x: x - w / 2, y, w, h });
+      label.style.left = x + "px"; label.style.top = y + "px";
+    };
     for (const { edge, from, to, channel, out, into, track } of routes) {
       const x1 = starts[ranks[from.id]] + widths[ranks[from.id]], y1 = barY(from) + BAR / 2, x2 = starts[ranks[to.id]], y2 = barY(to) + BAR / 2;
       const leave = x1 + 16 + BEND * out, enter = x2 - 16 - BEND * into;
@@ -304,11 +299,17 @@
       const bold = chain.has(from.id) && chain.has(to.id) && critical.indexOf(to.id) === critical.indexOf(from.id) + 1;
       svg.append(draw("g", { class: "edge" + (bold ? " critical" : ""), "data-for": edge.id, "data-tag": edge.tag },
         draw("path", { class: "arrow", d: path, "data-tag": edge.tag }), head(x2, y2, 1), draw("path", { class: "hit", d: path })));
+      const held = badges(edge.id);
+      if (held) { // a plan's arrow draws no label, but one its claims sit beside
+        const label = make("div", { class: "edge-label plan", "data-id": edge.id }, edge.label, held), straight = path.indexOf("V") < 0;
+        seat(label, straight ? [[x1, x2, y1], [x1, x2, barY(from) - 12]] : [[Math.min(leave, enter), Math.max(leave, enter), runY], [x1, leave, y1], [enter, x2, y2]]);
+        put(label);
+      }
     }
     for (const milestone of milestones) {
       const x = starts[ranks[milestone.id]] + widths[ranks[milestone.id]] / 2;
       svg.append(draw("line", { class: "milestone", "data-for": milestone.id, x1: x, x2: x, y1: TOP + 28, y2: bottom }));
-      const label = make("div", { class: "milestone-label at-top", "data-id": milestone.id }, milestone.label);
+      const label = make("div", { class: "milestone-label at-top", "data-id": milestone.id }, milestone.label, badges(milestone.id));
       label.style.left = x + "px"; label.style.top = TOP + "px";
       put(label);
     }
@@ -352,10 +353,7 @@
     const id = target(event);
     if (id && records[id].record.opens) go(records[id].record.opens, null);
   });
-  $("crumbs").addEventListener("click", event => { const step = event.target.closest("[data-level]"); if (step) go(step.dataset.level, null); });
-  $("search").addEventListener("click", () => search.ask());
   addEventListener("keydown", event => {
-    if (search.key(event)) return;
     if (event.key === "Escape") { kept = null; light(null); recordCard.hide(); }
   });
   addEventListener("hashchange", render);

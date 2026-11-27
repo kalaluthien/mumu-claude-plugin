@@ -1,0 +1,1197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release plan</title>
+<!-- page frame -->
+<style>
+/* Every colour a paperwork page draws, light and dark, and every space and type size it sets, each with its source. A page's other
+   style names these, mixes a colour only with another or with transparent, and scales a size only by the page's own zoom.
+   Sources:
+   [neutral]  shadcn/ui's neutral theme, https://ui.shadcn.com/docs/theming
+   [text]     WCAG 2.2 1.4.3, text at 4.5:1 or more against what is behind it, https://www.w3.org/TR/WCAG22/#contrast-minimum
+   [non-text] WCAG 2.2 1.4.11, a badge, line or frame at 3:1 or more, https://www.w3.org/TR/WCAG22/#non-text-contrast
+   [colour]   WCAG 2.2 1.4.1, colour never the only sign; a badge also says its status by glyph and its kind by shape, https://www.w3.org/TR/WCAG22/#use-of-color
+   [status]   IEC 60073's indicator colours: green normal, amber abnormal, red fault; an unsettled one blue-grey
+   [cvd]      at least 0.1 apart in OKLab (https://bottosson.github.io/posts/oklab/) within its set, as seen and under protanopia, deuteranopia
+              and tritanopia simulated by Machado, Oliveira and Fernandes 2009 at severity 1, https://doi.org/10.1109/TVCG.2009.113
+   [space]    IBM Carbon's spacing scale, https://carbondesignsystem.com/elements/spacing/overview/
+   [type]     IBM Carbon's type scale and the line heights of its type sets, https://carbondesignsystem.com/elements/typography/type-sets/ */
+:root {
+  color-scheme: light dark;
+  --radius: .625rem; --ease: cubic-bezier(.45, 0, .2, 1); --spring: cubic-bezier(.34, 1.56, .64, 1);
+  /* [space] a margin, padding or gap */
+  --spacing-01: 2px; --spacing-02: 4px; --spacing-03: 8px; --spacing-04: 12px; --spacing-05: 16px; --spacing-06: 24px; --spacing-10: 64px;
+  /* [type] a font size, and a line height set in px */
+  --type-01: 12px; --type-02: 14px; --type-05: 20px;
+  --leading-01: 16px; --leading-02: 18px; --leading-03: 20px; --leading-04: 22px; --leading-05: 24px; --leading-06: 28px;
+  /* [neutral] [text] */
+  --background: oklch(1 0 0); --foreground: oklch(.145 0 0); --popover: oklch(1 0 0); --card: oklch(1 0 0); --canvas: oklch(.985 0 0);
+  --primary: oklch(.205 0 0); --primary-foreground: oklch(.985 0 0); --muted: oklch(.97 0 0); --muted-foreground: oklch(.52 0 0); --accent: oklch(.97 0 0);
+  --destructive: oklch(.53 .19 27);
+  /* [neutral] a hairline of the page's chrome, which no reader needs to see the drawing */
+  --border: oklch(.922 0 0); --ring: oklch(.708 0 0); --veil: oklch(0 0 0 / 50%);
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 10%), 0 1px 2px -1px oklch(0 0 0 / 10%);
+  --shadow-md: 0 4px 6px -1px oklch(0 0 0 / 10%), 0 2px 4px -2px oklch(0 0 0 / 10%);
+  --shadow-lg: 0 10px 15px -3px oklch(0 0 0 / 10%), 0 4px 6px -4px oklch(0 0 0 / 10%);
+  --focus: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+  /* [non-text] a frame or line of the drawing; the mark, what a search or a step points at */
+  --frame: oklch(.6 0 0); --line: oklch(.45 0 0); --mark: oklch(.55 .2 259);
+  /* [status] [non-text] [colour] [cvd] a badge's fill by its claim's status, and its glyph */
+  --status-holds: oklch(.55 .12 135); --status-unknown: oklch(.45 .06 290); --status-conflicting: oklch(.43 .1 50); --status-fails: oklch(.3 .12 20);
+  --status-glyph: oklch(1 0 0);
+  /* [non-text] [cvd] an area's colour, taken in turn so neighbours differ; its fill mixes it into the canvas */
+  --group-0: oklch(.49 .1 50); --group-1: oklch(.6 .12 100); --group-2: oklch(.3 .16 270); --group-3: oklch(.47 .16 270); --group-4: oklch(.31 .1 350); --group-5: oklch(.61 .18 350);
+  /* [text] a lane's or phase's tint, three in turn 70 degrees apart and 45 or more from the mark, faint enough for text at 4.5:1 */
+  --band-0: oklch(.955 .024 30); --band-1: oklch(.955 .024 100); --band-2: oklch(.955 .024 170);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* [neutral] [text] */
+    --background: oklch(.145 0 0); --foreground: oklch(.985 0 0); --popover: oklch(.205 0 0); --card: oklch(.205 0 0); --canvas: oklch(.17 0 0);
+    --primary: oklch(.922 0 0); --primary-foreground: oklch(.205 0 0); --muted: oklch(.269 0 0); --muted-foreground: oklch(.708 0 0); --accent: oklch(.269 0 0);
+    --destructive: oklch(.72 .15 22);
+    --border: oklch(1 0 0 / 14%); --ring: oklch(.556 0 0);
+    /* [non-text] */
+    --frame: oklch(.58 0 0); --line: oklch(.75 0 0); --mark: oklch(.7 .16 259);
+    /* [status] [non-text] [colour] [cvd] */
+    --status-holds: oklch(.91 .1 150); --status-unknown: oklch(.71 .14 240); --status-conflicting: oklch(.77 .16 75); --status-fails: oklch(.6 .14 25);
+    --status-glyph: oklch(.145 0 0);
+    /* [non-text] [cvd] */
+    --group-0: oklch(.87 .06 90); --group-1: oklch(.56 .1 110); --group-2: oklch(.74 .16 120); --group-3: oklch(.84 .08 250); --group-4: oklch(.63 .18 260); --group-5: oklch(.61 .2 350);
+    /* [text] */
+    --band-0: oklch(.235 .022 30); --band-1: oklch(.235 .022 100); --band-2: oklch(.235 .022 170);
+  }
+}
+/* The frame every paperwork page shares: the base type, the crumbs at the top left and the tools at the top right; it reads page-tokens.css. */
+* { box-sizing: border-box; border-color: var(--border); }
+body { background: var(--canvas); color: var(--foreground); font: var(--type-02)/var(--leading-03) ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; -webkit-font-smoothing: antialiased; word-break: keep-all; }
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 var(--spacing-02); border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 var(--type-01)/1 ui-sans-serif, system-ui, sans-serif; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+.bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: var(--spacing-02); height: 36px; padding: 0 var(--spacing-02); border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+#crumbs { left: var(--spacing-05); top: var(--spacing-05); gap: var(--spacing-03); padding: 0 var(--spacing-04); color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
+#crumbs > button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
+#crumbs > button:hover { color: var(--foreground); }
+#crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
+#crumbs .sep { color: var(--muted-foreground); }
+#tools { right: var(--spacing-05); top: var(--spacing-05); }
+.tool { display: inline-flex; align-items: center; gap: var(--spacing-03); height: 28px; padding: 0 var(--spacing-03); border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
+.tool:hover { background: var(--accent); }
+.tool:active { transform: scale(.96); }
+.tool:focus-visible, #crumbs > button:focus-visible { outline: none; box-shadow: var(--focus); border-radius: 6px; }
+.tool.quiet { color: var(--muted-foreground); font-weight: 400; }
+.tool.icon { width: 28px; padding: 0; justify-content: center; }
+.tool:disabled { opacity: .35; pointer-events: none; }
+#crumbs .claims { margin-left: calc(-1 * var(--spacing-02)); }
+/* The record card, the claims' badges and the note over it; it reads page-tokens.css. */
+.claims { display: inline-flex; gap: var(--spacing-01); margin-left: var(--spacing-02); vertical-align: middle; }
+.claims > .claim { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 16px; padding: 0 var(--spacing-02); border: 0; background: var(--status-holds); color: var(--status-glyph); box-shadow: 0 0 0 2px var(--canvas); font: 600 var(--type-01)/var(--leading-01) ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; cursor: pointer; transition: transform .15s var(--ease); }
+.claims > .claim:hover { transform: scale(1.12); }
+.claims > .claim:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--canvas), var(--focus); }
+.claims > [data-kind="guarantee"] { border-radius: 2px; }
+.claims > [data-kind="assumption"] { border-radius: 9999px; }
+.claims > [data-status="unknown"] { background: var(--status-unknown); }
+.claims > [data-status="conflicting"] { background: var(--status-conflicting); }
+.claims > [data-status="fails"] { background: var(--status-fails); }
+#card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: var(--spacing-04) var(--spacing-05); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
+#card.kept { box-shadow: var(--shadow-lg); }
+#card.long { overflow-y: auto; }
+#card.long footer { position: sticky; bottom: calc(-1 * var(--spacing-04)); background: var(--popover); }
+#card.show { opacity: 1; transform: none; pointer-events: auto; }
+#card h2 { margin: 0; font-size: var(--type-02); line-height: var(--leading-03); font-weight: 600; }
+#card .tag { display: inline-flex; margin: 0 var(--spacing-02) var(--spacing-02) 0; padding: var(--spacing-01) var(--spacing-03); border: 1px solid var(--border); border-radius: 9999px; font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; }
+#card .tag.fill { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+#card dl { margin: var(--spacing-05) 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-03); }
+#card dt { font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; color: var(--muted-foreground); }
+#card dd { margin: var(--spacing-01) 0 0; word-break: keep-all; }
+#card ul { margin: 0; padding-left: var(--spacing-05); }
+#card table { width: 100%; border-collapse: collapse; font-size: var(--type-01); line-height: var(--leading-01); }
+#card th { text-align: left; font-weight: 500; min-width: 48px; color: var(--muted-foreground); } #card th, #card td { padding: var(--spacing-02) var(--spacing-03) var(--spacing-02) 0; border: 0; vertical-align: top; }
+#card tbody tr { transition: background-color .15s var(--ease); } #card tbody tr:hover { background: color-mix(in oklab, var(--muted) 60%, transparent); }
+#card pre, #card code { background: var(--muted); border-radius: 6px; font-size: var(--type-01); } #card pre { margin: 0; padding: var(--spacing-02) var(--spacing-03); white-space: pre-wrap; } #card code { padding: 0 var(--spacing-02); }
+#card pre code { padding: 0; background: none; }
+#card footer { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-04); margin-top: var(--spacing-04); padding-top: var(--spacing-03); border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: var(--type-01); line-height: var(--leading-01); white-space: nowrap; }
+#card footer .hints { display: inline-flex; gap: var(--spacing-04); margin-left: auto; } #card footer .hints span { display: inline-flex; align-items: center; gap: var(--spacing-02); }
+#card .turn { height: 24px; padding: 0 var(--spacing-03); border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: var(--type-01); font-weight: 500; cursor: pointer; transition: background-color .15s var(--ease); }
+#card .turn:hover { background: var(--accent); }
+#card .ref { padding: 0 var(--spacing-02); border-radius: 4px; background: color-mix(in oklab, var(--mark) 12%, transparent); cursor: default; transition: background-color .15s var(--ease); }
+#card .ref:hover { background: color-mix(in oklab, var(--mark) 24%, transparent); }
+#card .term { font-style: normal; text-decoration: underline dotted color-mix(in oklab, var(--foreground) 45%, transparent); text-underline-offset: 3px; cursor: help; outline: none; }
+#card .badge { display: inline-flex; padding: 0 var(--spacing-03); border: 1px solid transparent; border-radius: 9999px; font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; vertical-align: 1px; }
+#card .badge.guess { background: var(--muted); color: var(--foreground); border-color: var(--frame); }
+#card .badge.unknown { background: var(--status-unknown); color: var(--status-glyph); } #card .badge.conflicting { background: var(--status-conflicting); color: var(--status-glyph); }
+#card .badge.fails { background: var(--status-fails); color: var(--status-glyph); }
+#card .tag.badge { margin: var(--spacing-03) var(--spacing-03) 0 0; padding: var(--spacing-01) var(--spacing-03); font-size: var(--type-01); vertical-align: baseline; }
+#card .cite { background: transparent; color: var(--foreground); cursor: pointer; font-family: inherit; }
+#card .cite:hover { background: var(--accent); }
+#card pre.fence { margin: var(--spacing-02) 0; overflow-x: auto; white-space: pre; }
+#card math[display="block"] { margin: var(--spacing-03) 0; text-align: center; }
+#gloss { position: fixed; z-index: 31; max-width: 360px; padding: var(--spacing-03) var(--spacing-04); border: 1px solid var(--border); border-radius: calc(var(--radius) * .8); background: var(--popover); box-shadow: var(--shadow-lg); font-size: var(--type-01); line-height: var(--leading-01); opacity: 0; pointer-events: none; transition: opacity .12s var(--ease); }
+#gloss.show { opacity: 1; pointer-events: auto; }
+#gloss p { margin: var(--spacing-01) 0 0; } #gloss .source + .source { margin-top: var(--spacing-03); }
+#gloss code { padding: var(--spacing-01) var(--spacing-02); border-radius: 6px; background: var(--muted); font-size: var(--type-01); overflow-wrap: anywhere; }
+#gloss blockquote { margin: var(--spacing-02) 0 0; padding-left: var(--spacing-03); border-left: 2px solid var(--border); color: var(--muted-foreground); }
+@media (prefers-reduced-motion: reduce) {
+  #card { transform: none !important; }
+}
+/* The search palette over a veil; it reads the page's theme variables. */
+#veil { position: fixed; inset: 0; z-index: 40; background: var(--veil); opacity: 0; pointer-events: none; transition: opacity .2s var(--ease); }
+#veil.show { opacity: 1; pointer-events: auto; }
+#palette { position: fixed; z-index: 41; left: 50%; top: 18%; width: min(512px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-lg); overflow: hidden; opacity: 0; transform: translate(-50%, -8px) scale(.96); pointer-events: none; transition: opacity .18s var(--ease), transform .28s var(--spring); }
+#palette.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+#field { display: flex; align-items: center; gap: var(--spacing-03); padding-right: var(--spacing-03); border-bottom: 1px solid var(--border); }
+#palette input { flex: 1; min-width: 0; height: 48px; padding: 0 var(--spacing-05); border: 0; background: transparent; color: inherit; font: inherit; outline: none; }
+#regex { width: 32px; font: 600 var(--type-02)/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: -.02em; }
+#regex[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+#palette input::placeholder { color: var(--muted-foreground); }
+#hits { max-height: 360px; overflow-y: auto; padding: var(--spacing-02); }
+#hits h3 { margin: 0; padding: var(--spacing-03) var(--spacing-04) var(--spacing-02); font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; color: var(--muted-foreground); }
+#hits .hit { display: flex; align-items: center; gap: var(--spacing-03); padding: var(--spacing-03) var(--spacing-04); border-radius: 6px; cursor: pointer; transition: background-color .12s var(--ease); }
+#hits .hit[aria-selected="true"] { background: var(--accent); }
+#hits .hit .text { flex: 1; min-width: 0; }
+#hits .hit .text > b { font-weight: 500; overflow-wrap: anywhere; }
+#hits .hit .where { margin-top: var(--spacing-01); font-size: var(--type-01); line-height: var(--leading-01); color: var(--muted-foreground); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+#hits .hit .where i { font-style: normal; font-weight: 500; color: var(--foreground); }
+#hits mark { background: color-mix(in oklab, var(--mark) 18%, transparent); color: var(--foreground); font-weight: 600; border-radius: 2px; box-shadow: 0 1px 0 color-mix(in oklab, var(--mark) 70%, transparent); }
+#keys { display: flex; justify-content: flex-end; gap: var(--spacing-04); height: 40px; align-items: center; padding: 0 var(--spacing-05); border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: var(--type-01); }
+#keys span { display: inline-flex; align-items: center; gap: var(--spacing-02); }
+#hits .hit small { margin-left: var(--spacing-03); font-size: var(--type-01); color: var(--muted-foreground); white-space: nowrap; }
+#hits .hit .clock { display: inline-flex; color: var(--muted-foreground); }
+#hits .hit .recent { color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } #hits .hit .recent b { font-weight: 600; color: var(--foreground); }
+#hits .hit .forget { width: 24px; height: 24px; color: var(--muted-foreground); }
+#hits .hit + h3 { margin-top: var(--spacing-06); }
+#hits .none { display: flex; flex-direction: column; gap: var(--spacing-02); padding: var(--spacing-06); text-align: center; color: var(--muted-foreground); }
+#hits .none b { font-weight: 500; color: var(--foreground); overflow-wrap: anywhere; }
+#hits .none.error b { color: var(--destructive); }
+@media (prefers-reduced-motion: reduce) {
+  #palette { transform: translate(-50%, 0) !important; }
+}
+</style>
+<script>
+// The record card of a paperwork page with its badges: a record's rows drawn as prose with its quotes, formulas, named records, terms and
+// guesses, paged to the room beside the record, and the note over the card that a term or the sources raise. A page calls
+// `paperworkCard(options)` once its `#card` and `#gloss` exist; each option is a function it answers from its own records:
+//   make(name, attributes, ...children)  the element maker
+//   record(id)       { kind, record } of a record, or nothing
+//   terms()          the contract's terms; sources() its sources; claimsOn(id) the claims on a record, each drawn as a badge
+//   formulas         the MathML of each formula, by `$tex` or `$$tex`
+//   rows(id)         the card's rows, each [name, form, data]
+//   place(id, w, h)  { left, top, cost, tied } where a card that big rests, `tied` what it still covers
+//   kept(id)         whether the card is kept open
+//   light(id)        mark in the drawing the record a chip names, or nothing for null
+//   follow(id, event) a click on a chip or a badge: true when the page moved for it, so the card does nothing more
+window.paperworkCard = options => {
+  "use strict";
+  const { make, formulas } = options;
+  const $ = id => document.getElementById(id);
+  let termsFrom = null, patterns = [];
+  const terms = () => { // each term's pattern, made again only when the contract's terms change
+    const list = options.terms() || [];
+    if (list === termsFrom) return patterns;
+    termsFrom = list;
+    patterns = list.map(entry => ({ entry, pattern: new RegExp(String.raw`(?<![\p{L}\p{N}./-])` + entry.term.trim().split(/\s+/).map(word => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(String.raw`\s+`)
+      + (/[가-힣]$/.test(entry.term) ? "" : String.raw`(?:e?s)?(?![\p{L}\p{N}-]|[./][\p{L}\p{N}])`), "iu") })); // a Korean term takes a particle after it; a file name is no term
+    return patterns;
+  };
+  const label = id => options.record(id) ? (options.record(id).record.label || options.record(id).record.title || id) : id;
+  // a quote, a formula or a named record in a text; the formula's pattern is tex_mathml.py's, which make-page.py drew each one by
+  const MARKS = /(```[\s\S]*?```|`[^`]+`)|\$\$([^$`]+?)\$\$|\$(?!\{[A-Z_]+\})([^\s$`](?:[^$`]*?[^\s$`])?)\$(?!\d)|\{([a-z0-9-]+)\}/g;
+  const words = text => String(text).replace(MARKS, (whole, quote, block, inline, id) => (id && options.record(id) ? label(id) : whole));
+  const bare = text => words(text).replace(/`([^`]+)`/g, "$1"); // text drawn where no code face can show, such as a tooltip, keeps a code span's words without its marks
+  const tagName = tag => String(tag).replace(/[A-Z]/g, letter => " " + letter.toLowerCase()); // a tag's id as the words it joins
+  const status = claim => claim.status || "holds"; // a claim that names no status holds
+  const GLYPHS = { holds: "✓", unknown: "?", conflicting: "!", fails: "✗" }, INITIALS = { guarantee: "G", assumption: "A" }; // a badge's status and kind as text, so it reads without its colour, and its kind as its shape too
+  const badges = id => { // a badge per claim on a record, each opening its claim's card
+    const claims = options.claimsOn(id);
+    if (!claims.length) return null;
+    return make("span", { class: "claims", "data-for": id }, ...claims.map(claim => {
+      const faulted = status(claim) === "holds" && !!claim.fault, said = `${claim.kind} ${claim.title || claim.id}: ${status(claim)}${faulted ? ", with a fault" : ""}`;
+      return make("button", { class: "claim", type: "button", "data-claim": claim.id, "data-kind": claim.kind, "data-status": status(claim), "data-fault": faulted ? "" : null, "aria-label": said, title: said },
+        INITIALS[claim.kind] + GLYPHS[status(claim)] + (faulted ? "*" : ""));
+    }));
+  };
+  const claimRows = id => options.claimsOn(id).length ? [["claims", "list", options.claimsOn(id).map(claim => `{${claim.id}}`)]] : []; // a card's row of the claims its record's badges open
+  const quoted = text => words(text).split(/(`[^`]+`)/).filter(Boolean).map(part => part[0] === "`" ? make("em", {}, part.slice(1, -1)) : part); // a code span inside code has no code face to take, so it reads as a literal term
+  let glossed = new Set(); // the terms the card has marked, each at its first match only
+  const spoken = piece => { // a run of prose: a `(guess)` as a badge, and the first match of each term the card has not marked as a term
+    const guess = piece.search(/\(guess\)/i);
+    let first = null;
+    for (const one of terms()) if (!glossed.has(one.entry.term)) { const found = one.pattern.exec(piece); if (found && (!first || found.index < first.found.index)) first = { one, found }; }
+    if (guess >= 0 && (!first || guess < first.found.index)) return [...spoken(piece.slice(0, guess)), make("span", { class: "badge guess" }, "guess"), ...spoken(piece.slice(guess + 7))];
+    if (!first) return piece ? [piece] : [];
+    glossed.add(first.one.entry.term);
+    const { index } = first.found, text = first.found[0];
+    return [...spoken(piece.slice(0, index)), make("dfn", { class: "term", tabindex: "0", "data-term": first.one.entry.term, "data-meaning": first.one.entry.meaning }, text), ...spoken(piece.slice(index + text.length))];
+  };
+  const literal = quote => { // a fence as a block that keeps its lines, its first line's language word left out; a span as inline code, broken after each slash
+    if (quote.startsWith("```")) return make("pre", { class: "fence" }, make("code", {}, quote.slice(3, -3).replace(/^[\w+-]*\n/, "").replace(/\n$/, "")));
+    return make("code", {}, ...quote.slice(1, -1).split(/(?<=\/)/).flatMap((piece, i) => i ? [make("wbr"), piece] : [piece]));
+  };
+  const formula = (tex, display) => { // the MathML make-page.py drew, or the TeX as code where it drew none
+    const markup = formulas[(display ? "$$" : "$") + tex];
+    if (!markup) return make("code", {}, tex);
+    const holder = document.createElement("template");
+    holder.innerHTML = markup;
+    return holder.content.firstChild;
+  };
+  const prose = (text, plain = false) => { // a text with its quotes, formulas, named records, terms and guesses drawn; PLAIN, for a text outside a card's rows, draws names as words and marks no term or guess
+    const all = String(text), out = [];
+    let last = 0;
+    for (const found of all.matchAll(MARKS)) {
+      const [whole, quote, block, inline, id] = found;
+      if (id && !options.record(id)) continue;
+      out.push(...(plain ? [all.slice(last, found.index)].filter(Boolean) : spoken(all.slice(last, found.index))));
+      last = found.index + whole.length;
+      if (quote) out.push(literal(quote));
+      else if (id && plain) out.push(label(id));
+      else if (id) out.push(make("span", { class: "ref", "data-ref": id }, label(id)));
+      else out.push(formula(block || inline, !!block));
+    }
+    return out.concat(plain ? [all.slice(last)].filter(Boolean) : spoken(all.slice(last)));
+  };
+  const value = (form, data) => {
+    if (form === "list" && Array.isArray(data)) return [make("ul", {}, ...data.map(item => make("li", {}, ...prose(item))))];
+    if (form === "table" && data && data.columns) {
+      const table = make("table", {}, make("thead", {}, make("tr", {}, ...data.columns.map(name => make("th", {}, name)))));
+      table.append(make("tbody", {}, ...data.rows.map(row => make("tr", {}, ...row.map(cell => make("td", {}, ...prose(cell)))))));
+      return [table];
+    }
+    if (form === "tree" && Array.isArray(data)) {
+      const branch = list => make("ul", {}, ...list.map(item => make("li", {}, make("code", {}, ...quoted(item.name)), ...(item.note ? [" ", ...prose(item.note)] : []), ...(item.children ? [branch(item.children)] : []))));
+      return [branch(data)];
+    }
+    if (form === "code") return [make("pre", {}, make("code", {}, ...quoted(data)))];
+    return [make("span", {}, ...prose(typeof data === "string" ? data : JSON.stringify(data)))];
+  };
+  let leaf = 0; // the page of rows the card shows
+  function card(id) { // one card for a record, the same under the pointer and kept, its rows over pages its height holds
+    const { kind, record } = options.record(id), box = $("card"), kept = options.kept(id), all = options.rows(id);
+    if (box.dataset.for !== id) leaf = 0;
+    const tags = make("div", {}, make("span", { class: "tag fill" }, tagName(record.tag || record.kind || kind)));
+    for (const extra of [record.basis, record.strength, record.many ? "many" : ""]) if (extra) tags.append(make("span", { class: "tag" }, extra));
+    if (record.status && record.status !== "holds") tags.append(make("span", { class: `tag badge ${record.status}` }, record.status)); // a settled statement needs no mark
+    if (record.evidence) tags.append(make("button", { class: "tag cite", type: "button", "aria-label": "Sources" }, `${record.evidence.length} ${record.evidence.length === 1 ? "source" : "sources"}`));
+    const list = make("dl"), foot = make("footer", {}, make("kbd", {}, "esc"));
+    box.replaceChildren(make("h2", {}, ...prose(record.label || record.title || record.id, true)), tags, list, foot);
+    box.dataset.for = id;
+    box.classList.toggle("kept", kept);
+    const limit = Math.floor(Math.min(innerHeight * .46, 400));
+    const lay = (from, most, cap) => { // the rows from FROM on that CAP pixels of the card hold, MOST at most, and the row after them
+      box.classList.remove("long");
+      box.style.maxHeight = "none";
+      list.replaceChildren();
+      glossed = new Set();
+      let to = from;
+      for (; to < all.length && to - from < most; to++) {
+        const [name, form, data] = all[to];
+        list.append(make("div", { "data-form": form }, make("dt", {}, name), make("dd", {}, ...value(form, data))));
+        if (to > from && box.offsetHeight > cap) { list.lastChild.remove(); break; }
+      }
+      return to;
+    };
+    const hint = (key, text) => make("span", {}, make("kbd", {}, key), text);
+    const fill = (most, page) => { // the card with MOST rows a page at most on its PAGE-th page, placed by its first page, its later pages growing up from the same foot, a row taller than the room above scrolling under its fixed foot
+      const sign = (from, to, paged, next) => {
+        const turn = make("button", { class: "turn", type: "button", "aria-label": "More rows" }, `${from + 1}–${to} of ${all.length} ›`);
+        turn.addEventListener("click", () => { leaf = next; card(id); });
+        foot.replaceChildren(...(paged ? [turn] : []), make("span", { class: "hints" }, kept ? hint("esc", "close") : hint("click", "keep"), ...(record.opens ? [hint("double-click", "open")] : [])));
+      };
+      const firstEnd = lay(0, most, limit);
+      sign(0, firstEnd, firstEnd < all.length, 0);
+      const first = Math.min(box.offsetHeight, limit), place = options.place(id, box.offsetWidth, first), bottom = place.top + first, cap = Math.min(limit, bottom - 8);
+      const starts = [0];
+      for (let to = firstEnd; to < all.length; to = lay(to, most, cap)) starts.push(to);
+      const shown = Math.min(page, starts.length - 1);
+      sign(starts[shown], lay(starts[shown], most, shown ? cap : limit), starts.length > 1, (shown + 1) % starts.length);
+      const height = shown ? cap : limit;
+      box.style.maxHeight = height + "px";
+      box.classList.toggle("long", box.scrollHeight > height + 1);
+      return { ...place, bottom, most, page: shown };
+    };
+    let at = fill(Infinity, 0);
+    for (let most = list.children.length - 1, tried = at; tried.tied && most >= 1; most--) { // a card no place holds clear of what is tied sheds rows a page until one does
+      tried = fill(most, 0);
+      if ((tried.tied > 0) < (at.tied > 0) || (tried.tied > 0) === (at.tied > 0) && tried.cost < at.cost) at = tried;
+    }
+    at = fill(at.most, leaf);
+    leaf = at.page;
+    box.style.left = at.left + "px";
+    box.style.top = "auto";
+    box.style.bottom = innerHeight - at.bottom + "px"; // the foot, and the button that turns the pages, stay put as the pages turn
+    box.classList.add("show");
+  }
+  function gloss(anchor, ...children) { // a note over the card, above what it explains or else below it
+    const box = $("gloss"), at = anchor.getBoundingClientRect();
+    box.replaceChildren(...children);
+    box.classList.add("show");
+    const w = box.offsetWidth, h = box.offsetHeight;
+    box.style.left = Math.min(Math.max(8, at.left), innerWidth - w - 8) + "px";
+    box.style.top = (at.top - h - 6 >= 8 ? at.top - h - 6 : Math.min(at.bottom + 6, innerHeight - h - 8)) + "px";
+  }
+  const unGloss = () => { $("gloss").classList.remove("show"); $("gloss").replaceChildren(); };
+  const sources = record => record.evidence.map(entry => { // each source a record cites, by its path and the line cited, with what it says
+    const [source, line] = entry.split(":"), known = (options.sources() || []).find(one => one.id === source);
+    return make("div", { class: "source" }, make("code", {}, (known ? known.path : source) + (line ? ":" + line : "")), ...(known && known.says ? [make("blockquote", {}, words(known.says))] : []));
+  });
+  function hide() {
+    unGloss();
+    options.light(null);
+    $("card").classList.remove("show"); $("card").dataset.for = "";
+  }
+  $("card").addEventListener("pointerover", event => {
+    const chip = event.target.closest(".ref"), term = event.target.closest(".term");
+    if (chip) options.light(chip.dataset.ref);
+    if (term) gloss(term, make("strong", {}, term.dataset.term), make("p", {}, ...prose(term.dataset.meaning, true)));
+  });
+  $("card").addEventListener("pointerout", event => {
+    if (event.target.closest(".ref") && !(event.relatedTarget && event.relatedTarget.closest && event.relatedTarget.closest(".ref"))) options.light(null);
+    if (event.target.closest(".term")) unGloss();
+  });
+  $("card").addEventListener("click", event => {
+    const named = event.target.closest(".ref");
+    if (named && options.follow(named.dataset.ref, event)) return;
+    const cite = event.target.closest(".cite"), shown = $("gloss").classList.contains("show") && $("gloss").dataset.for === $("card").dataset.for;
+    if (!cite || shown) return unGloss();
+    gloss(cite, ...sources(options.record($("card").dataset.for).record));
+    $("gloss").dataset.for = $("card").dataset.for;
+  });
+  addEventListener("click", event => { // a badge opens its claim, whatever the record it sits on would do with the click
+    const badge = event.target.closest && event.target.closest("button.claim[data-claim]");
+    if (!badge) return;
+    event.stopPropagation();
+    options.follow(badge.dataset.claim, event);
+  }, true);
+  return { MARKS, words, bare, tagName, label, status, badges, claimRows, prose, show: card, hide };
+};
+// The search palette of a paperwork page: a query ranked over the page's records by reciprocal rank fusion, read also as the keys of a
+// Korean layout and through the terms' aliases, or a regular expression; recent queries kept per page. A page calls
+// `paperworkSearch(options)` once its `#veil` and `#palette` exist, and hands each keydown to `key(event)` first:
+//   make(name, attributes, ...children)  the element maker
+//   entries()  each record as { id, kind, name, note, fields: [[text, place]], shown: [[field, text]] }, a field's place 0 for a name,
+//              then 1 for an id, 2 for a tag, 3 for prose and 4 for details, its shown texts as a hit's excerpt draws them
+//   kinds      the heading of each kind, in the order ties rank; browse: [heading, kind, group, under] groups an empty query lists,
+//              each the entries of KIND whose `group` is GROUP when given, listed too by `ask(UNDER)` when given
+//   terms()    the contract's terms; shelf(): the storage key of the page's recent queries
+//   open(entry) the page moves to a picked record
+window.paperworkSearch = options => {
+  "use strict";
+  const { make } = options;
+  const $ = id => document.getElementById(id);
+  const KINDS = options.kinds, ORDER = Object.keys(KINDS);
+  const LEAD = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ", VOWEL = ["ㅏ", "ㅐ", "ㅑ", "ㅒ", "ㅓ", "ㅔ", "ㅕ", "ㅖ", "ㅗ", "ㅗㅏ", "ㅗㅐ", "ㅗㅣ", "ㅛ", "ㅜ", "ㅜㅓ", "ㅜㅔ", "ㅜㅣ", "ㅠ", "ㅡ", "ㅡㅣ", "ㅣ"];
+  const TAIL = ["", "ㄱ", "ㄲ", "ㄱㅅ", "ㄴ", "ㄴㅈ", "ㄴㅎ", "ㄷ", "ㄹ", "ㄹㄱ", "ㄹㅁ", "ㄹㅂ", "ㄹㅅ", "ㄹㅌ", "ㄹㅍ", "ㄹㅎ", "ㅁ", "ㅂ", "ㅂㅅ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  const PAIRS = { "ㄳ": "ㄱㅅ", "ㄵ": "ㄴㅈ", "ㄶ": "ㄴㅎ", "ㄺ": "ㄹㄱ", "ㄻ": "ㄹㅁ", "ㄼ": "ㄹㅂ", "ㄽ": "ㄹㅅ", "ㄾ": "ㄹㅌ", "ㄿ": "ㄹㅍ", "ㅀ": "ㄹㅎ", "ㅄ": "ㅂㅅ", "ㅘ": "ㅗㅏ", "ㅙ": "ㅗㅐ", "ㅚ": "ㅗㅣ", "ㅝ": "ㅜㅓ", "ㅞ": "ㅜㅔ", "ㅟ": "ㅜㅣ", "ㅢ": "ㅡㅣ" };
+  const KEYS = { "ㅂ": "q", "ㅈ": "w", "ㄷ": "e", "ㄱ": "r", "ㅅ": "t", "ㅛ": "y", "ㅕ": "u", "ㅑ": "i", "ㅐ": "o", "ㅔ": "p", "ㅁ": "a", "ㄴ": "s", "ㅇ": "d", "ㄹ": "f", "ㅎ": "g", "ㅗ": "h", "ㅓ": "j", "ㅏ": "k", "ㅣ": "l", "ㅋ": "z", "ㅌ": "x", "ㅊ": "c", "ㅍ": "v", "ㅠ": "b", "ㅜ": "n", "ㅡ": "m", "ㅃ": "q", "ㅉ": "w", "ㄸ": "e", "ㄲ": "r", "ㅆ": "t", "ㅒ": "o", "ㅖ": "p" };
+  const typed = text => [...text].map(letter => { // the Latin keys pressed when a Korean two-set layout was left on
+    const code = letter.charCodeAt(0) - 0xac00;
+    const parts = code >= 0 && code < 11172 ? LEAD[Math.floor(code / 588)] + VOWEL[Math.floor(code % 588 / 28)] + TAIL[code % 28] : PAIRS[letter] || letter;
+    return [...parts].map(part => KEYS[part] || part).join("");
+  }).join("");
+  const plain = text => String(text).toLowerCase().replace(/[^a-z0-9ㄱ-ㆎ가-힣]+/g, " ").trim();
+  const slips = (a, b, most) => { // edits between two words, a swap of neighbours counted once
+    if (Math.abs(a.length - b.length) > most) return most + 1;
+    let last = null, row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const next = [i];
+      for (let j = 1; j <= b.length; j++) {
+        next[j] = Math.min(row[j] + 1, next[j - 1] + 1, row[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        if (last && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) next[j] = Math.min(next[j], last[j - 2] + 1);
+      }
+      last = row; row = next;
+    }
+    return row[b.length];
+  };
+  function match(token, field) { // how well TOKEN matches FIELD, best first: the whole field, a word, a word's start, the words' initials, inside a word, one slip, two slips; -1 for none
+    if (field.text === token) return 0;
+    if (field.tokens.includes(token)) return 1;
+    if (field.text.startsWith(token) || field.tokens.some(word => word.startsWith(token))) return 2;
+    if (token.length > 1 && field.tokens.length >= token.length && field.tokens.map(word => word[0]).join("").startsWith(token)) return 3;
+    if (token.length > 2 && field.text.includes(token)) return 4;
+    const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+    let least = most + 1;
+    for (const word of most ? field.tokens : []) {
+      const key = token + " " + word;
+      if (!slipping.has(key)) slipping.set(key, slips(token, word.length > token.length + most ? word.slice(0, token.length) : word, most));
+      least = Math.min(least, slipping.get(key));
+      if (least === 1) break;
+    }
+    return least <= most ? 4 + least : -1;
+  }
+  const slipping = new Map(); // a query word's slips from a record's word, kept while one query ranks, since the same words recur across records
+  const termed = query => (options.terms() || []).flatMap(term => (term.aliases || []).filter(alias => ` ${query} `.includes(` ${plain(alias)} `)).map(alias => [alias, term.term])); // the term aliases a query holds whole, each with its term
+  const forms = query => { // a query read as typed and as the keys of a Korean layout, then each with its term aliases read as their terms
+    const read = [plain(query), plain(typed(query))];
+    return read.concat(read.filter(form => termed(form).length).map(form => termed(form).reduce((done, [alias, term]) => ` ${done} `.replace(` ${plain(alias)} `, ` ${plain(term)} `).trim(), form)));
+  };
+  const stem = word => word.length > 4 ? word.replace(/(ies|es|ed|ing|s|e)$/, "") : word;
+  const RANKERS = { field: 6, quality: 3, bm25: .25, coverage: 1 }; // each ranker's weight in the fused rank, tuned by the mean reciprocal rank over the system skill's fixtures/ranking-queries.json
+  function measure(entry, tokens, rare, partial) { // what each ranker reads of one record for one query, each the less the better; none for a record missing a word unless PARTIAL
+    let field = 0, quality = 0, covered = 0, telling = 0;
+    for (const token of tokens) { // the token's match in the first field it matches, the field ranked before the match
+      let place = 5, grade = 7, size = 0;
+      for (const one of entry.fields) { const got = match(token, one); if (got >= 0 && (one.place < place || one.place === place && got < grade)) { place = one.place; grade = got; size = one.text.length; } }
+      if (grade === 7 && !partial) return null;
+      covered += grade < 7 ? 1 : 0; telling += grade < 7 && !STOP.has(token) ? 1 : 0; field += place; quality += grade < 7 ? grade + 1 - token.length / Math.max(size, token.length) : grade; // within a grade, the more of the text the word covers the better
+    }
+    field /= tokens.length; quality /= tokens.length;
+    if (tokens.length > 1) for (const one of entry.fields) { const got = match(tokens.join(" "), one); if (got >= 0) { field = Math.min(field, one.place); quality = Math.min(quality, got); } }
+    let bm25 = 0;
+    for (const [term, weight] of rare) { // BM25, k1 1.2 and b 0.75, over every text of the record
+      const count = entry.terms.filter(word => word === term).length;
+      bm25 += weight * count * 2.2 / (count + 1.2 * (.25 + .75 * entry.terms.length / lengths));
+    }
+    return { entry, covered, telling, field, quality, bm25: -bm25, coverage: -covered / tokens.length };
+  }
+  const STOP = new Set("a an and are as at be by for from has have how in is it its of on or that the this to was what when where which who why will with".split(" ")); // words nearly every text holds, so alone they tell no record apart
+  function rank(query) { // the records a query finds, by reciprocal rank fusion of its rankers, k = 60
+    const scored = new Map();
+    slipping.clear();
+    for (const form of new Set(forms(query))) {
+      const tokens = form.split(" ").filter(Boolean);
+      if (!tokens.length) continue;
+      const rare = [...new Set(tokens.map(stem))].map(term => { const held = entries.filter(entry => entry.terms.includes(term)).length; return [term, Math.log(1 + (entries.length - held + .5) / (held + .5))]; });
+      const told = tokens.some(token => !STOP.has(token));
+      const pool = tokens.length < 3 ? entries.map(entry => measure(entry, tokens, rare, false)).filter(Boolean) // a sentence a person types seldom matches a record in every word, so the share of words ranks it
+        : entries.map(entry => measure(entry, tokens, rare, true)).filter(row => told ? row.telling : row.covered || row.bm25 < 0);
+      const score = new Map(pool.map(row => [row.entry, 0]));
+      for (const [ranker, weight] of Object.entries(RANKERS)) { // a record's rank is one more than the records ahead of it, ties sharing one
+        const sorted = pool.map(row => row[ranker]).sort((a, b) => a - b);
+        for (const row of pool) { let ahead = 0, past = sorted.length; while (ahead < past) { const middle = (ahead + past) >> 1; if (sorted[middle] < row[ranker]) ahead = middle + 1; else past = middle; } score.set(row.entry, score.get(row.entry) + weight / (60 + 1 + ahead)); }
+      }
+      for (const [entry, value] of score) if (value > (scored.get(entry) || 0)) scored.set(entry, value);
+    }
+    return [...scored].sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  const folds = new Map();
+  const fold = text => { // TEXT as `plain` reads it, with the place in TEXT of each letter kept
+    if (folds.has(text)) return folds.get(text);
+    let folded = "", at = [], gap = false;
+    for (let i = 0; i < text.length; i++) {
+      const letter = text[i].toLowerCase();
+      if (letter.length !== 1 || !/[a-z0-9ㄱ-ㆎ가-힣]/.test(letter)) { gap = true; continue; }
+      if (gap && folded) { folded += " "; at.push(i); }
+      folded += letter; at.push(i); gap = false;
+    }
+    folds.set(text, { folded, at });
+    return folds.get(text);
+  };
+  function spans(text, tokens) { // the letters of TEXT each query word matched, by the first way `match` would take
+    const { folded, at } = fold(text), found = [], starts = [];
+    for (const word of folded.matchAll(/\S+/g)) starts.push([word.index, word.index + word[0].length]);
+    const mark = (start, end) => found.push([at[start], at[end - 1] + 1]);
+    for (const token of tokens) {
+      const heads = starts.filter(([start]) => folded.startsWith(token, start));
+      if (heads.length) { heads.forEach(([start]) => mark(start, start + token.length)); continue; }
+      if (token.length > 1 && starts.length >= token.length && starts.slice(0, token.length).every(([start], i) => folded[start] === token[i])) { starts.slice(0, token.length).forEach(([start]) => mark(start, start + 1)); continue; }
+      const kin = starts.filter(([start, end]) => stem(folded.slice(start, end)) === stem(token));
+      if (kin.length) { kin.forEach(([start, end]) => mark(start, end)); continue; }
+      if (token.length > 2 && folded.includes(token)) { for (let i = folded.indexOf(token); i >= 0; i = folded.indexOf(token, i + token.length)) mark(i, i + token.length); continue; }
+      const most = token.length >= 8 ? 2 : token.length >= 4 ? 1 : 0;
+      for (const [start, end] of most ? starts : []) {
+        const word = folded.slice(start, end), cut = word.length > token.length + most ? token.length : word.length;
+        if (slips(token, word.slice(0, cut), most) <= most) mark(start, start + cut);
+      }
+    }
+    return found;
+  }
+  const matches = (text, pattern) => [...text.matchAll(pattern)].filter(one => one[0]).slice(0, 50).map(one => [one.index, one.index + one[0].length]);
+  const marked = (text, found) => { // TEXT with each found span in a mark
+    const parts = [];
+    let done = 0;
+    for (const [start, end] of [...found].sort((a, b) => a[0] - b[0])) {
+      if (end <= done) continue;
+      const from = Math.max(start, done);
+      parts.push(text.slice(done, from), make("mark", {}, text.slice(from, end)));
+      done = end;
+    }
+    return parts.concat(text.slice(done));
+  };
+  function excerpt(text, found) { // about twelve words of TEXT around its first match, cut ends shown by an ellipsis
+    const all = [...text.matchAll(/\S+/g)], first = Math.min(...found.map(span => span[0]));
+    let from = Math.max(0, all.findIndex(word => word.index + word[0].length > first) - 4);
+    const to = Math.min(all.length, from + 12);
+    from = Math.max(0, to - 12);
+    const start = all[from].index, end = all[to - 1].index + all[to - 1][0].length;
+    const shifted = found.filter(([a, b]) => b > start && a < end).map(([a, b]) => [Math.max(a, start) - start, Math.min(b, end) - start]);
+    return [...(from ? ["… "] : []), ...marked(text.slice(start, end), shifted), ...(to < all.length ? [" …"] : [])];
+  }
+  function sought() { // the pattern the box holds in the regular expression mode, or the reason it is none
+    try { return { pattern: new RegExp($("query").value, "gi") }; } catch (error) { return { error: error.message.replace(/^.*: /, "") }; }
+  }
+  function grep(pattern) { // the records whose name or other texts the pattern matches, the name counting most
+    const found = [];
+    for (const entry of entries) {
+      const named = matches(entry.name, pattern).length > 0;
+      if (named || entry.shown.some(part => matches(part.text, pattern).length)) found.push([entry, named ? 2 : 1]);
+    }
+    return found.sort((a, b) => b[1] - a[1] || ORDER.indexOf(a[0].kind) - ORDER.indexOf(b[0].kind) || a[0].name.length - b[0].name.length || a[0].id.localeCompare(b[0].id)).map(([entry]) => entry);
+  }
+  let chosen = 0, listed = [], scope = null, regular = false, memory = null;
+  let entries = [], from = null, ready = [], lengths = 1;
+  const prepared = () => { // each entry's fields as the search weighs them, made again only when the page's entries change
+    const list = options.entries();
+    if (list === from) return ready;
+    from = list;
+    ready = list.map(({ id, kind, name, note, group, fields, shown }) => ({ id, kind, name: name.replace(/`/g, ""), note, group,
+      fields: fields.filter(([text]) => text).map(([text, place]) => ({ text: plain(text), tokens: plain(text).split(" "), place })), shown: shown.filter(([, text]) => text).map(([field, text]) => ({ field, text })) }));
+    for (const entry of ready) entry.terms = entry.fields.flatMap(field => field.tokens).map(stem);
+    lengths = ready.reduce((sum, entry) => sum + entry.terms.length, 0) / Math.max(1, ready.length);
+    return ready;
+  };
+  const recalled = () => { // the last queries a pick was made from, each with its mode, the tab's own once the storage throws
+    if (!memory) try { return JSON.parse(localStorage.getItem(options.shelf()) || "[]").map(one => typeof one === "string" ? { text: one, regex: false } : one); } catch { memory = []; }
+    return memory;
+  };
+  const remember = queries => {
+    if (!memory) try { return localStorage.setItem(options.shelf(), JSON.stringify(queries)); } catch { memory = queries; }
+    memory = queries;
+  };
+  const CLOCK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+  const CROSS = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+  function list() {
+    const query = $("query").value.trim(), box = $("hits"), input = $("query");
+    entries = prepared();
+    box.replaceChildren();
+    const typing = regular ? [] : [...new Set(forms(query))].map(form => form.split(" ").filter(Boolean)), tokens = [...new Set(typing.flat())]; // a query read as typed and as the keys of a Korean layout
+    const asked = regular && query ? sought() : {}, theirs = regular ? [] : termed(plain(query));
+    const find = text => asked.pattern ? matches(text, asked.pattern) : spans(text, tokens);
+    const found = !query || asked.error ? [] : (asked.pattern ? grep(asked.pattern) : rank(query)).slice(0, 8);
+    const before = scope ? [] : recalled().filter(({ text }) => !query || text.toLowerCase().startsWith(query.toLowerCase()) && text.length > query.length).map(one => ({ recent: one.text, regex: one.regex }));
+    const groups = [["Recent", before], ...(query ? [...new Set(found.map(entry => entry.kind))].map(kind => [KINDS[kind], found.filter(entry => entry.kind === kind)])
+      : options.browse.filter(([title, , , under]) => !scope || (under || title) === scope).map(([title, kind, group]) => [title, entries.filter(entry => entry.kind === kind && (!group || entry.group === group))]))];
+    listed = groups.flatMap(group => group[1]);
+    if (chosen < 0) chosen = query && found.length ? before.length : 0; // a typed query's Enter opens its top record; a recent one is a move away
+    chosen = Math.min(chosen, Math.max(0, listed.length - 1));
+    input.setAttribute("aria-invalid", String(!!asked.error));
+    input.removeAttribute("aria-activedescendant");
+    const option = (item, ...children) => make("div", { class: "hit", role: "option", id: `hit-${listed.indexOf(item)}`, "aria-selected": String(listed[chosen] === item) }, ...children);
+    for (const [title, hits] of groups) {
+      if (!hits.length) continue;
+      box.append(make("h3", {}, title));
+      for (const item of hits) {
+        if (item.recent) { // the typed part plain, the rest of the kept query bold
+          const row = option(item, make("span", { class: "clock" }), make("div", { class: "text" }, make("span", { class: "recent" }, item.recent.slice(0, query.length), make("b", {}, item.recent.slice(query.length)))),
+            make("button", { class: "tool icon quiet forget", type: "button", "aria-label": `Remove ${item.recent} from recent searches`, title: "Remove" }));
+          row.dataset.recent = item.recent;
+          row.querySelector(".clock").innerHTML = CLOCK; row.querySelector(".forget").innerHTML = CROSS;
+          row.addEventListener("click", event => event.target.closest(".forget") ? forget(item) : recall(item));
+          box.append(row);
+          continue;
+        }
+        const entry = item, named = query ? find(entry.name) : [], text = [make("b", {}, ...marked(entry.name, named))];
+        const form = query && !asked.pattern && (typing.find(words => words.every(token => [entry.name, ...entry.shown.map(one => one.text)].some(text => spans(text, [token]).length))) || typing[0]);
+        const missing = asked.pattern ? !named.length : !!form && form.some(token => !spans(entry.name, [token]).length);
+        const part = missing && entry.shown.map(one => ({ ...one, found: find(one.text), titled: find(one.field) })).filter(one => one.found.length + one.titled.length).sort((a, b) => b.found.length + b.titled.length - a.found.length - a.titled.length)[0];
+        const through = theirs.length && plain(query).split(" ").some(token => !spans(entry.name, [token]).length) ? [make("i", {}, "matched alias:"), " ", make("mark", {}, theirs[0][0]), ` (${theirs[0][1]})`] : []; // found through a term's alias, read as its term
+        if (part || through.length) text.push(make("span", { class: "where" }, ...through, ...(part ? [...(through.length ? [" · "] : []), make("i", {}, ...marked(part.field, part.titled)), " ", ...excerpt(part.text, part.found.length ? part.found : [[0, 0]])] : [])));
+        const row = option(entry, make("div", { class: "text" }, text[0], make("small", {}, entry.note), ...text.slice(1)));
+        row.dataset.hit = entry.id;
+        row.addEventListener("click", () => pick(entry));
+        box.append(row);
+      }
+    }
+    if (asked.error) box.append(make("div", { class: "none error", role: "alert" }, make("b", {}, "Not a regular expression"), make("span", {}, asked.error)));
+    else if (query && !found.length) box.append(make("div", { class: "none", role: "status" }, make("b", {}, `No results for “${query}”`),
+      make("span", {}, regular ? "Check the pattern, or turn regular expressions off with Alt+R." : "Try fewer or other words, or turn on regular expressions with Alt+R.")));
+    const current = box.querySelector('[aria-selected="true"]');
+    if (current) { current.scrollIntoView({ block: "nearest" }); input.setAttribute("aria-activedescendant", current.id); }
+  }
+  const same = (one, item) => one.text.toLowerCase() === item.recent.toLowerCase(); // one row per text, kept in the mode it last ran in
+  function recall(item) { $("query").value = item.recent; regex(item.regex); }
+  function forget(item) { remember(recalled().filter(one => !same(one, item))); $("query").focus(); list(); }
+  function regex(on) {
+    regular = on; chosen = -1;
+    $("regex").setAttribute("aria-pressed", String(on));
+    $("query").focus();
+    list();
+  }
+  function ask(only) {
+    scope = only || null; chosen = 0;
+    $("query").value = "";
+    $("veil").classList.add("show"); $("palette").classList.add("show");
+    document.body.dataset.palette = "1";
+    list();
+    $("query").focus();
+  }
+  function shut() {
+    $("veil").classList.remove("show"); $("palette").classList.remove("show");
+    document.body.dataset.palette = "";
+    $("query").blur();
+  }
+  function pick(entry) {
+    const query = $("query").value.trim();
+    if (entry.recent) return recall(entry);
+    if (query && document.body.dataset.palette) remember([{ text: query, regex: regular }, ...recalled().filter(one => !same(one, { recent: query, regex: regular }))].slice(0, 8));
+    shut();
+    options.open(entry);
+  }
+  function key(event) { // whether the palette took the key: every key while it is open, and the keys that open it
+    if (document.body.dataset.palette) {
+      if (event.key === "Escape") shut();
+      else if (event.altKey && event.code === "KeyR") regex(!regular); // by the key's place, since Option on a Mac turns R into another letter
+      else if (event.key === "ArrowDown" || event.key === "ArrowUp") { chosen = (chosen + (event.key === "ArrowDown" ? 1 : listed.length - 1)) % Math.max(1, listed.length); list(); }
+      else if (event.key === "Enter" && listed[chosen] && !event.target.closest("button")) pick(listed[chosen]); // a focused button takes its own Enter
+      else return true;
+      event.preventDefault();
+      return true;
+    }
+    if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !event.metaKey && !event.ctrlKey)) { event.preventDefault(); ask(); return true; }
+    return false;
+  }
+  $("veil").addEventListener("click", shut);
+  $("query").addEventListener("input", () => { chosen = -1; list(); });
+  $("regex").addEventListener("click", () => regex(!regular));
+  return { ask, key };
+};
+// The frame of every paperwork page: the crumbs at the top left, the tools at the top right with the search bar last, the record card and
+// the search palette over them, and one Claims list grouped by status. A page calls `paperworkFrame(options)` before it draws, with
+// paperworkCard's options but `make` and `claimsOn`, paperworkSearch's but `make`, and:
+//   placeholder  what the search box says while empty
+//   tools        the page's own buttons, each [id, label], before Claims and the search bar
+//   claims()     the contract's claims; questions() its questions
+// It returns the card's calls, `search`, `make`, crumbs(trail, pick), and entries() and rows(id) of the claims and questions.
+window.paperworkFrame = options => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const make = (name, attributes = {}, ...children) => {
+    const element = document.createElement(name);
+    for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null && value !== false) element.setAttribute(key, value);
+    element.append(...children.flat().filter(child => child !== null && child !== undefined && child !== false));
+    return element;
+  };
+  const STATUSES = ["fails", "conflicting", "unknown", "holds"]; // the Claims list's groups, the least settled first
+  const hint = (...keys) => keys.map(key => make("kbd", {}, key));
+  document.body.append(
+    make("nav", { id: "crumbs", class: "bar", "aria-label": "Levels" }),
+    make("div", { id: "tools", class: "bar" }, ...(options.tools || []).map(([id, label]) => make("button", { id, class: "tool", type: "button" }, label)),
+      make("button", { id: "claims", class: "tool", type: "button" }, "Claims"),
+      make("button", { id: "search", class: "tool quiet", type: "button", title: options.placeholder }, "Search", make("kbd", {}, "/"))),
+    make("aside", { id: "card", role: "tooltip" }), make("div", { id: "gloss", role: "tooltip" }), make("div", { id: "veil" }),
+    make("div", { id: "palette", role: "dialog", "aria-label": "Search" },
+      make("div", { id: "field" }, make("input", { id: "query", type: "text", placeholder: options.placeholder, autocomplete: "off", spellcheck: "false", role: "combobox",
+        "aria-expanded": "true", "aria-controls": "hits", "aria-autocomplete": "list", "aria-label": "Search" }),
+      make("button", { id: "regex", class: "tool icon quiet", type: "button", "aria-pressed": "false", "aria-label": "Regular expression", title: "Regular expression (Alt+R)" }, ".*")),
+      make("div", { id: "hits", role: "listbox" }),
+      make("footer", { id: "keys" }, make("span", {}, ...hint("↑", "↓"), " move"), make("span", {}, ...hint("↵"), " open"), make("span", {}, ...hint("esc"), " close"), make("span", {}, ...hint("alt", "R"), " regex"))));
+  const claimsOn = id => (options.claims() || []).filter(claim => (claim.on || []).includes(id));
+  const card = paperworkCard({ ...options, make, claimsOn });
+  const browse = [...options.browse.filter(([, kind]) => kind !== "claim"), ...STATUSES.map(status => [`Claims: ${status}`, "claim", status, "Claims"])];
+  const search = paperworkSearch({ ...options, make, browse });
+  addEventListener("keydown", event => { if (search.key(event)) event.stopImmediatePropagation(); }, true); // an open palette, and the keys that open it, come before the page's own keys
+  $("search").addEventListener("click", () => search.ask());
+  $("claims").addEventListener("click", () => search.ask("Claims"));
+
+  function crumbs(trail, pick) { // the way down from the first level to the shown one, each [id, title], the last the shown one, with each level's badges
+    $("claims").hidden = !(options.claims() || []).length;
+    $("crumbs").replaceChildren(...trail.flatMap(([id, title], k) => {
+      const step = make("button", { type: "button", "data-level": id, ...(k === trail.length - 1 ? { "aria-current": "page" } : {}) }, title);
+      step.addEventListener("click", () => pick(id));
+      return [...(k ? [make("span", { class: "sep", "aria-hidden": "true" }, "/")] : []), step, card.badges(id)];
+    }).filter(Boolean));
+  }
+  function entries() { // the search's entry of each claim, grouped by its status, and of each question, open when no answer settles it
+    const claims = options.claims() || [], { words, bare, status } = card;
+    return [...claims.map(claim => ({ id: claim.id, kind: "claim", name: claim.title, note: claim.kind, group: status(claim),
+      fields: [[claim.title, 0], [claim.id, 1], [claim.kind, 2], [words(claim.statement), 3]], shown: [["kind", claim.kind], ["status", status(claim)], ["statement", bare(claim.statement)]] })),
+    ...(options.questions() || []).map(question => ({ id: question.id, kind: "question", name: words(question.asks),
+      note: question.answers.every(name => claims.some(claim => claim.id === name && claim.fault)) ? "open question" : "question",
+      fields: [[words(question.asks), 0], [question.id, 1]], shown: [["id", question.id]] }))];
+  }
+  function rows(id) { // a claim's or a question's card rows, each naming the records it is about so the card leads back to each
+    const { kind, record } = options.record(id), named = ids => (ids || []).map(one => `{${one}}`);
+    if (kind === "claim") return [["statement", "text", record.statement], ["on", "list", named(record.on)], ...(record.fault ? [["fault", "text", record.fault]] : [])];
+    if (kind === "question") return [["asks", "text", record.asks], ["answers", "list", named(record.answers)]];
+    return [];
+  }
+  return { ...card, make, search, crumbs, entries, rows };
+};
+</script>
+<!-- /page frame -->
+<style>
+html, body { height: 100%; margin: 0; }
+
+#diagram { position: fixed; inset: 0; overflow: auto; background-image: radial-gradient(circle, color-mix(in oklab, var(--foreground) 9%, transparent) 1px, transparent 1px); background-size: 24px 24px; }
+#stage { position: relative; margin: 0 auto; }
+#stage svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#stage svg .hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: default; }
+#stage svg .opens .hit { cursor: pointer; }
+
+.node { position: absolute; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0; min-height: 56px; padding: var(--spacing-02) var(--spacing-05) var(--spacing-03); border: 2px solid var(--area-edge); border-radius: 12px; background: var(--area-fill); text-align: center; transition: box-shadow .15s var(--ease); }
+.node .area { font-size: var(--type-01); line-height: var(--leading-01); color: var(--muted-foreground); }
+.node .label { font-weight: 600; line-height: var(--leading-03); white-space: nowrap; }
+.node.lit, .edge-label.lit, .task.lit { box-shadow: 0 0 0 3px color-mix(in oklab, var(--mark) 45%, transparent); }
+.lifeline { stroke: var(--area-edge); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.lit .lifeline { stroke-width: 3; stroke-dasharray: none; }
+.arrow { stroke: var(--line); stroke-width: 1.5; fill: none; }
+.arrow[data-tag="reply"] { stroke-dasharray: 6 4; }
+.opens .arrow { stroke-width: 2.5; }
+.edge.lit .arrow { stroke: var(--mark); stroke-width: 3; }
+.head { fill: var(--line); }
+.edge.lit .head { fill: var(--mark); }
+
+.edge-label { position: absolute; transform: translateX(-50%); padding: 0 var(--spacing-02); border-radius: 4px; white-space: nowrap; font: 500 var(--type-02)/var(--leading-03) ui-monospace, SFMono-Regular, Menlo, monospace; background: color-mix(in oklab, var(--canvas) 85%, transparent); }
+.opens-mark { margin-left: var(--spacing-02); padding: 0 var(--spacing-02); border: 1px solid var(--line); border-radius: 4px; font: 600 var(--type-01)/var(--leading-01) ui-sans-serif, system-ui, sans-serif; cursor: pointer; }
+.step { fill: var(--foreground); }
+.step-number { fill: var(--background); font: 700 var(--type-01)/1 ui-sans-serif, system-ui, sans-serif; text-anchor: middle; pointer-events: none; }
+.edge-codes { position: absolute; transform: translateX(-50%); color: var(--muted-foreground); white-space: nowrap; font: 400 var(--type-01)/var(--leading-01) ui-monospace, SFMono-Regular, Menlo, monospace; }
+.edge-work { position: absolute; transform: translateX(-50%); display: flex; gap: var(--spacing-02); white-space: nowrap; }
+.work-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 var(--spacing-03); border: 1px solid var(--area-edge); border-radius: 9999px; background: var(--area-fill); font: 500 var(--type-01)/var(--leading-02) ui-sans-serif, system-ui, sans-serif; }
+.work-list { position: absolute; display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--spacing-06); }
+.work-list section { min-width: 280px; max-width: 480px; padding-top: var(--spacing-03); border-top: 3px solid var(--area-edge); }
+.work-list h2 { margin: 0 0 var(--spacing-02); font: 600 var(--type-02)/var(--leading-03) ui-sans-serif, system-ui, sans-serif; }
+.work-list ol { margin: 0; padding: 0; list-style: none; }
+.work-row { display: grid; grid-template-columns: 20px auto 1fr; gap: var(--spacing-03); padding: var(--spacing-02) var(--spacing-03); border-radius: 6px; font-size: var(--type-02); line-height: var(--leading-03); cursor: pointer; }
+.work-row:hover, .work-row.lit { background: var(--accent); }
+.work-step { width: 20px; height: 20px; border-radius: 50%; background: var(--foreground); color: var(--background); font: 700 var(--type-01)/var(--leading-03) ui-sans-serif, system-ui, sans-serif; text-align: center; }
+.work-change { color: var(--muted-foreground); white-space: nowrap; }
+.edge-chips { position: absolute; transform: translateX(-50%); display: flex; align-items: center; gap: var(--spacing-02); white-space: nowrap; }
+.edge-label.self, .edge-chips.self, .edge-codes.self, .edge-work.self { transform: none; }
+.chip { display: inline-flex; align-items: center; height: 16px; padding: 0 var(--spacing-03); border-radius: 9999px; background: var(--muted); color: var(--muted-foreground); font: 500 var(--type-01)/var(--leading-01) ui-sans-serif, system-ui, sans-serif; }
+
+.fragment { fill: none; stroke: var(--muted-foreground); stroke-width: 1; }
+.operand-line { stroke: var(--muted-foreground); stroke-width: 1; stroke-dasharray: 4 4; }
+.fragment-kind { position: absolute; padding: 0 var(--spacing-03); border: 1px solid var(--muted-foreground); border-width: 0 1px 1px 0; border-radius: 0 0 8px 0; background: var(--background); font: 600 var(--type-01)/var(--leading-03) ui-monospace, SFMono-Regular, Menlo, monospace; }
+.guard { position: absolute; padding: 0 var(--spacing-02); border-radius: 4px; background: color-mix(in oklab, var(--canvas) 85%, transparent); color: var(--muted-foreground); font-size: var(--type-01); line-height: var(--leading-01); white-space: nowrap; }
+
+.milestone { stroke: var(--foreground); stroke-width: 2; stroke-dasharray: 2 4; }
+.milestone-label.at-top { transform: translateX(-50%); }
+.task { position: absolute; height: 28px; padding: 0 var(--spacing-04); border: 2px solid var(--area-edge); border-radius: 6px; background: var(--area-fill); font-size: var(--type-02); line-height: var(--leading-05); white-space: nowrap; }
+.task.critical { border: 3px solid var(--foreground); font-weight: 700; line-height: var(--leading-04); }
+.task-chips { position: absolute; display: flex; align-items: center; gap: var(--spacing-02); white-space: nowrap; }
+.arrow[data-tag="wait"] { stroke-dasharray: 2 4; }
+.edge.critical .arrow { stroke: var(--foreground); stroke-width: 3; }
+.edge.critical .head { fill: var(--foreground); }
+.milestone-label { position: absolute; padding: 0 var(--spacing-03); border-radius: 4px; background: var(--foreground); color: var(--background); font-size: var(--type-01); line-height: var(--leading-03); font-weight: 600; white-space: nowrap; }
+</style>
+</head>
+<body>
+<main id="diagram"><div id="stage"></div></main>
+<script type="application/json" id="page-data">{
+"title": "Release plan",
+"purpose": "Shows who does what, and what waits on what, from the first line of code to a published release.",
+"sources": [
+{"id": "release-guide", "path": "https://example.com/team/release-guide", "says": "The steps of a release, who owns each and what each waits on."}
+],
+"terms": [{"term": "code freeze", "meaning": "the point after which only fixes of review findings may land before the release", "avoid": ["lockdown"]}],
+"areas": [
+{"id": "team", "label": "Team", "purpose": "The people who write and review the change."},
+{"id": "automation", "label": "Automation", "purpose": "The machines that test and publish."}
+],
+"levels": [
+{"id": "release", "title": "release", "kind": "plan", "nodes": ["developer", "reviewer", "ci-runner", "package-registry"], "about": "One release from code to a published package."}
+],
+"nodes": [
+{"id": "developer", "label": "Developer", "tag": "actor", "area": "team", "purpose": "Writes the change and fixes what the review finds.", "evidence": ["release-guide"], "basis": "documented"},
+{"id": "reviewer", "label": "Reviewer", "tag": "actor", "area": "team", "purpose": "Reads the change and approves it or sends it back.", "evidence": ["release-guide"], "basis": "documented"},
+{"id": "ci-runner", "label": "macOS runner", "tag": "job", "area": "automation", "purpose": "Runs the tests and builds the package.", "evidence": ["release-guide"], "basis": "documented"},
+{"id": "package-registry", "label": "Package registry", "tag": "dataStore", "area": "automation", "purpose": "Holds each published version for users to install.", "evidence": ["release-guide"], "basis": "documented"}
+],
+"tasks": [
+{"id": "write-code", "level": "release", "node": "developer", "label": "Write the change", "tag": "work", "purpose": "Makes the code change the release ships.", "info": {"done": "the branch builds locally"}, "evidence": ["release-guide"]},
+{"id": "write-notes", "level": "release", "node": "developer", "label": "Write release notes", "tag": "work", "purpose": "Says what changed for users.", "info": {"outputs": ["release notes"]}, "evidence": ["release-guide"]},
+{"id": "run-tests", "level": "release", "node": "ci-runner", "label": "Run the tests", "tag": "work", "purpose": "Proves the change breaks nothing known.", "info": {"done": "every test passes"}, "evidence": ["release-guide"]},
+{"id": "review-code", "level": "release", "node": "reviewer", "label": "Review the change", "tag": "review", "purpose": "Finds what the tests cannot.", "info": {"refuses": ["a public interface changed without a note"]}, "evidence": ["release-guide"]},
+{"id": "fix-findings", "level": "release", "node": "developer", "label": "Fix review findings", "tag": "work", "purpose": "Answers each finding of the review.", "evidence": ["release-guide"]},
+{"id": "merge-change", "level": "release", "node": "developer", "label": "Merge to main", "tag": "work", "purpose": "Puts the reviewed change on the main branch.", "after": ["code-freeze"], "evidence": ["release-guide"]},
+{"id": "build-package", "level": "release", "node": "ci-runner", "label": "Build the package", "tag": "work", "purpose": "Turns the main branch into one versioned package.", "evidence": ["release-guide"]},
+{"id": "publish-package", "level": "release", "node": "package-registry", "label": "Publish the version", "tag": "work", "purpose": "Makes the package installable.", "info": {"done": "the version shows in the index"}, "evidence": ["release-guide"]}
+],
+"edges": [
+{"id": "asks-tests", "level": "release", "from": "write-code", "to": "run-tests", "label": "push the branch", "tag": "request", "evidence": ["release-guide"]},
+{"id": "asks-review", "level": "release", "from": "write-code", "to": "review-code", "label": "open a review", "tag": "request", "evidence": ["release-guide"]},
+{"id": "sends-findings", "level": "release", "from": "review-code", "to": "fix-findings", "label": "send the findings", "tag": "request", "evidence": ["release-guide"]},
+{"id": "waits-tests", "level": "release", "from": "run-tests", "to": "merge-change", "label": "tests pass", "tag": "wait", "evidence": ["release-guide"]},
+{"id": "waits-approval", "level": "release", "from": "review-code", "to": "merge-change", "label": "the review approves", "tag": "wait", "evidence": ["release-guide"]},
+{"id": "asks-build", "level": "release", "from": "merge-change", "to": "build-package", "label": "tag the release", "tag": "request", "evidence": ["release-guide"]},
+{"id": "hands-package", "level": "release", "from": "build-package", "to": "publish-package", "label": "upload the package", "tag": "request", "evidence": ["release-guide"]},
+{"id": "waits-notes", "level": "release", "from": "write-notes", "to": "publish-package", "label": "notes are ready", "tag": "wait", "info": {"until": "the notes are merged"}, "evidence": ["release-guide"]}
+],
+"milestones": [
+{"id": "code-freeze", "level": "release", "label": "Code freeze", "after": ["fix-findings", "run-tests"], "purpose": "After it only the merge and the release steps run."}
+],
+"claims": [
+{"id": "reviewed-first", "title": "reviewed-first", "kind": "guarantee", "statement": "No change reaches {merge-change} before {review-code} ends.", "on": ["merge-change"], "evidence": ["release-guide"]},
+{"id": "notes-owner", "title": "notes-owner", "kind": "guarantee", "statement": "The release notes are approved before {publish-package}.", "status": "unknown", "fault": "No source says who approves the release notes before {publish-package}.", "on": ["write-notes"]}
+],
+"questions": [
+{"id": "blocks-what", "asks": "What must end before the version is published?", "answers": ["hands-package", "waits-notes", "code-freeze"]},
+{"id": "who-owns", "asks": "Who owns each step?", "answers": ["developer", "reviewer", "ci-runner", "package-registry"]},
+{"id": "notes-approval", "asks": "Who approves the release notes?", "answers": ["notes-owner"]}
+]
+}</script>
+<script type="application/json" id="page-threads">{"threads": {}}</script>
+<script type="application/json" id="page-tags">{"forms": ["text", "number", "list", "table", "tree", "code"], "common": {"node": [{"name": "signals", "label": "signals", "form": "list", "example": "prints one line per run"}, {"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "chosen over polling to keep the page static"}], "edge": [{"name": "failure", "label": "failure", "form": "table", "example": "case, what happens"}, {"name": "why", "label": "why", "form": "text", "example": "kept one way so the server never writes"}, {"name": "work", "label": "work", "form": "table", "example": "area, change, says: registry, new API, serve the owner of a name"}], "task": [{"name": "why", "label": "why", "form": "text", "example": "first, since the review waits on it"}]}, "node": {"actor": {"meaning": "a person, role, team or outside party that starts or receives", "items": [{"name": "goal", "label": "goal", "form": "text", "example": "settle a refund within a day"}, {"name": "count", "label": "count", "form": "number", "example": "about 10,000 users a day"}, {"name": "permissions", "label": "permissions", "form": "list", "example": "refund:write"}, {"name": "channels", "label": "channels", "form": "list", "example": "admin web"}, {"name": "trust", "label": "trust", "form": "text", "example": "signed in, staff"}]}, "service": {"meaning": "a long-running part that answers requests or listens", "items": [{"name": "responsibilities", "label": "responsibilities", "form": "list", "example": "issues tokens"}, {"name": "interfaces", "label": "interfaces", "form": "table", "example": "name, protocol, address"}, {"name": "technology", "label": "technology", "form": "text", "example": "Go 1.22"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "3 replicas, 500 requests a second each"}, {"name": "targets", "label": "targets", "form": "table", "example": "measure, target, window"}, {"name": "owner", "label": "owner", "form": "text", "example": "billing team"}]}, "job": {"meaning": "a unit of work that runs to its end: a step, task, function or stage", "items": [{"name": "inputs", "label": "inputs", "form": "table", "example": "name, type, from"}, {"name": "outputs", "label": "outputs", "form": "table", "example": "name, type, to"}, {"name": "steps", "label": "steps", "form": "list", "example": "load, check, write", "key": true}, {"name": "schedule", "label": "schedule", "form": "code", "example": "0 2 * * *"}, {"name": "limits", "label": "limits", "form": "text", "example": "timeout 10 min, 3 retries"}, {"name": "runs-on", "label": "runs on", "form": "text", "example": "the CI runner"}]}, "endpoint": {"meaning": "a named, addressable interface a part offers: a route, port, command, tool or screen", "items": [{"name": "address", "label": "address", "form": "code", "example": "POST /v1/payments", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "OAuth2 scope pay:write"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "limits", "label": "limits", "form": "text", "example": "100 requests a second"}, {"name": "stability", "label": "stability", "form": "text", "example": "v1, stable"}]}, "dataStore": {"meaning": "data kept and read back later: a database, table, file, folder, cache or registry", "items": [{"name": "schema", "label": "schema", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "layout", "label": "layout", "form": "tree", "example": "folders and files", "key": true}, {"name": "volume", "label": "volume", "form": "number", "example": "40 GB, 2 GB more a day"}, {"name": "retention", "label": "retention", "form": "text", "example": "kept 90 days"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "3 replicas, quorum"}, {"name": "access", "label": "access", "form": "table", "example": "who, mode, how"}, {"name": "backup", "label": "backup", "form": "text", "example": "every 15 min"}]}, "queue": {"meaning": "an ordered buffer of work or messages in flight", "items": [{"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "capacity", "label": "capacity", "form": "number", "example": "1 million messages"}, {"name": "retention", "label": "retention", "form": "text", "example": "7 days"}, {"name": "partitioning", "label": "partitioning", "form": "text", "example": "12 partitions by order id"}, {"name": "dead-letters", "label": "dead letters", "form": "text", "example": "after 5 tries"}]}, "host": {"meaning": "where code runs: a machine, container, runner, browser or device", "items": [{"name": "size", "label": "size", "form": "text", "example": "4 CPUs, 16 GB"}, {"name": "count", "label": "count", "form": "number", "example": "3"}, {"name": "location", "label": "location", "form": "text", "example": "Seoul region"}, {"name": "system", "label": "system", "form": "text", "example": "Linux 6"}, {"name": "runs", "label": "runs", "form": "list", "example": "the API server"}, {"name": "network", "label": "network", "form": "text", "example": "10.0.0.0/16, port 443 open"}]}}, "edge": {"call": {"meaning": "asks and waits for the answer", "items": [{"name": "protocol", "label": "protocol", "form": "code", "example": "HTTPS GET /exam/papers", "key": true}, {"name": "request", "label": "request", "form": "table", "example": "field, type, meaning"}, {"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "auth", "label": "auth", "form": "text", "example": "bearer token"}, {"name": "timing", "label": "timing", "form": "text", "example": "timeout 2 s, 3 retries"}, {"name": "errors", "label": "errors", "form": "table", "example": "code, when"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a minute"}]}, "publish": {"meaning": "sends a message or event without waiting", "items": [{"name": "channel", "label": "channel", "form": "text", "example": "topic orders"}, {"name": "message", "label": "message", "form": "table", "example": "field, type, meaning", "key": true}, {"name": "ordering", "label": "ordering", "form": "text", "example": "per key"}, {"name": "delivery", "label": "delivery", "form": "text", "example": "at least once"}, {"name": "rate", "label": "rate", "form": "number", "example": "500 a second"}]}, "access": {"meaning": "reads or writes a data store", "items": [{"name": "mode", "label": "mode", "form": "text", "example": "read", "key": true}, {"name": "query", "label": "query", "form": "code", "example": "by id"}, {"name": "fields", "label": "fields", "form": "list", "example": "id, total"}, {"name": "rate", "label": "rate", "form": "number", "example": "200 a second"}, {"name": "consistency", "label": "consistency", "form": "text", "example": "may be 1 s stale"}]}, "reply": {"meaning": "answers the call before it", "items": [{"name": "response", "label": "response", "form": "table", "example": "field, type, meaning"}, {"name": "status", "label": "status", "form": "code", "example": "200 OK", "key": true}]}, "request": {"meaning": "asks another node's task to start, in a plan", "items": [{"name": "hands", "label": "hands over", "form": "list", "example": "the signed contract"}]}, "wait": {"meaning": "the later task starts only once the earlier one ends, in a plan", "items": [{"name": "until", "label": "until", "form": "text", "example": "the review is approved"}]}}, "task": {"work": {"meaning": "a piece of work one node does", "items": [{"name": "done", "label": "done when", "form": "text", "example": "the build passes on main"}, {"name": "outputs", "label": "outputs", "form": "list", "example": "release notes"}]}, "review": {"meaning": "a check of work another task made, which may send it back", "items": [{"name": "done", "label": "done when", "form": "text", "example": "two approvals"}, {"name": "refuses", "label": "sends back when", "form": "list", "example": "a test fails"}]}, "decision": {"meaning": "a choice that fixes which work follows", "items": [{"name": "options", "label": "options", "form": "list", "example": "ship now"}, {"name": "decider", "label": "decider", "form": "text", "example": "the product owner"}]}}}</script>
+<script type="application/json" id="page-formulas">{}</script>
+<script type="application/json" id="page-order">{"release": {"ranks": {"write-code": 0, "write-notes": 0, "run-tests": 1, "review-code": 1, "fix-findings": 2, "merge-change": 4, "build-package": 5, "publish-package": 6, "code-freeze": 3}, "critical": ["write-code", "review-code", "fix-findings", "code-freeze", "merge-change", "build-package", "publish-package"]}}</script>
+<script type="application/json" id="page-parts">{
+"top": "4574d05efccff135",
+"levels/release": "2b596955e55bc232"
+}</script>
+<script>
+(() => {
+  "use strict";
+  const read = id => JSON.parse(document.getElementById(id).textContent);
+  const contract = read("page-data"), TAGS = read("page-tags"), FORMULAS = read("page-formulas"), ORDER = read("page-order");
+  const $ = id => document.getElementById(id);
+  const draw = (name, attributes = {}, ...children) => {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
+    for (const [key, value] of Object.entries(attributes)) if (value !== undefined && value !== null) element.setAttribute(key, value);
+    element.append(...children);
+    return element;
+  };
+  const AREA_COLOURS = 6; // the group colours page-tokens.css names, taken in turn and again past the sixth area
+  const GAP = 48, TOP = 72, ROW = 64, HEAD = 28, PAD = 56;
+
+  // ---- the contract's records ----
+  const records = {}, openers = {};
+  const add = (kind, list) => (list || []).forEach(record => { records[record.id] = { kind, record }; });
+  add("area", contract.areas); add("level", contract.levels); add("node", contract.nodes); add("edge", contract.edges);
+  add("task", contract.tasks); add("fragment", contract.fragments); add("milestone", contract.milestones);
+  add("claim", contract.claims); add("question", contract.questions);
+  for (const edge of contract.edges || []) if (edge.opens) openers[edge.opens] = edge.id;
+  const areaIndex = Object.fromEntries((contract.areas || []).map((area, k) => [area.id, k % AREA_COLOURS]));
+  const of = (kind, level) => (contract[kind] || []).filter(record => record.level === level);
+  const step = edge => of("edges", edge.level).indexOf(edge) + 1;
+  const codes = edge => (TAGS.edge[edge.tag] ? TAGS.edge[edge.tag].items : []).filter(item => item.form === "code" && typeof (edge.info || {})[item.name] === "string" && edge.info[item.name] !== edge.label).map(item => edge.info[item.name]); // a value the name already says is not written twice
+  const home = id => { // the level a record is drawn on: its own, or for a node the shown level when it lists the node, else the first that does
+    const { kind, record } = records[id];
+    if (kind === "level") return id;
+    if (kind === "node") return records[view.level].record.nodes.includes(id) ? view.level : contract.levels.find(level => level.nodes.includes(id)).id;
+    return record.level || view.level;
+  };
+
+  // ---- the frame lib holds: the bars, the card and the search ----
+  let kept = null;
+  const recordCard = paperworkFrame({ placeholder: "Search nodes, edges, tasks and claims", formulas: FORMULAS, record: id => records[id], terms: () => contract.terms,
+    sources: () => contract.sources, claims: () => contract.claims, questions: () => contract.questions, rows, place, kept: id => kept === id, light, follow,
+    entries: () => entries, open,
+    kinds: { node: "Nodes", edge: "Edges", task: "Tasks", milestone: "Milestones", fragment: "Fragments", level: "Levels", claim: "Claims", question: "Questions" },
+    browse: [["Questions", "question"], ["Levels", "level"]],
+    shelf: () => `paperwork-flow-recent ${contract.title} ${location.pathname}` }); // every file:// page shares one storage
+  const { make, words, tagName, badges } = recordCard;
+
+  function rows(id) {
+    const { kind, record } = records[id], list = [], put = (name, form, data) => data !== undefined && data !== null && data !== "" && !(Array.isArray(data) && !data.length) && list.push([name, form, data]);
+    const named = ids => (ids || []).map(one => `{${one}}`);
+    if (kind === "edge") { put("step", "text", String(step(record))); put("between", "text", `{${record.from}} → {${record.to}}`); }
+    if (kind === "task") put("on", "text", `{${record.node}}`);
+    if (kind === "node") put("area", "text", records[record.area].record.label);
+    if (kind === "fragment") put("operands", "list", record.operands.map(operand => (operand.guard ? `[${operand.guard}] ` : "") + named(operand.edges).join(", ")));
+    for (const row of recordCard.rows(id)) put(...row);
+    if (kind === "level") put("about", "text", record.about);
+    put("purpose", "text", record.purpose);
+    for (const row of recordCard.claimRows(id)) put(...row);
+    const catalogue = TAGS[kind] && TAGS[kind][record.tag] ? TAGS[kind][record.tag].items.concat(TAGS.common[kind] || []) : [];
+    for (const [name, data] of Object.entries(record.info || {})) {
+      const item = catalogue.find(one => one.name === name);
+      put(item ? item.label : name, item ? item.form : Array.isArray(data) ? "list" : "text", data);
+    }
+    put("after", "list", named(record.after));
+    if (record.opens) put("opens", "text", `{${record.opens}}`);
+    if (record.evidence) put("evidence", "list", record.evidence.map(entry => {
+      const [source, line] = entry.split(":"), known = (contract.sources || []).find(one => one.id === source);
+      return (known ? known.path : source) + (line ? ":" + line : "");
+    }));
+    return list;
+  }
+  const spot = id => { const element = document.querySelector(`#stage [data-id="${id}"]`); return element && element.getBoundingClientRect(); };
+  function place(id, w, h) { // beside the record, on the side with room, clear of the pointer that raised it
+    const at = spot(id) || { left: innerWidth / 2, right: innerWidth / 2, top: 68, bottom: 68 };
+    const right = at.right + 16 + w <= innerWidth - 8, left = right ? at.right + 16 : Math.max(8, at.left - 16 - w);
+    return { left, top: Math.min(Math.max(60, at.top), innerHeight - h - 8), cost: 0, tied: 0 };
+  }
+  function light(id) {
+    document.querySelectorAll("#stage .lit").forEach(element => element.classList.remove("lit"));
+    if (id) document.querySelectorAll(`#stage [data-id="${id}"], #stage [data-for="${id}"]`).forEach(element => element.classList.add("lit"));
+  }
+  function follow(id) { // a chip opens its record's card, on the level that draws it
+    if (!records[id]) return false;
+    if (["claim", "question", "area"].includes(records[id].kind)) { kept = id; recordCard.show(id); return true; }
+    go(home(id), id);
+    return true;
+  }
+
+  // ---- the search's entries ----
+  const entries = [];
+  const values = data => Array.isArray(data) ? data.map(values).join(" ") : data && typeof data === "object" ? Object.values(data).map(values).join(" ") : String(data ?? ""); // a list's, table's or tree's words, with no key
+  const texts = info => words(values(info || {}));
+  const entry = (id, kind, name, note, fields, shown) => entries.push({ id, kind, name, note, fields, shown });
+  for (const level of contract.levels) entry(level.id, "level", level.title, `${level.kind} level`, [[level.title, 0], [level.id, 1], [level.kind, 2], [level.about && words(level.about), 3]], [["about", level.about]]);
+  for (const kind of ["nodes", "edges", "tasks", "milestones"])
+    for (const record of contract[kind] || []) entry(record.id, kind.slice(0, -1), record.label, record.tag ? tagName(record.tag) : kind.slice(0, -1),
+      [[record.label, 0], [record.id, 1], [record.tag, 2], [record.purpose && words(record.purpose), 3], [texts(record.info), 4]],
+      [["id", record.id], ["purpose", record.purpose], ...Object.entries(record.info || {}).map(([name, data]) => [name, values(data)])]);
+  for (const fragment of contract.fragments || []) entry(fragment.id, "fragment", `${fragment.kind} ${fragment.operands.map(operand => operand.guard || "").join(" / ")}`.trim(), fragment.kind,
+    [[fragment.kind, 0], [fragment.id, 1], [fragment.operands.map(operand => operand.guard || "").join(" "), 3]], [["id", fragment.id]]);
+  entries.push(...recordCard.entries());
+  function open(hit) { // the record a search picked
+    if (hit.kind === "question") {
+      const question = records[hit.id].record;
+      return open(entries.find(one => one.id === question.answers[0]));
+    }
+    if (hit.kind === "claim") { kept = hit.id; return recordCard.show(hit.id); }
+    go(home(hit.id), hit.kind === "level" ? null : hit.id);
+  }
+
+  // ---- the view: one level, and the record kept open on it ----
+  const view = { level: contract.levels[0].id, at: null };
+  function go(level, at) {
+    const hash = `#level=${encodeURIComponent(level)}` + (at ? `&at=${encodeURIComponent(at)}` : "");
+    if (location.hash === hash) render(); else location.hash = hash;
+  }
+  function fromAddress() {
+    const held = new URLSearchParams(location.hash.slice(1)), level = held.get("level"), at = held.get("at");
+    view.level = records[level] && records[level].kind === "level" ? level : contract.levels[0].id;
+    view.at = records[at] ? at : null;
+  }
+  function crumbs() { // the way down from the first level to the shown one, each step an edge that opens the next
+    const trail = [view.level];
+    while (openers[trail[0]]) trail.unshift(records[openers[trail[0]]].record.level);
+    recordCard.crumbs(trail.map(level => [level, records[level].record.title]), level => go(level, null));
+  }
+
+  // ---- drawing ----
+  const stage = $("stage");
+  const measure = element => { stage.append(element); const size = { w: element.offsetWidth, h: element.offsetHeight }; element.remove(); return size; };
+  const colour = node => `--area-edge: var(--group-${areaIndex[node.area]}); --area-fill: color-mix(in oklab, var(--group-${areaIndex[node.area]}) 12%, var(--card))`;
+  const nodeBox = (node, level) => make("div", { class: "node", "data-id": node.id, "data-area": node.area, style: colour(node) }, // a lifeline's head, the first of its area on the level carrying the area's badges
+    make("span", { class: "area" }, records[node.area].record.label, level.nodes.find(id => records[id].record.area === node.area) === node.id ? badges(node.area) : null),
+    make("span", { class: "label" }, node.label, badges(node.id)));
+  const work = edge => { const table = (edge.info || {}).work; return table && Array.isArray(table.rows) ? table.rows.map(([area, change, says]) => ({ area, change, says })) : []; };
+  const edgeWork = edge => work(edge).length ? make("div", { class: "edge-work", "data-for": edge.id },
+    work(edge).map(one => make("span", { class: "work-pill", "data-area": one.area, style: colour(one) }, `${one.change} · ${records[one.area].record.label}`))) : null;
+  const edgeCodes = edge => codes(edge).length ? make("div", { class: "edge-codes", "data-for": edge.id }, codes(edge).join(" · ")) : null;
+  const edgeLabel = edge => make("div", { class: "edge-label", "data-id": edge.id }, edge.label, ...(edge.opens ? [make("span", { class: "opens-mark", "data-opens": edge.opens, title: `Open ${records[edge.opens].record.title}` }, "ref")] : []), badges(edge.id));
+  const head = (x, y, toward) => draw("polygon", { class: "head", points: `${x},${y} ${x - 10 * toward},${y - 5} ${x - 10 * toward},${y + 5}` });
+
+  function interaction(level, svg, put) {
+    const nodes = level.nodes.map(id => records[id].record), edges = of("edges", level.id);
+    const boxes = nodes.map(node => measure(nodeBox(node, level)));
+    const index = Object.fromEntries(nodes.map((node, k) => [node.id, k]));
+    const gaps = nodes.map((node, k) => k ? boxes[k - 1].w / 2 + boxes[k].w / 2 + GAP : 0);
+    const labels = edges.map(edge => Math.max(...[edgeLabel(edge), edgeCodes(edge), edgeWork(edge)].filter(Boolean).map(part => measure(part).w)) + 24);
+    for (let round = 0; round < 2; round++) for (const [k, edge] of edges.entries()) { // widen the gap an edge's name needs, at the last column it spans
+      const from = Math.min(index[edge.from], index[edge.to]), to = Math.max(index[edge.from], index[edge.to]);
+      const span = gaps.slice(from + 1, to + 1).reduce((sum, gap) => sum + gap, 0);
+      if (to > from && span < labels[k]) gaps[to] += labels[k] - span;
+    }
+    const left = PAD + 24 + boxes[0].w / 2, xs = [];
+    gaps.forEach((gap, k) => xs.push((k ? xs[k - 1] : left) + gap));
+    const headHeight = Math.max(...boxes.map(box => box.h));
+    nodes.forEach((node, k) => {
+      const box = nodeBox(node, level);
+      box.style.left = xs[k] - boxes[k].w / 2 + "px"; box.style.top = TOP + "px"; box.style.width = boxes[k].w + "px"; box.style.height = headHeight + "px";
+      put(box);
+    });
+    const order = edges.map(edge => edge.id), fragments = of("fragments", level.id).map(fragment => {
+      const at = fragment.operands.flatMap(operand => operand.edges).map(id => order.indexOf(id));
+      return { fragment, first: Math.min(...at), last: Math.max(...at), starts: fragment.operands.map(operand => order.indexOf(operand.edges[0])) };
+    });
+    fragments.forEach(one => { one.depth = fragments.filter(other => other !== one && other.first <= one.first && one.last <= other.last && (other.first < one.first || one.last < other.last || other.fragment.id < one.fragment.id)).length; });
+    const seat = milestone => milestone.after.reduce(([at, depth], id) => { // after the last edge it waits on, through the milestones it waits on, and below those
+      if (records[id].kind !== "milestone") return [Math.max(at, order.indexOf(id)), depth];
+      const [before, under] = seat(records[id].record);
+      return [Math.max(at, before), Math.max(depth, under + 1)];
+    }, [-1, 0]);
+    const milestones = of("milestones", level.id).map(milestone => { const [after, depth] = seat(milestone); return { milestone, after, depth }; });
+    let y = TOP + headHeight + 32;
+    const lineEnds = [xs[0] - PAD, xs[xs.length - 1] + PAD];
+    const reach = edges.map((edge, k) => edge.from === edge.to ? xs[index[edge.from]] + 48 + labels[k] : Math.max(xs[index[edge.from]], xs[index[edge.to]])); // a self-call's name runs right of its loop
+    const mark = k => {
+      for (const one of milestones.filter(one => one.after === k).sort((a, b) => a.depth - b.depth)) {
+        const lineY = y + 12;
+        svg.append(draw("line", { class: "milestone", "data-for": one.milestone.id, x1: lineEnds[0], x2: lineEnds[1], y1: lineY, y2: lineY }));
+        const label = make("div", { class: "milestone-label", "data-id": one.milestone.id }, one.milestone.label, badges(one.milestone.id));
+        label.style.left = lineEnds[0] + "px"; label.style.top = lineY - 24 + "px";
+        put(label);
+        y += 40;
+      }
+    };
+    mark(-1);
+    for (const [k, edge] of edges.entries()) {
+      for (const one of fragments.filter(one => one.first === k).sort((a, b) => a.depth - b.depth)) { one.top = y; one.guards = [[one.fragment.operands[0].guard, y]]; y += HEAD; }
+      for (const one of fragments) one.starts.forEach((start, j) => { if (j && start === k) { one.guards.push([one.fragment.operands[j].guard, y]); y += HEAD; } });
+      const from = xs[index[edge.from]], to = xs[index[edge.to]], arrowY = y + 24, self = from === to;
+      const group = draw("g", { class: "edge" + (edge.opens ? " opens" : ""), "data-for": edge.id, "data-tag": edge.tag });
+      const path = self ? `M${from},${arrowY - 8} h40 v16 h-40` : `M${from},${arrowY} H${to}`;
+      group.append(draw("path", { class: "arrow", d: path, "data-tag": edge.tag }), head(self ? from : to, self ? arrowY + 8 : arrowY, self ? -1 : Math.sign(to - from)),
+        draw("path", { class: "hit", d: path }));
+      group.append(draw("circle", { class: "step", cx: from, cy: self ? arrowY - 8 : arrowY, r: 9 }), draw("text", { class: "step-number", x: from, y: (self ? arrowY - 8 : arrowY) + 4 }, String(k + 1)));
+      svg.append(group);
+      const label = edgeLabel(edge);
+      const middle = self ? from + 48 : (from + to) / 2; // a self-call's parts start right of its loop, since its row may be wide
+      label.style.left = middle + "px"; label.style.top = (self ? arrowY - 30 : y) + "px";
+      const chips = make("div", { class: "edge-chips", "data-for": edge.id }, make("span", { class: "chip" }, tagName(edge.tag)));
+      chips.style.left = middle + "px"; chips.style.top = arrowY + (self ? 14 : 6) + "px"; // below a self-call's loop too
+      put(label, chips);
+      if (self) [label, chips].forEach(part => part.classList.add("self"));
+      const written = edgeCodes(edge);
+      if (written) { written.style.left = chips.style.left; written.style.top = arrowY + (self ? 34 : 26) + "px"; written.classList.toggle("self", self); put(written); }
+      const owed = edgeWork(edge);
+      if (owed) { owed.style.left = chips.style.left; owed.style.top = arrowY + (self ? 34 : 26) + (written ? 18 : 0) + "px"; owed.classList.toggle("self", self); put(owed); }
+      y += ROW + (written ? 18 : 0) + (owed ? 24 : 0) + (self ? 8 : 0);
+      for (const one of fragments.filter(one => one.last === k).sort((a, b) => b.depth - a.depth)) { one.bottom = y; y += 8; }
+      mark(k);
+    }
+    for (const one of fragments.slice().sort((a, b) => b.depth - a.depth)) { // the inner frames first, so each outer one takes their width
+      const inner = fragments.filter(other => other.depth > one.depth && one.first <= other.first && other.last <= one.last);
+      const ends = one.fragment.operands.flatMap(operand => operand.edges).flatMap(id => [xs[index[records[id].record.from]], xs[index[records[id].record.to]], reach[order.indexOf(id)] - PAD + 16]);
+      const tab = measure(make("div", { class: "fragment-kind" }, one.fragment.kind, badges(one.fragment.id))).w;
+      const room = Math.max(...one.guards.map(([guard], j) => (j ? 8 : tab + 8) + (guard ? measure(make("div", { class: "guard" }, `[${guard}]`)).w + 8 : 0)));
+      const x1 = Math.min(Math.min(...ends) - PAD + 8 * one.depth, ...inner.map(other => other.left - 8));
+      const x2 = Math.max(Math.max(...ends) + PAD - 8 * one.depth, x1 + room, ...inner.map(other => other.right + 8));
+      one.left = x1; one.right = x2;
+      svg.append(draw("rect", { class: "fragment", "data-for": one.fragment.id, x: x1, y: one.top, width: x2 - x1, height: one.bottom - one.top, rx: 4 }));
+      const kind = make("div", { class: "fragment-kind", "data-id": one.fragment.id }, one.fragment.kind, badges(one.fragment.id));
+      kind.style.left = x1 + "px"; kind.style.top = one.top + "px";
+      put(kind);
+      one.guards.forEach(([guard, at], j) => {
+        if (j) svg.append(draw("line", { class: "operand-line", "data-for": one.fragment.id, x1, x2, y1: at, y2: at }));
+        if (!guard) return;
+        const text = make("div", { class: "guard", "data-for": one.fragment.id }, `[${guard}]`);
+        text.style.left = x1 + (j ? 8 : tab + 8) + "px"; text.style.top = at + 2 + "px";
+        put(text);
+      });
+    }
+    const bottom = y + 16;
+    nodes.forEach((node, k) => {
+      const line = { x1: xs[k], x2: xs[k], y1: TOP + headHeight, y2: bottom };
+      svg.prepend(draw("g", { class: "lifeline-hit", "data-for": node.id }, draw("line", { class: "lifeline", style: colour(node), ...line }), draw("line", { class: "hit", ...line })));
+    });
+    const right = Math.max(lineEnds[1], ...fragments.map(one => one.right), ...reach.map(x => x + 16));
+    const owing = (contract.areas || []).map(area => [area, edges.flatMap(edge => work(edge).filter(one => one.area === area.id).map(one => [edge, one]))]).filter(([, rows]) => rows.length);
+    if (!owing.length) return { width: right + PAD, height: bottom + 48 };
+    const list = make("div", { class: "work-list" }, owing.map(([area, rows]) => make("section", { "data-area": area.id, style: colour({ area: area.id }) },
+      make("h2", {}, area.label),
+      make("ol", {}, rows.map(([edge, one]) => make("li", { class: "work-row", "data-for": edge.id },
+        make("span", { class: "work-step" }, String(step(edge))), make("span", { class: "work-change" }, one.change), make("span", { class: "work-says" }, words(one.says))))))));
+    list.style.left = PAD + "px"; list.style.top = bottom + 32 + "px"; list.style.width = Math.max(right - PAD, 720) + "px";
+    put(list);
+    return { width: Math.max(right + PAD, PAD + measure(list).w + PAD), height: bottom + 32 + measure(list).h + 48 };
+  }
+
+  const taskBar = (task, chain) => { const node = records[task.node].record;
+    return make("div", { class: "task" + (chain.has(task.id) ? " critical" : ""), "data-id": task.id, style: colour(node) }, task.label, badges(task.id)); };
+  function plan(level, svg, put) { // actors and resources down the left, each task in the column of its place in time
+    const { ranks, critical } = ORDER[level.id], chain = new Set(critical), BAR = 28, LANE_ROW = 64, BEND = 8;
+    const nodes = level.nodes.map(id => records[id].record), tasks = of("tasks", level.id), edges = of("edges", level.id), milestones = of("milestones", level.id);
+    const lane = Object.fromEntries(nodes.map((node, k) => [node.id, k])), lead = Math.max(...nodes.map(node => measure(nodeBox(node, level)).w));
+    const columns = Math.max(0, ...Object.values(ranks)) + 1, widths = Array(columns).fill(40), slot = {}, rowsOf = nodes.map(() => 1);
+    for (const task of tasks) {
+      widths[ranks[task.id]] = Math.max(widths[ranks[task.id]], measure(taskBar(task, chain)).w);
+      slot[task.id] = tasks.filter(other => other.node === task.node && ranks[other.id] === ranks[task.id] && tasks.indexOf(other) < tasks.indexOf(task)).length;
+      rowsOf[lane[task.node]] = Math.max(rowsOf[lane[task.node]], slot[task.id] + 1);
+    }
+    for (const milestone of milestones) widths[ranks[milestone.id]] = Math.max(widths[ranks[milestone.id]], 40);
+    // an arrow leaves its task into the gap after it, runs along the channel between lanes beside its target's lane, and enters the
+    // gap before its target, so no run crosses a bar; each arrow in one gap or channel keeps a track of its own
+    const leaving = Array(columns).fill(0), entering = Array(columns).fill(0), channels = Array(nodes.length + 1).fill(0);
+    const routes = edges.map(edge => {
+      const from = records[edge.from].record, to = records[edge.to].record, source = lane[from.node], target = lane[to.node];
+      const channel = source < target ? target : target + 1;
+      return { edge, from, to, channel, out: leaving[ranks[from.id]]++, into: entering[ranks[to.id]]++, track: channels[channel]++ };
+    });
+    const gaps = widths.map((width, c) => Math.max(GAP, 2 * 16 + BEND * (leaving[c] + (entering[c + 1] || 0))));
+    const starts = [PAD + 24 + lead + GAP];
+    widths.forEach((width, c) => { if (c) starts.push(starts[c - 1] + widths[c - 1] + gaps[c - 1]); });
+    const channelHeight = channels.map(count => 16 + BEND * count), laneTops = [];
+    let y = TOP + 32 + channelHeight[0];
+    nodes.forEach((node, k) => { laneTops.push(y); y += rowsOf[k] * LANE_ROW + channelHeight[k + 1]; });
+    const bottom = y, barY = task => laneTops[lane[task.node]] + slot[task.id] * LANE_ROW + 8, right = starts[columns - 1] + widths[columns - 1] + PAD;
+    nodes.forEach((node, k) => {
+      const box = nodeBox(node, level), height = rowsOf[k] * LANE_ROW - 8;
+      box.style.left = PAD + 24 + "px"; box.style.top = laneTops[k] + "px"; box.style.width = lead + "px"; box.style.height = height + "px";
+      put(box);
+      const lines = Array.from({ length: rowsOf[k] }, (_, row) => { const at = laneTops[k] + row * LANE_ROW + 8 + BAR / 2; return { x1: PAD + 24 + lead, x2: right - PAD + 24, y1: at, y2: at }; });
+      svg.prepend(draw("g", { class: "lifeline-hit", "data-for": node.id }, ...lines.flatMap(line => [draw("line", { class: "lifeline", style: colour(node), ...line }), draw("line", { class: "hit", ...line })])));
+    });
+    for (const task of tasks) {
+      const bar = taskBar(task, chain), x = starts[ranks[task.id]];
+      bar.style.left = x + "px"; bar.style.top = barY(task) + "px"; bar.style.width = widths[ranks[task.id]] + "px";
+      const chips = make("div", { class: "task-chips", "data-for": task.id }, make("span", { class: "chip" }, tagName(task.tag)));
+      chips.style.left = x + "px"; chips.style.top = barY(task) + BAR + 4 + "px";
+      put(bar, chips);
+    }
+    const taken = tasks.map(task => ({ x: starts[ranks[task.id]], y: barY(task), w: widths[ranks[task.id]], h: BAR + 24 })); // each bar with its chips, then each label placed
+    const seat = (label, spans) => { // the first spot along the arrow's runs, nearest their middles and then a row or two off them, where the label overlaps no bar and no label
+      const w = measure(label).w, h = 20, clear = (x, y) => !taken.some(r => x - w / 2 < r.x + r.w && x + w / 2 > r.x && y < r.y + r.h && y + h > r.y);
+      const spots = [0, -22, 22, -44, 44].flatMap(shift => spans.map(([lo, hi, y]) => [lo, hi, y + shift])).flatMap(([lo, hi, y]) => { const mid = (lo + hi) / 2, xs = [mid]; for (let d = 8; mid - d >= lo || mid + d <= hi; d += 8) xs.push(mid - d, mid + d); return xs.filter(x => x >= lo && x <= hi).map(x => [x, y - h / 2]); });
+      const [x, y] = spots.find(([x, y]) => clear(x, y)) || spots[0];
+      taken.push({ x: x - w / 2, y, w, h });
+      label.style.left = x + "px"; label.style.top = y + "px";
+    };
+    for (const { edge, from, to, channel, out, into, track } of routes) {
+      const x1 = starts[ranks[from.id]] + widths[ranks[from.id]], y1 = barY(from) + BAR / 2, x2 = starts[ranks[to.id]], y2 = barY(to) + BAR / 2;
+      const leave = x1 + 16 + BEND * out, enter = x2 - 16 - BEND * into;
+      const runY = (channel < nodes.length ? laneTops[channel] : bottom) - channelHeight[channel] + 8 + BEND * track;
+      const path = from.node === to.node && slot[from.id] === slot[to.id] && ranks[to.id] === ranks[from.id] + 1 ? `M${x1},${y1} H${x2}`
+        : `M${x1},${y1} H${leave} V${runY} H${enter} V${y2} H${x2}`;
+      const bold = chain.has(from.id) && chain.has(to.id) && critical.indexOf(to.id) === critical.indexOf(from.id) + 1;
+      svg.append(draw("g", { class: "edge" + (bold ? " critical" : ""), "data-for": edge.id, "data-tag": edge.tag },
+        draw("path", { class: "arrow", d: path, "data-tag": edge.tag }), head(x2, y2, 1), draw("path", { class: "hit", d: path })));
+      const held = badges(edge.id);
+      if (held) { // a plan's arrow draws no label, but one its claims sit beside
+        const label = make("div", { class: "edge-label plan", "data-id": edge.id }, edge.label, held), straight = path.indexOf("V") < 0;
+        seat(label, straight ? [[x1, x2, y1], [x1, x2, barY(from) - 12]] : [[Math.min(leave, enter), Math.max(leave, enter), runY], [x1, leave, y1], [enter, x2, y2]]);
+        put(label);
+      }
+    }
+    for (const milestone of milestones) {
+      const x = starts[ranks[milestone.id]] + widths[ranks[milestone.id]] / 2;
+      svg.append(draw("line", { class: "milestone", "data-for": milestone.id, x1: x, x2: x, y1: TOP + 28, y2: bottom }));
+      const label = make("div", { class: "milestone-label at-top", "data-id": milestone.id }, milestone.label, badges(milestone.id));
+      label.style.left = x + "px"; label.style.top = TOP + "px";
+      put(label);
+    }
+    return { width: right, height: bottom + 48 };
+  }
+
+  function render() {
+    fromAddress();
+    recordCard.hide();
+    kept = null;
+    const level = records[view.level].record, svg = draw("svg", { "aria-hidden": "true" }), parts = [];
+    stage.replaceChildren();
+    const size = (level.kind === "plan" ? plan : interaction)(level, svg, (...elements) => parts.push(...elements));
+    svg.setAttribute("width", size.width); svg.setAttribute("height", size.height);
+    stage.style.width = size.width + "px"; stage.style.height = size.height + "px";
+    stage.replaceChildren(svg, ...parts);
+    crumbs();
+    document.title = `${contract.title} · ${level.title}`;
+    if (view.at && spot(view.at)) { kept = view.at; light(view.at); recordCard.show(view.at); }
+  }
+
+  // ---- the reader's moves ----
+  const target = event => { const element = event.target.closest && event.target.closest("#stage [data-id], #stage [data-for]"); return element && (element.dataset.id || element.dataset.for); };
+  stage.addEventListener("pointerover", event => {
+    const id = target(event);
+    if (!id || kept) return;
+    light(id); recordCard.show(id);
+  });
+  stage.addEventListener("pointerout", event => {
+    if (kept || target(event) === (event.relatedTarget && event.relatedTarget.closest && target({ target: event.relatedTarget }))) return;
+    light(null); recordCard.hide();
+  });
+  stage.addEventListener("click", event => {
+    const opener = event.target.closest(".opens-mark"), id = target(event);
+    if (opener) return go(opener.dataset.opens, null);
+    if (!id) { kept = null; light(null); return recordCard.hide(); }
+    if (event.target.closest(".work-row")) $("stage").querySelector(`.edge-label[data-id="${id}"]`).scrollIntoView({ block: "center" }); // a task-list row leads to its arrow
+    kept = id; light(id); recordCard.show(id);
+  });
+  stage.addEventListener("dblclick", event => { // an edge that opens a level opens it, as its card's hint says
+    const id = target(event);
+    if (id && records[id].record.opens) go(records[id].record.opens, null);
+  });
+  addEventListener("keydown", event => {
+    if (event.key === "Escape") { kept = null; light(null); recordCard.hide(); }
+  });
+  addEventListener("hashchange", render);
+  render();
+})();
+</script>
+</body>
+</html>

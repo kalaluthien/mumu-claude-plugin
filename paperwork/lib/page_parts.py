@@ -1,59 +1,43 @@
-"""The record card, with its badges, and the search palette a paperwork page draws: the markup, style and code a page script pastes into
-its page: the style of `record-card.css` and `record-search.css` before the page's own, and the code of `record-card.js` and
-`record-search.js` before the page's, which calls `paperworkCard` and `paperworkSearch`; and the whole page round a skill's own markup and
-data blocks."""
+"""The frame every paperwork page shares and the whole page a skill builds round it. The frame is one block of the page's head, between
+FRAME_START and FRAME_END: the style of the tokens, the frame, the record card and the search, then their code, which a page's own script
+calls as `paperworkFrame(options)`; `frame()` writes it, `relay_page.connect` refreshes it in a page that holds it, and `page()` builds a
+skill's page with it."""
 import json
 import pathlib
 import re
 
 HERE = pathlib.Path(__file__).resolve().parent
 BLOCK = re.compile(r'<script type="application/json" id="page-([\w-]+)">(.*?)</script>', re.DOTALL)
-PARTS = ("record-card", "record-search")
-CARD = '<aside id="card" role="tooltip"></aside>\n<div id="gloss" role="tooltip"></div>'
+STYLES = ("page-tokens", "page-frame", "record-card", "record-search")
+SCRIPTS = ("record-card", "record-search", "page-frame")
+FRAME_START, FRAME_END = "<!-- page frame -->", "<!-- /page frame -->"
 PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
+{frame}
 <style>
-{parts_style}
 {style}
 </style>
 </head>
 <body>
 {markup}
-{palette}
 {blocks}
 <script>
-{parts}
 {code}
 </script>
 </body>
 </html>
 """
-PALETTE = """<div id="veil"></div>
-<div id="palette" role="dialog" aria-label="Search">
-<div id="field"><input id="query" type="text" placeholder="{placeholder}" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="hits" aria-autocomplete="list" aria-label="Search">
-<button id="regex" class="tool icon quiet" type="button" aria-pressed="false" aria-label="Regular expression" title="Regular expression (Alt+R)">.*</button></div>
-<div id="hits" role="listbox"></div>
-<footer id="keys"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> move</span><span><kbd>&crarr;</kbd> open</span><span><kbd>esc</kbd> close</span><span><kbd>alt</kbd><kbd>R</kbd> regex</span></footer>
-</div>"""
 
 
-def palette(placeholder):
-    """The search palette's markup, its box saying PLACEHOLDER while empty."""
-    return PALETTE.format(placeholder=placeholder.replace("&", "&amp;").replace('"', "&quot;").replace("<", "&lt;"))
-
-
-def style():
-    """The parts' style, to stand before the page's own."""
-    return "\n".join((HERE / f"{part}.css").read_text().strip() for part in PARTS)
-
-
-def code():
-    """The parts' code, to run before the page's own."""
-    return "\n".join((HERE / f"{part}.js").read_text().strip() for part in PARTS)
+def frame():
+    """The frame block, markers included."""
+    style = "\n".join((HERE / f"{name}.css").read_text().strip() for name in STYLES)
+    code = "\n".join((HERE / f"{name}.js").read_text().strip() for name in SCRIPTS)
+    return f"{FRAME_START}\n<style>\n{style}\n</style>\n<script>\n{code}\n</script>\n{FRAME_END}"
 
 
 def dumps(value):
@@ -114,11 +98,11 @@ def report(keyed, made):
     return f"checked and built: {', '.join(made) or 'none'}\nkept from the earlier page: {', '.join(kept) or 'none'}"
 
 
-def page(assets, title, markup, placeholder, blocks):
-    """The standalone page of a skill whose style, code and tag catalogue sit in ASSETS: MARKUP before the search palette, which says
-    PLACEHOLDER while empty, then a `page-<name>` data block per entry of BLOCKS, the threads block after the first."""
+def page(assets, title, markup, blocks):
+    """The standalone page of a skill whose style, code and tag catalogue sit in ASSETS: the frame, then MARKUP, then a `page-<name>`
+    data block per entry of BLOCKS, the threads block after the first."""
     named = list(blocks.items())
     named[1:1] = [("threads", {"threads": {}})]
-    return PAGE.format(title=title.replace("&", "&amp;").replace("<", "&lt;"), parts_style=style(), style=(assets / "page.css").read_text().strip(),
-                       markup=markup, palette=palette(placeholder), parts=code(), code=(assets / "page.js").read_text().strip(),
+    return PAGE.format(title=title.replace("&", "&amp;").replace("<", "&lt;"), frame=frame(), style=(assets / "page.css").read_text().strip(),
+                       markup=markup, code=(assets / "page.js").read_text().strip(),
                        blocks="\n".join(f'<script type="application/json" id="page-{name}">{block(value, name in ("data", "parts"))}</script>' for name, value in named))

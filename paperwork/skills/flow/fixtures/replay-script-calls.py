@@ -79,7 +79,7 @@ def catalogue(folder):
 def usage(folder):
     missed = []
     for script, words in ((CHECKER, []), (CHECKER, ["--x"]), (CHECKER, ["check", "--x"]), (CHECKER, ["order", "--x"]),
-                          (BUILDER, []), (BUILDER, ["--x"]), (BUILDER, [str(SKILL / "fixtures" / "name-lookup.json"), "--x"])):
+                          (BUILDER, []), (BUILDER, ["--x"]), (BUILDER, [str(SKILL / "examples" / "name-lookup" / "contract.json"), "--x"])):
         done = run(script, words, folder)
         if done.returncode != 2 or done.stdout or "usage:" not in done.stderr:
             missed.append(f"usage {script.name} {' '.join(words) or '(no word)'}: exit {done.returncode}, stdout {done.stdout[:80]!r}")
@@ -108,7 +108,7 @@ def fixtures(folder):
 
 
 def page(folder):
-    contract = json.loads((SKILL / "fixtures" / "name-lookup.json").read_text())
+    contract = json.loads((SKILL / "examples" / "name-lookup" / "contract.json").read_text())
     contract["title"] = TITLE
     contract["purpose"] += " It never ends a script with `</script>`."
     source, target = folder / "escaped.json", folder / "escaped.html"

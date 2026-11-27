@@ -18,20 +18,13 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 from contract_levels import nested  # noqa: E402
 from contract_parts import SYSTEM, code_digest, keys, load, split  # noqa: E402
 from contract_tags import catalogue  # noqa: E402
-from page_parts import CARD, assembled, earlier, page, report  # noqa: E402
+from page_parts import assembled, earlier, page, report  # noqa: E402
 from tex_mathml import drawn, named  # noqa: E402
 
 HERE = pathlib.Path(__file__).resolve().parent
 ASSETS = HERE.parent / "assets"
 CODE = [HERE / "check-contract.py", HERE / "make-page.py", ASSETS / "tags.json", *(HERE.parents[2] / "lib").glob("*.py"), HERE.parents[2] / "lib" / "tags.json"]
-MARKUP = f"""<main id="diagram"><div id="stage" class="stage"></div></main>
-<nav id="crumbs" class="bar" aria-label="Levels"></nav>
-<div id="tools" class="bar">
-<button id="scenarios" class="tool" type="button">Scenarios</button>
-<button id="claims" class="tool" type="button">Claims</button>
-<button id="search" class="tool quiet" type="button">Search <kbd>/</kbd></button>
-</div>
-{CARD}
+MARKUP = """<main id="diagram"><div id="stage" class="stage"></div></main>
 <div id="chip"></div>
 <div id="play" class="bar" role="toolbar" aria-label="Scenario">
 <button id="prev" class="tool icon" type="button" aria-label="Previous step" title="Previous step (&larr;)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
@@ -75,7 +68,7 @@ def main(args):
                              lambda name: {"formulas": {key: drawn_before[key] for key in named(parts[name]) if key in drawn_before}})
     formulas = {key: markup for piece in pieces.values() for key, markup in piece["formulas"].items()}
     blocks = {"data": nested(contract), "tags": catalogue(ASSETS / "tags.json"), "formulas": formulas, "parts": keyed}
-    target.write_text(page(ASSETS, contract["title"], MARKUP, "Search nodes, edges, scenarios and claims", blocks))
+    target.write_text(page(ASSETS, contract["title"], MARKUP, blocks))
     print(report(keyed, made))
     print(target)
     return 0
