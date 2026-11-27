@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run the heartbeat `print-team-gaps.py --polls <n>` as a manager on a sandbox repository with a git board and the fake herdr, over workers that each run
-processes under their own session id, made new on each run so two copies of this runner never see each other: `c-sleep`, which sleeps at no CPU; `c-busy`,
+processes under their own session id, made new on each run so two copies of this runner never see each other: `c-sleep`, which sleeps at no CPU beside a second root of its session that spins; `c-busy`,
 which spins; `c-check`, which spins with `run-criteria.py` in its command; `c-wait`, which sleeps while a child of it spins; `c-nest`, which sleeps with a child
 that sleeps; and `c-none`, whose session id is empty. Under limits of 1.5 s with no CPU and 1 s for a check, only `c-sleep` and `c-nest`, once each, get a
 `stuck` line, whose command shows the process's words without their paths or environment, and only `c-check` a `slow` line; under the default limits of 15 and
@@ -21,7 +21,8 @@ MONITOR = ROOT / "monitors" / "print-team-gaps.py"
 SPIN, SLEEP = 'import time; t = time.time(); exec("while time.time() - t < 120: pass")', "import time; time.sleep(120)"  # each ends on its own, so a killed runner leaves none
 CODE = {"none": None, "sleep": SLEEP, "busy": SPIN, "check": SPIN,
         "wait": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SPIN}']); {SLEEP}",
-        "nest": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SLEEP}']); {SLEEP}"}
+        "nest": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SLEEP}']); {SLEEP}", "mate": SPIN}
+SESSION = {"mate": "sleep"}  # a second root in the sleeper's session, so two runs of one session keep apart
 POLLS = 15  # 0.3 s apart, so a run is read for longer than the 1.5 s limit
 WAIT_SECONDS = 60
 
@@ -36,9 +37,9 @@ def main(args):
 
 def replay(work):
     token = uuid.uuid4().hex
-    session = {name: "" if name == "none" else f"sess-{name}-{token}" for name in CODE}
+    session = {name: "" if name == "none" else f"sess-{SESSION.get(name, name)}-{token}" for name in CODE}
     agents = [replay_probe.agent("x-manager", 1, "working"),
-              *[replay_probe.agent(f"c-{name}-worker", pane, "working", agent_session={"value": session[name]}) for pane, name in enumerate(CODE, 2)]]
+              *[replay_probe.agent(f"c-{name}-worker", pane, "working", agent_session={"value": session[name]}) for pane, name in enumerate(CODE, 2) if name not in SESSION]]
     sandbox = replay_probe.Sandbox(work, agents)
     started = [replay_probe.Group([sys.executable, "-c", code, *(["run-criteria.py"] if name == "check" else [])],
                                   env={**sandbox.environment, "CLAUDE_CODE_SESSION_ID": session[name]},

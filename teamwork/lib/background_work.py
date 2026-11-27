@@ -96,7 +96,7 @@ def runs(session_ids):
         criteria = max(((processes[member][1], shown(processes[member][3])) for member in tree if "run-criteria.py" in processes[member][3]), default=None)
         if processes[pid][1] >= LIMIT_SECONDS and not criteria:  # a daemon a command left behind, which a check run never is
             continue
-        found[owner[pid]].append((pid, shown(command), sum(processes[member][2] for member in sorted(tree)), criteria))  # sorted, so an unchanged tree sums to the same float
+        found[owner[pid]].append((pid, shown(command), sum(processes[member][2] for member in tree), criteria))
     return found
 
 
