@@ -84,6 +84,7 @@ def remove(name, root, branches, heads):
 
 
 def main(args):
+    caller = pathlib.Path.cwd().resolve()  # before `--repository` moves this process: the shell that called it stands here
     args = data_folder.enter(args, __doc__)
     if not args or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)
@@ -94,8 +95,7 @@ def main(args):
     except (LookupError, ValueError) as e:
         sys.exit(f"remove-worktree.py: {e}; nothing removed.")
     root = data_folder.main_checkout()  # wherever in it this runs
-    here = pathlib.Path.cwd().resolve()
-    inside = [name for name in args if data_folder.worktree(name).resolve() in (here, *here.parents)]
+    inside = [name for name in args if data_folder.worktree(name).resolve() in (caller, *caller.parents)]
     if inside:
         script = pathlib.Path(__file__).resolve()
         tree = data_folder.worktree(inside[0]).resolve()

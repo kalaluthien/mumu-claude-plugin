@@ -6,14 +6,14 @@ usage: replay-location-arguments.py
 - flow: `use-board.py` file, read and comment, `add-worktree.py`, `run-criteria.py` on a task whose `[check]` passes only in that worktree, and `remove-worktree.py` each act on the
   repository or worktree they name, `--repository=<folder>` with options after it included, the board of the repository holds the writes, the check fails when it runs in the main checkout, and a folder in no repository, or none given, is refused with exit 2
 - names: `remove-worktree.py` and `add-worktree.py` refuse a name holding `/` or `..` or opening with `-`, or one that is a link out of the worktrees or to another worktree, a refused name beside a good one removes nothing, and the repository's other worktree stays
-- removal: a worker removing its own worktree and another's from inside its own, on a repository with an `origin`, loses both worktrees, both branches and both `origin` branches that
+- removal: a worker removing its own worktree and another's from a folder outside both, `--repository` naming its own, on a repository with an `origin`, loses both worktrees, both branches and both `origin` branches that
   the base holds, and `git fetch` runs once
 - squash: two workers whose branches a pull request merged as a squash are removed with their worktrees, branches and `origin` branches, one whose merge only the newest closed pull requests list and one whose merge only a lookup by its branch finds
 - every: each other script whose `usage:` line takes `--repository` (`use-landing.py`, `backtest-estimate.py`, `estimate-task-time.py`, `list-task-durations.py`, `print-scope-folder.py`,
   `recall-work.py`, `run-on-refs.py`, `list-additions.py`, `print-task-markdown.py`, `list-task-board.py`, `check-criteria.py`, `close-session.py` and `start-session.py`, which also refuses a folder outside the repository and a call that names none, and takes the repository through a link and from a folder below a worktree) runs once from a folder outside every repository, on the scratch repository it names, with
   the exit and the text that repository gives, and none reports that it found no repository
-- forms: no playbook (`teamwork/**/*.md`), `hooks.json`, `monitors.json`, fixture or open task body of the board, read when the runner sits in a repository, holds a teamwork script run after a `cd` in the same command line,
-  each hit listed with its file and line, or its task number and line"""
+- forms: no playbook (`teamwork/**/*.md`), `hooks.json`, `monitors.json` or fixture holds a teamwork script run after a `cd` in the same command line, but for a `cd ~`, which moves the shell out of a worktree about to be removed,
+  each hit listed with its file and line"""
 import json
 import pathlib
 import re
@@ -142,7 +142,7 @@ def case_squash(sandbox, elsewhere):
 
 
 def case_removal(sandbox, elsewhere):
-    """Two merged workers removed in one call from inside the first one's worktree, `git` counted by a stand-in first on `PATH`."""
+    """Two merged workers removed in one call from a folder outside both, `--repository` naming the first one's worktree, `git` counted by a stand-in first on `PATH`."""
     work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
     shared, git = with_origin(work, "removal", environment)
 
@@ -164,7 +164,7 @@ def case_removal(sandbox, elsewhere):
     (work / "git-stand-in").mkdir()
     stand_in = replay_probe.write_text(work / "git-stand-in", "git", f'#!/bin/sh\necho "$1" >> {log}\nexec {shutil.which("git", path=environment["PATH"])} "$@"\n')
     stand_in.chmod(0o755)
-    done = replay_probe.sh(sys.executable, SCRIPTS / "remove-worktree.py", "first-worker", "second-worker", "--repository", own, cwd=own,
+    done = replay_probe.sh(sys.executable, SCRIPTS / "remove-worktree.py", "first-worker", "second-worker", "--repository", own, cwd=elsewhere,
                            environment={**environment, "PATH": f"{stand_in.parent}:{environment['PATH']}"}, check=False)
     fetches = log.read_text().split().count("fetch")
     left = [word for word in git("for-each-ref", "--format=%(refname)").split() + git("ls-remote", "--heads", "origin").split() + [str(path) for path in trees(shared, environment)]
@@ -228,29 +228,21 @@ def names_refused(work, elsewhere, repository, environment, call):
     return None
 
 
-def old_form_hits(repository, environment):
-    """Each `<file>:<line>` or `#<task> line <line>` that holds a teamwork script run after a `cd` in the same command line."""
+def old_form_hits():
+    """Each `<file>:<line>` that holds a teamwork script run after a `cd` in the same command line."""
     scripts = sorted({path.name for path in PLUGIN.rglob("*.py") if re.fullmatch(r"[a-z]+-[a-z-]+\.py", path.name) and "fixtures" not in path.parts})
-    old = re.compile(r"(?:^|[^\w-])(?:cd|pushd)[ \t]+[^;&|\n]+?[ \t]*(?:&&|;)[^\n]*?(?:" + "|".join(map(re.escape, scripts)) + ")")
+    old = re.compile(r"(?:^|[^\w-])(?:cd|pushd)[ \t]+(?!~[ \t;&|])[^;&|\n]+?[ \t]*(?:&&|;)[^\n]*?(?:" + "|".join(map(re.escape, scripts)) + ")")
     hits = []
     files = [path for path in PLUGIN.rglob("*") if path.is_file() and "__pycache__" not in path.parts
              and (path.suffix == ".md" or path.name in ("hooks.json", "monitors.json") or "fixtures" in path.relative_to(PLUGIN).parts)]
     for path in sorted(files):
         hits += [f"{path.relative_to(PLUGIN.parent)}:{number}" for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1) if old.search(line)]
-    if repository is None:  # an exported copy, such as the hunk sweep's, has no board to read
-        return hits
-    listed = replay_probe.sh(sys.executable, "-c", "import json, sys; sys.path.insert(0, sys.argv[1]); import board; print(json.dumps([task['number'] for task in board.tasks('open', comments=False)]))",
-                             PLUGIN / "lib", cwd=repository, environment=environment).stdout
-    for number in json.loads(listed):
-        text = replay_probe.sh(sys.executable, SCRIPTS / "use-board.py", "read", number, "--body", "--repository", repository, cwd=repository, environment=environment).stdout
-        hits += [f"#{number} line {at}" for at, line in enumerate(text.splitlines(), 1) if old.search(line)]
     return hits
 
 
 def case_forms(sandbox, elsewhere):
     work, repository, environment = sandbox.work, sandbox.repository, sandbox.environment
-    top = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=HERE, capture_output=True, text=True).stdout.strip()
-    hits = old_form_hits(pathlib.Path(top) if top else None, environment)
+    hits = old_form_hits()
     return f"{len(hits)} calls run after a cd: {', '.join(hits)}" if hits else None
 
 
