@@ -10,6 +10,8 @@ checks of 1 s each, the first killing nothing and the last the most. Print `ok <
 - `second-sweep-replayed`: a second sweep of the same head runs no check, replays all 26 and prints the same summary and findings, while a
   sweep with `--fresh`, another `--timeout`, a reworded check, an edited file outside the repository that a check reads, a check that names
   a folder outside it, or after a committed edit to the data file the checks read, runs every revert and mutant again.
+- `timeout-not-kept`: a mutant killed by a check that timed out is swept again by the next sweep, running one check, while the revert and the
+  other two mutants are replayed.
 
 usage: replay-hunk-speed.py"""
 import pathlib
@@ -48,6 +50,9 @@ def level(count):
 words = open("data.txt").read().split()
 print(grade(len(words)), len(words), len(words) >= 1, level(len(words) + 0), sum(SIZES))
 '''
+# its number made 1 sleeps past the timeout, so that mutant is killed by a timeout; 60 made 0 changes nothing and survives
+SLOW = "import time\n\ntime.sleep(0 * 60)\nprint('hi')\n"
+SLOW_CHECK = "## Definition of done\n\n1. [check] **The slow tool greets**: `echo run >> {counter}; python3 slow.py` prints `hi`; on base nothing.\n"
 LINE = "tool.py:{}: surviving mutant: no criterion fails when the number `{}` becomes `{}`, so make a criterion fail on it or drop it"
 OLD_LINES = sorted([
     "hunks: 1 reverted against main, 2 conditions made False, 23 mutants made, 6 unneeded",
@@ -107,6 +112,19 @@ def main(args):
         cases.step("second-sweep-replayed", again[:2] == after[:2] and again[3] == 0 and "cached: 26 reverts and mutants replayed" in again[4]
                    and all(run[1][1:] == after[1][1:] for name, run in runs.items() if name != "data edited") and not swept,
                    f"again ran {again[3]} checks; swept too little: {swept}; " + ", ".join(f"{name} {run[3]}" for name, run in runs.items()) + f"\nagain:\n{again[4]}")
+        slow = replay_probe.Sandbox(work / "slow")
+        slow.git("checkout", "-qb", "change")
+        (slow.repository / "slow.py").write_text(SLOW)
+        slow.git("add", "-A")
+        slow.git("commit", "-qm", "change")
+        body = replay_probe.write_text(work, "slow.md", SLOW_CHECK.format(counter=counter))
+        runs = []
+        for _ in range(2):
+            counter.write_text("")
+            done = slow.python(SCRIPT, "--hunks", "--timeout", "3", "--ref", "main", body, timeout=300)
+            runs.append((done.returncode, len(counter.read_text().split()), done.stdout + done.stderr))
+        cases.step("timeout-not-kept", runs[0][0] == runs[1][0] and runs[1][1] == 1 and "cached: 3 reverts and mutants replayed" in runs[1][2],
+                   f"checks run: {[run[1] for run in runs]}\n{runs[1][2]}")
     return cases.finish()
 
 

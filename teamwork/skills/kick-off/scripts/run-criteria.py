@@ -57,7 +57,8 @@ gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
 in parallel, each job in its own export of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
 A revert's or mutant's result is kept in the git common dir's `teamwork-sweeps/` and replayed, by any session, while the head's files, that file's text, the
-passing criteria, the timeout and the files outside the repository they name are the same: `cached: <n> reverts and mutants replayed` follows, and `--fresh` sweeps them again.
+passing criteria, the timeout and the files outside the repository they name are the same, unless a check timed out, met the live-run cap or a missing watched path, or started a live session: `cached: <n> reverts and
+mutants replayed` follows, and `--fresh` sweeps them again.
 With `--since <sha>`, the head of the last sweep, it reverts and mutates only the hunks a line of which changed between that sha and the head,
 and counts the rest as `unchanged since <sha>, not swept`, since the last sweep already judged them; the checks at the head still run first.
 
@@ -350,20 +351,35 @@ class Sweep:
         with self.lock:
             order = sorted(self.held, key=lambda held: -self.kills[held[0]])
         change()
+        killer, settled = None, True
         try:
-            killer = next((label for label, criterion in order if row(label, *criterion, copy, self.options.timeout, self.live)[2] != "pass"), None)
+            for label, criterion in order:
+                result, settled = self.judged(criterion, copy)
+                if result != "pass":
+                    killer = label
+                    break
         finally:
             undo()
         if killer:
             with self.lock:
                 self.kills[killer] += 1
-        if entry:
+        if entry and settled:
             try:
                 self.folder.mkdir(parents=True, exist_ok=True)
                 entry.write_text("killed" if killer else "alive")
             except OSError:
                 pass  # a git dir the run cannot write is no reason to lose the sweep
         return killer is None
+
+    def judged(self, criterion, copy):
+        """(result, settled) of one held row in COPY; a timeout, the live-run cap or a missing watched path, whose status is None, and a live check,
+        whose session may fail for a rate limit or a login, are not settled, so a later sweep runs them again instead of replaying them."""
+        kind, _, detail = criterion
+        command, test = criteria_check.expectation(detail) if kind == "check" else (None, (None, None))
+        if test[0] is None:
+            return row("", *criterion, copy, self.options.timeout, self.live)[2], True
+        status, out = execute(command, detail, copy, self.options.timeout, self.live)
+        return criteria_check.verdict(test, status, out), status is not None and not criteria_check.live_stage(detail)
 
     def report(self):
         return f"\ncached: {self.replayed} reverts and mutants replayed from an earlier sweep of the same files; --fresh sweeps them again" if self.replayed else ""
