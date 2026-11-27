@@ -1,6 +1,8 @@
 """Each role's next actions: the gaps between the board's tasks and the live team, as lines a monitor or hook prints."""
 
+import os
 import re
+import time
 
 import background_work
 import board
@@ -15,6 +17,8 @@ from session import screen, sessions, tabs
 from team_names import crowding, members, owns, project, role
 
 TASK_LIMIT, PULL_LIMIT = 200, 50
+STUCK_SECONDS = float(os.environ.get("TEAMWORK_STUCK_SECONDS", 900))  # a run that waits this long with no CPU waits on what never comes, or on the owner
+SLOW_SECONDS = float(os.environ.get("TEAMWORK_SLOW_SECONDS", 3600))  # a check run this long holds its worker idle, so the manager weighs a narrower one
 
 ASK, ANSWER = task_state.ASK, task_state.ANSWER
 FEED = task_state.INFORM
@@ -116,9 +120,10 @@ def manager_read(me, since=None):
             "feed": feed, "links": links, "blockers": blockers}
 
 
-def manager_actions(me, listed, data=None, fed_urls=None):
+def manager_actions(me, listed, data=None, fed_urls=None, readings=None):
     """A manager's gaps from DATA, a `manager_read` kept from an earlier poll, else from a read now. FED_URLS, kept by the caller
-    across polls, holds the urls of the reports already fed, since two reads overlap by the clock skew."""
+    across polls, holds the urls of the reports already fed, since two reads overlap by the clock skew; READINGS, kept likewise, holds
+    each team run's last CPU reading, and without it no run is called stuck."""
     data = data or manager_read(me)
     if data is None:
         return None
@@ -140,6 +145,7 @@ def manager_actions(me, listed, data=None, fed_urls=None):
     lines += decisions.gaps(found)
     lines += outside_lines(data["outside"])
     lines += team_lines(team, listed, data, open_tasks, blockers, again)
+    lines += run_lines(team, listed, readings)
     return lines + feed_lines(me, data, fed_urls)
 
 
@@ -214,6 +220,31 @@ def team_lines(team, listed, data, open_tasks, blockers, again):
                 and (held_tasks or again.holding(name) == []):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
+    return lines
+
+
+def run_lines(team, listed, readings):
+    """Per process tree a session in TEAM runs, a stuck line once it has used no CPU for STUCK_SECONDS, and a slow line once a
+    `run-criteria.py` in it passes SLOW_SECONDS. READINGS maps each run to its last reading and the time it was first read so,
+    which this updates; None reads no CPU."""
+    session_of = {agent.get("name"): (agent.get("agent_session") or {}).get("value") for agent in listed}
+    found = background_work.runs([session_of.get(name) for name in team])
+    now, lines, seen = time.monotonic(), [], set()
+    readings = {} if readings is None else readings  # the hook's one-shot call keeps none, so no run reads as stuck there
+    for name in team:
+        for pid, command, reading, criteria in found.get(session_of.get(name), []):
+            key = pid  # a process id is unique on the machine, so it keeps two runs of one session apart
+            seen.add(key)
+            last, since = readings.get(key, (None, now))
+            readings[key] = (reading, since if last == reading else now)
+            if now - readings[key][1] >= STUCK_SECONDS:
+                lines.append(f"stuck {name}: pid {pid} (`{command}`) has used no CPU for {STUCK_SECONDS / 60:g} minutes; ask {name} what it waits on, "
+                             f"and to stop it by TaskStop or `kill {pid}` and name the cause on its task if it hangs")
+            if criteria and criteria[0] >= SLOW_SECONDS:
+                lines.append(f"slow {name}: `{criteria[1]}` has run over {SLOW_SECONDS / 60:g} minutes; ask {name} whether its progress lines still move, "
+                             f"and weigh a narrower run, such as `--since <sha>` or fewer criteria")
+    for key in set(readings) - seen:
+        del readings[key]
     return lines
 
 

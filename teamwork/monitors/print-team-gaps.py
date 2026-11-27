@@ -3,6 +3,7 @@
 
 usage: print-team-gaps.py [--polls <n>]
 It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds.
+A manager's team run that used no CPU for TEAMWORK_STUCK_SECONDS (900) prints a `stuck` line, and a `run-criteria.py` run past TEAMWORK_SLOW_SECONDS (3600) a `slow` line.
 When a file of its own code changes, such as by a merge pulled into the checkout, it runs the new code in its own process with the same arguments, once that code loads, so its output stays the session's monitor."""
 import os
 import pathlib
@@ -53,6 +54,7 @@ def main(args):
     waiting = set()  # a worker's tasks waiting on a task, so a restart reports no wait that ended long ago
     read_of = {}  # what a worker last read of each task it holds, so only a change prints
     fed_urls = set()  # the urls of the reports a manager was already fed
+    readings = {}  # each team run's last CPU reading and since when it held, so a run that stops using CPU is seen
     data, read_at, signal = None, 0.0, team_signal.stamp()  # what the board last gave, when, and the signal file's change then
     awake = False  # whether the last poll watched, so the poll the team empties in still reads once
     stamp = code_stamp()
@@ -81,7 +83,7 @@ def main(args):
         if data is None:
             lines = None
         elif manager:
-            lines = team_gaps.manager_actions(me, listed, data, fed_urls)
+            lines = team_gaps.manager_actions(me, listed, data, fed_urls, readings)
         else:
             lines = team_gaps.worker_actions(me, waiting, read_of, data)
         for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
