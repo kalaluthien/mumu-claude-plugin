@@ -97,7 +97,7 @@ def main(args):
     root = data_folder.main_checkout()  # wherever in it this runs
     inside = [name for name in args if data_folder.worktree(name) in (caller, *caller.parents)]
     if inside:
-        script = pathlib.Path(__file__).resolve()
+        script = pathlib.Path(__file__)
         tree = data_folder.worktree(inside[0])
         script = root / script.relative_to(tree) if tree in script.parents else script
         print(f"remove-worktree.py: the folder you stand in is inside the worktree of {', '.join(inside)}, so removing it would leave your shell in a deleted folder; nothing removed. "
