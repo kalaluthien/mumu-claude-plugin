@@ -46,6 +46,9 @@ def read(manager, me, since):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if args and not (args[0] == "--polls" and len(args) == 2 and args[1].isascii() and args[1].isdigit() and int(args[1]) > 0):
         print(__doc__, file=sys.stderr)
         return 2

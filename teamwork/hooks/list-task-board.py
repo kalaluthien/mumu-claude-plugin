@@ -18,6 +18,9 @@ import task_board  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     width = args[args.index("--width") + 1] if "--width" in args and args.index("--width") + 1 < len(args) else None
     words = [word for word in args if word not in ("--json", "--nodes", "--check", "--width", width)]

@@ -331,6 +331,9 @@ def order_lines(contract):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if args == ["tags"]:
         for kind in ("node", "edge", "task"):
             for tag, entry in TAGS[kind].items():

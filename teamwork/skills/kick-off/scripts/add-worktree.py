@@ -13,6 +13,9 @@ import landing_git  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     if len(args) not in (2, 3) or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)

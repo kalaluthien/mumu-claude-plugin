@@ -18,6 +18,9 @@ from relay_server import serve  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if not args or args[0].startswith("-"):
         return usage()
     page = pathlib.Path(args[0]).resolve()

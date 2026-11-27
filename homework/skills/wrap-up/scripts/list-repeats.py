@@ -53,6 +53,9 @@ def recurs(sightings, kind, now):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     kind = KINDS.get(args[0]) if args else None
     rest = args[1:]
     if kind and len(rest) == 5 and rest[1] == "--record" and rest[3].replace(".", "", 1).isascii() and rest[3].replace(".", "", 1).isdigit():

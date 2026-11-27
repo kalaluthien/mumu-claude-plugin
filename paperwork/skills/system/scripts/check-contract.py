@@ -549,6 +549,9 @@ def catalogue(path):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     global TAGS
     if args == ["tags"]:
         for kind in ("node", "edge", "area"):

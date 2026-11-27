@@ -76,6 +76,9 @@ def unjudged(root, sha, file):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     gaps = args[1:]
     if args[:1] == ["--gaps"] and all(name in BLOCKING + LISTED for name in gaps):
         blocking = sorted({name for name in gaps if name in BLOCKING})

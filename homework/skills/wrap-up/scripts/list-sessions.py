@@ -225,6 +225,9 @@ def whole(path):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parsed = options(args[0], args[2:]) if len(args) >= 2 else None
     if parsed is None or args[0] not in VERB_FLAGS or bool(parsed[0]) != (args[0] == "digest"):
         print(__doc__, file=sys.stderr)

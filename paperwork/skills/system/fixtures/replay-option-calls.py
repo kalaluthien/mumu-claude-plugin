@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Call each Python script of this plugin's skills with `--help` and with an unknown `--x` at each word position of a valid call, in a scratch folder, and list each call that is not refused: exit 2, `usage:` on stderr, nothing on stdout and the folder left as it was.
+"""Call each Python script of this plugin's skills with `--help` and with an unknown `--x` at each word position of a valid call, in a scratch folder, and list each call not answered: for `--help` exit 0, `usage:` on stdout and nothing on stderr, for `--x` exit 2, `usage:` on stderr and nothing on stdout, and the folder left as it was.
 
 usage: replay-option-calls.py [<repository root>]
 
 The repository check passes its root, which this ignores, since the scripts it calls sit in the skills beside this one. Prints one
-`option <script>: <call> gave <answer>` line per call not refused, then `<n> scripts, <n> calls, <n> not refused`,
+`option <script>: <call> gave <answer>` line per call not answered, then `<n> scripts, <n> calls, <n> not answered`,
 and exits 0 only when none failed."""
 import concurrent.futures
 import os
@@ -50,8 +50,15 @@ def snapshot(folder):
     return sorted((str(path.relative_to(folder)), path.stat().st_size, path.stat().st_mtime_ns) for path in folder.rglob("*"))
 
 
+def wrong_answer(call, answered):
+    """Whether ANSWERED is not the answer to CALL: a help call's usage on stdout and exit 0, else a refusal's on stderr and exit 2."""
+    if "--help" in call:
+        return answered.returncode != 0 or answered.stderr or "usage:" not in answered.stdout
+    return answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
+
+
 def refusal(name, call):
-    """What the call CALL of the script NAME gave, in a scratch folder of its own, when it was not refused; else nothing."""
+    """What the call CALL of the script NAME gave, in a scratch folder of its own, when it was not answered as it should be; else nothing."""
     with tempfile.TemporaryDirectory() as scratch:
         folder = pathlib.Path(scratch)
         (folder / "body").write_text("<!doctype html><title>x</title>\n")
@@ -60,7 +67,7 @@ def refusal(name, call):
             answered = subprocess.run([sys.executable, str(SKILLS / name), *call], cwd=folder, capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL)
         except subprocess.TimeoutExpired:
             return "no answer in 30 s"
-        return (f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
+        return (f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if wrong_answer(call, answered)
                 else "a change to the folder" if snapshot(folder) != before else "")
 
 
@@ -74,7 +81,7 @@ def main(args):
     failures = [f"option {name}: {' '.join(call)} gave {answer}" for (name, call), answer in zip(calls, answers) if answer]
     for line in failures:
         print(line)
-    print(f"{len({name for name, _ in CALLS})} scripts, {len(calls)} calls, {len(failures)} not refused")
+    print(f"{len({name for name, _ in CALLS})} scripts, {len(calls)} calls, {len(failures)} not answered")
     return 1 if failures else 0
 
 

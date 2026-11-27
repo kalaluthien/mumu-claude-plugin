@@ -55,6 +55,9 @@ def memory(config, pools):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) == 2 and args[0] == "facets":
         return facets(args[1])
     if len(args) >= 2 and args[0] == "memory":

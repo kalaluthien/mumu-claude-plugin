@@ -15,6 +15,9 @@ import decisions  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     if len(args) != 1:
         print(__doc__, file=sys.stderr)

@@ -11,6 +11,9 @@ import steering_lines  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if any(arg.startswith("-") for arg in args):
         print(__doc__, file=sys.stderr)
         return 2

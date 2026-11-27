@@ -14,6 +14,9 @@ import data_folder  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     nodes = None
     if any(argument.startswith("--") for argument in args[1:]):

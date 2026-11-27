@@ -57,6 +57,9 @@ def sorted_edges(contract, root):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) != 3 or args[1] != "--root" or args[0].startswith("-") or args[2].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2

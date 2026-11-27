@@ -45,6 +45,9 @@ def breaks(source, names):
     return done.stdout + done.stderr if done.returncode else ""
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if not 1 <= len(args) <= 2 or any(arg.startswith("-") for arg in args):
         print(__doc__, file=sys.stderr)
         return 2

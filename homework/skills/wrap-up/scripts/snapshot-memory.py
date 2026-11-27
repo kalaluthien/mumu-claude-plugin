@@ -18,6 +18,9 @@ import memory_home  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) not in (2, 4) or (len(args) == 4 and args[2] != "--export") or any(arg.startswith("-") for arg in args[:2]):
         print(__doc__, file=sys.stderr)
         return 2

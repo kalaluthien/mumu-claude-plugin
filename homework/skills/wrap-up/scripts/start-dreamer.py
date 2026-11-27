@@ -64,6 +64,9 @@ def start_agent(name, pane):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) not in (5, 6) or not args[3].isdigit() or not args[4].isdigit():
         print(__doc__, file=sys.stderr)
         return 2

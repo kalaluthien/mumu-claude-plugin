@@ -80,6 +80,9 @@ def placement(name, args, role, listed):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parser = usage_parser.parser(__doc__, prog="start-session.py", allow_abbrev=False)
     for field in ("name", "cwd", "args"):
         parser.add_argument(field)

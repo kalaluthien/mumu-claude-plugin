@@ -12,6 +12,9 @@ import session  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if args not in ([], ["--me"]):
         print(__doc__, file=sys.stderr)
         return 2

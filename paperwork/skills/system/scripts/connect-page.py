@@ -13,6 +13,9 @@ from relay_page import connect  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) != 1 or args[0].startswith("-") or not pathlib.Path(args[0]).is_file():
         print(__doc__, file=sys.stderr)
         return 2

@@ -84,6 +84,9 @@ def remove(name, root, branches, heads):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     caller = pathlib.Path.cwd()  # before `--repository` moves this process: the shell that called it stands here
     args = data_folder.enter(args, __doc__)
     if not args or any(argument.startswith("-") for argument in args):

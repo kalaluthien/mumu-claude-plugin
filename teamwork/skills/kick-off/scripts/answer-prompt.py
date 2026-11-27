@@ -35,6 +35,9 @@ def prompt_on(screen):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) != 2 or any(argument.startswith("--") for argument in args):
         print(__doc__, file=sys.stderr)
         return 2

@@ -17,6 +17,10 @@ FLAGS = {"--upper-case"}  # a flag is lowercase words joined by -
 
 
 def main(args):
+    # A call asking for help gets the docstring on stdout and exit 0, so it is no failed call.
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     words = [arg for arg in args if arg not in FLAGS]
     # A call it cannot read prints the docstring on stderr, nothing on stdout, and exits 2; a hook never exits 2 here, since Claude Code reads exit 2 as a block.
     if len(words) != 1 or words[0].startswith("-"):
