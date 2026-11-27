@@ -11,7 +11,7 @@
 #card { position: fixed; z-index: 30; width: 400px; overflow: hidden; overflow-wrap: anywhere; padding: var(--spacing-04) var(--spacing-05); border: 1px solid var(--border); border-radius: var(--radius); background: var(--popover); box-shadow: var(--shadow-md); opacity: 0; transform: translateY(6px) scale(.97); pointer-events: none; transition: opacity .16s var(--ease), transform .24s var(--spring); }
 #card.kept { box-shadow: var(--shadow-lg); }
 #card.long { overflow-y: auto; }
-#card.long footer { position: sticky; bottom: -12px; background: var(--popover); }
+#card.long footer { position: sticky; bottom: calc(-1 * var(--spacing-04)); background: var(--popover); }
 #card.show { opacity: 1; transform: none; pointer-events: auto; }
 #card h2 { margin: 0; font-size: var(--type-02); line-height: var(--leading-03); font-weight: 600; }
 #card .tag { display: inline-flex; margin: 0 var(--spacing-02) var(--spacing-02) 0; padding: var(--spacing-01) var(--spacing-03); border: 1px solid var(--border); border-radius: 9999px; font-size: var(--type-01); line-height: var(--leading-01); font-weight: 500; }

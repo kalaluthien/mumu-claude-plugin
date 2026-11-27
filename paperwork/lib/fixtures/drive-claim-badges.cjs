@@ -6,7 +6,8 @@
 // that has edges.
 //   badges   on the record each claim's card leads to, one badge of it sits on that record, beside the record's own name.
 //   faces    each badge says its kind by initial (G, A) and shape (a square corner, a pill), its status by glyph (✓ ? ! ✗) and its
-//            status token's fill, and only a claim that holds with a fault carries the mark `*`.
+//            status token's fill, its text drawn at least half the badge's height, and only a claim that holds with a fault carries
+//            the mark `*`.
 //   owners   no badge on any view sits on a record its claim is not on.
 //   cards    for each planted claim, a click on a badge opens its claim's card, which lists each record the claim is on, and each listed record, clicked,
 //            shows that record and its badge, on whichever of the card's pages names it.
@@ -54,10 +55,12 @@ function badgeFacts() { // each badge in sight: its claim, its record, its owner
   return [...document.querySelectorAll("button.claim")].filter((badge) => badge.checkVisibility({ visibilityProperty: true, opacityProperty: true }) && badge.getBoundingClientRect().width > 0).map((badge) => {
     const span = badge.closest("span.claims"), style = getComputedStyle(badge), box = badge.getBoundingClientRect();
     const crumb = span && span.parentElement && span.parentElement.id === "crumbs" ? span.previousElementSibling : null;
-    const owner = crumb || (span && span.parentElement);
+    const owner = crumb || (span && span.parentElement), range = document.createRange();
+    range.selectNodeContents(badge);
+    const drawn = range.getBoundingClientRect();
     const own = owner ? [...owner.childNodes].filter((node) => node !== span).map((node) => node.textContent).join(" ") : "";
     return { claim: badge.dataset.claim, record: span ? span.dataset.for : null, owner: own.replace(/\s+/g, " ").trim(), text: badge.textContent, label: badge.getAttribute("aria-label") || "",
-      radius: Number.parseFloat(style.borderTopLeftRadius), height: box.height, fill: rgba(style.backgroundColor),
+      radius: Number.parseFloat(style.borderTopLeftRadius), height: box.height, textHeight: drawn.height, textWidth: drawn.width, fill: rgba(style.backgroundColor),
       token: rgba(root.getPropertyValue(`--status-${badge.dataset.status}`).trim() || "transparent") };
   });
 }
@@ -119,6 +122,7 @@ async function drive(browser, page, contract) {
       else if (!plain(fact.owner).includes(plain(named(fact.record)).slice(0, 12))) add("owners", `a badge of ${fact.claim} on ${fact.record} sits beside "${fact.owner.slice(0, 30)}", not its record's name`);
       const faulted = status(claim) === "holds" && !!claim.fault, want = { guarantee: "G", assumption: "A" }[claim.kind] + GLYPHS[status(claim)] + (faulted ? "*" : "");
       if (fact.text !== want) add("faces", `${fact.claim}'s badge reads ${JSON.stringify(fact.text)}, not ${want}`);
+      else if (fact.textWidth <= 0 || fact.textHeight < fact.height / 2) add("faces", `${fact.claim}'s badge draws its text ${+fact.textHeight.toFixed(1)} px high in a badge ${+fact.height.toFixed(1)} px high`);
       if (!fact.label.includes(claim.kind) || !fact.label.includes(status(claim))) add("faces", `${fact.claim}'s badge is named ${JSON.stringify(fact.label)}`);
       if (claim.kind === "guarantee" ? fact.radius > 3 : fact.radius < fact.height / 2 - 0.5) add("faces", `${fact.claim}'s badge, a ${claim.kind}, has corners of ${fact.radius} px at ${fact.height} px high`);
       if (fact.fill !== fact.token) add("faces", `${fact.claim}'s badge is filled ${fact.fill}, not its status token's ${fact.token}`);

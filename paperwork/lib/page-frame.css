@@ -6,12 +6,12 @@ button { font: inherit; color: inherit; }
 kbd { display: inline-flex; align-items: center; justify-content: center; height: 20px; min-width: 20px; padding: 0 var(--spacing-02); border-radius: 6px; background: var(--muted); color: var(--muted-foreground); font: 500 var(--type-01)/1 ui-sans-serif, system-ui, sans-serif; }
 code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 .bar { position: fixed; z-index: 20; display: flex; align-items: center; gap: var(--spacing-02); height: 36px; padding: 0 var(--spacing-02); border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in oklab, var(--background) 86%, transparent); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
-#crumbs { left: 16px; top: 16px; gap: var(--spacing-03); padding: 0 var(--spacing-04); color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
+#crumbs { left: var(--spacing-05); top: var(--spacing-05); gap: var(--spacing-03); padding: 0 var(--spacing-04); color: var(--muted-foreground); max-width: 60vw; white-space: nowrap; }
 #crumbs > button { border: 0; background: none; padding: 0; cursor: pointer; color: inherit; transition: color .15s var(--ease); }
 #crumbs > button:hover { color: var(--foreground); }
 #crumbs [aria-current] { color: var(--foreground); font-weight: 500; }
 #crumbs .sep { color: var(--muted-foreground); }
-#tools { right: 16px; top: 16px; }
+#tools { right: var(--spacing-05); top: var(--spacing-05); }
 .tool { display: inline-flex; align-items: center; gap: var(--spacing-03); height: 28px; padding: 0 var(--spacing-03); border: 0; border-radius: 6px; background: transparent; cursor: pointer; font-weight: 500; white-space: nowrap; transition: background-color .15s var(--ease), transform .25s var(--spring); }
 .tool:hover { background: var(--accent); }
 .tool:active { transform: scale(.96); }
