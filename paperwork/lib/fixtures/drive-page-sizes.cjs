@@ -3,8 +3,9 @@
 // or `FAIL <step>: <reasons>` per step, then PASS or FAIL.
 //   tokens   each space and type token of ../page-tokens.css stands under a comment citing a source its header lists.
 //   literals no page's style sets a margin, padding, gap, inset, font size or line height by a length of its own, in any unit, and
-//            no page script writes one of these but an inset, which a script sets as the drawing's own geometry; the tokens' own
-//            text and the relay's own overlay, which runs on any page and so sets its own, are left out.
+//            no page script writes one of these but an inset, which a script sets as the drawing's own geometry, from a literal
+//            or from a number it joins to a unit; the tokens' own text and the relay's own overlay, which runs on any page and so
+//            sets its own, are left out.
 //   <page> <width>  in a headless Chromium at 390 by 844 and 1200 by 800, with each space and type token set to a planted length,
 //            as loaded, with the search open on a query, and with the card of its first node, found by search, open: every margin, padding and gap of each
 //            element shown is 0 or a planted space, negated or not, every font size a planted type size times the page's own zoom
@@ -25,6 +26,7 @@ const PLUGIN = path.join(__dirname, "..", "..");
 const TOKENS = path.join(PLUGIN, "lib", "page-tokens.css");
 const SIZES = [[390, 844], [1200, 800]];
 const LENGTH = /(?<![\w#-])-?\d*\.?\d+[a-z]+\b/; // a number with any unit; a percentage or a bare number is no length of its own
+const UNIT = /["'`}]\s*(?:px|r?em|ex|r?ch|r?cap|r?ic|pt|pc|cm|mm|in|q|r?lh|v[a-z]+|c[qx][a-z]+)\b/i; // a unit a script joins to a number it computes
 const KINDS = { spacing: "space", type: "type", leading: "leading" }; // each token family by its name's head
 const pages = ["system", "flow"].flatMap((skill) => {
   const folder = path.join(PLUGIN, "skills", skill, "examples");
@@ -64,7 +66,7 @@ function literals(text) {
       .filter((match) => LENGTH.test(match[2].replace(/var\(--[a-z0-9-]+\)/g, ""))).map((match) => `${match[1]}: ${match[2].trim()}`);
     const scripts = [...own.matchAll(/<script(?![^>]*application\/json)[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]).join("\n");
     for (const match of scripts.matchAll(/\.style\.((?:margin|padding)\w*|(?:row|column)?[gG]ap|fontSize|font|lineHeight|cssText)\s*=\s*([^;\n]+)|setProperty\(\s*["'`]((?:margin|padding)[a-z-]*|(?:row-|column-)?gap|font-size|font|line-height)["'`]\s*,\s*([^)\n]+)/g))
-      if (LENGTH.test((match[2] || match[4]).replace(/\$\{[^}]*\}/g, ""))) seen.push(`${match[1] || match[3]} = ${(match[2] || match[4]).trim()} in a script`);
+      if (LENGTH.test(match[2] || match[4]) || UNIT.test(match[2] || match[4])) seen.push(`${match[1] || match[3]} = ${(match[2] || match[4]).trim()} in a script`);
     if (seen.length) found.push(`${name} sets ${[...new Set(seen)].slice(0, 5).join(", ")}`);
   }
   return found;
