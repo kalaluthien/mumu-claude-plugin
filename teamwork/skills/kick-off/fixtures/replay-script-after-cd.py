@@ -17,7 +17,7 @@ USE = SKILL / "scripts" / "use-board.py"
 CALL = "python3 use-board.py read 1"
 BAD = f"cd /somewhere && {CALL}"
 GOOD = (f"{CALL} --repository /somewhere", f"cd ~ && {CALL}", "cd /somewhere && python3 replay-location-arguments.py", "cd /somewhere && python3 task_state.py")
-OTHER = "cd /somewhere && python3 print-team-gaps.py"
+OTHER = BAD.replace(CALL, "python3 print-team-gaps.py")
 
 
 def writes(box, repository, work, line):
