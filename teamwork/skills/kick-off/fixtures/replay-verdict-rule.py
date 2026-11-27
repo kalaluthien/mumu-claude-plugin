@@ -18,6 +18,7 @@
 - `rebase-kept`: after main gains a script and a line far above the change's in the change's script, and the approved branch is
   rebased onto it with no conflict, `--since` prints `merge`, with
   a fixture also fixed `merge`, and with the change's script also edited `judge again` naming that script alone; `--ref` naming main before it moved names main's script too, one git lacks is named, exit 1, and the change undone names its script;
+- `unknown-ref`: `--ref` naming a commit git lacks, with the approved sha an ancestor of the head, is named, exit 1;
 - `follow-up-offered`: each `judge again` also offers to merge the approved head and file the fix as a task with the same parent;
 - `wired`: judge.md, worker.md, protocol.md and the repository's AGENTS.md each send their reader to the rule, and judge.md, worker.md
   and protocol.md name the follow-up task.
@@ -39,6 +40,12 @@ BLOCKING = ("code-fault", "failed-scenario", "not-run")
 
 def listed_line(count):
     return f"approve\nList the {count} gaps under `Fix before merging:`; the worker fixes them and runs `pick-verdict.py --since <this head>` before it merges.\n"
+
+
+def unknown_ref(box, approved):
+    """(exit code, stderr) of `--since APPROVED --ref nowhere`."""
+    done = box.python(SCRIPT, "--since", approved, "--ref", "nowhere")
+    return done.returncode, done.stderr
 
 
 def rebased(work):
@@ -69,14 +76,13 @@ def rebased(work):
     (box.repository / "tool.py").write_text("import os\n" + lines + "y = 3\n")
     got["script"] = run("--since", approved)
     got["ref"] = run("--since", approved, "--ref", "trunk")
-    unknown = box.python(SCRIPT, "--since", approved, "--ref", "nowhere")
-    got["unknown ref"] = unknown.returncode, unknown.stderr
+    got["unknown ref"] = unknown_ref(box, approved)
     box.git("checkout", "-q", "main", "--", "tool.py")
     got["undone"] = run("--since", approved)
     merge = "merge\n"
     passed = (got["rebased"].startswith(merge) and got["fixture"].startswith(merge)
               and got["script"].startswith("judge again\nThe fix changes what no judge read: tool.py.") and got["ref"].startswith("judge again\nThe fix changes what no judge read: other.py, tool.py.")
-              and got["unknown ref"] == (1, "pick-verdict: git cannot read nowhere: no merge base with the head\n")
+              and got["unknown ref"] == (1, "pick-verdict: git cannot read nowhere: no such commit\n")
               and got["undone"].startswith("judge again\nThe fix changes what no judge read: tool.py."))
     return passed, got
 
@@ -165,6 +171,7 @@ def main(args):
                    and re.fullmatch(rf"pick-verdict: git cannot read {approved}: \S[^\n]*\n", outside.stderr), (judged, code, out, error, outside))
         cases.step("follow-up-offered", all(got[1].endswith(offer + "\n") for got, expected in judged.values() if got[1].startswith("judge again")), judged)
         cases.step("rebase-kept", *rebased(work))
+        cases.step("unknown-ref", unknown_ref(box, approved) == (1, "pick-verdict: git cannot read nowhere: no such commit\n"), unknown_ref(box, approved))
     references = SKILL / "references"
     judge, worker, protocol = ((references / name).read_text() for name in ("judge.md", "worker.md", "protocol.md"))
     agents = (pathlib.Path(__file__).resolve().parents[4] / "AGENTS.md").read_text()
