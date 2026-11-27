@@ -94,7 +94,7 @@ def runs(session_ids):
             tree.append(waiting.pop())
             waiting += children.get(tree[-1], [])
         criteria = max(((processes[member][1], shown(processes[member][3])) for member in tree if "run-criteria.py" in processes[member][3]), default=None)
-        found[owner[pid]].append((pid, shown(command), (frozenset(tree), round(sum(processes[member][2] for member in tree), 2)), criteria))
+        found[owner[pid]].append((pid, shown(command), sum(processes[member][2] for member in sorted(tree)), criteria))  # sorted, so an unchanged tree sums to the same float
     return found
 
 
