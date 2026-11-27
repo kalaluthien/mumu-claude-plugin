@@ -776,12 +776,18 @@ def run_per_hunk(options, task, root, live):
             passing = [half for half in halves if survives(copy, half)]
             return [hunk for half in passing for hunk in half], [hunk for half in halves if half not in passing for hunk in half]
 
-        def mutant_survives(copy, file, text, start, end, replacement, step):
-            progress(step)
+        finished, counting = collections.Counter(), threading.Lock()
+
+        def mutant_survives(copy, file, text, start, end, replacement, where):
             path = pathlib.Path(copy, file)
             data = text.encode()
             mutated = data[:start] + replacement + data[end:]
-            return sweep.alive(copy, file, b"file\0" + mutated, lambda: path.write_bytes(mutated), lambda: path.write_text(text))
+            alive = sweep.alive(copy, file, b"file\0" + mutated, lambda: path.write_bytes(mutated), lambda: path.write_text(text))
+            # jobs end in any order, so the count is of the file's mutants finished, which reaches the total last
+            with counting:
+                finished[file] += 1
+                progress(f"mutant {finished[file]}{where}")
+            return alive
 
         by_file = {}
         for hunk in hunks:
@@ -809,8 +815,8 @@ def run_per_hunk(options, task, root, live):
                 # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
                 made = [mutant for each in needed + [raised_at_start(text)] * bool(needed) for mutant in each]
                 tried[file] = [(number, start, end, replacement, kind, text,
-                                pool.submit(in_a_copy, mutant_survives, file, text, start, end, replacement, f"mutant {count} of {len(made)} in {file}, file {place} of {len(by_file)}"))
-                               for count, (number, start, end, replacement, kind) in enumerate(made, 1)]
+                                pool.submit(in_a_copy, mutant_survives, file, text, start, end, replacement, f" of {len(made)} in {file}, file {place} of {len(by_file)}"))
+                               for number, start, end, replacement, kind in made]
             for file in by_file:
                 unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone[file]]
                 for number, start, end, replacement, kind, text, alive in tried[file]:
