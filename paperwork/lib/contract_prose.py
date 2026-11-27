@@ -57,6 +57,36 @@ def text_breaks(texts, labels):
     return found
 
 
+RUN = re.compile(r"[\w-]+")
+FOLDING = re.compile("[" + "".join(map(chr, (0x130, 0x131, 0x17F))) + "]")
+
+
+class Spellings:
+    """The labels a text may spell, found by the runs of word characters they hold: a match of a label is bounded by no word character on
+    either side, so each run of its words is a whole run of the text, and replacing a match by a space leaves no new run; a label beyond
+    ASCII, or a text holding a letter whose case folds onto ASCII while its lower case does not, is a candidate for every text or label."""
+
+    def __init__(self, labels):
+        self.wild, self.by_run, self.runs = [], {}, []
+        for at, label in enumerate(labels):
+            runs = frozenset(RUN.findall(label.lower()))
+            self.runs.append(runs)
+            if not label.isascii() or not runs:
+                self.wild.append(at)
+            else:
+                self.by_run.setdefault(min(runs), []).append(at)
+
+    def candidates(self, text):
+        """The places, in order, of the labels TEXT may spell."""
+        if FOLDING.search(text):
+            return range(len(self.runs))
+        runs = set(RUN.findall(text.lower()))
+        found = set(self.wild)
+        for run in runs:
+            found.update(at for at in self.by_run.get(run, ()) if self.runs[at] <= runs)
+        return sorted(found)
+
+
 def wording_breaks(said, names, named, terms):
     """Breaks of `text-plain`, `formula`, `name-english`, `korean-text` and `term-words` in the words a contract chose: SAID, each (where, text),
     the texts that say something of the subject, a title or label among them placed at a `/title` or `/label` end; NAMES, each (where, name), the
@@ -65,15 +95,19 @@ def wording_breaks(said, names, named, terms):
     the words it `avoid`s."""
     found = []
     # a label is spelt after `the` in any case, or as written when it holds two words; one word as written opens many a sentence
-    spelt = sorted(((re.compile(whole(label, prefix=r"the\s+"), re.IGNORECASE), re.compile(whole(label) if len(label.split()) > 1 else "(?!)"), name)
-                    for name, label in named if label.split()), key=lambda pair: -len(pair[0].pattern))
-    for after_article, _, name in spelt:
-        for other, label in named:
-            if other != name and after_article.search(label):
-                found.append((other, "text-plain", f"the label of `{other}` spells the label of `{name}`, so a new name for `{name}` would leave it stale; give it words of its own"))
+    ordered = sorted(((re.compile(whole(label, prefix=r"the\s+"), re.IGNORECASE), re.compile(whole(label) if len(label.split()) > 1 else "(?!)"), name, label)
+                      for name, label in named if label.split()), key=lambda pair: -len(pair[0].pattern))
+    spelt = [entry[:3] for entry in ordered]
+    spelt_labels = [entry[3] for entry in ordered]
+    index = Spellings(spelt_labels)
+    pairs = sorted((at, number) for number, (other, label) in enumerate(named) for at in index.candidates(label)
+                   if other != spelt[at][2] and spelt[at][0].search(label))
+    for at, number in pairs:
+        other, name = named[number][0], spelt[at][2]
+        found.append((other, "text-plain", f"the label of `{other}` spells the label of `{name}`, so a new name for `{name}` would leave it stale; give it words of its own"))
     for where, text in said:
         rest = re.sub(r"`[^`]*`|\{[a-z0-9-]+\}", "", text)
-        for after_article, written, name in spelt:
+        for after_article, written, name in (spelt[at] for at in index.candidates(rest)):
             rest, count = after_article.subn(" ", rest)
             rest, more = written.subn(" ", rest)
             if count or more:
