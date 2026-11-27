@@ -16,7 +16,7 @@ Intent flows owner → manager → root → worker → tasks → judged changes.
 - **outcome**: a behaviour the owner's words ask for, seen by running the system, or for a research ask a question the report must answer; the manager's routing `DECIDED:` writes them as [manager.md](manager.md)'s Route says, quoting the owner's words
 - **criterion**: a `[check]`, a command whose output decides, its failing output on base quoted; or a `[score]`, a rubric over a named sample, head against the base by a margin set after measuring the base on it. From the cut-off on, a task's criteria are one per outcome: each `[check]` a **scenario**, a command that runs the real system and prints `PASS`, on base `FAIL`, never only a text scan such as a grep; a skill or document task's a `claude -p` run that prints `PASS` or `FAIL`, or a `[score]` whose yes-or-no rubric is fixed before the build
 - **frozen**: a criterion after the task's first judge: only a manager's `DECIDED:` changes it, which the worker asks for by `BLOCKED:`
-- **probe**: a subagent the judge briefs on one outcome of a high-risk change, as [judge.md](judge.md)'s Probe says, which tries the outcome; private to the judge until its verdict
+- **probe**: a subagent the judge briefs on one outcome of a high-risk change, as [check/guarded.md](check/guarded.md) says, which tries the outcome; private to the judge until its verdict
 - **cut-off**: the task number [check-criteria.py](../scripts/check-criteria.py) `--cut-off` prints; a task numbered below it keeps the rules it was filed under, in the lint and in the judge
 - **pane, tab, workspace**: where a session runs: its pane, the tab that shows it, and the workspace that groups a team's tabs; the session adapter maps them onto its host
 - **tier**: how much a model must reason: `open`, `deep`, `mid` or `light`, each with an effort `xhigh`, `high`, `medium` or `low`, as the agent adapter names them
@@ -48,7 +48,7 @@ Intent flows owner → manager → root → worker → tasks → judged changes.
 | landing | `branch` | a worktree and branch `<name>` from the base |
 | landing | `push` | publishes a branch to the remote, the branch named |
 | landing | `change` | proposes a branch for merging into the base, citing its task |
-| landing | `judge` | a fresh subagent by `delegate` at `mid`, `high`, once per change and again only when its diff changed, prompted `Read <this folder>/judge.md, then judge <url or path>. Judge folder: <scratchpad>/judge-<round>/.`, then, from the second round, ` Last judged: <sha>.`, the head the judge before it judged, a new round number each `judge`; `tell` it to resume |
+| landing | `judge` | a fresh subagent by `delegate` at the tier its strategy names, once per change and again only when its diff changed, prompted `Read <this folder>/judge.md, then judge <url or path>. Judge folder: <scratchpad>/judge-<round>/. Strategy: <playbook>.`, the line [pick-check-strategy.py](../scripts/pick-check-strategy.py) prints, then, from the second round, ` Last judged: <sha>.`, the head the judge before it judged, a new round number each `judge`; `tell` it to resume |
 | landing | `merge` | merges a change a judge approved at its head, at a sha whose diff a rebase left the same, or at one `pick-verdict.py --since <that head>` prints `merge` for, and releases it when the repository's rules ask |
 | landing | `remove` | removes a closed worker's worktree and merged branches |
 | agent | `delegate` | starts a subagent at a tier and effort, with a brief |

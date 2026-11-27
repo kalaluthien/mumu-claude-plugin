@@ -10,7 +10,7 @@ import subprocess
 import sys
 import tempfile
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import data_folder  # noqa: E402
 
 

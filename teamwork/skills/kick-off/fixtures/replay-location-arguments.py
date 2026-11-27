@@ -281,7 +281,7 @@ def case_every(sandbox, elsewhere):
              (REFERENCES / "estimation/scripts/list-task-durations.py", [], True, 0, "rows: 0"),
              (REFERENCES / "manager/scripts/print-scope-folder.py", ["scopeprobe-manager"], True, 0, "scopeprobe"),
              (REFERENCES / "recall/scripts/recall-work.py", ["probe"], True, 0, "#1 task open: Print ok from the probe"),
-             (REFERENCES / "worker-build/scripts/run-on-refs.py", ["cat a.txt", "main", "main"], True, 0, "base\nmain "),
+             (SCRIPTS / "run-on-refs.py", ["cat a.txt", "main", "main"], True, 0, "base\nmain "),
              (REFERENCES / "worker/scripts/list-additions.py", ["1"], True, 0, "#1 body sha:"),
              (PLUGIN / "hooks/print-task-markdown.py", ["1"], True, 0, "# #1 Print ok from the probe"),
              (PLUGIN / "hooks/list-task-board.py", ["probe"], True, 0, "Print ok from the probe"),
