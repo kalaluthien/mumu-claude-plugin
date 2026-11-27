@@ -227,11 +227,12 @@ def file_part(options, title, body):
         # a fenced block's lines are blanked, so a `## ` or numbered line inside one neither ends the section nor counts as an item
         unfenced = re.sub(r"^(`{3,}|~{3,}).*?^\1", lambda block: re.sub(r"[^\n]", " ", block.group(0)), found["body"], flags=re.M | re.S)
         section = re.search(r"^## Definition of done\n(.*?)(?=^## |\Z)", unfenced, re.M | re.S)
-        if not section:
-            raise LookupError(f"#{parent} has no `## Definition of done` to add the part to")
-        text = found["body"][section.start(1):section.end()]
-        new = (found["body"][:section.start(1)] + text.rstrip("\n") + f"\n{len(task_state.ITEM.findall(section.group())) + 1}. [task] #{number} {title}"
-               + (text[len(text.rstrip("\n")):] or "\n") + found["body"][section.end():])
+        line = f"{len(task_state.ITEM.findall(section.group())) + 1 if section else 1}. [task] #{number} {title}"
+        if section:
+            text = found["body"][section.start(1):section.end()]
+            new = (found["body"][:section.start(1)] + text.rstrip("\n") + "\n" + line + (text[len(text.rstrip("\n")):] or "\n") + found["body"][section.end():])
+        else:
+            new = found["body"].rstrip("\n") + f"\n\n## Definition of done\n{line}\n"
         board.comment(parent, body_diff(f"{task_state.ANSWER}: files #{number} as a part", found["body"], new))
         board.edit(parent, new)
         return number

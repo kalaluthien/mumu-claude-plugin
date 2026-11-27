@@ -20,8 +20,7 @@ exit 1 on any failure:
   end of the parent's Definition of done, in one board commit, its diff fenced past the parent's own backtick fence, with the parent's labels unless `--label`
   names others, the `--depends` given, held by the session that holds the parent; an owner's decision on the parent is no addition of the part's, and a decision
   on the part does not bind the parent; a parent
-  whose Definition of done ends the body gets a trailing newline; a parent the board does not hold, of another board, given with `--scope`, or with no Definition
-  of done, is refused and nothing is filed;
+  whose Definition of done ends the body gets a trailing newline; a parent the board does not hold, of another board or given with `--scope` is refused and nothing is filed;
 - `parse`: `TaskRef.parse` reads `7`, `#7`, a task's url in `My Docs` or at the root and a comment's url into their scope, number and comment, and refuses
   a url of this board with a query, a fragment other than a comment's or a path not ending in a number, a link of another scheme or with no board ref, a
   url that does not parse, a number with spaces or a newline around it, a url ending in a tab or a newline, or after a space, or holding a control character, and text that is no link, each naming why, and reads a task's url decoded; `stored`
@@ -245,14 +244,13 @@ def parent_case(step, use, call, ref, number, mine, link, board, work, box, repo
     labelled = use("file", "--title", "Probe a labelled part", "--body", replay_probe.write_text(work, "labelled.md", replay_probe.BODY), "--parent", last, "--label", "other")
     tail = record(last) + record(number(labelled.stdout))[3:4] if labelled.returncode == 0 else None
     ended = bool(tail) and tail[0] == replay_probe.BODY.rstrip("\n") + f"\n2. [task] #{number(labelled.stdout)} Probe a labelled part\n" and tail[6] == ["other"]
-    box.evaluate(f"import board; board.edit({mine}, 'A summary with no criteria.'); print(0)", cwd=repository)
     held = ref()
     lost = replay_probe.write_text(work, "lost.md", replay_probe.BODY)
-    missing, undone, foreign, scoped = (use("file", "--title", "Probe a lost part", "--body", lost, "--parent", target, *extra)
-                                        for target, extra in ((9999, ()), (mine, ()), (link, ()), (parent, ("--scope", SCOPE))))
-    step("parent", filed and ended and missing.returncode != 0 and "does not hold" in missing.stderr and undone.returncode != 0 and "no `## Definition of done`" in undone.stderr
+    missing, foreign, scoped = (use("file", "--title", "Probe a lost part", "--body", lost, "--parent", target, *extra)
+                                for target, extra in ((9999, ()), (link, ()), (parent, ("--scope", SCOPE))))
+    step("parent", filed and ended and missing.returncode != 0 and "does not hold" in missing.stderr
          and foreign.returncode == 2 and board in foreign.stderr and scoped.returncode == 2 and "`--scope` goes" in scoped.stderr and ref() == held,
-         [done.returncode, done.stderr, found, expected, additions, labelled.stderr, tail, missing.stderr, undone.stderr, foreign.stderr, scoped.stderr])
+         [done.returncode, done.stderr, found, expected, additions, labelled.stderr, tail, missing.stderr, foreign.stderr, scoped.stderr])
 
 
 if __name__ == "__main__":
