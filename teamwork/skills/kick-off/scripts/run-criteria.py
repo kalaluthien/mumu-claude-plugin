@@ -3,7 +3,7 @@
 optional `.teamwork/default-criteria.md` there as `standing`, and print a table to comment on the task, which the
 judge reads instead of running each check again.
 
-usage: run-criteria.py [--timeout <s>] [--run-timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
+usage: run-criteria.py [--timeout <s>] [--run-timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--jobs <n>] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
 `--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
 on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started. It bounds each git, tar
@@ -38,22 +38,27 @@ without running and a `BLOCKED due: live runs` line follows.
 A check run in an export of `--base` or `--hunks` has every process still running a file of that export killed when it ends, since a monitor it starts in a session of its own would poll for ever.
 `--hunks` holds beside the `[check]`s each fixture runner the change adds or edits, a `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, run to exit 0,
 so a task of `[score]`s alone is swept too; a runner that fails at the head is not held.
-`--hunks` first runs the `[check]`s at the head and, when one fails, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
+`--hunks` first runs the `[check]`s at the head and, when one fails there and in the checkout, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
 runs the `[check]`s there, prints to stderr one progress line per reverted group and per mutant below, its count and the seconds since the run began, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
-hunk; a git check, which the export cannot run, never counts. A file of more than 4 hunks is reverted whole, then by
+hunk; a check that fails in the export but passes in the checkout, such as a git check, which the export cannot run, never counts:
+`<n>: not swept` is printed for it. A file of more than 4 hunks is reverted whole, then by
 halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<file>: <n> hunks not judged one by one` is
 printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer is. A hunk no check can
 see, such as a `version` bump, a usage line, a docstring or a document, is always named: the judge reads it as needed. In a hunk
 that is needed, the test of each `if` or `elif` statement it adds to a Python file is then made `False` alone, and `<file>:<line>: unneeded condition` is printed
 for each whose branch no criterion reaches; each other comparison it adds is then negated alone, each number made 0, or 1 when it is 0, each codec
 name given to `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each element of a list or tuple and each operand of `and` or `or` dropped, each path call swapped for its sibling (`resolve` and `absolute` for each other, `realpath` for `abspath`,
-`abspath` and `normpath` for each other, `is_dir` or `is_file` for `exists`, `exists` for `is_dir`) and each `<side> == <text>` widened to `<text> in <side>`; once per Python file it sweeps, the file is
+`abspath` and `normpath` for each other, `is_dir` or `is_file` for `exists`, `exists` for `is_dir`) each `<side> == <text>` widened to `<text> in <side>` and each `sorted(<items>, ...)` made `list(<items>)`; once per Python file it sweeps, the file is
 made to raise at its first line, which a criterion that only finds two runs equal lets survive, so make a criterion read what a run prints; and
 `<file>:<line>: surviving mutant` is printed for each that fails no criterion; exit 1 on either, since a refusal, a bound, a weight, an argument or a codec no check
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
-the checks once per reverted group and per such mutant, so give a long check time with `--timeout`; it never fetches.
+the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
+in parallel, each job in its own export of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
+A revert's or mutant's result is kept in the git common dir's `teamwork-sweeps/` and replayed, by any session, while the head's files, that file's text, the
+passing criteria, the timeout and the files outside the repository they name are the same, unless a check timed out, met the live-run cap or a missing watched path, or started a live session: `cached: <n> reverts and
+mutants replayed` follows, and `--fresh` sweeps them again.
 With `--since <sha>`, the head of the last sweep, it reverts and mutates only the hunks a line of which changed between that sha and the head,
 and counts the rest as `unchanged since <sha>, not swept`, since the last sweep already judged them; the checks at the head still run first.
 
@@ -74,11 +79,14 @@ or backslash; exit 1 on any
 `wrong pass`. It finds a check that can never pass, such as `check-schema.py check /dev/stdin`, which reads its input twice."""
 import ast
 import codecs
+import collections
+import concurrent.futures
 import hashlib
 import html.parser
 import json
 import os
 import pathlib
+import queue
 import re
 import shlex
 import signal
@@ -87,6 +95,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
@@ -238,12 +247,17 @@ class Live:
         self.replayed = 0
         self.capped = False
         self.strict = True  # a watched path missing at the head is a typo that would pin the key; on the base it may not exist yet
+        self.lock = threading.Lock()  # parallel sweep jobs start one session at a time, so the cap and a saved transcript hold
 
     def used(self):
         return len(self.counted.read_text().split()) if self.counted.exists() else 0
 
     def run(self, first, rest, paths, cwd, timeout):
         """(status, output) of the stages after FIRST on its transcript, which FIRST makes only when none is saved for its key and the cap allows."""
+        with self.lock:
+            return self.locked_run(first, rest, paths, cwd, timeout)
+
+    def locked_run(self, first, rest, paths, cwd, timeout):
         missing = [path for path in paths if self.strict and not pathlib.Path(cwd, path).exists()]
         if missing:
             return None, f"watched path not found: {' '.join(missing)}"
@@ -310,6 +324,63 @@ class Memory:
 
     def report(self):
         return f"\ncached: {self.replayed} checks replayed from an earlier pass on the same files; --fresh runs them again" if self.replayed else ""
+
+
+class Sweep:
+    """Whether the rows passing at the head all still pass with one file changed, the checks that failed most tried first, each result kept in the git common dir's `teamwork-sweeps/`."""
+
+    def __init__(self, root, held, options, live):
+        self.held = held
+        self.options = options
+        self.live = live
+        self.kills = collections.Counter()
+        self.lock = threading.Lock()
+        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-sweeps")
+        outside = [outside_files(criteria_check.expectation(criterion[2])[0], root) for _, criterion in held]
+        # a check that names a folder outside the repository reads files no key holds, so its results are never kept
+        self.prefix = None if None in outside else json.dumps([git_output("rev-parse", "HEAD^{tree}", cwd=root), options.timeout, held, outside])
+        self.replayed = 0
+
+    def alive(self, copy, file, state, change, undo):
+        """True when every held row passes in COPY with FILE made STATE by CHANGE, which UNDO takes back."""
+        entry = self.folder / hashlib.sha256(f"{self.prefix}\0{file}\0".encode() + state).hexdigest()[:32] if self.prefix else None
+        if entry and not self.options.fresh and entry.exists():
+            with self.lock:
+                self.replayed += 1
+            return entry.read_text() == "alive"
+        with self.lock:
+            order = sorted(self.held, key=lambda held: -self.kills[held[0]])
+        change()
+        killer, settled = None, True
+        try:
+            for label, criterion in order:
+                result, settled = self.judged(criterion, copy)
+                if result != "pass":
+                    killer = label
+                    break
+        finally:
+            undo()
+        if killer:
+            with self.lock:
+                self.kills[killer] += 1
+        if entry and settled:
+            try:
+                self.folder.mkdir(parents=True, exist_ok=True)
+                entry.write_text("killed" if killer else "alive")
+            except OSError:
+                pass  # a git dir the run cannot write is no reason to lose the sweep
+        return killer is None
+
+    def judged(self, criterion, copy):
+        """(result, settled) of one held row in COPY; a timeout, the live-run cap or a missing watched path, whose status is None, and a live check,
+        whose session may fail for a rate limit or a login, are not settled, so a later sweep runs them again instead of replaying them."""
+        detail = criterion[2]  # a held row passed, so it is a `[check]` with a test
+        command, test = criteria_check.expectation(detail)
+        status, out = execute(command, detail, copy, self.options.timeout, self.live)
+        return criteria_check.verdict(test, status, out), status is not None and not criteria_check.live_stage(detail)
+
+    def report(self):
+        return f"\ncached: {self.replayed} reverts and mutants replayed from an earlier sweep of the same files; --fresh sweeps them again" if self.replayed else ""
 
 
 def git_state(root):
@@ -546,8 +617,8 @@ def added_mutants(line, patch, text):
     """(line, start, end, replacement, kind) of each mutant of the lines a Python hunk adds in TEXT, its first added line being LINE, as byte spans:
     each `if` or `elif` test made `False`, each other comparison negated, each number made 0, or 1 when it is 0, each codec name given to
     `decode`, `encode` or `encoding=` made `latin-1`, or `utf-8` when it is that, and each list or tuple written without one element and each
-    `and` or `or` without one operand, each path call swapped for its sibling in SIBLINGS, and each `<side> == <text>` widened to
-    `<text> in <side>`; a mutant that is not valid Python is left out."""
+    `and` or `or` without one operand, each path call swapped for its sibling in SIBLINGS, each `<side> == <text>` widened to
+    `<text> in <side>` and each `sorted(<items>, ...)` made `list(<items>)`; a mutant that is not valid Python is left out."""
     added = range(line, line + sum(1 for each in patch.split("\n@@", 1)[-1].splitlines()[1:] if each.startswith("+")))
     try:
         tree = ast.parse(text)
@@ -573,6 +644,8 @@ def added_mutants(line, patch, text):
             text_side = node.comparators[0]
             if isinstance(text_side, ast.Constant) and isinstance(text_side.value, str):
                 found.append((node.lineno, *span(node), ast.unparse(ast.Compare(text_side, [ast.In()], [node.left])).encode(), "equality"))
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "sorted" and node.args and node.lineno in added:
+            found.append((node.lineno, *span(node), ast.unparse(ast.Call(ast.Name("list"), node.args[:1], [])).encode(), "sort"))
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in SIBLINGS and node.func.end_lineno in added:
             end = span(node.func)[1]
             found.append((node.func.end_lineno, end - len(node.func.attr), end, SIBLINGS[node.func.attr].encode(), "path call"))
@@ -634,97 +707,147 @@ def run_per_hunk(options, task, root, live):
         hunks = [hunk for hunk in hunks if hunk not in kept]
     found += [(file, ("check", file, f"`{'bun' if file.endswith('.ts') else 'python3'} {file}` exits 0")) for file in runners]
 
+    # a check that passed on the head's files is replayed, so a second sweep of the same head runs none
+    memory = Memory(root, git_output("rev-parse", "HEAD^{tree}", cwd=root), "hunks", options.fresh)
+
     def results(copy):
         """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
-        return {label: row(label, *criterion, copy, options.timeout, live)[2] for label, criterion in found}
+        return {label: row(label, *criterion, copy, options.timeout, live, memory)[2] for label, criterion in found}
 
     with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as folder:
-        copy = export(root, "HEAD", folder) or sys.exit("run-criteria: could not export HEAD")
-        at_head = results(copy)
+        # the head's export is never changed once its checks ran, so each job's copy is made from it while other jobs change theirs
+        first = export(root, "HEAD", folder) or sys.exit("run-criteria: could not export HEAD")
+        at_head = results(first)
         failing = [label for label, result in at_head.items() if result == "fail" and label not in runners]
+        # a check that fails only in the export, such as one that reads the checkout's git, cannot judge a hunk there, so it is not held
+        criterion_of = dict(found)
+        exported_only = [label for label in failing if row(label, *criterion_of[label], root, options.timeout, live)[2] == "pass"]
+        for label in exported_only:
+            print(f"{label}: not swept: it fails in an export of the head and passes in the checkout, as a git check does")
+        failing = [label for label in failing if label not in exported_only]
         if failing:
             print(*[f"{label}: fails at the head: make it pass first, since a hunk cannot be judged by a criterion that does not" for label in failing], sep="\n")
             print(live.report(), end="")
             return 1
-        held = {label for label, result in at_head.items() if result == "pass"}
-        unneeded, conditions, mutants, unjudged = [], 0, 0, []
+        sweep = Sweep(root, [(label, criterion) for label, criterion in found if at_head[label] == "pass"], options, live)
+        jobs = options.jobs or os.cpu_count()
+        copies = queue.Queue()
+        for n in range(jobs):
+            # each job owns an export, since a check may write into the tree it runs in
+            shutil.copytree(first, os.path.join(folder, str(n)), symlinks=True)
+            copies.put(os.path.join(folder, str(n)))
 
-        def kept_passing(copy):
-            """True when every row passing at the head passes in COPY, stopping at the first that does not, since one is enough."""
-            return all(row(label, *criterion, copy, options.timeout, live)[2] == "pass" for label, criterion in found if label in held)
+        def in_a_copy(work, *argv):
+            """WORK run on an idle export."""
+            copy = copies.get()
+            try:
+                return work(copy, *argv)
+            finally:
+                copies.put(copy)
 
-        def survives(group):
+        def survives(copy, group):
             """True when no passing row changes with every hunk of GROUP, all of one file or link, reverted together."""
-            progress(f"reverting {len(group)} hunks of {group[0][0]}, file {place} of {len(by_file)}")
+            progress(f"reverting {len(group)} hunks of {group[0][0]}, file {list(by_file).index(group[0][0]) + 1} of {len(by_file)}")
             path = pathlib.Path(copy, group[0][0])
             link = os.readlink(path) if path.is_symlink() else None
             kept = path.read_bytes() if link is None and path.is_file() else None
             mode = path.stat().st_mode if kept is not None else None
             before = os.fsencode(link) + b"\n" if link is not None else kept
             text = take_back(before.decode("latin-1") if before is not None else "", [patch for _, _, patch in group])
+            absent = not text and "\nnew file mode " in group[0][2]
+            symlink = "120000" in group[0][2].split("\n@@", 1)[0]
             made = [folder for folder in reversed(path.parents) if not folder.exists()]
-            path.unlink(missing_ok=True)
-            if text or "\nnew file mode " not in group[0][2]:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                if "120000" in group[0][2].split("\n@@", 1)[0]:
-                    os.symlink(text.rstrip("\n").encode("latin-1"), path)
-                else:
-                    path.write_bytes(text.encode("latin-1"))
-                    if mode is not None:
-                        path.chmod(stat.S_IMODE(mode))
-            passing = kept_passing(copy)
-            path.unlink(missing_ok=True)
-            for folder in made[:1]:
-                shutil.rmtree(folder)
-            if link is not None:
-                os.symlink(link, path)
-            elif kept is not None:
-                path.write_bytes(kept)
-                path.chmod(stat.S_IMODE(mode))
-            return passing
+
+            def revert():
+                path.unlink(missing_ok=True)
+                if not absent:
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    if symlink:
+                        os.symlink(text.rstrip("\n").encode("latin-1"), path)
+                    else:
+                        path.write_bytes(text.encode("latin-1"))
+                        if mode is not None:
+                            path.chmod(stat.S_IMODE(mode))
+
+            def restore():
+                path.unlink(missing_ok=True)
+                for folder in made[:1]:
+                    shutil.rmtree(folder)
+                if link is not None:
+                    os.symlink(link, path)
+                elif kept is not None:
+                    path.write_bytes(kept)
+                    path.chmod(stat.S_IMODE(mode))
+
+            state = b"absent" if absent else (b"link\0" if symlink else b"file\0") + text.encode("latin-1")
+            return sweep.alive(copy, group[0][0], state, revert, restore)
+
+        def judged_file(copy, group):
+            """(hunks needed by no row, hunks not judged one by one) of a file of many hunks, judged whole and by halves."""
+            if survives(copy, group):
+                return group, []
+            halves = [group[:len(group) // 2], group[len(group) // 2:]]
+            passing = [half for half in halves if survives(copy, half)]
+            return [hunk for half in passing for hunk in half], [hunk for half in halves if half not in passing for hunk in half]
+
+        finished, counting = collections.Counter(), threading.Lock()
+
+        def mutant_survives(copy, file, text, start, end, replacement, where):
+            path = pathlib.Path(copy, file)
+            data = text.encode()
+            mutated = data[:start] + replacement + data[end:]
+            alive = sweep.alive(copy, file, b"file\0" + mutated, lambda: path.write_bytes(mutated), lambda: path.write_text(text))
+            # jobs end in any order, so the count is of the file's mutants finished, which reaches the total last
+            with counting:
+                finished[file] += 1
+                progress(f"mutant {finished[file]}{where}")
+            return alive
 
         by_file = {}
         for hunk in hunks:
             by_file.setdefault(hunk[0], []).append(hunk)
-        for place, (file, group) in enumerate(by_file.items(), 1):
-            if len(group) > FEW_HUNKS and not options.each:
-                # a file of many hunks, such as a built page, is judged whole and by halves, so the rest of it is judged only when --each asks
-                halves = [] if survives(group) else [group[:len(group) // 2], group[len(group) // 2:]]
-                passing = [half for half in halves if survives(half)]
-                alone = [hunk for half in passing for hunk in half] if halves else group
-                failing = [half for half in halves if half not in passing]
-                if failing:
-                    unjudged.append((file, sum(len(half) for half in failing)))
-            else:
-                alone = [hunk for hunk in group if survives([hunk])]
-            unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone]
-            path = pathlib.Path(copy, file)
-            text = path.read_text() if file.endswith(".py") and path.is_file() and "fixtures" not in pathlib.PurePosixPath(file).parts else ""
-            needed = [added_mutants(line, patch, text) for _, line, patch in group if (file, line, patch) not in alone]
-            # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
-            made_here = needed + [raised_at_start(text)] * bool(needed)
-            count = 0
-            for made in made_here:
-                for number, start, end, replacement, kind in made:
-                    count += 1
-                    progress(f"mutant {count} of {sum(map(len, made_here))} in {file}, file {place} of {len(by_file)}")
+        unneeded, conditions, mutants, unjudged = [], 0, 0, []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
+            reverts = {}
+            for file, group in by_file.items():
+                if len(group) > FEW_HUNKS and not options.each:
+                    # a file of many hunks, such as a built page, is judged whole and by halves, so the rest of it is judged only when --each asks
+                    reverts[file] = pool.submit(in_a_copy, judged_file, group)
+                else:
+                    reverts[file] = [pool.submit(in_a_copy, survives, [hunk]) for hunk in group]
+            alone, tried = {}, {}
+            for place, (file, group) in enumerate(by_file.items(), 1):
+                if isinstance(reverts[file], list):
+                    alone[file] = [hunk for hunk, revert in zip(group, reverts[file]) if revert.result()]
+                else:
+                    alone[file], failing = reverts[file].result()
+                    if failing:
+                        unjudged.append((file, len(failing)))
+                path = pathlib.Path(first, file)
+                text = path.read_text() if file.endswith(".py") and path.is_file() and "fixtures" not in pathlib.PurePosixPath(file).parts else ""
+                needed = [added_mutants(line, patch, text) for _, line, patch in (hunk for hunk in group if hunk not in alone[file])]
+                # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
+                made = [mutant for each in needed + [raised_at_start(text)] * bool(needed) for mutant in each]
+                tried[file] = [(number, start, end, replacement, kind, text,
+                                pool.submit(in_a_copy, mutant_survives, file, text, start, end, replacement, f" of {len(made)} in {file}, file {place} of {len(by_file)}"))
+                               for number, start, end, replacement, kind in made]
+            for file in by_file:
+                unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone[file]]
+                for number, start, end, replacement, kind, text, alive in tried[file]:
                     data = text.encode()
-                    path.write_bytes(data[:start] + replacement + data[end:])
-                    alive = kept_passing(copy)
-                    path.write_text(text)
                     if kind == "condition":
                         conditions += 1
                     else:
                         mutants += 1
-                    if alive and kind == "condition":
+                    if alive.result() and kind == "condition":
                         unneeded.append(f"{file}:{number}: unneeded condition: no criterion reaches this branch, so drop it or make a criterion refuse through it")
-                    elif alive:
+                    elif alive.result():
                         unneeded.append(f"{file}:{number}: surviving mutant: no criterion fails when the {kind} `{' '.join(data[start:end].decode().split())[:80]}` becomes `{replacement.decode().strip()}`, so make a criterion fail on it or drop it")
     print(f"hunks: {len(hunks)} reverted against {ref}, {conditions} conditions made False, {mutants} mutants made, {len(unneeded)} unneeded"
           + (f", {len(kept)} unchanged since {options.since}, not swept" if options.since else ""))
     print(*unneeded, sep="\n")
     print(*[f"{file}: {count} hunks not judged one by one, since reverting them together fails a criterion; --each judges each" for file, count in unjudged], sep="\n")
-    print(live.report(), end="")
+    print(live.report() + memory.report() + sweep.report(), end="")
     return 1 if unneeded else 0
 
 
@@ -923,6 +1046,7 @@ def main(args):
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--hunks", action="store_true")
     parser.add_argument("--each", action="store_true")
+    parser.add_argument("--jobs", type=int)
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--since")
@@ -936,7 +1060,7 @@ def main(args):
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)
-    if options.hunks and options.base or options.since and options.base:
+    if options.hunks and options.base or options.since and options.base or options.jobs is not None and options.jobs < 1:
         usage_parser.refuse(__doc__)
     if options.since and not options.hunks:
         return run_since(options, task, root)
