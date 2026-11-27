@@ -374,10 +374,8 @@ class Sweep:
     def judged(self, criterion, copy):
         """(result, settled) of one held row in COPY; a timeout, the live-run cap or a missing watched path, whose status is None, and a live check,
         whose session may fail for a rate limit or a login, are not settled, so a later sweep runs them again instead of replaying them."""
-        kind, _, detail = criterion
-        command, test = criteria_check.expectation(detail) if kind == "check" else (None, (None, None))
-        if test[0] is None:
-            return row("", *criterion, copy, self.options.timeout, self.live)[2], True
+        detail = criterion[2]  # a held row passed, so it is a `[check]` with a test
+        command, test = criteria_check.expectation(detail)
         status, out = execute(command, detail, copy, self.options.timeout, self.live)
         return criteria_check.verdict(test, status, out), status is not None and not criteria_check.live_stage(detail)
 

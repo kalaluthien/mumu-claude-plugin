@@ -4,7 +4,9 @@
 `FAIL`, and exit 1 on any failure:
 - `one-session-at-a-time`: the parallel jobs start the head's session and one per revert one after another, four in all, the cap of 4,
   and the sweep prints `live runs: 4 of 4 started`;
-- `bad-jobs-refused`: `--jobs 0` and `--jobs -1` print the usage and start no session, exit 2.
+- `bad-jobs-refused`: `--jobs 0` and `--jobs -1` print the usage and start no session, exit 2;
+- `failed-session-not-kept`: in a change of one watched file whose revert's session fails, a second sweep starts that session again, since
+  a kill by a failed session is not kept.
 
 usage: replay-hunk-live.py"""
 import pathlib
@@ -19,6 +21,9 @@ BODY = ("## Definition of done\n\n1. [check] **The stub session earns a verdict*
 JUDGE = "import sys\nprint('PASS' if 'verdict' in sys.stdin.read() else 'FAIL')\n"
 # a session that finds another's folder notes the overlap, since mkdir of an existing folder fails
 CLAUDE = "#!/bin/sh\nmkdir {work}/session 2>/dev/null || echo overlap >> {work}/claude.log\necho started >> {work}/claude.log\nsleep 1\nrmdir {work}/session 2>/dev/null\necho verdict\n"
+
+# the second session, the revert's, fails with no verdict, as a rate limit or a lost login does
+FLAKY = "#!/bin/sh\necho call >> {work}/flaky.log\ntest $(wc -l < {work}/flaky.log) -eq 2 && exit 1\necho verdict\n"
 
 
 def main(args):
@@ -47,6 +52,21 @@ def main(args):
         cases.step("one-session-at-a-time", lines == ["started"] * 4 and "live runs: 4 of 4 started" in out, f"sessions: {lines}\n{out}")
         refused = [box.python(SCRIPT, "--hunks", "--jobs", jobs, "--ref", "main", body, timeout=60) for jobs in ("0", "-1")]
         after = log.read_text().split()
+        flaky = replay_probe.Sandbox(work / "flaky")
+        replay_probe.write_text(flaky.bin, "claude", FLAKY.format(work=work)).chmod(0o755)
+        (flaky.repository / "app").mkdir()
+        (flaky.repository / "app" / "one.txt").write_text("old\n")
+        (flaky.repository / "judge.py").write_text(JUDGE)
+        flaky.git("add", "-A")
+        flaky.git("commit", "-qm", "base")
+        flaky.git("checkout", "-qb", "change")
+        (flaky.repository / "app" / "one.txt").write_text("new\n")
+        flaky.git("commit", "-qam", "change")
+        calls = []
+        for _ in range(2):
+            again = flaky.python(SCRIPT, "--hunks", "--ref", "main", body, timeout=300)
+            calls.append(len((work / "flaky.log").read_text().split()))
+        cases.step("failed-session-not-kept", calls == [2, 3], f"sessions after each sweep: {calls}\n{again.stdout}{again.stderr}")
         cases.step("bad-jobs-refused", [each.returncode for each in refused] == [2, 2] and all("usage:" in each.stderr for each in refused) and after == lines,
                    "\n".join(each.stdout + each.stderr for each in refused))
     return cases.finish()
