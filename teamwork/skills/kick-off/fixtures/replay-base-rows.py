@@ -3,6 +3,7 @@
 `fail <case>: <detail>` per case, then `PASS` or `FAIL`, and exit 1 on any failure:
 - `new-python`: a check that runs a Python fixture the base lacks reads `base ok`;
 - `new-shell`: the same for a shell script run by `bash`;
+- `new-bun`: the same for a TypeScript fixture run by `bun`;
 - `piped`: the same when the run is piped to `tail -1`;
 - `present`: a fixture the base holds that prints another text is a `wrong base`;
 - `mixed`: a missing fixture beside other output is a `wrong base`;
@@ -23,6 +24,7 @@ BODY = ("## Goal\n\nThe probe has a flow.\n\nPath: caller: a probe; before: noth
 # each case: the check, the quote, the row it must get
 CASES = {"new-python": ("python3 new.py", "FAIL", "base ok"),
          "new-shell": ("bash new.sh", "FAIL", "base ok"),
+         "new-bun": ("bun new.ts", "FAIL", "base ok"),
          "piped": ("python3 new.py | tail -1", "FAIL", "base ok"),
          "present": ("python3 old.py", "FAIL", "wrong base"),
          "mixed": ("python3 old.py; python3 new.py", "FAIL", "wrong base"),

@@ -495,13 +495,14 @@ def recalled(memory, detail, command, cwd, timeout, live, passes):
 
 
 # only a program that runs the missing file says so: a read of it (`grep`, `cat`, `sed`) names its own program first
-MISSING_FILE = re.compile(r"can't open file '(?P<python>[^']+)': \[Errno 2\]|^(?:ba|z)?sh(?:: line \d+)?: (?P<shell>[^:]+): No such file or directory$")
+MISSING_FILE = re.compile(r"can't open file '(?P<python>[^']+)': \[Errno 2\]|^(?:ba|z)?sh(?:: line \d+)?: (?P<shell>[^:]+): No such file or directory$"
+                          r'|^error: Module not found "(?P<bun>[^"]+)"$')
 
 
 def absent_in_export(out, archive):
     """Whether every line of OUT says a file is missing that the export ARCHIVE lacks, as a check's script does that the change adds."""
     found = [MISSING_FILE.search(line) for line in out.splitlines()]
-    paths = [pathlib.Path(archive, hit["python"] or hit["shell"]) for hit in found if hit]
+    paths = [pathlib.Path(archive, hit["python"] or hit["shell"] or hit["bun"]) for hit in found if hit]
     return bool(out) and all(found) and all(path.resolve().is_relative_to(pathlib.Path(archive).resolve()) and not path.exists() for path in paths)
 
 
