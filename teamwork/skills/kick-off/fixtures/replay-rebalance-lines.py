@@ -38,9 +38,9 @@ class Team:
         return [line for line in done.stdout.splitlines() if line.startswith("rebalance ")] + ([] if done.returncode == 0 else [f"exit {done.returncode}: {done.stderr}"])
 
 
-def criterion(file, after=""):
+def criterion(file, after="", more=""):
     return (f"Probe a rebalance.\n\n## Definition of done\n\n1. [check] **The probe script prints its result for this task**: `sh -c 'python3 {file} && echo PASS || echo FAIL'` prints `PASS`; "
-            f"on base `FAIL`. covers: `{file}`{after}\n")
+            f"on base `FAIL`. covers: `{file}{more}`{after}\n")
 
 
 def main(args):
@@ -52,18 +52,24 @@ def main(args):
         team = Team(work, "queue")
         head = team.file("Probe the head", criterion("a.py"), holder="busy-worker")
         queued = [team.file(f"Probe a queued task {n}", criterion(f"q{n}.py", after=f" after #{head}"), holder="q-worker", depends=[head]) for n in (1, 2, 3)]
-        three = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"))
-        cases.step("queue-of-3", len(three) == 1 and all(f"#{n}" in three[0] for n in queued) and "q-worker" in three[0] and "3 of 4 live workers" in three[0], "\n".join(three))
+        free = team.file("Probe a free task", criterion("free.py"), holder="q-worker")
+        three = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"),
+                           replay_probe.agent("watch-sentinel", 6, "idle"))
+        cases.step("queue-of-3", len(three) == 1 and all(f"#{n}" in three[0] for n in queued) and "q-worker" in three[0] and "3 of 4 live workers" in three[0]
+               and f"#{free}" not in three[0], "\n".join(three))
         rule = (ROOT / "skills" / "kick-off" / "references" / "manager.md").read_text()
         cases.step("rule-named", all("Rebalance rule" in line for line in three) and three and "**Rebalance**" in rule and "up to 4 live workers per team" in rule, "\n".join(three))
         capped = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"), replay_probe.agent("d-worker", 5, "idle"))
         cases.step("at-cap", len(capped) == 1 and "at the cap of 4" in capped[0] and "ask the owner" in capped[0], "\n".join(capped))
 
         team = Team(work, "shared")
-        first = team.file("Probe the first", criterion("same.py"), holder="one-worker")
-        second = team.file("Probe the second", criterion("same.py"), holder="two-worker", depends=[first])
-        shared = team.lines(replay_probe.agent("one-worker", 2, "working"), replay_probe.agent("two-worker", 3, "working"))
-        cases.step("shared-file", len(shared) == 1 and f"#{second}" in shared[0] and f"#{first}" in shared[0] and "same.py" in shared[0], "\n".join(shared))
+        first = team.file("Probe the first", criterion("same.py", more=", also.py"), holder="one-worker")
+        second = team.file("Probe the second", criterion("same.py", more=", also.py"), holder="two-worker", depends=[first])
+        gone = team.file("Probe a task not planned", criterion("same.py"))
+        team.sandbox.python(USE, "resolve", gone, "--summary", "not wanted", "--not-planned")
+        team.file("Probe the third", criterion("same.py"), holder="three-worker", depends=[gone])
+        shared = team.lines(replay_probe.agent("one-worker", 2, "working"), replay_probe.agent("two-worker", 3, "working"), replay_probe.agent("three-worker", 4, "working"))
+        cases.step("shared-file", len(shared) == 1 and f"#{second}" in shared[0] and f"#{first}" in shared[0] and "also.py, same.py" in shared[0], "\n".join(shared))
 
         team = Team(work, "pair")
         head = team.file("Probe the needed result", criterion("n.py"), holder="n-worker")

@@ -227,7 +227,7 @@ def team_lines(team, listed, data, open_tasks, blockers, again):
 
 def rebalance_lines(team, open_tasks, blockers):
     """The rebalance lines for the tasks each live worker holds that wait on a task."""
-    workers = [name for name in team if role(name) == "worker"]
+    workers = [name for name in team if not name.endswith("-sentinel")]
     queues = {name: [number for number, task in open_tasks.items() if holds(task, name) and blockers.get(number)] for name in workers}
     return team_balance.lines(queues, open_tasks, blockers, len(workers))
 
