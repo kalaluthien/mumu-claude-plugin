@@ -178,13 +178,14 @@ class LoadGate:
     def run(self, job, *args):
         """JOB(*ARGS)'s result, started once the load lets it, touching JOB_ENDS when it ends."""
         while True:
+            seen = job_end_stamp()
             with self.lock:
                 spaced = time.monotonic() - self.started >= JOB_SPACING
                 if not self.running or spaced and os.getloadavg()[0] < (os.cpu_count() or 1):
                     self.running += 1
                     self.started = time.monotonic()
                     break
-            wait_for_job_end(JOB_SPACING if not spaced else JOB_WAKE_SECONDS)
+            wait_for_job_end(JOB_SPACING if not spaced else JOB_WAKE_SECONDS, seen)
         try:
             return job(*args)
         finally:
@@ -197,8 +198,16 @@ class LoadGate:
                 pass  # a folder the run cannot write leaves the waiting pools to their timer
 
 
-def wait_for_job_end(seconds):
-    """Return once JOB_ENDS changes or SECONDS pass."""
+def job_end_stamp():
+    """When JOB_ENDS last changed, in nanoseconds; 0 when it is missing."""
+    try:
+        return os.stat(JOB_ENDS).st_mtime_ns
+    except OSError:
+        return 0
+
+
+def wait_for_job_end(seconds, seen):
+    """Return once JOB_ENDS changes from its stamp SEEN or SECONDS pass."""
     if not hasattr(select, "kqueue"):
         time.sleep(seconds)
         return
@@ -211,7 +220,10 @@ def wait_for_job_end(seconds):
     queue = select.kqueue()
     try:
         events = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
-        queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, events)], 1, seconds)
+        queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, events)], 0)
+        # a job that ended after SEEN was measured and before the watch began left only its stamp
+        if job_end_stamp() == seen:
+            queue.control(None, 1, seconds)
     finally:
         queue.close()
         os.close(handle)

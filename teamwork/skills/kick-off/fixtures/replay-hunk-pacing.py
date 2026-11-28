@@ -70,6 +70,8 @@ def main(args):
         gaps = [later[0] - earlier[0] for earlier, later in zip(reverts[1::2], reverts[2::2])]
         cases.step("loaded", overlaps(events) == 1 and len(gaps) >= 2 and max(gaps) < 3, (events, out))
 
+        marked = []
+
         def fall():
             while "start" not in log.read_text() or log.read_text().count("start") < 2:
                 time.sleep(0.2)
@@ -77,9 +79,13 @@ def main(args):
             load.write_text("0")
             config.mkdir(exist_ok=True)
             (config / "check-job-ends").touch()
+            marked.append(time.time())
 
         events, out = sweep(many, fall)
-        cases.step("woken", overlaps(events) > 1, (events, out))
+        starts = [when for when, kind in events if kind == "start"]
+        woke = [when for when in starts if marked and 0 <= when - marked[0] < 3]
+        # the check running when the mark came ends about 4 s after its start, so a start within 3 s of the mark is the wake's
+        cases.step("woken", woke and overlaps(events) > 1, (marked, events, out))
     return cases.finish()
 
 
