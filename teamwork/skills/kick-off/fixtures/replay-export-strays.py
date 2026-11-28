@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run run-criteria.py `--base` on a temporary git repository whose check starts a process in a session of its own from a file of the export, and print `PASS` when the run read the check's row and that
-process is gone once the check ends, else `FAIL: <what it saw>`, since an export of the head or of a hunk's revert may leave a monitor polling for ever. Exit 1 on FAIL.
+process is gone once the check ends, else `FAIL: <what it saw>`, since an export of the base or a clone of a hunk's revert may leave a monitor polling for ever. Exit 1 on FAIL.
 
 usage: replay-export-strays.py"""
 import os
