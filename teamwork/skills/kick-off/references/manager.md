@@ -40,5 +40,6 @@ Turn the owner's words into root tasks, route each to a worker, and decide what 
 
   An `open` worker has no tier above, so `ask` the owner.
 - **Order**: two workers' work touching the same files: `depend <later> --depends <earlier>`, and `decide` it on the earlier too.
+- **Rebalance**: on a `rebalance` line, act at once without the owner's word, since an idle queue costs the owner's time: fold tasks that change the same code into one change, split unrelated parts to run at once, keep a wait only for a needed result and move up a task others wait on, and start a worker at the cheapest fitting tier for unrelated waiting work, up to 4 live workers per team; ask the owner only to widen scope or pass the cap, and report each rebalance in one line.
 - **Shared failure**: two tasks failing one check: `decide` on both which owns the fix; the other reverts its patch and takes it from the base.
 - **Resources**: a resource for one user at a time gets one holder at a time, named in a `DECIDED:` on each task needing it, the work that unblocks another first. A machine's resources, and the commands listing and ending them, live in your auto-memory, never in a repository file.

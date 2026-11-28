@@ -4,6 +4,7 @@
 usage: print-team-gaps.py [--polls <n>]
 It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds.
 A manager's team run that used no CPU for TEAMWORK_STUCK_SECONDS (900) prints a `stuck` line, and a `run-criteria.py` run past TEAMWORK_SLOW_SECONDS (3600) a `slow` line.
+A manager gets a `rebalance` line for a worker that holds 3 or more tasks each waiting on a task, and for a task that waits on another only for a file both change.
 When a file of its own code changes, such as by a merge pulled into the checkout, it runs the new code in its own process with the same arguments, once that code loads, so its output stays the session's monitor."""
 import os
 import pathlib
