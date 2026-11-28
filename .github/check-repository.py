@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, and `--help` with exit 0, `usage:` on stdout and nothing on stderr, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, and each `scripts/` script whose usage lists a `fixtures` call, run with it, four at a time with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, and `--help` with exit 0, `usage:` on stdout and nothing on stderr, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, each `scripts/` script whose usage lists a `fixtures` call, run with it, and each step a skill script lists by a `steps` call in its usage, one per line, run as its own call with that step's word and replayed while its skill's folder and its plugin's `lib/` stay the same, four at a time with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
 
-usage: check-repository.py [--skip-fixtures] [--fresh [runner]...] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner named, or every runner when none is named, even when it passed on the same files; a runner is its path from root as a `fixture` line prints it)
+usage: check-repository.py [--skip-fixtures] [--fresh [runner]...] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner named, or every runner when none is named, even when it passed on the same files; a runner is its path from root, or its path and step, as a `fixture` line prints it)
 
 Prints one failure per line as `<kind> <path>: <detail>`, `unreached` lines being list-unreached.py's, `shared` lines
 list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `misplaced` lines list-misplaced-references.py's, `misnamed` lines list-misnamed.py's, `option` lines a plugin's `fixtures/replay-option-calls.py`'s, and `fixture <path>: exit <n>, <last line>` a runner's that failed, each of its other `FAIL` lines indented beneath, then a summary line, and exits 0 only when nothing failed. A fixture runner that passed on the same files, its plugin's folder, `.github/`, `.claude-plugin/` and the root files (every file for one in `.github/` or whose source names `.github`), is not run again by any session of the repository, which the summary counts as replayed; a failed runner always runs. Standard library only, Python 3.9.
@@ -34,6 +34,8 @@ OPTION_REPLAY = "replay-option-calls.py"  # a plugin keeps beside its scripts th
 OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not answered$", re.M)
 RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
+STEPS_CALL = re.compile(r"^(?://|#)? *usage: *\S+ steps\b", re.M)  # a skill script whose steps run one by one, each on its skill's files
+INTERPRETERS = {".py": [sys.executable], ".ts": ["bun"], ".cjs": ["node"], ".js": ["node"]}
 RUNNER_SECONDS = 1200
 STAND_IN = "#!/bin/sh\necho 'a fixture runner may not start a live session' >&2\nexit 1\n"
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
@@ -269,32 +271,53 @@ def passes_folder(root):
     return pathlib.Path(common.stdout.strip(), "check-repository-passes") if common.returncode == 0 and common.stdout.strip() else None
 
 
-def runner_marker(root, files, folder, path, argv):
-    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins."""
+def runner_marker(root, files, folder, path, argv, step=False):
+    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins; for one STEP of a skill script, those of its skill's folder and its plugin's `lib/`, since a step reads only them, so a change elsewhere in its plugin replays it."""
     with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
-        wide = path.startswith(".github/") or ".github" in handle.read()
-    folders = ("",) if wide else (path.split("/")[0] + "/", ".github/", ".claude-plugin/")
-    digest = hashlib.sha256("\0".join([files_digest(root, files, folders, not wide), *argv]).encode()).hexdigest()[:32]
+        wide = not step and (path.startswith(".github/") or ".github" in handle.read())
+    parts = path.split("/")
+    folders = ("/".join(parts[:3]) + "/", parts[0] + "/lib/") if step else ("",) if wide else (parts[0] + "/", ".github/", ".claude-plugin/")
+    digest = hashlib.sha256("\0".join([files_digest(root, files, folders, not wide and not step), *argv]).encode()).hexdigest()[:32]
     return folder / digest
+
+
+def runner_steps(root, path, environment):
+    """The calls of each step skill script PATH lists by its `steps` call, one per line, or a failure line when it lists none."""
+    interpreter = INTERPRETERS[os.path.splitext(path)[1]]
+    try:
+        listed = subprocess.run([*interpreter, path, "steps"], cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return [], "fixture {} steps: {}".format(path, error)
+    steps = listed.stdout.split()
+    if listed.returncode or not steps:
+        return [], "fixture {} steps: exit {}, no step listed".format(path, listed.returncode)
+    return [(path, [*interpreter, path, step], step) for step in steps], None
 
 
 def run_fixtures(root, files, failures, fresh):
     """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
-    fail each that exits non-zero or runs past RUNNER_SECONDS, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path; returns (how many, how many replayed)."""
-    calls = []
+    fail each that exits non-zero or runs past RUNNER_SECONDS, each step a skill script lists as its own runner, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path; returns (how many, how many replayed)."""
+    calls, stepped = [], []
     for path in files:
         if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
-            calls.append((path, ["bun", path] if path.endswith(".ts") else [sys.executable, path]))
-        elif re.search(r"(?:^|/)scripts/[^/]+\.py$", path):
+            calls.append((path, ["bun", path] if path.endswith(".ts") else [sys.executable, path], None))
+        elif re.search(r"(?:^|/)skills/[^/]+/scripts/[^/]+$", path) and os.path.splitext(path)[1] in INTERPRETERS:
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
-                if FIXTURES_CALL.search(handle.read()):
-                    calls.append((path, [sys.executable, path, "fixtures"]))
+                source = handle.read()
+            if path.endswith(".py") and FIXTURES_CALL.search(source):
+                calls.append((path, [sys.executable, path, "fixtures"], None))
+            if STEPS_CALL.search(source):
+                stepped.append(path)
     with tempfile.TemporaryDirectory() as stand_ins:
         for name in ("claude", "herdr"):
             with open(os.path.join(stand_ins, name), "w") as handle:
                 handle.write(STAND_IN)
             os.chmod(os.path.join(stand_ins, name), 0o755)
         environment = {**os.environ, "PATH": stand_ins + os.pathsep + os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"}
+        for path in stepped:
+            listed, failure = runner_steps(root, path, environment)
+            calls += listed
+            failures += [failure] if failure else []
 
         folder = passes_folder(root)
         replayed = []
@@ -303,20 +326,21 @@ def run_fixtures(root, files, failures, fresh):
         readable = sorted({*files, *(path for path in untracked if path)})
 
         def run(call):
-            path, argv = call
-            marker = runner_marker(root, readable, folder, path, argv) if folder else None
-            if marker and not (fresh is True or path in fresh) and marker.exists():
+            path, argv, step = call
+            label = path + " " + step if step else path
+            marker = runner_marker(root, readable, folder, path, argv, bool(step)) if folder else None
+            if marker and not (fresh is True or path in fresh or label in fresh) and marker.exists():
                 replayed.append(path)
                 return None
             try:
                 done = subprocess.run(argv, cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=RUNNER_SECONDS)
             except (OSError, subprocess.TimeoutExpired) as error:
-                return "fixture {}: {}".format(path, error)
+                return "fixture {}: {}".format(label, error)
             lines = (done.stdout.strip() or done.stderr.strip()).splitlines() or [""]
             # a runner's last line is only its verdict, so the lines naming each fault go with it, for a reader of the CI log
             faults = ["    " + line[:200] for line in lines[:-1] if line.startswith("FAIL")]
             if done.returncode:
-                return "\n".join(["fixture {}: exit {}, {}".format(path, done.returncode, lines[-1][:200])] + faults)
+                return "\n".join(["fixture {}: exit {}, {}".format(label, done.returncode, lines[-1][:200])] + faults)
             if marker:
                 try:
                     folder.mkdir(parents=True, exist_ok=True)
