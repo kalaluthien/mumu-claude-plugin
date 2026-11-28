@@ -177,8 +177,12 @@ def clone(root, folder):
     """FOLDER/tree, a repository holding ROOT's history and every ref, checked out at its head, or None when git fails; a check that reads git, such as
     a fixture that skips its cases outside a checkout, runs there as in the checkout, and the copy's own objects and refs take what a check writes."""
     copy = os.path.join(folder, "tree")
-    steps = [["git", "init", copy], ["git", "-C", copy, "fetch", "--update-head-ok", root, "+refs/*:refs/*"],
-             ["git", "-C", copy, "checkout", git_output("rev-parse", "HEAD", cwd=root)]]
+    if call(["git", "init", copy]).returncode:
+        return None
+    # the checkout's objects are read in place, so neither the fetch nor each job's copy duplicates them, while a check's writes land in the copy's own
+    objects = os.path.join(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "objects")
+    pathlib.Path(copy, ".git", "objects", "info", "alternates").write_text(objects + "\n")
+    steps = [["git", "-C", copy, "fetch", "--update-head-ok", root, "+refs/*:refs/*"], ["git", "-C", copy, "checkout", git_output("rev-parse", "HEAD", cwd=root)]]
     return copy if not any(call(argv).returncode for argv in steps) else None
 
 
