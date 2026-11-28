@@ -5,7 +5,7 @@ checks of 1 s each, the first killing nothing and the last the most. Print `ok <
 - `same-findings-faster`: the sweep prints the summary, finding lines and exit status that the sweep of a923dc2f, which ran the checks of each
   revert and mutant one after another in order, printed for this change, in at most a third of the least time that sweep needs: three checks
   at the head and at least the first two for each of the 26 reverts and mutants, 55 runs of a check timed once on this machine now, so a
-  loaded machine slows both sides; with `--jobs 1 --fresh` it prints the same and runs fewer checks than that sweep's 76, since the check
+  loaded machine slows both sides, under a load the sweep reads as 0; with `--jobs 1 --fresh` it prints the same and runs fewer checks than that sweep's 76, since the check
   that killed most runs first, and takes a second for each check it runs, since one job runs them one at a time;
 - `second-sweep-replayed`: a second sweep of the same head runs no check, replays all 26 and prints the same summary and findings, while a
   sweep with `--fresh`, another `--timeout`, a reworded check, an edited file outside the repository that a check reads, a check that names
@@ -80,6 +80,11 @@ def main(args):
     cases = replay_probe.Cases()
     with replay_probe.scratch("hunk-speed-") as work:
         box = replay_probe.Sandbox(work, commit=False)
+        # the sweep's jobs see an idle machine, since under load its pacing runs them one at a time, which replay-hunk-pacing.py checks
+        site = work / "site"
+        site.mkdir()
+        (site / "sitecustomize.py").write_text("import os\nos.getloadavg = lambda: (0.0, 0.0, 0.0)\n")
+        box.environment["PYTHONPATH"] = str(site)
         (box.repository / "data.txt").write_text("one two three four five\n")
         box.git("add", "-A")
         box.git("commit", "-qm", "base")
