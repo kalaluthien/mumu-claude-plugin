@@ -304,8 +304,8 @@ def run_fixtures(root, files, failures, fresh):
         elif re.search(r"(?:^|/)skills/[^/]+/scripts/[^/]+$", path) and os.path.splitext(path)[1] in INTERPRETERS:
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 source = handle.read()
-            if path.endswith(".py") and FIXTURES_CALL.search(source):
-                calls.append((path, [sys.executable, path, "fixtures"], None))
+            if FIXTURES_CALL.search(source):
+                calls.append((path, [*INTERPRETERS[os.path.splitext(path)[1]], path, "fixtures"], None))
             if STEPS_CALL.search(source):
                 stepped.append(path)
     with tempfile.TemporaryDirectory() as stand_ins:

@@ -9,12 +9,20 @@ Cases:
 - `replayed`: a second check on the same files runs none;
 - `elsewhere`: a change in the plugin outside the script's skill and the plugin's `lib/` runs none;
 - `fed`: a change in the plugin's `lib/` runs each step again;
-- `named`: a step that fails is named with its step, and the other step is not;
-- `unlisted`: a script whose `steps` call lists nothing is named.
+- `named`: a step that fails is named with its step, its last line cut to 200 characters and each `FAIL` line before it beneath, and
+  the other step is not;
+- `unlisted`: a script whose `steps` call lists nothing is named;
+- `fixtures`: a skill script whose usage lists a `fixtures` call runs with it;
+- `not-stepped`: a script listing steps outside a skill's `scripts/` folder, or in a language the check runs none of, runs no step;
+- `runners`: a `fixtures/replay-*` runner in Python and one in TypeScript each run once, by their interpreter;
+- `fresh-step`, `fresh-script`, `fresh-all`: on the same files, a fresh set naming one step runs it alone, one naming the script runs
+  each of its steps, and `True` runs every call;
+- `no-git`: a copy outside git runs each step on every check.
 Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for any argument. Standard library only, Python 3.9."""
 
 import importlib.util
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -37,7 +45,25 @@ if sys.argv[1:] == ["steps"]:
     sys.exit(0)
 with open(HERE.parents[3] / "calls.log", "a") as log:
     log.write(" ".join(sys.argv[1:]) + "\\n")
-sys.exit(1 if sys.argv[1:] == ["two"] and (HERE / "fail").exists() else 0)
+if sys.argv[1:] == ["two"] and (HERE / "fail").exists():
+    print("FAIL detail\\n" + "x" * 300)
+    sys.exit(1)
+'''
+
+FIXTURES = '''"""Stand in for a skill script that checks the fixtures beside it.
+
+usage: check-stub.py fixtures"""
+import pathlib
+import sys
+
+with open(pathlib.Path(__file__).resolve().parents[4] / "calls.log", "a") as log:
+    log.write(" ".join(sys.argv[1:]) + "\\n")
+'''
+
+RUNNER = '''import pathlib
+
+with open(pathlib.Path(__file__).resolve().parents[2] / "calls.log", "a") as log:
+    log.write("python\\n")
 '''
 
 
@@ -64,11 +90,11 @@ def main(args):
             (root / path).write_text(text)
             subprocess.run(["git", "-C", root, "add", "-A"], check=True)
 
-        def check():
-            log.write_text("")
+        def check(fresh=frozenset(), where=root):
+            (where / "calls.log").write_text("")
             failures = []
-            CHECK.run_fixtures(str(root), CHECK.list_files(str(root)), failures, set())
-            return sorted(log.read_text().split()), failures
+            CHECK.run_fixtures(str(where), CHECK.list_files(str(where)), failures, fresh if fresh is True else set(fresh))
+            return sorted((where / "calls.log").read_text().split()), failures
 
         subprocess.run(["git", "init", "-q", root], check=True)
         (root / ".gitignore").write_text("calls.log\n")
@@ -87,10 +113,34 @@ def main(args):
         step("fed", got == (["one", "two"], []), got)
         plant("plugin/skills/skill/scripts/fail", "")
         calls, failures = check()
-        step("named", calls == ["one", "two"] and len(failures) == 1 and failures[0].startswith(f"fixture {SCRIPT} two: exit 1"), (calls, failures))
+        step("named", calls == ["one", "two"] and failures == [f"fixture {SCRIPT} two: exit 1, {'x' * 200}\n    FAIL detail"], (calls, failures))
         plant("plugin/skills/skill/scripts/unlisted", "")
         calls, failures = check()
         step("unlisted", calls == [] and failures == [f"fixture {SCRIPT} steps: exit 0, no step listed"], (calls, failures))
+        plant("plugin/skills/skill/scripts/check-stub.py", FIXTURES)
+        got = check()
+        step("fixtures", got == (["fixtures"], [f"fixture {SCRIPT} steps: exit 0, no step listed"]), got)
+        plant("plugin/lib/run-lib.py", STUB)
+        plant("plugin/skills/skill/scripts/run-stub.sh", STUB)
+        got = check()
+        step("not-stepped", got == (["fixtures"], [f"fixture {SCRIPT} steps: exit 0, no step listed"]), got)
+        for name in ("fail", "unlisted"):
+            (root / "plugin/skills/skill/scripts" / name).unlink()
+        plant("plugin/fixtures/replay-python.py", RUNNER)
+        plant("plugin/fixtures/replay-script.ts", 'import { appendFileSync } from "fs";\nappendFileSync(`${import.meta.dir}/../../calls.log`, "typescript\\n");\n')
+        got = check()
+        step("runners", got == (["fixtures", "one", "python", "two", "typescript"], []), got)
+        got = check({SCRIPT + " two"})
+        step("fresh-step", got == (["two"], []), got)
+        got = check({SCRIPT})
+        step("fresh-script", got == (["one", "two"], []), got)
+        got = check(True)
+        step("fresh-all", got == (["fixtures", "one", "python", "two", "typescript"], []), got)
+        with tempfile.TemporaryDirectory() as outside:
+            copy = pathlib.Path(outside) / "copy"
+            shutil.copytree(root, copy, ignore=shutil.ignore_patterns(".git"))
+            runs = [check(where=copy) for _ in range(2)]
+            step("no-git", all(got == (["fixtures", "one", "python", "two", "typescript"], []) for got in runs), runs)
     print("PASS" if passed else "FAIL")
     return 0 if passed else 1
 
