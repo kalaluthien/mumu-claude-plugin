@@ -85,6 +85,7 @@ import html.parser
 import json
 import os
 import pathlib
+import pwd
 import queue
 import re
 import select
@@ -162,7 +163,8 @@ def call(argv, cwd=None, env=None, text=False):
 
 
 # a job's end on any check of the machine touches this file, so a pool waiting on the load wakes at once to measure it again
-JOB_ENDS = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"), "check-job-ends")
+# the account's home, not HOME, since a fixture that points HOME into the root it checks would find the file there as a change
+JOB_ENDS = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(pwd.getpwuid(os.getuid()).pw_dir, ".claude"), "check-job-ends")
 JOB_WAKE_SECONDS = 30  # the longest a waiting pool sleeps without a job end, as where kqueue is missing
 JOB_SPACING = 1  # seconds between one pool's starts, since the 1-minute load lags the jobs just started
 
