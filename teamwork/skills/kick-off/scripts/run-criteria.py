@@ -54,7 +54,7 @@ made to raise at its first line, which a criterion that only finds two runs equa
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
-in parallel, each job in its own clone of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
+in parallel, each job in its own clone of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, a job starting while the machine's 1-minute load is below its CPU count or none of the sweep's jobs runs, and a waiting start waking when any check job on the machine ends, as LoadGate says, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
 A revert's or mutant's result is kept in the git common dir's `teamwork-clone-sweeps/` and replayed, by any session, while the head's files, that file's text, the
 passing criteria, the timeout and the files outside the repository they name are the same, unless a check timed out, met the live-run cap or a missing watched path, or started a live session: `cached: <n> reverts and
 mutants replayed` follows, and `--fresh` sweeps them again.
@@ -87,6 +87,7 @@ import os
 import pathlib
 import queue
 import re
+import select
 import shlex
 import signal
 import shutil
@@ -158,6 +159,62 @@ def call(argv, cwd=None, env=None, text=False):
         within(call_limit)
         sys.exit(f"run-criteria: `{' '.join(argv[:2])}` gave no answer in {call_limit} s; give a longer limit with --timeout <s>")
     return subprocess.CompletedProcess(argv, process.returncode, out, err)
+
+
+# a job's end on any check of the machine touches this file, so a pool waiting on the load wakes at once to measure it again
+JOB_ENDS = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"), "check-job-ends")
+JOB_WAKE_SECONDS = 30  # the longest a waiting pool sleeps without a job end, as where kqueue is missing
+JOB_SPACING = 1  # seconds between one pool's starts, since the 1-minute load lags the jobs just started
+
+
+class LoadGate:
+    """Paces a pool's jobs by the machine's load, as `make -l` does: a job starts while the 1-minute load average is below the CPU
+    count, or when none of the pool's jobs runs, so every run yields to the others and none waits forever; a job already running
+    is never stopped. A waiting start blocks on JOB_ENDS, which every job's end touches."""
+
+    def __init__(self):
+        self.lock, self.running, self.started = threading.Lock(), 0, 0.0
+
+    def run(self, job, *args):
+        """JOB(*ARGS)'s result, started once the load lets it, touching JOB_ENDS when it ends."""
+        while True:
+            with self.lock:
+                spaced = time.monotonic() - self.started >= JOB_SPACING
+                if not self.running or spaced and os.getloadavg()[0] < (os.cpu_count() or 1):
+                    self.running += 1
+                    self.started = time.monotonic()
+                    break
+            wait_for_job_end(JOB_SPACING if not spaced else JOB_WAKE_SECONDS)
+        try:
+            return job(*args)
+        finally:
+            with self.lock:
+                self.running -= 1
+            try:
+                os.makedirs(os.path.dirname(JOB_ENDS), exist_ok=True)
+                pathlib.Path(JOB_ENDS).touch()
+            except OSError:
+                pass  # a folder the run cannot write leaves the waiting pools to their timer
+
+
+def wait_for_job_end(seconds):
+    """Return once JOB_ENDS changes or SECONDS pass."""
+    if not hasattr(select, "kqueue"):
+        time.sleep(seconds)
+        return
+    try:
+        os.makedirs(os.path.dirname(JOB_ENDS), exist_ok=True)
+        handle = os.open(JOB_ENDS, os.O_RDONLY | os.O_CREAT, 0o600)  # opened, not touched, so no other pool wakes
+    except OSError:
+        time.sleep(seconds)
+        return
+    queue = select.kqueue()
+    try:
+        events = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
+        queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, events)], 1, seconds)
+    finally:
+        queue.close()
+        os.close(handle)
 
 
 def git_output(*argv, cwd=None):
@@ -812,14 +869,15 @@ def run_per_hunk(options, task, root, live):
         for hunk in hunks:
             by_file.setdefault(hunk[0], []).append(hunk)
         unneeded, conditions, mutants, unjudged = [], 0, 0, []
+        gate = LoadGate()
         with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as pool:
             reverts = {}
             for file, group in by_file.items():
                 if len(group) > FEW_HUNKS and not options.each:
                     # a file of many hunks, such as a built page, is judged whole and by halves, so the rest of it is judged only when --each asks
-                    reverts[file] = pool.submit(in_a_copy, judged_file, group)
+                    reverts[file] = pool.submit(gate.run, in_a_copy, judged_file, group)
                 else:
-                    reverts[file] = [pool.submit(in_a_copy, survives, [hunk]) for hunk in group]
+                    reverts[file] = [pool.submit(gate.run, in_a_copy, survives, [hunk]) for hunk in group]
             alone, tried = {}, {}
             for place, (file, group) in enumerate(by_file.items(), 1):
                 if isinstance(reverts[file], list):
@@ -834,7 +892,7 @@ def run_per_hunk(options, task, root, live):
                 # a file whose every hunk is unneeded is named already, so only one a criterion needs is made to raise
                 made = [mutant for each in needed + [raised_at_start(text)] * bool(needed) for mutant in each]
                 tried[file] = [(number, start, end, replacement, kind, text,
-                                pool.submit(in_a_copy, mutant_survives, file, text, start, end, replacement, f" of {len(made)} in {file}, file {place} of {len(by_file)}"))
+                                pool.submit(gate.run, in_a_copy, mutant_survives, file, text, start, end, replacement, f" of {len(made)} in {file}, file {place} of {len(by_file)}"))
                                for number, start, end, replacement, kind in made]
             for file in by_file:
                 unneeded += [f"{file}:{line}: unneeded hunk: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous" for _, line, _ in alone[file]]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, and `--help` with exit 0, `usage:` on stdout and nothing on stderr, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, each `scripts/` script whose usage lists a `fixtures` call, run with it, and each step a skill script lists by a `steps` call in its usage, one per line, run as its own call with that step's word and replayed while its skill's folder and its plugin's `lib/` stay the same, four at a time with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, and `--help` with exit 0, `usage:` on stdout and nothing on stderr, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, each `scripts/` script whose usage lists a `fixtures` call, run with it, and each step a skill script lists by a `steps` call in its usage, one per line, run as its own call with that step's word and replayed while its skill's folder and its plugin's `lib/` stay the same, one at a time and more while the machine's 1-minute load is below its CPU count, each start waiting for a fixture job's end on the machine, as LoadGate says, with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
 
 usage: check-repository.py [--skip-fixtures] [--fresh [runner]...] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner named, or every runner when none is named, even when it passed on the same files; a runner is its path from root, or its path and step, as a `fixture` line prints it)
 
@@ -8,14 +8,18 @@ list-cross-plugin-names.py's, `unreleased` lines list-unreleased.py's and `mispl
 """
 
 import concurrent.futures
+import functools
 import hashlib
 import json
 import os
 import pathlib
 import re
+import select
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from urllib.parse import unquote
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -298,8 +302,64 @@ def runner_steps(root, path, environment):
     return [(path, [*interpreter, path, step], step) for step in steps], None
 
 
+# a job's end on any check of the machine touches this file, so a pool waiting on the load wakes at once to measure it again
+JOB_ENDS = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"), "check-job-ends")
+JOB_WAKE_SECONDS = 30  # the longest a waiting pool sleeps without a job end, as where kqueue is missing
+JOB_SPACING = 1  # seconds between one pool's starts, since the 1-minute load lags the jobs just started
+
+
+class LoadGate:
+    """Paces a pool's jobs by the machine's load, as `make -l` does: a job starts while the 1-minute load average is below the CPU
+    count, or when none of the pool's jobs runs, so every run yields to the others and none waits forever; a job already running
+    is never stopped. A waiting start blocks on JOB_ENDS, which every job's end touches."""
+
+    def __init__(self):
+        self.lock, self.running, self.started = threading.Lock(), 0, 0.0
+
+    def run(self, job, *args):
+        """JOB(*ARGS)'s result, started once the load lets it, touching JOB_ENDS when it ends."""
+        while True:
+            with self.lock:
+                spaced = time.monotonic() - self.started >= JOB_SPACING
+                if not self.running or spaced and os.getloadavg()[0] < (os.cpu_count() or 1):
+                    self.running += 1
+                    self.started = time.monotonic()
+                    break
+            wait_for_job_end(JOB_SPACING if not spaced else JOB_WAKE_SECONDS)
+        try:
+            return job(*args)
+        finally:
+            with self.lock:
+                self.running -= 1
+            try:
+                os.makedirs(os.path.dirname(JOB_ENDS), exist_ok=True)
+                pathlib.Path(JOB_ENDS).touch()
+            except OSError:
+                pass  # a folder the run cannot write leaves the waiting pools to their timer
+
+
+def wait_for_job_end(seconds):
+    """Return once JOB_ENDS changes or SECONDS pass."""
+    if not hasattr(select, "kqueue"):
+        time.sleep(seconds)
+        return
+    try:
+        os.makedirs(os.path.dirname(JOB_ENDS), exist_ok=True)
+        handle = os.open(JOB_ENDS, os.O_RDONLY | os.O_CREAT, 0o600)  # opened, not touched, so no other pool wakes
+    except OSError:
+        time.sleep(seconds)
+        return
+    queue = select.kqueue()
+    try:
+        events = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
+        queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, events)], 1, seconds)
+    finally:
+        queue.close()
+        os.close(handle)
+
+
 def run_fixtures(root, files, failures, fresh):
-    """Run each fixture runner from ROOT, four at a time, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
+    """Run each fixture runner from ROOT, one at a time and more while the machine's 1-minute load is below its CPU count, each start waiting for a fixture job's end on the machine, as LoadGate says,, with stand-in `claude` and `herdr` first on PATH so none starts a live session, and
     fail each that exits non-zero or runs past RUNNER_SECONDS, each step a skill script lists as its own runner, unless it passed on the same files before, unless FRESH is True (every runner) or holds its path; returns (how many, how many replayed)."""
     calls, stepped = [], []
     for path in files:
@@ -353,8 +413,9 @@ def run_fixtures(root, files, failures, fresh):
                     pass  # a git dir the run cannot write is no reason to lose the verdict
             return None
 
-        with concurrent.futures.ThreadPoolExecutor(4) as pool:
-            failures += [line for line in pool.map(run, calls) if line]
+        with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as pool:
+            gate = LoadGate()
+            failures += [line for line in pool.map(functools.partial(gate.run, run), calls) if line]
     return len(calls), len(replayed)
 
 
