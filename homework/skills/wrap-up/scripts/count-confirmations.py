@@ -37,6 +37,9 @@ def confirm(path, today):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) == 1 and not args[0].startswith("-"):
         return confirm(args[0], date.today())
     print(__doc__, file=sys.stderr)

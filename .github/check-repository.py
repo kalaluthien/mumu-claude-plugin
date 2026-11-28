@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, and each `scripts/` script whose usage lists a `fixtures` call, run with it, four at a time with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
+"""Check every tracked file: Python compiles, manifests parse, Markdown links resolve, each plugin's manifest names its folder and the marketplace lists it, each hook, monitor and module path a manifest names exists, a command's file executable, each skill or `.github` script answers an unknown flag with exit 2, `usage:` on stderr and nothing on stdout, and `--help` with exit 0, `usage:` on stdout and nothing on stderr, no plugin file, function or import is unreached, no plugin file names another plugin's file or skill or is a symlink resolving outside its plugin, no skill file sits outside the skill folder hierarchy, no plugin file name or environment variable it reads breaks its kind's form, no plugin holds a change its `version` does not cover, no script a plugin replays takes an unknown option as data, and every fixture runner passes: each `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, each run with no argument, and each `scripts/` script whose usage lists a `fixtures` call, run with it, four at a time with stand-in `claude` and `herdr` first on PATH so none starts a live session. A `fixtures/replay-option-calls.py` calls each script of its part with `--help` and an unknown option at each word position and must exit 0 and print a summary line.
 
 usage: check-repository.py [--skip-fixtures] [--fresh [runner]...] [root]   (--skip-fixtures: no fixture runner, for a runner that checks a copy; --fresh: run each runner named, or every runner when none is named, even when it passed on the same files; a runner is its path from root as a `fixture` line prints it)
 
@@ -31,7 +31,7 @@ ROOT_PATH = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([A-Za-z0-9_./-]+)")
 SCHEME = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
 PLACEHOLDER = set("<*{")
 OPTION_REPLAY = "replay-option-calls.py"  # a plugin keeps beside its scripts the replay that calls each with an unknown option
-OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not refused$", re.M)
+OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not answered$", re.M)
 RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
 RUNNER_SECONDS = 1200
@@ -228,22 +228,25 @@ def check_plugins(root, files, failures):
 
 
 def check_scripts(root, files, failures):
-    """Call each skill and `.github` script with an unknown flag from an empty folder and fail each that does not answer it with exit 2,
-    `usage:` on stderr and nothing on stdout; returns how many it called."""
+    """Call each skill and `.github` script from an empty folder with an unknown flag and with `--help`, and fail each that does not answer
+    the first with exit 2, `usage:` on stderr and nothing on stdout, and the second with exit 0, `usage:` on stdout and nothing on stderr;
+    returns how many it called."""
     scripts = [path for path in files if path.endswith(".py")
                and (path.count("/") == 1 and path.startswith(".github/") or "/skills/" in path and path.split("/")[-2] == "scripts")]
     with tempfile.TemporaryDirectory() as empty:
         environment = {"PATH": os.environ.get("PATH", ""), "HOME": empty, "PYTHONDONTWRITEBYTECODE": "1"}  # a call leaves no __pycache__ in a root with no .gitignore
         for path in scripts:
-            try:
-                called = subprocess.run([sys.executable, os.path.join(root, path), UNKNOWN_FLAG], cwd=empty, env=environment,
-                                        stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=30)
-                answer = "exit {}, stdout {!r}".format(called.returncode, called.stdout[:80])
-                wrong = called.returncode != 2 or "usage:" not in called.stderr or called.stdout
-            except subprocess.TimeoutExpired:
-                answer, wrong = "no answer in 30 s", True
-            if wrong:
-                failures.append("usage {}: {} gave {}; print the docstring on stderr and exit 2".format(path, UNKNOWN_FLAG, answer))
+            for flag, code, said, silent, rule in ((UNKNOWN_FLAG, 2, "stderr", "stdout", "print the docstring on stderr and exit 2"),
+                                                   ("--help", 0, "stdout", "stderr", "print the docstring on stdout and exit 0")):
+                try:
+                    called = subprocess.run([sys.executable, os.path.join(root, path), flag], cwd=empty, env=environment,
+                                            stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=30)
+                    answer = "exit {}, {} {!r}".format(called.returncode, silent, getattr(called, silent)[:80])
+                    wrong = called.returncode != code or "usage:" not in getattr(called, said) or getattr(called, silent)
+                except subprocess.TimeoutExpired:
+                    answer, wrong = "no answer in 30 s", True
+                if wrong:
+                    failures.append("usage {}: {} gave {}; {}".format(path, flag, answer, rule))
     return len(scripts)
 
 
@@ -328,6 +331,9 @@ def run_fixtures(root, files, failures, fresh):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     skip_fixtures, fresh, named = False, set(), False
     while args[:1] in (["--skip-fixtures"], ["--fresh"]):
         skip_fixtures, named = skip_fixtures or args[0] == "--skip-fixtures", named or args[0] == "--fresh"

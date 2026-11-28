@@ -18,6 +18,9 @@ import task_history  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):
         tasks = json.load(open(args[1]))

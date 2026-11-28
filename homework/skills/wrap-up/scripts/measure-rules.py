@@ -48,6 +48,9 @@ def scoped(lines):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if not args or any(arg.startswith("-") for arg in args):
         print(__doc__, file=sys.stderr)
         return 2

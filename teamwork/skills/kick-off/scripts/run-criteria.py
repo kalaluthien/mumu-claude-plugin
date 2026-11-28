@@ -1040,6 +1040,9 @@ def run_since(options, task, root):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parser = usage_parser.parser(__doc__)
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--run-timeout", type=int, default=7200)

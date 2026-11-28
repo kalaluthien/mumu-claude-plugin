@@ -69,6 +69,9 @@ def read(path):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) > 1:
         print(__doc__, file=sys.stderr)
         return 2

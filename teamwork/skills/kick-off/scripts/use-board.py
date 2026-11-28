@@ -378,9 +378,8 @@ def parser():
 
 def main(args):
     if {"-h", "--help"} & set(args):
-        # the usage is the help, so a call asking for it learns that rather than which argument it lacks
-        print(f"use-board: `{'--help' if '--help' in args else '-h'}` is no option; the usage follows", file=sys.stderr)
-        usage_parser.refuse(__doc__)
+        print(__doc__)
+        return 0
     options = parser().parse_args(data_folder.enter(args, __doc__))
     try:
         if getattr(options, "task", None) is not None:

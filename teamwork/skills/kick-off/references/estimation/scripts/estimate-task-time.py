@@ -62,6 +62,9 @@ def load(options, urls):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     options = parse_options(args)
     history, tasks = load(options, options.urls)
     groups = []

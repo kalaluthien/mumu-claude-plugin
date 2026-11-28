@@ -31,6 +31,9 @@ def list_links(plugin):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) > 1 or (args and args[0].startswith("-")):
         print(__doc__, file=sys.stderr)
         return 2

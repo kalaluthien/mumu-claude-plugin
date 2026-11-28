@@ -97,6 +97,9 @@ def path_scores(items, paths, before):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parser = usage_parser.parser(__doc__)
     parser.add_argument("words", nargs="*")
     parser.add_argument("--path", action="append", default=[])

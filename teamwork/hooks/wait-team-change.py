@@ -23,6 +23,9 @@ def watch(queue):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if args:
         print(__doc__, file=sys.stderr)
         return 2

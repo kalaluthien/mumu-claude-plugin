@@ -57,6 +57,9 @@ def plan(base, merge):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     if len(args) != 2 or args[0].startswith("-"):
         print(__doc__, file=sys.stderr)
         return 2

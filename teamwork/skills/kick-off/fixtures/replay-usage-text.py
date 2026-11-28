@@ -5,7 +5,7 @@ then `PASS` or `FAIL`, and exit 1 on any failure:
 - `one-line`: every verb the script runs has exactly one `usage:` line, and no line names a verb it does not run;
 - `options`: each verb's line names every option the script takes for it and no other;
 - `unread`: per verb, a call that gives every required option and one it does not take names that one, then prints the same usage, and exits 2;
-- `help`: `comment --help` and `-h` print the usage on stderr after a line naming the option, nothing on stdout, and exit 2;
+- `help`: `comment --help`, `comment 1 -h` and `--help` print the same usage on stdout, nothing on stderr, and exit 0;
 - `explained`: every option is named in a playbook under references/, where its meaning sits.
 
 usage: replay-usage-text.py"""
@@ -62,7 +62,7 @@ def main(args):
         cases.step("unread", all(answer == (2, "", usage, True) for answer in named.values()), [verb for verb, answer in named.items() if answer != (2, "", usage, True)])
 
         helped = [call("comment", "--help"), call("comment", "1", "-h"), call("--help")]
-        cases.step("help", all(code == 2 and not out and usage_of(said) == usage and "is no option" in said for code, out, said in helped), [said[:200] for _, _, said in helped])
+        cases.step("help", all(code == 0 and not said and out == usage for code, out, said in helped), [(code, out[:200], said[:200]) for code, out, said in helped])
 
         pages = "".join(path.read_text() for path in (ROOT / "skills" / "kick-off" / "references").rglob("*.md"))
         unexplained = sorted({flag for _, _, flags in module.VERBS.values() for flag, _ in flags if not re.search(re.escape(flag) + r"(?![a-z-])", pages)})

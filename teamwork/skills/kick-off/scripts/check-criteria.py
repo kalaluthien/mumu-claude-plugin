@@ -40,6 +40,9 @@ import data_folder  # noqa: E402
 import task_state  # noqa: E402
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     if args == ["--cut-off"]:
         print(criteria_check.CUT_OFF)

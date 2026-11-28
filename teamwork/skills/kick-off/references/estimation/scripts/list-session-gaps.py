@@ -19,6 +19,9 @@ import usage_parser  # noqa: E402
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-folder", type=pathlib.Path, default=claude_config.folder() / "projects")
     parser.add_argument("--json", action="store_true")

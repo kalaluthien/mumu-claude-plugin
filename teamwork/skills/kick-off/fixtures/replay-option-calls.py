@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Call every teamwork script that takes words with `--help` and with an unknown `--x` at each word position of a valid call, on a throwaway git board in the fixtures' sandbox, with the fake herdr, and list each call that is not refused as AGENTS.md's Script form says.
+"""Call every teamwork script that takes words with `--help` and with an unknown `--x` at each word position of a valid call, on a throwaway git board in the fixtures' sandbox, with the fake herdr, and list each call not answered as AGENTS.md's Script form says.
 
 usage: replay-option-calls.py [root]
 
-A call is refused when the script exits 2, prints `usage:` on stderr and nothing on stdout, and leaves the folder, the git refs and worktrees, and the herdr call log as they were. Prints one `option <script>: <call> gave <answer>` line per call not refused, and a script that takes words but has no valid call in CALLS, then a summary line `<n> scripts, <n> calls, <n> not refused`, and exits 0 only when none failed."""
+A help call is answered when the script exits 0, prints `usage:` on stdout and nothing on stderr; an unknown option when it exits 2, prints `usage:` on stderr and nothing on stdout; either leaves the folder, the git refs and worktrees, and the herdr call log as they were. Prints one `option <script>: <call> gave <answer>` line per call not answered, and a script that takes words but has no valid call in CALLS, then a summary line `<n> scripts, <n> calls, <n> not answered`, and exits 0 only when none failed."""
 import concurrent.futures
 import pathlib
 import re
@@ -99,8 +99,15 @@ def calls_with_option(words):
                 yield words[:position] + [option] + words[position + 1:]
 
 
+def wrong_answer(call, answered):
+    """Whether ANSWERED is not the answer to CALL: a help call's usage on stdout and exit 0, else a refusal's on stderr and exit 2."""
+    if "--help" in call:
+        return answered.returncode != 0 or answered.stderr or "usage:" not in answered.stdout
+    return answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
+
+
 def replay_script(root, path):
-    """The calls made on one script and the lines of those not refused, run in a sandbox of its own so scripts replay side by side."""
+    """The calls made on one script and the lines of those not answered, run in a sandbox of its own so scripts replay side by side."""
     failures, called = [], 0
     with replay_probe.scratch("option-calls-") as work:
         sandbox = build_sandbox(root, work)
@@ -110,7 +117,7 @@ def replay_script(root, path):
                 called += 1
                 answered = sandbox.python(root / PLUGIN / path, *call, timeout=30)
                 answer = ("no answer in 30 s" if answered.returncode is None
-                          else f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if answered.returncode != 2 or answered.stdout or "usage:" not in answered.stderr
+                          else f"exit {answered.returncode}, stdout {answered.stdout[:60]!r}" if wrong_answer(call, answered)
                           else "a change to the folder, refs or herdr calls" if snapshot(sandbox) != before else "")
                 if answer:
                     failures.append(f"option {PLUGIN}/{path}: {' '.join(call)} gave {answer}")
@@ -133,7 +140,7 @@ def main(args):
         failures += lines
     for line in failures:
         print(line)
-    print(f"{len(replayed)} scripts, {called} calls, {len(failures)} not refused")
+    print(f"{len(replayed)} scripts, {called} calls, {len(failures)} not answered")
     return 1 if failures else 0
 
 

@@ -59,6 +59,9 @@ def waiting(name):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     args = data_folder.enter(args, __doc__)
     force = "--force" in args
     args = [arg for arg in args if arg != "--force"]

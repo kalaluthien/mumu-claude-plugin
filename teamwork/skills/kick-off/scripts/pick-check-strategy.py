@@ -54,6 +54,9 @@ def pick(files, refactor):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     refactor = "--refactor" in args
     words = [arg for arg in args if arg != "--refactor"]
     base = "main"

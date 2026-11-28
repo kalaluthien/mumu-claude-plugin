@@ -31,6 +31,9 @@ def task_numbers(value):
 
 
 def main(args):
+    if {"-h", "--help"} & set(args):
+        print(__doc__)
+        return 0
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
     parser.add_argument("--as-of")
