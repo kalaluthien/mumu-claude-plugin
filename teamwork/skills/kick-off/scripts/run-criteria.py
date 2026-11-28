@@ -508,7 +508,7 @@ def descendants(pid):
 def run(command, cwd, timeout):
     """(exit status or None on a timeout, stdout and stderr as one text)."""
     limit = within(timeout)
-    process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    process = subprocess.Popen(["bash", "-c", command], cwd=cwd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                                start_new_session=True)
     try:
         out, _ = process.communicate(timeout=limit)
