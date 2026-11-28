@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that a heartbeat fixture's busy stand-ins end when the runner that started them is killed outright, as a sweep's time limit kills it, and print `ok <case>` or
 `fail <case>: <what it saw>`, then `PASS stand-in orphans` or `FAIL stand-in orphans`; exit 1 on any failure:
-- `ended`: `replay-stuck-runs.py` and `replay-shell-pipeline-runs.py`, each killed by SIGKILL 3 s after its start, leave no process that spins carrying the runner's mark 15 s later.
+- `ended`: `replay-stuck-runs.py` and `replay-shell-pipeline-runs.py`, each running at its kill, which SIGKILL ends 3 s after its start, leave no process that spins carrying the runner's mark 15 s later.
 
 usage: replay-stand-in-orphans.py"""
 import os
@@ -38,14 +38,14 @@ def main(args):
         time.sleep(START)
         started = len(spinning(mark.split("=")[1]))
         os.kill(process.pid, signal.SIGKILL)
-        process.wait()
+        killed = process.wait() == -signal.SIGKILL
         deadline = time.monotonic() + WAIT
         while spinning(mark.split("=")[1]) and time.monotonic() < deadline:
             time.sleep(0.5)
-        left[runner] = (started, spinning(mark.split("=")[1]))
+        left[runner] = (killed, started, spinning(mark.split("=")[1]))
         for pid in left[runner][1]:
             os.kill(pid, signal.SIGKILL)
-    cases.step("ended", all(started and not after for started, after in left.values()), left)
+    cases.step("ended", all(killed and started and not after for killed, started, after in left.values()), left)
     return cases.finish()
 
 
