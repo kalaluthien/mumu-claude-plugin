@@ -4,6 +4,7 @@
 // Each page's timers run on a clock the run turns forward, so a step waits on the page and never sleeps.
 //
 // usage: run-page.cjs [diagram] [shapes] [overlay] [fit] [clear] [moves] [changes] [search] [titles] [results] [regex] [ranking] [recent] [tasks] [sweep] [names] [glosses] [badges] [counts] [note] [formulas] [code] [tables] [layout] [wrap] [fonts]
+// usage: run-page.cjs steps   print the step words, one per line
 // With no word it runs the twenty-six steps; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the
 // step's seconds, then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure
 // and 2 on a word it does not know.
@@ -180,6 +181,10 @@ const STEPS = ["diagram", "shapes", "overlay", "fit", "clear", "moves", "changes
 const REFUSED = ["area-known-no-node", "form-level-without-node", "form-empty-steps", "info-form-empty-code", "info-form-empty-list", "info-form-empty-text"]; // empty shapes no page has to draw, since the checker refuses them
 const KINDS = ["exact", "initials", "misspelt", "two-fields", "id", "korean-layout", "alias"];
 const asked = process.argv.slice(2);
+if (asked.length === 1 && asked[0] === "steps") { // a check that runs each step on its own, so a change reruns only the steps it feeds
+  console.log(STEPS.join("\n"));
+  process.exit(0);
+}
 if (asked.some((word) => !STEPS.includes(word))) {
   console.error("usage: run-page.cjs " + STEPS.map((word) => `[${word}]`).join(" "));
   process.exit(2);

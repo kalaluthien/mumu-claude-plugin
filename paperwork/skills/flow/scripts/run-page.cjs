@@ -3,6 +3,7 @@
 // person with a pointer and a keyboard would.
 //
 // usage: run-page.cjs [interaction] [plan]
+// usage: run-page.cjs steps   print the step words, one per line
 // With no word it runs every step; it prints `PASS <step>` or `FAIL <step>: <reason>` per step with the step's seconds,
 // then `PASS in <seconds> s` or `FAIL in <seconds> s` for the whole run, and exits 1 on a failure and 2 on a word it does
 // not know.
@@ -46,6 +47,10 @@ const { check, same, python, tags: catalogue } = require(path.join(__dirname, ".
 const SIZE = [1440, 900];
 const STEPS = ["interaction", "plan"];
 const asked = process.argv.slice(2);
+if (asked.length === 1 && asked[0] === "steps") { // a check that runs each step on its own, so a change reruns only the steps it feeds
+  console.log(STEPS.join("\n"));
+  process.exit(0);
+}
 if (asked.some((word) => !STEPS.includes(word))) {
   console.error("usage: run-page.cjs " + STEPS.map((word) => `[${word}]`).join(" "));
   process.exit(2);
