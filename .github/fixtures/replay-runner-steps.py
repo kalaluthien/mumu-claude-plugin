@@ -11,6 +11,7 @@ Cases:
 - `fed`: a change in the plugin's `lib/` runs each step again;
 - `named`: a step that fails is named with its step, its last line cut to 200 characters and each `FAIL` line before it beneath, and
   the other step is not;
+- `failed-reruns`: a second check on the same files runs the failing step again and replays the passed one;
 - `unlisted`: a script whose `steps` call lists nothing is named;
 - `fixtures`: a skill script whose usage lists a `fixtures` call runs with it;
 - `not-stepped`: a script listing steps outside a skill's `scripts/` folder, or in a language the check runs none of, runs no step;
@@ -126,6 +127,8 @@ def main(args):
         plant("plugin/skills/skill/scripts/fail", "")
         calls, failures = check()
         step("named", calls == ["one", "two"] and failures == [f"fixture {SCRIPT} two: exit 1, {'x' * 200}\n    FAIL detail"], (calls, failures))
+        calls, failures = check()
+        step("failed-reruns", calls == ["two"] and len(failures) == 1, (calls, failures))
         plant("plugin/skills/skill/scripts/unlisted", "")
         calls, failures = check()
         step("unlisted", calls == [] and failures == [f"fixture {SCRIPT} steps: exit 0, no step listed"], (calls, failures))
