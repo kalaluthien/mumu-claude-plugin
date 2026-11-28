@@ -3,6 +3,8 @@
 a few polls, and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail:
 - queue-of-3: a worker that holds 3 tasks, each waiting on an open task, gets one `rebalance` line naming the worker and the 3 tasks, and saying 3 of 4 live workers;
 - shared-file: a task that waits on an open task only for a file both cover, its body naming no such task, gets a `rebalance` line naming both tasks and the file;
+- number-prefix: a task whose body names `#12`, not its blocker `#1`, still gets the shared-file line;
+- other-file: a task that waits on one covering another file gets no line;
 - queue-of-2: a worker that holds 2 tasks that wait for a needed result, the body naming the task it needs, gets no `rebalance` line;
 - rule-named: each line names the manager playbook's Rebalance rule, and `references/manager.md` holds that rule with the cap of 4 live workers;
 - at-cap: with 4 live workers a `rebalance` line for a queue of 3 says the team is at the cap and asks the owner.
@@ -70,6 +72,18 @@ def main(args):
         team.file("Probe the third", criterion("same.py"), holder="three-worker", depends=[gone])
         shared = team.lines(replay_probe.agent("one-worker", 2, "working"), replay_probe.agent("two-worker", 3, "working"), replay_probe.agent("three-worker", 4, "working"))
         cases.step("shared-file", len(shared) == 1 and f"#{second}" in shared[0] and f"#{first}" in shared[0] and "also.py, same.py" in shared[0], "\n".join(shared))
+
+        team = Team(work, "prefix")
+        first = team.file("Probe the first", criterion("same.py"), holder="one-worker")
+        second = team.file("Probe the second", criterion("same.py", after=" see #12"), holder="two-worker", depends=[first])
+        prefix = team.lines(replay_probe.agent("one-worker", 2, "working"), replay_probe.agent("two-worker", 3, "working"))
+        cases.step("number-prefix", len(prefix) == 1 and f"#{second} waits on #{first}" in prefix[0], "\n".join(prefix))
+
+        team = Team(work, "apart")
+        first = team.file("Probe the first", criterion("one.py"), holder="one-worker")
+        team.file("Probe the second", criterion("two.py"), holder="two-worker", depends=[first])
+        apart = team.lines(replay_probe.agent("one-worker", 2, "working"), replay_probe.agent("two-worker", 3, "working"))
+        cases.step("other-file", not apart, "\n".join(apart))
 
         team = Team(work, "pair")
         head = team.file("Probe the needed result", criterion("n.py"), holder="n-worker")
