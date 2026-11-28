@@ -405,7 +405,7 @@ def main(args):
                 links += check_markdown(root, path, handle.read(), failures)
     paths = check_plugins(root, files, failures)
     scripts = check_scripts(root, files, failures)
-    replays = [(path, "option ", OPTION_SUMMARY) for path in files if path.endswith("/fixtures/" + OPTION_REPLAY)]
+    replays = [(path, "option ", OPTION_SUMMARY) for path in files if path.endswith("/fixtures/" + OPTION_REPLAY) and not skip_fixtures]
     for script, kind, summary in [(str(pathlib.Path(__file__).with_name(name)), kind, summary) for name, kind, summary in LISTERS] + [(os.path.join(root, path), kind, summary) for path, kind, summary in replays]:
         # no bytecode, since list-cross-plugin-names.py loads list-unreached.py and a replay imports its plugin's modules, which would leave __pycache__ in a checked root
         listed = subprocess.run([sys.executable, script, root], capture_output=True, text=True, errors="replace", env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
