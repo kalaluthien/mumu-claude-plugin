@@ -157,10 +157,10 @@
 //            the checker accepts the copy, and at each size each of those notes shows whole over two lines or more inside
 //            the window, and the note, the node's label and each text of the node's kept card split no word across two
 //            lines and reach past no side of their box.
-//   fonts    on a copy of each example whose token sheet sets every type size and line height 1.75 times as large, at 1440 by
+//   fonts    on copies of each example whose token sheet sets every type size and line height as shipped and twice as large, at 1440 by
 //            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
 //            badges included, split no word across two lines, keep each word inside their box across and their lines inside
-//            the node or area down, no node's tag runs under its badges, and no area's badge is shorter than its text, printed as `<n> labels, tags and headers read at <sizes>, none split or cut off`.
+//            the node or area down, no node's tag runs under its badges, and no area's badge is shorter than its text, printed as `<n> labels, tags and headers read at <sizes> and at <sizes>, none split or cut off`.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -2479,17 +2479,19 @@ const fitted = ([selector, frame]) => [...document.querySelectorAll(selector)].f
   }
   return found;
 });
-const GROWN = 1.75; // each type size and line height of the copy's token sheet against the sheet's own
+const GROWN = [1, 2]; // each type size and line height of a copy's token sheet against the sheet's own: as shipped, then doubled as WCAG 1.4.4 resizes text
 async function fonts(browser) {
-  let read = 0, sizes = "";
-  for (const example of examples) {
-    const flat = JSON.parse(fs.readFileSync(example.source, "utf8")), copy = { name: example.name + "-fonts", source: path.join(scratch, example.name + "-fonts.json"), built: path.join(scratch, example.name + "-fonts.html") };
+  let read = 0;
+  const sizes = [];
+  for (const factor of GROWN) for (const example of examples) {
+    const flat = JSON.parse(fs.readFileSync(example.source, "utf8")), name = `${example.name}-fonts-${factor}`, copy = { name, source: path.join(scratch, name + ".json"), built: path.join(scratch, name + ".html") };
     for (const area of flat.areas || []) area.label += " with every part it holds"; // a header wider than the nodes under it sets its area's width
     fs.writeFileSync(copy.source, JSON.stringify(flat));
     make(copy);
-    const page = fs.readFileSync(copy.built, "utf8"), grown = page.replace(/(--(?:type|leading)-\d+): (\d+)px/g, (whole, name, px) => `${name}: ${Math.round(px * GROWN)}px`);
-    check(grown !== page, `${copy.name}: the page holds no type size of the token sheet`);
-    sizes = [...grown.matchAll(/--(?:type|leading)-\d+: \d+px/g)].map(([one]) => one).join(", ");
+    const page = fs.readFileSync(copy.built, "utf8"), grown = page.replace(/(--(?:type|leading)-\d+): (\d+)px/g, (whole, token, px) => `${token}: ${Math.round(px * factor)}px`);
+    const drawn = [...grown.matchAll(/--(?:type|leading)-\d+: \d+px/g)].map(([one]) => one).join(", ");
+    check(drawn, `${copy.name}: the page holds no type size of the token sheet`);
+    if (!sizes.includes(drawn)) sizes.push(drawn);
     fs.writeFileSync(copy.built, grown);
     await each(copy.contract.levels, async (level) => {
       const view = await open(browser, copy, SIZES[1], { still: true, at: "#level=" + level.id }), where = `${copy.name} level ${level.id}`;
@@ -2515,7 +2517,7 @@ async function fonts(browser) {
       await view.context().close();
     });
   }
-  console.log(`${read} labels, tags and headers read at ${sizes}, none split or cut off`);
+  console.log(`${read} labels, tags and headers read at ${sizes.join(" and at ")}, none split or cut off`);
 }
 
 async function main() {

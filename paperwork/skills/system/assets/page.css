@@ -13,7 +13,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .area > header::first-letter { text-transform: uppercase; }
 .area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
 .area > header .claims { margin-left: calc(-1 * var(--spacing-01)); } /* a badge no taller than the header's words, so the header stays one group apart from the nodes under it */
-.area > header .claims > .claim { height: calc(var(--leading-01) - var(--spacing-01)); }
+.area > header .claims > .claim { height: auto; line-height: normal; }
 
 .node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: var(--spacing-01); padding: var(--spacing-03) var(--spacing-04); --edge: 1px; border: var(--edge) solid var(--frame); --corner: 3px; border-radius: var(--corner); background: var(--card); box-shadow: var(--shadow-sm); cursor: default; outline: none;
   transition: opacity .25s var(--ease), transform .25s var(--spring), box-shadow .2s var(--ease), border-color .2s var(--ease), background-color .25s var(--ease), color .25s var(--ease); }

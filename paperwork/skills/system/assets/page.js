@@ -151,8 +151,13 @@
         const fitting = plans.filter(plan => fill(plan) >= least);
         return fitting.length ? fitting.reduce((a, b) => used(b) > used(a) + .01 ? b : a) : plans.reduce((a, b) => fill(b) > fill(a) + .01 ? b : a);
       };
-      let best = pick(size(level, fit));
-      for (let turn = 0; turn < 2 && fill(best) < 1; turn++) { const grown = 1 / Math.max(fill(best), .85); best = pick(size(level, fit, grown), grown); } // a level drawn smaller keeps its type's size, so its nodes are measured for the larger type
+      let best = pick(size(level, fit)), grown = 1;
+      for (let turn = 0; turn < 3; turn++) { // a level drawn smaller keeps its type's size, so its nodes and headers are measured for the larger type its own scale draws, never one a pass before it
+        const drawn = 1 / Math.max(fill(best), .85);
+        if (drawn <= grown + .001) break;
+        grown = turn < 2 ? drawn : 1 / .85; // the largest type a level draws, so the last turn always fits
+        best = pick(size(level, fit, grown), grown);
+      }
       if (fill(best) >= least || fit === FITS[FITS.length - 1]) return best;
     }
   }
