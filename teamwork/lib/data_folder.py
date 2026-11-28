@@ -21,7 +21,7 @@ def common_folder():
 
 
 def exclude(common, name):
-    """Adds `/.teamwork/<name>/` to the common folder's `info/exclude`, so the data never reaches a commit while `.teamwork/settings.json` does."""
+    """Adds `/.teamwork/<name>/` to the common folder's `info/exclude`, so the data never reaches a commit."""
     line = f"/.teamwork/{name}/"
     path = common / "info" / "exclude"
     old = path.read_text() if path.exists() else ""

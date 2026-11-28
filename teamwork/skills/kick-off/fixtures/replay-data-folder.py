@@ -21,9 +21,9 @@ def main(args):
         repository, tree = sandbox.repository, work / "tree"
         sandbox.git("worktree", "add", "-q", tree)
         (repository / ".teamwork").mkdir()
-        replay_probe.write_text(repository / ".teamwork", "settings.json", "{}\n")
-        sandbox.git("add", ".teamwork/settings.json")  # committed, so an unexcluded data folder shows in status by its own name
-        sandbox.git("commit", "-q", "-m", "settings")
+        replay_probe.write_text(repository / ".teamwork", "other.json", "{}\n")
+        sandbox.git("add", ".teamwork/other.json")  # committed, so an unexcluded data folder shows in status by its own name
+        sandbox.git("commit", "-q", "-m", "other")
         # the data an older version kept in the common folder, which the first read must move
         older = repository / ".git" / "teamwork" / "changes"
         older.mkdir(parents=True)
@@ -44,7 +44,7 @@ def main(args):
         matches("moved", ((changes / "3.json").exists(), older.exists(), older.parent.exists()), (True, False, False))
         changes.mkdir(parents=True, exist_ok=True)
         replay_probe.write_text(changes, "1.json", "{}")  # a change record, as use-landing.py leaves it
-        matches("excluded", (ignored(".teamwork/changes/1.json"), ignored(".teamwork/settings.json")), (True, False))
+        matches("excluded", (ignored(".teamwork/changes/1.json"), ignored(".teamwork/other.json")), (True, False))
         matches("exclude-once", (repository / ".git" / "info" / "exclude").read_text().splitlines().count("/.teamwork/changes/"), 1)
         matches("clean-status", [line for line in sandbox.git("status", "--porcelain").splitlines() if "changes" in line], [])
         matches("no-git-data", (repository / ".git" / "teamwork").exists(), False)

@@ -24,7 +24,6 @@ import data_folder  # noqa: E402
 import session  # noqa: E402
 import steering_lines  # noqa: E402
 import team_names  # noqa: E402
-import team_settings  # noqa: E402
 import usage_parser  # noqa: E402
 
 FORMS = "`<task>-worker`, `<duty>-sentinel`, `<project>-manager` or `<manager>-next`"
@@ -96,9 +95,6 @@ def main(args):
     except ValueError as e:
         print(f"start-session.py: {e}", file=sys.stderr)
         return 2
-    settings = team_settings.load(options.cwd)  # the session's repository, not this process's working folder
-    for line in settings["warnings"]:
-        print(line, file=sys.stderr)
     role = next((candidate for candidate in ("worker", "sentinel") if options.args.startswith(candidate + " ")), "manager")
     named_role = team_names.role(options.name.removesuffix("-next"))
     if options.args.split()[4:6] == ["set", "remote"]:  # a stale kick-off line must fail, not start a herdr session where its sender expects a cloud one
@@ -114,7 +110,7 @@ def main(args):
     if role == "manager" and (options.model, options.effort) != ("opus", "low"):  # a manager that reads the agent adapter's Tier by work lines would pass high
         print(f"start-session.py: a manager runs at opus, low: using that, not {options.model}, {options.effort}.", file=sys.stderr)
         options.model, options.effort = "opus", "low"
-    role_off = settings["tools_off"].get(role, [])
+    role_off = agent.TOOLS_OFF[role].split(",")
     if stray := sorted(set(options.allow) - set(role_off)):
         print(f"start-session.py: --allow {', '.join(stray)}: not a tool this role has off, which is {', '.join(role_off) or 'none'}", file=sys.stderr)
         return 2
