@@ -8,8 +8,8 @@ usage: replay-load-pacing.py
 Cases:
 - `idle`: under a load of 0 the runners overlap;
 - `loaded`: under a load above the CPU count they run one at a time, each starting within 3 s of the previous one's end, which wakes it;
-- `woken`: under that load, a job end another process marks after the load falls starts the next runner within 3 s, while the
-  first still runs, rather than at the first's end or after the fallback timer.
+- `woken`: under that load, from 1.5 s after the first runner starts the load is 0 and 2 s later another process marks a job end; the next
+  runner starts within 1.5 s of the mark, not before it, while the first still runs, so neither a timer nor the first's end woke it.
 Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for any argument. Standard library only, Python 3.9."""
 
 import os
@@ -44,7 +44,7 @@ def main(args):
         root, site, log, load = scratch / "root", scratch / "site", scratch / "runs.log", scratch / "load"
         site.mkdir()
         (site / "sitecustomize.py").write_text(SITE)
-        for name, seconds in (("a", 5), ("b", 5), ("c", 5)):
+        for name, seconds in (("a", 7), ("b", 7), ("c", 7)):
             path = root / "alpha" / "fixtures" / f"replay-{name}.py"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(RUNNER.format(name=name, seconds=seconds))
@@ -76,16 +76,21 @@ def main(args):
         gaps = [later[0] - earlier[0] for earlier, later in zip(events[1::2], events[2::2])]
         step("loaded", overlaps(events) == 1 and len(gaps) == 2 and max(gaps) < 3, (events, out))
 
+        marked = []
+
         def fall():
-            time.sleep(1.5)
+            while "start" not in log.read_text():
+                time.sleep(0.1)
+            time.sleep(1.5)  # past the gate's 1 s spacing, so its next start waits on the mark alone
             load.write_text("0")
+            time.sleep(2)
             (scratch / "config").mkdir(exist_ok=True)
             (scratch / "config" / "check-job-ends").touch()
+            marked.append(time.time())
 
-        started = time.time()
         events, out = check(many, fall)
         second = [when for when, kind, _ in events if kind == "start"][1:2]
-        step("woken", second and second[0] - started < 4.5 and overlaps(events) > 1, (started, events, out))
+        step("woken", second and 0 <= second[0] - marked[0] < 1.5 and overlaps(events) > 1, (marked, events, out))
     print("PASS" if passed else "FAIL")
     return 0 if passed else 1
 
