@@ -35,13 +35,13 @@ task's latest `decide --live-runs <n>` or else `LIVE_RUNS` (4), kept in the work
 missing at the head fails the check. At the cap the live check fails
 without running and a `BLOCKED due: live runs` line follows.
 
-A check run in an export of `--base` or `--hunks` has every process still running a file of that export killed when it ends, since a monitor it starts in a session of its own would poll for ever.
+A check run in an export of `--base` or a clone of `--hunks` has every process still running a file of that copy killed when it ends, since a monitor it starts in a session of its own would poll for ever.
 `--hunks` holds beside the `[check]`s each fixture runner the change adds or edits, a `replay-*.py` or `replay-*.ts` directly in a `fixtures/` folder, run to exit 0,
 so a task of `[score]`s alone is swept too; a runner that fails at the head is not held.
-`--hunks` first runs the `[check]`s at the head and, when one fails there and in the checkout, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in an export of the head,
+`--hunks` first runs the `[check]`s at the head and, when one fails there and in the checkout, prints `<n>: fails at the head` for it and judges no hunk, exit 1; it then reverts each hunk of the change from the base (`--ref`, else as `--base`) to the head alone in a clone of the head, which holds the checkout's history and refs,
 runs the `[check]`s there, prints to stderr one progress line per reverted group and per mutant below, its count and the seconds since the run began, and prints `<file>:<line>: unneeded hunk` for each hunk whose revert turns no row that passes at the
 head into another result: a hunk whose revert fails no criterion is unneeded, or its criterion is vacuous. Exit 1 on any such
-hunk; a check that fails in the export but passes in the checkout, such as a git check, which the export cannot run, never counts:
+hunk; a check that fails in the clone but passes in the checkout, such as one that reads a file git does not track, never counts:
 `<n>: not swept` is printed for it. A file of more than 4 hunks is reverted whole, then by
 halves, and a half whose revert fails a criterion is not judged hunk by hunk: `<file>: <n> hunks not judged one by one` is
 printed, and `--each` reverts each hunk alone as every file of 4 hunks or fewer is. A hunk no check can
@@ -55,7 +55,7 @@ made to raise at its first line, which a criterion that only finds two runs equa
 reaches hides inside a hunk a check needs, and a judge would find each in a round of its own; a file under a `fixtures/` folder
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
-in parallel, each job in its own export of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
+in parallel, each job in its own clone of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
 A revert's or mutant's result is kept in the git common dir's `teamwork-sweeps/` and replayed, by any session, while the head's files, that file's text, the
 passing criteria, the timeout and the files outside the repository they name are the same, unless a check timed out, met the live-run cap or a missing watched path, or started a live session: `cached: <n> reverts and
 mutants replayed` follows, and `--fresh` sweeps them again.
@@ -171,6 +171,17 @@ def export(root, ref, folder):
     if call(["git", "archive", "--output", archive, ref], cwd=root).returncode or call(["tar", "-x", "-f", archive, "-C", copy]).returncode:
         return None
     return copy
+
+
+def clone(root, ref, folder):
+    """FOLDER/tree, a clone of ROOT holding its history and every ref, checked out at REF, or None when git fails; a check that reads git, such as a
+    fixture that skips its cases outside a checkout, runs there as in the checkout, and the clone's own objects and refs take what a check writes."""
+    copy = os.path.join(folder, "tree")
+    sha = git_output("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}", cwd=root)
+    steps = [["git", "clone", "--quiet", "--shared", "--no-checkout", root, copy],
+             ["git", "-C", copy, "fetch", "--quiet", "--update-head-ok", root, "+refs/*:refs/*"],
+             ["git", "-C", copy, "checkout", "--quiet", "--detach", sha]]
+    return copy if sha and not any(call(argv).returncode for argv in steps) else None
 
 
 def read_file(file):
@@ -338,7 +349,7 @@ class Sweep:
         self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-sweeps")
         outside = [outside_files(criteria_check.expectation(criterion[2])[0], root) for _, criterion in held]
         # a check that names a folder outside the repository reads files no key holds, so its results are never kept
-        self.prefix = None if None in outside else json.dumps([git_output("rev-parse", "HEAD^{tree}", cwd=root), options.timeout, held, outside])
+        self.prefix = None if None in outside else json.dumps([git_output("rev-parse", "HEAD^{tree}", cwd=root), options.timeout, held, outside, "clone"])
         self.replayed = 0
 
     def alive(self, copy, file, state, change, undo):
@@ -708,23 +719,23 @@ def run_per_hunk(options, task, root, live):
     found += [(file, ("check", file, f"`{'bun' if file.endswith('.ts') else 'python3'} {file}` exits 0")) for file in runners]
 
     # a check that passed on the head's files is replayed, so a second sweep of the same head runs none
-    memory = Memory(root, git_output("rev-parse", "HEAD^{tree}", cwd=root), "hunks", options.fresh)
+    memory = Memory(root, git_output("rev-parse", "HEAD^{tree}", cwd=root), "hunks in a clone", options.fresh)
 
     def results(copy):
-        """Label to result of each row in COPY; a git check, which the export cannot run, never passes."""
+        """Label to result of each row in COPY."""
         return {label: row(label, *criterion, copy, options.timeout, live, memory)[2] for label, criterion in found}
 
     with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as folder:
-        # the head's export is never changed once its checks ran, so each job's copy is made from it while other jobs change theirs
-        first = export(root, "HEAD", folder) or sys.exit("run-criteria: could not export HEAD")
+        # the head's clone is never changed once its checks ran, so each job's copy is made from it while other jobs change theirs
+        first = clone(root, "HEAD", folder) or sys.exit("run-criteria: could not clone HEAD")
         at_head = results(first)
         failing = [label for label, result in at_head.items() if result == "fail" and label not in runners]
-        # a check that fails only in the export, such as one that reads the checkout's git, cannot judge a hunk there, so it is not held
+        # a check that fails only in the clone, such as one that reads a file git does not track, cannot judge a hunk there, so it is not held
         criterion_of = dict(found)
-        exported_only = [label for label in failing if row(label, *criterion_of[label], root, options.timeout, live)[2] == "pass"]
-        for label in exported_only:
-            print(f"{label}: not swept: it fails in an export of the head and passes in the checkout, as a git check does")
-        failing = [label for label in failing if label not in exported_only]
+        clone_only = [label for label in failing if row(label, *criterion_of[label], root, options.timeout, live)[2] == "pass"]
+        for label in clone_only:
+            print(f"{label}: not swept: it fails in a clone of the head and passes in the checkout, as a check of an untracked file does")
+        failing = [label for label in failing if label not in clone_only]
         if failing:
             print(*[f"{label}: fails at the head: make it pass first, since a hunk cannot be judged by a criterion that does not" for label in failing], sep="\n")
             print(live.report(), end="")
@@ -733,12 +744,12 @@ def run_per_hunk(options, task, root, live):
         jobs = options.jobs or os.cpu_count()
         copies = queue.Queue()
         for n in range(jobs):
-            # each job owns an export, since a check may write into the tree it runs in
+            # each job owns a clone, since a check may write into the tree it runs in
             shutil.copytree(first, os.path.join(folder, str(n)), symlinks=True)
             copies.put(os.path.join(folder, str(n)))
 
         def in_a_copy(work, *argv):
-            """WORK run on an idle export."""
+            """WORK run on an idle clone."""
             copy = copies.get()
             try:
                 return work(copy, *argv)
