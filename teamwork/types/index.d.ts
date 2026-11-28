@@ -7,6 +7,6 @@ export type BoardTask = {
 
 declare module 'claude-code' {
   interface PluginState {
-    teamwork: { board: BoardTask[]; folded: number[]; query: string; peeked: number[]; opened: { number: number; text: string } | null; failure: string; loaded: boolean }
+    teamwork: { board: BoardTask[]; folded: number[]; query: string; peeked: number[]; opened: { number: number; text: string } | null; failure: string; loaded: boolean; folder: string; dismissed: boolean }
   }
 }

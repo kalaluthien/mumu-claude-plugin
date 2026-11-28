@@ -13,6 +13,7 @@ const drawn: Record<string, string> = {}
 const show = async (state: keyof typeof EXPECTED) => { drawn[state] = await render(); console.log(`${state}: ${drawn[state]}`) }
 
 let exitCode = 1
+let teamChange = () => undefined as unknown
 let reads = 0
 const $ = {
   plugin: { root: '/plugin' },
@@ -26,7 +27,8 @@ const $ = {
       reads++
       return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-task-board: the git board read failed' }
     },
-    spawn: () => (async function* () { yield { text: 'changed' } })(),
+    // the waiter says `changed` at its start, as wait-team-change.py does, then once at `teamChange()`
+    spawn: () => (async function* () { yield { text: 'changed' }; await new Promise(done => { teamChange = done }); yield { text: 'changed' } })(),
   },
 }
 const draw = (props: object) => drawPane($, props)
@@ -41,7 +43,7 @@ await handlers['session.start']($, { cwd: '/repo' }, async () => ({}))
 await settle(1)
 await show('failed')
 exitCode = 0
-await handlers['tool.call mcp__teamwork__show-tasks-pane']($, {}, async () => ({}))
+teamChange()
 await settle(2)
 await show('empty')
 const differed = Object.entries(EXPECTED).filter(([state, text]) => drawn[state] !== text).map(([state, text]) => `${state} drew ${JSON.stringify(drawn[state])}, not ${JSON.stringify(text)}`)

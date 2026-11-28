@@ -37,7 +37,7 @@ Every plugin's panes share one frame as tabs, the latest opened one shown, and e
 
 - **Prefixed names**: name each pane id `<plugin>-<noun>`, since every plugin's panes share one frame.
 - **Own panes only**: match each pane hook on its own id (`requestId` for `ui.render`, `id` for `ui.close`), or hand any other pane on by `next(e)`.
-- **Raise when asked**: open a pane unasked only once per session, since each open takes the shown tab; bring it forward on the person's ask by closing and opening it again, since a plain open leaves it behind and `focus: true` may take the prompt's keys.
+- **Raise when asked**: open a pane unasked only once per session, or again when a reload or a compaction took it down, or when what a pane the person closed shows changes, never with `focus: true`, since each open takes the shown tab; bring it forward on the person's ask by closing and opening it again, since a plain open leaves it behind and `focus: true` may take the prompt's keys.
 - **Prose as Markdown**: draw a pane's prose as `Markdown` and its labels and status as `Text`, since `Markdown` keeps the writer's paragraphs, lists and links.
 
 ## Skills

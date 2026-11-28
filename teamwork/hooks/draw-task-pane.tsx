@@ -4,14 +4,16 @@ import type { Register } from 'claude-code'
 import type { BoardTask } from '../types'
 
 const PANE = 'teamwork-tasks'
-// the tool a manager gets to show the pane again, which `register` serves by this full name
-const PANE_TOOL = 'show-tasks-pane'
 const RETRY_MS = 120000
 const board = atom({ plugin: 'teamwork', key: 'board' } as const, [] as BoardTask[])
 // why the last read failed, empty when it worked; shown so a failed read never looks like an empty board
 const failure = atom({ plugin: 'teamwork', key: 'failure' } as const, '')
 // whether a read has worked yet, so an empty board never looks like one not read
 const loaded = atom({ plugin: 'teamwork', key: 'loaded' } as const, false)
+// the session's start folder, kept in session state since a reload starts this module's variables over and the current folder may be a worktree removed since
+const folder = atom({ plugin: 'teamwork', key: 'folder' } as const, '')
+// whether the person closed the pane by its frame's x, so a reload that took the pane down leaves it closed until the next board change opens it
+const dismissed = atom({ plugin: 'teamwork', key: 'dismissed' } as const, false)
 // the tasks the manager folded, kept across redraws; every other is open, since the person reads the parts without a press
 const folded = atom({ plugin: 'teamwork', key: 'folded' } as const, [] as number[])
 // what the owner typed in the search box, a regular expression; empty is no search, which leaves the folds above as they were
@@ -24,29 +26,36 @@ const opened = atom({ plugin: 'teamwork', key: 'opened' } as const, null as { nu
 const FOLD = 2
 // a task's number takes the color of its own state: the owner's answer awaited, a holder, an open blocker, else ready
 const NUMBER_COLOR = { owner: 'yellow', held: 'green', blocked: 'red', ready: '#c8c8c8' }
-// a write to a pull request, the change a repository that lands by pull request shows, so a `gh api` read marks nothing, even one with `-f` and `-X GET`; a global flag may stand before the subcommand (`gh -R o/r pr …`); a GitHub issue is never written, the hook refuses it
-const TEAM_CHANGE = /\bgh\s+(?:-{1,2}\w[\w-]*(?:[\s=][^\s-]\S*)?\s+)*(?:(pr)\s+(create|comment|edit|close|reopen|merge|review|ready)\b|api\s+(?!graphql)(?!(?:[^;&|\n]*\s)?(-X|--method)[\s=]*GET\b)(?=[^;&|\n]*(\s(-X|--method)[\s=]*(POST|PATCH|PUT|DELETE)\b|\s-[fF]\b|\s--(raw-)?field\b|\s--input\b))[^;&|\n]*\b(pulls)\b)/
 
-// a manager's pane and its waiter, once per session; the start directory, since the current one may be a worktree removed since
+// a manager's pane and its waiter, once per load
 let startFolder: string | undefined
+let asked = false
 let watching = false
-// the manager's board read, set once it watches, so the pane tool reads the board again
-let refresh: (() => Promise<void>) | undefined
 // the pane body's width the rows are laid out for, 0 before the pane is drawn; a row laid out for another width wraps a word alone.
 // Kept outside state, since a render may not write state, and read again on a clock tick, an event of its own
 let laidWidth = 0
 let relayout: (() => void) | undefined
-const openPane = ($: any) => $.ui.open({ id: PANE, title: 'Tasks' })
-// a plain open of an open id leaves it behind another plugin's tab, and focus may take the prompt's keys, so a hidden pane closes and opens again
-async function showPane($: any) {
-  if ((await $.ui.panes()).some((pane: { id: string; isShown: boolean }) => pane.id === PANE && !pane.isShown)) await $.ui.close({ id: PANE })
-  return openPane($)
+// unasked, so never with focus, which takes the prompt's keys; a pane still up, or one the person closed, is left as it is, so a reload takes no tab
+async function openPane($: any) {
+  if ((await $.ui.panes()).some((pane: { id: string }) => pane.id === PANE) || await read($, dismissed)) return
+  await $.ui.open({ id: PANE, title: 'Tasks' })
+}
+// the session's name decides whether it is a manager; a failed name read lets the next event ask again
+async function begin($: any) {
+  if (asked) return
+  asked = true
+  startFolder ||= (await read($, folder)) || undefined
+  const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
+  if (!me || me.exitCode !== 0) asked = false
+  watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
+}
+function first($: any, event: any, next: any) {
+  void begin($).catch(() => { asked = false })  // a failed start must never fail the event it rode on
+  return next(event)
 }
 function watch($: any, name: string) {
   if (watching || !name.endsWith('-manager')) return
   watching = true
-  // only a manager's model sees the tool, since the model reads the pane's name in manager.md
-  void $.tool.register({ name: PANE_TOOL, description: 'Show the Tasks pane again, brought forward, with its board read anew.', isDeferred: false }).catch(() => undefined)
   const project = name.slice(0, -'-manager'.length)
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
@@ -69,13 +78,17 @@ function watch($: any, name: string) {
       retry = $.clock.after(RETRY_MS, () => void load())
     }
   }
-  refresh = load
   relayout = () => { retry?.cancel(); retry = $.clock.after(0, () => void load()) }
   void (async () => {
     const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
+    let changes = 0  // the waiter's first line comes at its start, every later one at a board change
     for await (const piece of waiter) {
       if (!('text' in piece)) break
       await load()
+      if (changes++ === 0) continue
+      // a board change opens a pane the person closed
+      await update($, dismissed, () => false).catch(() => undefined)
+      await openPane($).catch(() => undefined)
     }
   })()
 }
@@ -124,21 +137,20 @@ const matchesIn = (task: BoardTask, pattern: RegExp) => {
 }
 
 export const register: Register = on => {
-  // every team session marks its change, so the manager's waiter wakes without reading the board
-  on('tool.call', { tool: 'Bash' }, async ($, event, next) => {
-    const ran = await next(event)
-    if (ran.deny === undefined && !ran.isError && TEAM_CHANGE.test(event.command)) {
-      const claudeFolder = (await $.env.get('CLAUDE_CONFIG_DIR')) || `${await $.env.get('HOME')}/.claude`
-      await $.process.run(['touch', `${claudeFolder}/teamwork/tasks-changed`]).catch(() => undefined)
-    }
-    return ran
-  }).catch(($, event, next) => next(event))  // a failed mark must never fail the command it follows
+  // a reload of an unchanged module, or a compaction, may bring no session start, so the first of any of these events, or of a session start, starts the board watch
+  on('session.compact', first)
+  on('session.receive', first)
+  on('turn.start', first)
+  on('turn.complete', first)
+  on('prompt.submit', first)
+  on('tool.call', first)
+  on('command.run', first)
 
   on('session.start', async ($, event, next) => {
     const started = await next(event)
     startFolder = event.cwd
-    const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
-    watch($, me?.stdout.trim() ?? '')  // outside a team's host no session is a manager
+    await update($, folder, () => event.cwd).catch(() => undefined)
+    await begin($).catch(() => { asked = false })
     return started
   })
 
@@ -152,17 +164,12 @@ export const register: Register = on => {
     return ran
   }).catch(($, event, next) => next(event))  // a failed open must never fail the rename
 
-  // the owner closes the pane by its frame's x; the manager's model calls this tool when the owner asks to see the pane again
-  on('tool.call', { tool: `mcp__teamwork__${PANE_TOOL}` }, async ($) => {
-    // a plugin reload or a compaction loads this module again with no session start, so the first call starts the board watch itself
-    if (!refresh) {
-      const me = await $.process.run([`${$.plugin.root}/skills/kick-off/scripts/list-sessions.py`, '--me']).catch(() => undefined)
-      watch($, me?.stdout.trim() ?? '')
-    }
-    await showPane($)
-    await refresh?.()
-    return { result: 'Tasks pane shown' }
-  }).catch(() => ({ deny: 'the Tasks pane could not be shown' }))
+  // the person closes the pane by its frame's x, and it stays closed until the next board change; an unload's close is a reload's, after which the pane opens again
+  on('ui.close', { id: PANE }, async ($, event, next) => {
+    const closed = await next(event)
+    if (event.origin === 'person') await update($, dismissed, () => true).catch(() => undefined)
+    return closed
+  })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, event) => {
     const width = event.props.bodyColumns
