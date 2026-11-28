@@ -32,6 +32,7 @@ import decisions  # noqa: E402
 import record_types  # noqa: E402
 import task_links  # noqa: E402
 import task_state  # noqa: E402
+import related_work  # noqa: E402
 import session  # noqa: E402
 import usage_parser  # noqa: E402
 
@@ -117,6 +118,8 @@ def read_task(options):
         said = summary(comment["fields"])
         offered = "".join(f"\n{place}. {option}" for place, option in enumerate(comment["fields"].get("options", []), 1))
         print(f"\n--- {comment['url']}{' (' + said + ')' if said else ''}\n{text}{offered}")
+    if role == "worker":
+        print("\n".join(related_work.lines(task, {record["number"]: record for record in board.tasks("all")})))
     return 0
 
 

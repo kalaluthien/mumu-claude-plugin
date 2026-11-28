@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Replay the manager heartbeat's `rebalance` lines on a scratch repository with a git board and the fake herdr, with the real heartbeat monitor run as the manager for
 a few polls, and print `ok <case>` or `fail <case>: <what it saw>` per case, then `PASS` or `FAIL`; exit 1 on any fail:
-- queue-of-3: a worker that holds 3 tasks, each waiting on an open task, gets one `rebalance` line naming the worker and the 3 tasks, and saying 3 of 4 live workers;
+- queue-of-3: a worker that holds 3 tasks, each waiting on an open task, gets one `rebalance` line naming the worker and the 3 tasks, and saying 3 of 6 live workers;
 - shared-file: a task that waits on an open task only for a file both cover, its body naming no such task, gets a `rebalance` line naming both tasks and the file;
 - number-prefix: a task whose body names `#12`, not its blocker `#1`, still gets the shared-file line;
 - other-file: a task that waits on one covering another file gets no line;
 - queue-of-2: a worker that holds 2 tasks that wait for a needed result, the body naming the task it needs, gets no `rebalance` line;
-- rule-named: each line names the manager playbook's Rebalance rule, and `references/manager.md` holds that rule with the cap of 4 live workers;
-- at-cap: with 4 live workers a `rebalance` line for a queue of 3 says the team is at the cap and asks the owner.
+- rule-named: each line names the manager playbook's Rebalance rule, and `references/manager.md` holds that rule with the cap of 6 live workers;
+- six-live-cap: with 6 live workers a `rebalance` line for a queue of 3 says the team is at the cap and asks the owner.
 
 usage: replay-rebalance-lines.py"""
 import pathlib
@@ -57,12 +57,13 @@ def main(args):
         free = team.file("Probe a free task", criterion("free.py"), holder="q-worker")
         three = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"),
                            replay_probe.agent("watch-sentinel", 6, "idle"))
-        cases.step("queue-of-3", len(three) == 1 and all(f"#{n}" in three[0] for n in queued) and "q-worker" in three[0] and "3 of 4 live workers" in three[0]
+        cases.step("queue-of-3", len(three) == 1 and all(f"#{n}" in three[0] for n in queued) and "q-worker" in three[0] and "3 of 6 live workers" in three[0]
                and f"#{free}" not in three[0], "\n".join(three))
         rule = (ROOT / "skills" / "kick-off" / "references" / "manager.md").read_text()
-        cases.step("rule-named", all("Rebalance rule" in line for line in three) and three and "**Rebalance**" in rule and "up to 4 live workers per team" in rule, "\n".join(three))
-        capped = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"), replay_probe.agent("d-worker", 5, "idle"))
-        cases.step("at-cap", len(capped) == 1 and "at the cap of 4" in capped[0] and "ask the owner" in capped[0], "\n".join(capped))
+        cases.step("rule-named", all("Rebalance rule" in line for line in three) and three and "**Rebalance**" in rule and "up to 6 live workers per team" in rule, "\n".join(three))
+        capped = team.lines(replay_probe.agent("busy-worker", 2, "working"), replay_probe.agent("q-worker", 3, "working"), replay_probe.agent("c-worker", 4, "idle"), replay_probe.agent("d-worker", 5, "idle"),
+                             replay_probe.agent("e-worker", 7, "idle"), replay_probe.agent("f-worker", 8, "idle"))
+        cases.step("six-live-cap", len(capped) == 1 and "at the cap of 6" in capped[0] and "ask the owner" in capped[0], "\n".join(capped))
 
         team = Team(work, "shared")
         first = team.file("Probe the first", criterion("same.py", more=", also.py"), holder="one-worker")

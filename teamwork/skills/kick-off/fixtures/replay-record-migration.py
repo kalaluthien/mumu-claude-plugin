@@ -13,7 +13,7 @@ then `PASS record migration` or `FAIL record migration`; exit 1 on any failure:
 - `unfit`: a board whose comment links a task alone, which no record's type takes, exits 1 naming the record and leaves the board as it was;
 - `round-trip`: the board holds as many tasks and comments as before, and each record loads and dumps back to what is stored;
 - `read`, `board`: `use-board.py read <n>`, plain and `--as worker`, of each task, and `list-task-board.py`, print what the code before the change printed
-  of the old board, apart from what TABLE names; each side renders every task in one process, the code before the change taken from the commit before
+  of the old board, apart from what TABLE names and the related work a worker's read ends with, which that code never printed; each side renders every task in one process, the code before the change taken from the commit before
   the one that added lib/record_types.py; `skip read, board` outside a git checkout, which holds no such commit;
 - `backup-held`: with the backup ref naming another commit than the board's, convert-records.py exits 1 naming the ref and leaves the board as it was;
 - `backup-same`: with the backup ref naming the board's own commit, it converts and leaves the backup ref where it was;
@@ -176,14 +176,17 @@ def render(box, plugin, numbers):
     return (json.loads(done.stdout) if done.returncode == 0 else {"exit": [done.returncode, done.stderr[-400:]]}), listed.stdout + listed.stderr[-400:]
 
 
+RELATED = re.compile(r"^related work, from the board and git log:\n.*\Z", re.M | re.S)
+
+
 def differences(old, new, states):
     found = []
     for key in sorted(set(old) | set(new)):
         number, worker = key.split(" ")[0], "--as" in key
         before, after = old.get(key, [None, ""]), new.get(key, [None, ""])
-        expected = normalised(before[1], states.get(number, ""), worker)
-        if before[0] != after[0] or expected != after[1]:
-            lines = [line for line in zip(expected.splitlines(), after[1].splitlines()) if line[0] != line[1]][:2]
+        expected, shown = normalised(before[1], states.get(number, ""), worker), RELATED.sub("", after[1]) if worker else after[1]
+        if before[0] != after[0] or expected != shown:
+            lines = [line for line in zip(expected.splitlines(), shown.splitlines()) if line[0] != line[1]][:2]
             found.append(f"read {key}: exit {before[0]} then {after[0]}, first lines that differ {lines or 'none, one is longer'}")
     return found
 

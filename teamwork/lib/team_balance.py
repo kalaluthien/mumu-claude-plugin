@@ -2,7 +2,7 @@
 import re
 
 QUEUE = 3  # tasks one worker holds that each wait on a task, from which its queue is worth rebalancing
-CAP = 4  # live workers per team, the owner's word on #1552
+CAP = 6  # live workers per team, the owner's word on #1582
 COVERS = re.compile(r"covers:\s*`([^`]*)`")
 
 
