@@ -5,7 +5,8 @@ call on it, and print `ok <case>` or `FAIL <case>: <detail>` per case, then `PAS
 usage: replay-usage-answers.py
 
 Cases: a copy of `.github/script-template.py` is named by no line, and a script that refuses `--help` with exit 2, one that prints its
-help on stderr, and one that answers an unknown flag with exit 0 are each named. Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for
+help on stderr, one that prints help without `usage:`, one that prints help on both streams, one that answers an unknown flag with
+exit 0, and one that answers an unknown flag with nothing in 30 s are each named. Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for
 any argument. Standard library only, Python 3.9."""
 
 import importlib.util
@@ -20,13 +21,19 @@ CHECK = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECK)
 REFUSE = 'print(__doc__, file=sys.stderr)\nsys.exit(2)\n'
 HELP_ON_STDERR = 'if "--help" in sys.argv:\n    print(__doc__, file=sys.stderr)\n    sys.exit(0)\n' + REFUSE
+HELP_WITHOUT_USAGE = 'if "--help" in sys.argv:\n    print("Plant.")\n    sys.exit(0)\n' + REFUSE
+HELP_ON_BOTH = 'if "--help" in sys.argv:\n    print(__doc__)\n    print(__doc__, file=sys.stderr)\n    sys.exit(0)\n' + REFUSE
+HANGS = 'import time\nif "--help" in sys.argv:\n    print(__doc__)\n    sys.exit(0)\ntime.sleep(60)\n'
 UNKNOWN_SUCCEEDS = 'if "--help" in sys.argv:\n    print(__doc__)\n    sys.exit(0)\nprint(__doc__, file=sys.stderr)\n'
 # name: (script text, (flag named in a failure line or None when no line may name the script))
 CASES = {
     "template": ((REPOSITORY / ".github" / "script-template.py").read_text(), None),
     "help-refused": (REFUSE, "--help"),
     "help-on-stderr": (HELP_ON_STDERR, "--help"),
+    "help-without-usage": (HELP_WITHOUT_USAGE, "--help"),
+    "help-on-both": (HELP_ON_BOTH, "--help"),
     "unknown-succeeds": (UNKNOWN_SUCCEEDS, CHECK.UNKNOWN_FLAG),
+    "hangs": (HANGS, CHECK.UNKNOWN_FLAG),
 }
 
 
