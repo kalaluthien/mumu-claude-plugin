@@ -13,6 +13,7 @@ import landing
 import own_reports
 import remote_control
 import task_links
+import team_balance
 from session import screen, sessions, tabs
 from team_names import crowding, members, owns, project, role
 
@@ -145,6 +146,7 @@ def manager_actions(me, listed, data=None, fed_urls=None, readings=None):
     lines += decisions.gaps(found)
     lines += outside_lines(data["outside"])
     lines += team_lines(team, listed, data, open_tasks, blockers, again)
+    lines += rebalance_lines(team, open_tasks, blockers)
     lines += run_lines(team, listed, readings)
     return lines + feed_lines(me, data, fed_urls)
 
@@ -221,6 +223,13 @@ def team_lines(team, listed, data, open_tasks, blockers, again):
             # a sentinel waits idle between the rounds of its duty; a worker whose tasks all wait on a task, the owner or the manager has nothing to do yet
             lines.append(f"idle {name}: holds {held}; give it its next step, answer what it waits on, or close it when it holds nothing open")
     return lines
+
+
+def rebalance_lines(team, open_tasks, blockers):
+    """The rebalance lines for the tasks each live worker holds that wait on a task."""
+    workers = [name for name in team if role(name) == "worker"]
+    queues = {name: [number for number, task in open_tasks.items() if holds(task, name) and blockers.get(number)] for name in workers}
+    return team_balance.lines(queues, open_tasks, blockers, len(workers))
 
 
 def run_lines(team, listed, readings):
