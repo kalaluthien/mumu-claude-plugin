@@ -36,8 +36,8 @@ def main(args):
         return 0
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json", type=lambda path: json.load(open(path)))
-    parser.add_argument("--as-of")
-    parser.add_argument("--tasks", default="")
+    parser.add_argument("--as-of")  # kept --as-of until #1573
+    parser.add_argument("--tasks", default="")  # kept --tasks until #1573
     options = parser.parse_args(data_folder.enter(args, __doc__))
     fixture, cutoff, numbers = options.from_json, options.as_of, task_numbers(options.tasks)
     repos = list(fixture) if fixture else [task_history.own_repository()]

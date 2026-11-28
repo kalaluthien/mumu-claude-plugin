@@ -23,7 +23,7 @@ def main(args):
     if any(argument.startswith("--") for argument in args[1:]):
         print(__doc__, file=sys.stderr)
         return 2
-    if args[:1] == ["--nodes"] and len(args) == 3:
+    if args[:1] == ["--nodes"] and len(args) == 3:  # kept --nodes as a seam: the pane's replays feed task nodes from a file, not the board
         nodes, args = json.loads(pathlib.Path(args[1]).read_text()), args[2:]
     if len(args) != 1 or not args[0].isdigit():
         print(__doc__, file=sys.stderr)

@@ -76,7 +76,7 @@ def text_scores(items, query):
     return scores
 
 
-def path_scores(items, paths, before):
+def path_scores(items, paths, before):  # kept items until #1573
     """The tasks whose commits touched each path, across renames, by the `(#<n>)` each commit's subject cites."""
     scores = collections.Counter()
     for path in paths:
@@ -95,8 +95,8 @@ def main(args):
     parser = usage_parser.parser(__doc__)
     parser.add_argument("words", nargs="*")
     parser.add_argument("--path", action="append", default=[])
-    parser.add_argument("--before")
-    parser.add_argument("--top", type=int, default=10)
+    parser.add_argument("--before")  # kept --before until #1573
+    parser.add_argument("--top", type=int, default=10)  # kept --top until #1573
     options = parser.parse_args(data_folder.enter(args, __doc__))
     items = load(options.before)
     newest = max(items, default=1)

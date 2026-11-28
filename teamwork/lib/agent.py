@@ -15,7 +15,7 @@ Every adapter has these names:
 import importlib
 import os
 
-adapter = importlib.import_module(f"agent_{os.environ.get('TEAMWORK_AGENT', 'claude')}")
+adapter = importlib.import_module(f"agent_{os.environ.get('TEAMWORK_AGENT', 'claude')}")  # kept TEAMWORK_AGENT until #1573
 
 
 def __getattr__(name):

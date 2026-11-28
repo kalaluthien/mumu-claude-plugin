@@ -1123,12 +1123,12 @@ def main(args):
         print(__doc__)
         return 0
     parser = usage_parser.parser(__doc__)
-    parser.add_argument("--timeout", type=int, default=900)
-    parser.add_argument("--run-timeout", type=int, default=7200)
+    parser.add_argument("--timeout", type=int, default=900)  # kept --timeout as a seam: the timeout replays stop a check in seconds
+    parser.add_argument("--run-timeout", type=int, default=7200)  # kept --run-timeout as a seam: the timeout replays stop a run in seconds
     parser.add_argument("--base", "--main", action="store_true")
     parser.add_argument("--hunks", action="store_true")
     parser.add_argument("--each", action="store_true")
-    parser.add_argument("--jobs", type=int)
+    parser.add_argument("--jobs", type=int)  # kept --jobs until #1573
     parser.add_argument("--fresh", action="store_true")
     parser.add_argument("--ref")
     parser.add_argument("--since")

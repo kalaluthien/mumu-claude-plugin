@@ -22,7 +22,7 @@ def main(args):
         print(__doc__)
         return 0
     args = data_folder.enter(args, __doc__)
-    if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):
+    if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):  # kept --from-json until #1573
         tasks = json.load(open(args[1]))
     elif not args:
         tasks = task_history.fetch()

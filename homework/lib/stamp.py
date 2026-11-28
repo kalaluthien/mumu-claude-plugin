@@ -8,10 +8,9 @@ HOURS = {"dejavu": 24, "habit": 168}
 LOCK_HOURS = 6  # longer than any dream run, so a lock a failed run left stops holding
 
 
-def due(folder, hours=None):
-    """True when <folder>/last-map is missing or at least <hours> old, <hours> by the folder's name when not given."""
-    if hours is None:
-        hours = HOURS.get(os.path.basename(os.path.normpath(folder)), HOURS["dejavu"])
+def due(folder):
+    """True when <folder>/last-map is missing or at least the hours its folder's name sets old."""
+    hours = HOURS.get(os.path.basename(os.path.normpath(folder)), HOURS["dejavu"])
     stamp = os.path.join(folder, "last-map")
     return not os.path.exists(stamp) or os.path.getmtime(stamp) <= time.time() - hours * 3600
 

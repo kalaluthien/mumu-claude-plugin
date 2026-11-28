@@ -11,8 +11,13 @@ each script of the `scripts/` folder beside it whose usage lists a `fixtures` ca
 a fixture folder with a runner keeps its data whole, and a program in it is reached only as a runner or when a reached program of that folder names it;
 no other file reaches a fixture file, so every file of a fixture folder with no runner is listed. A function nothing live calls
 and an import nothing uses in its own file are unused; a name, an attribute or a string that spells a function's name calls it, a decorated or dunder function, a `# noqa` import and a `__future__` import are used, and a file that calls `getattr` with a computed name keeps every function it defines.
-Prints `unreached <path>`, `unreached <path>:<line> <name>` and `unreached <path>:<line> import <name>` lines, then a summary,
-and exits 1 when it printed any of them, else 0. Standard library only, Python 3.9."""
+A reached program outside fixtures also lists each verb and flag its usage lines offer and each `<PLUGIN>_` environment variable it reads
+that no other file outside fixtures passes, a playbook's code span such as `--repository <folder>` passing a flag of every script and a
+script setting a variable for its own re-run, and each parameter no statement of its function reads, a method of a subclass, a decorated,
+dunder or stub function and `main` aside; a `# kept <name> until #<task>` or `# kept <name> as a seam: <reason>` comment in its file keeps such an option, printed as a
+`kept` line that fails nothing, and a mark that keeps nothing the scan lists is listed as `unreached <path> kept <name>`.
+Prints `unreached <path>`, `unreached <path>:<line> <name>`, `unreached <path>:<line> import <name>` and `unreached <path>:<line> <kind> <name>`
+lines, then the `kept` lines and a summary, and exits 1 when it printed an `unreached` line, else 0. Standard library only, Python 3.9."""
 
 import ast
 import os
@@ -30,6 +35,12 @@ IMPORTABLE = (".ts", ".tsx", ".js")  # a relative import in these leaves the ext
 FOLDER_LINK = re.compile(r"\]\(([^)\s#]+)/\)")  # [examples/](examples/) links a folder
 RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
+USAGE_LINE = re.compile(r"^(?:usage:)? *([\w.-]+\.py)((?: .*)?)$", re.M)
+VERB = re.compile(r" ([a-z][a-z-]*)(?![\w|/.-])")  # a bare word one space after the script's name, never a <placeholder>, [option], a|b or an aligned note
+REPOSITORY_VERBS = {"fixtures", "steps"}  # verbs `.github/check-repository.py` calls on every script whose usage offers them
+FLAG = re.compile(r"(?<![\w-])--[a-z][a-z0-9-]*")
+ENVIRONMENT_READ = re.compile(r"""(?:environ\.get\(\s*|environ\[\s*|getenv\(\s*|process\.env\[\s*)["']([A-Za-z_][A-Za-z0-9_]*)["']|process\.env\.([A-Za-z_][A-Za-z0-9_]*)""")
+KEPT = re.compile(r"#\s*kept (\S+) (until #\d+|as a seam: .+)$", re.M)  # a comment in the file that keeps an option the scan lists, with its reason
 
 
 def list_files(folder):
@@ -210,6 +221,69 @@ def find_unused(facts, reached):
     return functions, imports
 
 
+def find_unpassed(plugin_name, texts, trees, reached):
+    """The flags and verbs a script's usage lines offer and the plugin environment variables its code reads that no other file outside
+    fixtures passes, the script itself setting a variable for its own re-run aside, and the parameters no statement of their function
+    reads, as (path, line, kind, name) rows over the reached programs outside fixtures."""
+    rows = []
+    prefix = plugin_name.upper().replace("-", "_") + "_"
+    documents = [text for path, text in texts.items() if path.endswith(".md") and not is_fixture(path)]
+    for path in sorted(reached & trees.keys()):
+        if is_fixture(path):
+            continue
+        text, name = texts[path], path.rsplit("/", 1)[-1]
+        number = lambda at: text.count("\n", 0, at) + 1
+        others = [other_text for other, other_text in texts.items() if other != path and not is_fixture(other)]
+        callers = [other_text for other_text in others if name in other_text]
+        for line in USAGE_LINE.finditer(ast.get_docstring(trees[path]) or ""):
+            if line.group(1) != name:
+                continue
+            at = text.find(line.group(0).strip())
+            verb = VERB.match(line.group(2))
+            if verb and verb.group(1) not in REPOSITORY_VERBS and not any(re.search(r"{}[\"'`,\s]+{}\b".format(re.escape(name), verb.group(1)), caller)
+                                or re.search(r"[\"'`]{}[\"'`\s]".format(verb.group(1)), caller) for caller in callers):
+                rows.append((path, number(at), "verb", verb.group(1)))
+            for flag in sorted(set(FLAG.findall(line.group(2))) - {"--help"}):
+                bare = r"(?<![\w-]){}(?![\w-])".format(re.escape(flag))
+                # a playbook may name a flag every script of a kind takes, `--repository <folder>`, without naming the script
+                if not any(re.search(bare, caller) for caller in callers) and not any(re.search("`" + bare, document) for document in documents):
+                    rows.append((path, number(at), "option", flag))
+        variables = {}
+        for read in ENVIRONMENT_READ.finditer(text):
+            variables.setdefault(read.group(1) or read.group(2), number(read.start()))
+        for variable, line in variables.items():
+            sets_itself = re.search(r"\b{}\b[\"']?\s*[:=](?!=)".format(variable), text)
+            if variable.startswith(prefix) and not sets_itself and not any(re.search(r"\b{}\b".format(variable), other_text) for other_text in others):
+                rows.append((path, line, "variable", variable))
+        rows += [(path, line, "parameter", parameter) for line, parameter in unread_parameters(trees[path])]
+    return rows
+
+
+def unread_parameters(tree):
+    """(line, name) of each parameter of a plain function that no statement in it reads; a method of a class with a base, a decorated,
+    dunder or stub function, `main`, whose `args` the script form fixes, and one that calls `locals` or `vars` keep theirs, since a caller outside their file fixes the signature."""
+    found = []
+
+    def visit(node, overrides):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.ClassDef):
+                visit(child, bool(child.bases))
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                body = [statement for statement in child.body if not (isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant))]
+                loads = {sub.id for sub in ast.walk(child) if isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load)}
+                plain = not (overrides or child.decorator_list or child.name.startswith("__") or child.name == "main" or {"locals", "vars"} & loads
+                             or all(isinstance(statement, (ast.Pass, ast.Raise)) for statement in body))
+                for argument in (child.args.posonlyargs + child.args.args + child.args.kwonlyargs) if plain else []:
+                    if argument.arg not in ("self", "cls") and not argument.arg.startswith("_") and argument.arg not in loads:
+                        found.append((argument.lineno, argument.arg))
+                visit(child, False)
+            else:
+                visit(child, overrides)
+
+    visit(tree, False)
+    return found
+
+
 def main(args):
     if {"-h", "--help"} & set(args):
         print(__doc__)
@@ -233,7 +307,18 @@ def main(args):
         lines = ["unreached {}/{}".format(plugin.name, path) for path in files if path not in reached]
         lines += ["unreached {}/{}:{} {}".format(plugin.name, path, line, name) for path, line, name in functions]
         lines += ["unreached {}/{}:{} import {}".format(plugin.name, path, line, name) for path, line, name in imports]
-        for line in lines:
+        marks = {(path, name): reason for path, text in texts.items() for name, reason in KEPT.findall(text)}
+        kept, held = [], set()
+        for path, line, kind, name in find_unpassed(plugin.name, texts, trees, reached):
+            where = "{}/{}:{} {} {}".format(plugin.name, path, line, kind, name)
+            if (path, name) in marks:
+                kept.append("kept {} {}".format(where, marks[path, name]))
+                held.add((path, name))
+            else:
+                lines.append("unreached " + where)
+        # a mark that keeps nothing the scan lists would hide the option's return, so it goes with the option
+        lines += ["unreached {}/{} kept {}: the scan lists no such option".format(plugin.name, *key) for key in sorted(marks.keys() - held)]
+        for line in lines + kept:
             print(line)
         printed += len(lines)
         file_count += len(files)

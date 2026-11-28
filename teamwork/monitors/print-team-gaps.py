@@ -2,7 +2,7 @@
 """Print one line per action the team session's board and sessions call for, each once, polling until killed, or until `--polls` polls when given.
 
 usage: print-team-gaps.py [--polls <n>]
-It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or TEAMWORK_MONITOR_REFRESH seconds pass, and polls every TEAMWORK_MONITOR_POLL seconds.
+It takes the session's role from herdr and watches only while a worker lives for a manager, always for a worker, never for another session; it reads the board when a team session signals a change or 15 minutes pass, and polls every TEAMWORK_MONITOR_POLL seconds.
 A manager's team run that used no CPU for TEAMWORK_STUCK_SECONDS (900) prints a `stuck` line, and a `run-criteria.py` run past TEAMWORK_SLOW_SECONDS (3600) a `slow` line.
 A manager gets a `rebalance` line for a worker that holds 3 or more tasks each waiting on a task, and for a task that waits on another only for a file both change.
 When a file of its own code changes, such as by a merge pulled into the checkout, it runs the new code in its own process with the same arguments, once that code loads, so its output stays the session's monitor."""
@@ -23,7 +23,7 @@ import team_names  # noqa: E402
 import team_signal  # noqa: E402
 
 POLL = float(os.environ.get("TEAMWORK_MONITOR_POLL", 60))  # the sessions are read each poll, which costs no board read
-REFRESH = float(os.environ.get("TEAMWORK_MONITOR_REFRESH", 900))  # a change made outside the team, such as the owner's comment on the web, sends no signal
+REFRESH = 900  # a change made outside the team, such as the owner's comment on the web, sends no signal
 SKEW = 5  # seconds the board's clock may differ from ours
 SCRIPT = pathlib.Path(__file__).resolve()
 

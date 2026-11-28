@@ -26,7 +26,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / "lib"))
 import stamp  # noqa: E402
 
 PLUGIN = pathlib.Path(__file__).resolve().parents[3]
+# kept HOMEWORK_START_DREAMER_WAIT as a seam: a replay waits seconds, not the time a live start gets
 START_WAIT = float(os.environ.get("HOMEWORK_START_DREAMER_WAIT", 60))
+# kept HOMEWORK_START_DREAMER_POLL as a seam: a replay polls in fractions of a second
 START_POLL = float(os.environ.get("HOMEWORK_START_DREAMER_POLL", 1))
 CAUSES = (("repeats", "dejavu"), ("habit", "habit"))
 

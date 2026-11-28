@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Map a window of sessions for the dream: write digests for the haiku facet agents, and tool-failure signatures.
 
-usage: list-sessions.py due <data> [--due-hours <h>]                  `due` when <data>/last-map is <h> hours old or missing, else `not due`;
-                                                                       <h> by <data>'s name as homework/lib/stamp.py sets it
-       list-sessions.py map <data> [--window-days <d>] [--limit <n>]  every in-window session: signatures to <data>/stats/; the newest
-                                                                       <n> (40) without a whole facet (list friction and habits): digests to <data>/digests/; touches <data>/last-map
-       list-sessions.py digest <data> <path>...                       digests and signatures of the named transcripts, window and
-                                                                       limit aside
+usage: list-sessions.py due <data>                       `due` when <data>/last-map is missing or as old as homework/lib/stamp.py
+                                                          sets by <data>'s name, else `not due`
+       list-sessions.py map <data> [--window-days <d>]   every in-window session: signatures to <data>/stats/; the newest 40 without a
+                                                          whole facet (list friction and habits): digests to <data>/digests/; touches <data>/last-map
 
 Digests print as `batch <k>: <digest> ...` lines of at most 10, one haiku agent each. The window is the interactive
 top-level transcripts under ${CLAUDE_CONFIG_DIR:-~/.claude}/projects changed in the last <d> days (14). A session with no
@@ -31,8 +29,8 @@ import stamp  # noqa: E402
 import transcript  # noqa: E402
 
 WINDOW_DAYS, PER_RUN, PER_BATCH = 14, 40, 10
-FLAGS = {"--window-days": "days", "--due-hours": "hours", "--limit": "limit"}
-VERB_FLAGS = {"due": {"--due-hours"}, "map": {"--window-days", "--limit"}, "digest": set()}
+FLAGS = {"--window-days": "days"}
+VERB_FLAGS = {"due": set(), "map": {"--window-days"}}
 OWNER_CAP, AGENT_CAP, DIGEST_CAP = 500, 300, 30000
 TAGS = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.S)
 # urls before paths, so a url is masked whole
@@ -202,18 +200,13 @@ def batches(digests):
 
 
 def options(verb, args):
-    """(paths, settings) of the words after <data>, or None when a flag is not the verb's or lacks a number."""
-    settings, paths, k = {"days": WINDOW_DAYS, "hours": None, "limit": PER_RUN}, [], 0
-    while k < len(args):
-        if args[k].startswith("--"):
-            if args[k] not in VERB_FLAGS.get(verb, ()) or k + 1 >= len(args) or not re.fullmatch(r"[0-9]+", args[k + 1]):
-                return None
-            settings[FLAGS[args[k]]] = int(args[k + 1])
-            k += 2
-        else:
-            paths.append(args[k])
-            k += 1
-    return paths, settings
+    """The settings of the words after <data>, or None when a word is not one of the verb's flags with a number."""
+    settings = {"days": WINDOW_DAYS}
+    for k in range(0, len(args), 2):
+        if args[k] not in VERB_FLAGS.get(verb, ()) or k + 1 >= len(args) or not re.fullmatch(r"[0-9]+", args[k + 1]):
+            return None
+        settings[FLAGS[args[k]]] = int(args[k + 1])
+    return settings
 
 
 def whole(path):
@@ -228,15 +221,15 @@ def main(args):
     if {"-h", "--help"} & set(args):
         print(__doc__)
         return 0
-    parsed = options(args[0], args[2:]) if len(args) >= 2 else None
-    if parsed is None or args[0] not in VERB_FLAGS or bool(parsed[0]) != (args[0] == "digest"):
+    settings = options(args[0], args[2:]) if len(args) >= 2 else None
+    if settings is None or args[0] not in VERB_FLAGS:
         print(__doc__, file=sys.stderr)
         return 2
-    (named, settings), verb, data, now = parsed, args[0], args[1], time.time()
+    verb, data, now = args[0], args[1], time.time()
     if verb == "due":
-        print("due" if stamp.due(data, settings["hours"]) else "not due")
+        print("due" if stamp.due(data) else "not due")
         return 0
-    paths = named if verb == "digest" else window(now, settings["days"])
+    paths = window(now, settings["days"])
     faceted = {os.path.basename(path)[:-5] for path in glob.glob(os.path.join(glob.escape(data), "facets", "*.json")) if whole(path)}
     digests, waiting = [], 0
     for path in paths:
@@ -245,16 +238,15 @@ def main(args):
             continue
         write(data, path, "stats", stats)
         answered = any(owner["text"].startswith("[ANSWER") for owner in owners)
-        if (len(owners) < 2 and not answered) or (os.path.basename(path)[:-6] in faceted and verb == "map"):
+        if (len(owners) < 2 and not answered) or os.path.basename(path)[:-6] in faceted:
             continue
-        if len(digests) < settings["limit"] or verb == "digest":
+        if len(digests) < PER_RUN:
             digests.append(write(data, path, "digests", digest(path, lines)))
         else:
             waiting += 1
-    if verb == "map":
-        os.makedirs(data, mode=0o700, exist_ok=True)
-        private(os.path.join(data, "last-map")).close()
-        print(f"{len(digests)} sessions to facet; {waiting} wait for later runs")
+    os.makedirs(data, mode=0o700, exist_ok=True)
+    private(os.path.join(data, "last-map")).close()
+    print(f"{len(digests)} sessions to facet; {waiting} wait for later runs")
     batches(digests)
     return 0
 

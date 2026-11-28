@@ -72,26 +72,34 @@ def main(args):
     os.makedirs(os.path.join(CONFIG, "projects", "-r-alpha", "memory"), exist_ok=True)
     with open(os.path.join(CONFIG, "projects", "-r-alpha", "memory", "MEMORY.md"), "w") as handle:
         handle.write("- [Plain words](plain.md) — explain a made-up label before using it\n")
-    # 3 owner sessions in 2 repos, one 20 days old; 62 fresh ones for the limit
+    # 3 owner sessions in 2 repos, one 20 days old; 62 fresh ones, made after the window maps, for the limit
     session("-r-alpha", "aaaa0000-0000-0000-0000-000000000000", NOW - DAY, "what is E1? explain")
     session("-r-beta", "aaaa0001-0000-0000-0000-000000000000", NOW - 2 * DAY, "what does that label mean")
     session("-r-alpha", "aaaa0002-0000-0000-0000-000000000000", NOW - 20 * DAY, "always answer in Korean")
-    for k in range(62):
-        session("-r-gamma", f"9999{k:04d}-0000-0000-0000-000000000000", NOW - 3600 * (k + 1), f"hi {k}")
     before = snapshot()
 
-    step("due with --due-hours 168 on fresh data", run(SESSIONS, "due", DATA, "--due-hours", "168").strip() == "due")
-    short = run(SESSIONS, "map", os.path.join(TMP, "short"), "--limit", "100")
-    first = run(SESSIONS, "map", DATA, "--window-days", "28", "--limit", "120")
+    step("due on fresh habit data", run(SESSIONS, "due", DATA).strip() == "due")
+    odd = os.path.join(TMP, "odd")
+    refused = [subprocess.run([sys.executable, SESSIONS, verb, odd], capture_output=True, env=ENV, timeout=120).returncode for verb in ("bogus", "digest")]
+    short_calls = [subprocess.run([sys.executable, SESSIONS, *words], capture_output=True, text=True, env=ENV, timeout=120) for words in ((), ("due",))]
+    step("no argument and a verb alone exit 2 with nothing on stdout", [(done.returncode, done.stdout) for done in short_calls] == [(2, ""), (2, "")],
+         " ".join(f"exit {done.returncode}" for done in short_calls))
+    step("an unknown verb and the dropped `digest` exit 2 and map nothing", refused == [2, 2] and not os.path.exists(os.path.join(odd, "last-map")), f"exits {refused}")
+    short = run(SESSIONS, "map", os.path.join(TMP, "short"))
+    first = run(SESSIONS, "map", DATA, "--window-days", "28")
     last = os.path.join(DATA, "last-map")
     os.utime(last, (NOW - 2 * DAY, NOW - 2 * DAY)) if os.path.exists(last) else None
-    step("not due 2 days after a map", run(SESSIONS, "due", DATA, "--due-hours", "168").strip() == "not due")
+    step("habit data is not due 2 days after a map", run(SESSIONS, "due", DATA).strip() == "not due")
     os.utime(last, (NOW - 8 * DAY, NOW - 8 * DAY)) if os.path.exists(last) else None
-    step("due 8 days after a map", run(SESSIONS, "due", DATA, "--due-hours", "168").strip() == "due")
+    step("habit data is due 8 days after a map", run(SESSIONS, "due", DATA).strip() == "due")
     step("--window-days 28 maps a 20-day-old session the default skips",
          "aaaa0002-0000-0000-0000-000000000000" in listed(first) and "aaaa0002-0000-0000-0000-000000000000" not in listed(short))
-    limited = run(SESSIONS, "map", os.path.join(TMP, "limited"), "--window-days", "28", "--limit", "60")
-    step("--limit 60 digests more than 40", len(listed(limited)) == 60, limited[-300:])
+    for k in range(62):
+        session("-r-gamma", f"9999{k:04d}-0000-0000-0000-000000000000", NOW - 3600 * (k + 1), f"hi {k}")
+    before = {**snapshot(), **before}  # the new sessions join the files no script may change, and an earlier change still shows
+    limited = run(SESSIONS, "map", os.path.join(TMP, "limited"), "--window-days", "28")
+    step("a map digests the newest 40 and leaves 25 for later runs",
+         len(listed(limited)) == 40 and "40 sessions to facet; 25 wait for later runs" in limited, limited[-300:])
 
     facets = os.path.join(DATA, "facets")
     os.makedirs(facets, exist_ok=True)

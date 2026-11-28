@@ -23,7 +23,8 @@ def main(args):
         return 0
     args = data_folder.enter(args, __doc__)
     width = args[args.index("--width") + 1] if "--width" in args and args.index("--width") + 1 < len(args) else None
-    words = [word for word in args if word not in ("--json", "--nodes", "--check", "--width", width)]
+    # kept --nodes as a seam: the pane's replays feed task nodes from a file, not the board
+    words = [word for word in args if word not in ("--json", "--nodes", "--check", "--width", width)]  # kept --check until #1573
     if len(words) != 1 or words[0].startswith("-") or "--width" in args and not (width or "").isdigit():
         print(__doc__, file=sys.stderr)
         return 2

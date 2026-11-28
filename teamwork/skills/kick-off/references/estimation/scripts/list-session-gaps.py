@@ -23,7 +23,7 @@ def main(args):
         print(__doc__)
         return 0
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--from-folder", type=pathlib.Path, default=claude_config.folder() / "projects")
+    parser.add_argument("--from-folder", type=pathlib.Path, default=claude_config.folder() / "projects")  # kept --from-folder until #1573
     parser.add_argument("--json", action="store_true")
     parser.add_argument("names", nargs="+")
     options = parser.parse_args(args)

@@ -27,6 +27,7 @@ import team_names  # noqa: E402
 import usage_parser  # noqa: E402
 
 FORMS = "`<task>-worker`, `<duty>-sentinel`, `<project>-manager` or `<manager>-next`"
+# kept TEAMWORK_START_SESSION_TIMEOUT as a seam: a replay waits seconds, not the time a live start gets
 TIMEOUT, POLL = float(os.environ.get("TEAMWORK_START_SESSION_TIMEOUT", 120)), 1.0
 
 

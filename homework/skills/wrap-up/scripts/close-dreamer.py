@@ -5,8 +5,7 @@ usage: close-dreamer.py
 
 Run as the last step of a dream. It reads this pane from HERDR_PANE_ID and closes the tab only when a herdr agent named
 `*-dreamer` holds that pane; any other pane, or no herdr, closes nothing and says so. The close runs detached and waits
-until the agent stops working, so the Dreamer's final report reaches the owner first. HOMEWORK_CLOSE_DREAMER_TIMEOUT (default
-3600) bounds that wait in seconds.
+until the agent stops working, so the Dreamer's final report reaches the owner first, or an hour passes.
 """
 import json
 import os
@@ -14,7 +13,7 @@ import subprocess
 import sys
 import time
 
-TIMEOUT = float(os.environ.get("HOMEWORK_CLOSE_DREAMER_TIMEOUT", 3600))
+TIMEOUT = 3600
 
 
 def herdr(*words):

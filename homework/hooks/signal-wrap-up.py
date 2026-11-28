@@ -98,19 +98,6 @@ def save(home, state):
         json.dump(state, handle)
 
 
-def fixed():
-    value = os.environ.get("HOMEWORK_WRAP_UP_THRESHOLD")
-    try:
-        return float(value) if value is not None else None
-    except ValueError:
-        return None
-
-
-def threshold_of(state):
-    override = fixed()
-    return state["threshold"] if override is None else bounded(override)
-
-
 def first_retro(found, asked):
     if asked:
         return "asked"
@@ -130,12 +117,12 @@ def hook():
     if entries is None:
         return 0
     entrypoint = next((str(e["entrypoint"]) for e in entries if "entrypoint" in e), "")
-    if fixed() is None and entrypoint.startswith("sdk"):
+    if entrypoint.startswith("sdk"):
         return 0
     state = load(home)
     found = counts(entries)
     state["memory"] = sorted(set(state["memory"]) | found["memory"])
-    threshold = threshold_of(state)
+    threshold = state["threshold"]
     session, stops = payload.get("session_id", ""), sum(1 for e in entries if transcript.is_stop(e))
     # the stops right after an ask hold the wrap-up's own work and its fallout
     just_asked = stops - state["asked"].get(session, -ASK_GAP - 1) <= ASK_GAP
@@ -190,7 +177,7 @@ def main(args):
         state = load(memory_home.home() or os.devnull)
         found = counts(entries)
         asked = any(transcript.asked_at(entry) for entry in entries)
-        print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), threshold_of(state)))
+        print(sentence(dict(found, memory=len(found["memory"]), first=first_retro(found, asked)), state["threshold"]))
         return 0
     print(__doc__, file=sys.stderr)
     return 2

@@ -59,7 +59,7 @@ def tip(ref):
     return git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}").stdout.strip() or None
 
 
-def pulls(state="open", repo=None, limit=None, branch=None):
+def pulls(state="open", repo=None, limit=None, branch=None):  # kept repo until #1573
     """Changes as `number`, `headRefName`, `headRefOid`, `mergedAt`, newest update first; an open one's head is its branch tip now. None outside a repository."""
     found = records()
     if found is None:

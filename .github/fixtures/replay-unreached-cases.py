@@ -91,7 +91,7 @@ CASES = {
     "a skill script with a fixtures call keeps the fixture folder beside it": (
         {SKILL + "scripts/planted-checker.py": '"""Check.\n\nusage: planted-checker.py check FILE\n       planted-checker.py fixtures   check every file in fixtures/"""\n' + MAIN,
          SKILL + "fixtures/planted-check/a.json": "{}\n"},
-        {SKILL_MD: "\nrun scripts/planted-checker.py\n"}, [], [SKILL + "fixtures/planted-check/"]),
+        {SKILL_MD: "\nrun scripts/planted-checker.py check FILE\n"}, [], [SKILL + "fixtures/planted-check/"]),
     "a lib module only a live fixture imports is not listed": (
         {"teamwork/lib/planted_helper.py": "X = 1\n", "teamwork/hooks/fixtures/replay-helper.py": "# replays route-event.py\nimport planted_helper\nprint(planted_helper.X)\n"},
         {}, [], ["teamwork/lib/planted_helper.py"]),

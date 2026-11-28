@@ -28,6 +28,7 @@ def main(args):
     except OSError:
         print(__doc__, file=sys.stderr)
         return 2
+    # kept TEAMWORK_TELL_SESSION_TIMEOUT as a seam: a replay waits seconds, not the hour a live session gets
     delivered, how = message_herdr.tell(name, text, float(os.environ.get("TEAMWORK_TELL_SESSION_TIMEOUT", 600)))
     if not delivered:
         sys.exit(f"not delivered to {name}: {how}")

@@ -19,6 +19,7 @@ import data_folder  # noqa: E402
 import session  # noqa: E402
 import task_state  # noqa: E402
 
+# kept TEAMWORK_CLOSE_SESSION_TIMEOUT as a seam: a replay waits seconds, not the hour a live session gets
 TIMEOUT, POLL = float(os.environ.get("TEAMWORK_CLOSE_SESSION_TIMEOUT", 3600)), 1.0
 
 

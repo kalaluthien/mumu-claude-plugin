@@ -143,7 +143,7 @@ def record(store, number, comments=True, owners=None):
             "comments": notes}
 
 
-def scoped(store, project):
+def scoped(store, project):  # kept store until #1573
     """The folder whose tasks are PROJECT's: its own top-level folder, else '' the repository root."""
     return board_scope.folder_of(project)
 

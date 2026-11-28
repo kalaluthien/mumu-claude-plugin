@@ -30,9 +30,9 @@ import usage_parser  # noqa: E402
 def parse_options(argv):
     parser = usage_parser.parser(__doc__, description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--from-json")
-    parser.add_argument("--gaps-json")
+    parser.add_argument("--gaps-json")  # kept --gaps-json until #1573
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--expect-restarts", type=float, default=0.0)
+    parser.add_argument("--expect-restarts", type=float, default=0.0)  # kept --expect-restarts until #1573
     parser.add_argument("--wait", action="append", default=[], type=lambda value: (value.partition("=")[0], float(value.partition("=")[2])))
     parser.add_argument("urls", nargs="*")
     return parser.parse_args(data_folder.enter(argv, __doc__))

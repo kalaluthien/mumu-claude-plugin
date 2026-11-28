@@ -54,7 +54,6 @@ def main(args):
         (config / "settings.json").write_text(json.dumps({"autoMemoryDirectory": str(home)}))
         env = {**os.environ, "CLAUDE_CONFIG_DIR": str(config)}
         env.pop("HOMEWORK_WRAP_UP", None)
-        env.pop("HOMEWORK_WRAP_UP_THRESHOLD", None)
         first = dict(env, CLAUDE_PLUGIN_DATA=str(root / "data-inline"))
         second = dict(env, CLAUDE_PLUGIN_DATA=str(root / "data-installed"))
         folder = root / "sessions"
