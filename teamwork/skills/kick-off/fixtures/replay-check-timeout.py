@@ -11,8 +11,8 @@ per case, then `PASS check timeout` or `FAIL check timeout`, and exit 1 on any f
   prints the base row within `LIMIT` seconds;
 - `left-group`: `git archive` starts a child that leaves its process group by `setsid` and holds the call's output open, then waits on it; the run
   exits 1 within `LIMIT` seconds naming the call, since it waits for the call alone, never for its output;
-- `failed-archive`: `git archive` fails, its stand-in first on `PATH`, and `--base` exits 1 naming the base it could not export; `git init` fails, and
-  `--hunks` exits 1 saying it could not clone HEAD;
+- `failed-archive`: `git archive` fails, its stand-in first on `PATH`, and `--base` exits 1 naming the base it could not export; `git init` or `git fetch`
+  fails, and `--hunks` exits 1 saying it could not clone HEAD;
 - `ps`: `ps` gives no answer, its stand-in first on `PATH` waiting on a child of its own, and the check outlives its limit, so both the listing of
   its children and of the export's strays call `ps`; the run exits 1 within `LIMIT` seconds naming the call, and that child is gone;
 - `held-stdin`: the run's stdin is a pipe held open and never written, and `git archive` reads its stdin to the end; the run gives each call no stdin,
@@ -74,10 +74,10 @@ def main(args):
             return done, time.monotonic() - started
 
         def stand_in(case, archive, verb="archive"):
-            """A PATH whose `git` runs ARCHIVE for `git <VERB>` and the real git for every other call."""
+            """A PATH whose `git` runs ARCHIVE for a call whose words hold VERB, such as `git -C <copy> fetch`, and the real git for every other call."""
             folder = pathlib.Path(work, f"{case}-git")
             folder.mkdir()
-            folder.joinpath("git").write_text(f'#!/bin/sh\n[ "$1" = {verb} ] && {archive}\nexec {shutil.which("git")} "$@"\n')
+            folder.joinpath("git").write_text(f'#!/bin/sh\ncase " $* " in *" {verb} "*) {archive};; esac\nexec {shutil.which("git")} "$@"\n')
             folder.joinpath("git").chmod(0o755)
             return f"{folder}{os.pathsep}{box.environment['PATH']}"
 
@@ -108,9 +108,9 @@ def main(args):
         os.mkfifo(fifo)
         done, took = base("fifo", f"test -p {fifo} && cat probe.txt")
         cases.step("fifo", took < LIMIT and done.returncode == 0 and "| base ok | FAIL |" in done.stdout, f"took {took:.0f} s, exit {done.returncode}, {done.stdout[-300:]} {done.stderr[-300:]}")
-        refusals = [(mode, base(f"failed-{mode[2:]}", "echo FAIL", mode, PATH=stand_in(f"failed-{verb}", "exit 128", verb))[0]) for mode, verb in (("--base", "archive"), ("--hunks", "init"))]
+        refusals = [(mode, base(f"failed-{mode[2:]}", "echo FAIL", mode, PATH=stand_in(f"failed-{verb}", "exit 128", verb))[0]) for mode, verb in (("--base", "archive"), ("--hunks", "init"), ("--hunks", "fetch"))]
         cases.step("failed-archive", [(done.returncode, done.stderr.strip()) for _, done in refusals]
-                   == [(1, "run-criteria: could not export main; fetch it first"), (1, "run-criteria: could not clone HEAD")], f"{[(done.returncode, done.stderr[-200:]) for _, done in refusals]}")
+                   == [(1, "run-criteria: could not export main; fetch it first"), (1, "run-criteria: could not clone HEAD"), (1, "run-criteria: could not clone HEAD")], f"{[(done.returncode, done.stderr[-200:]) for _, done in refusals]}")
         folder = pathlib.Path(work, "hung-ps")
         folder.mkdir()
         replay_probe.write_text(folder, "ps", f"#!/bin/sh\n{hung('ps')}\n").chmod(0o755)
