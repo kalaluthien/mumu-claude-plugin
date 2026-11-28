@@ -160,7 +160,9 @@
 //   fonts    on copies of each example whose token sheet sets every type size and line height as shipped and twice as large, at 1440 by
 //            900, every area's label made longer, on every level, each node's label and tag and each area's header, its
 //            badges included, split no word across two lines, keep each word inside their box across and their lines inside
-//            the node or area down, no node's tag runs under its badges, and no area's badge is shorter than its text, printed as `<n> labels, tags and headers read at <sizes> and at <sizes>, none split or cut off`.
+//            the node or area down, no node's tag runs under its badges, no area's badge is shorter than its text, and no area
+//            header's line runs past the header or onto a node under it, printed as `<n> labels, tags and headers read at
+//            <sizes> and at <sizes>, none split or cut off, and <n> nodes clear of their area header's line`.
 // overlay and moves also read each transition: its timing is not linear, and under reduced motion it only fades,
 // each part hidden where it is shown; moves holds a level move part-way: no overlay rises until the level has arrived,
 // and a move turned back goes on from the level still seen.
@@ -2481,7 +2483,7 @@ const fitted = ([selector, frame]) => [...document.querySelectorAll(selector)].f
 });
 const GROWN = [1, 2]; // each type size and line height of a copy's token sheet against the sheet's own: as shipped, then doubled as WCAG 1.4.4 resizes text
 async function fonts(browser) {
-  let read = 0;
+  let read = 0, cleared = 0;
   const sizes = [];
   for (const factor of GROWN) for (const example of examples) {
     const flat = JSON.parse(fs.readFileSync(example.source, "utf8")), name = `${example.name}-fonts-${factor}`, copy = { name, source: path.join(scratch, name + ".json"), built: path.join(scratch, name + ".html") };
@@ -2512,12 +2514,22 @@ async function fonts(browser) {
         return range.getBoundingClientRect().height > claim.getBoundingClientRect().height + 0.5;
       }).map((claim) => claim.closest(".area").dataset.id));
       check(!cut.length, `${where}: a badge of area ${cut[0]} is shorter than its text`);
+      const under = await view.evaluate((held) => held.map(([node, area]) => { // per node of an area: its id when its area header's line runs past the header or onto it, "" when clear, none when either is not drawn
+        const header = document.querySelector(`#stage .area[data-id="${CSS.escape(area)}"] > header`), card = document.querySelector(`#stage .node[data-id="${CSS.escape(node)}"]`);
+        if (!header || !card) return null;
+        const range = document.createRange();
+        range.selectNodeContents(header);
+        const line = range.getBoundingClientRect().bottom;
+        return line > header.getBoundingClientRect().bottom + 0.5 || line > card.getBoundingClientRect().top + 0.5 ? `${node} under ${area}` : "";
+      }), level.nodes.filter((node) => node.area).map((node) => [node.id, node.area])), covered = under.filter(Boolean);
+      check(!covered.length, `${where}: the header's line runs past its header onto node ${covered[0]}`);
+      cleared += under.filter((one) => one === "").length;
       read += seen.length;
       quiet(view, where);
       await view.context().close();
     });
   }
-  console.log(`${read} labels, tags and headers read at ${sizes.join(" and at ")}, none split or cut off`);
+  console.log(`${read} labels, tags and headers read at ${sizes.join(" and at ")}, none split or cut off, and ${cleared} nodes clear of their area header's line`);
 }
 
 async function main() {

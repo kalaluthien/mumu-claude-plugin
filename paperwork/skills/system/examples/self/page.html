@@ -722,7 +722,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .area[data-tag="region"], .area[data-tag="trustZone"] { border-style: dashed; }
 .area[data-tag="lane"], .area[data-tag="phase"] { border-color: transparent; }
 .area[data-band="0"] { background: var(--band-0); } .area[data-band="1"] { background: var(--band-1); } .area[data-band="2"] { background: var(--band-2); }
-.area > header { display: flex; align-items: flex-start; gap: var(--spacing-02); height: 32px; padding: var(--spacing-02) var(--spacing-05) 0; font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); font-weight: 500; white-space: nowrap; }
+.area > header { display: flex; align-items: flex-start; gap: var(--spacing-02); height: calc(var(--leading-01) + 16px); padding: var(--spacing-02) var(--spacing-05) 0; font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); font-weight: 500; white-space: nowrap; }
 .area > header::first-letter { text-transform: uppercase; }
 .area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
 .area > header .claims { margin-left: calc(-1 * var(--spacing-01)); } /* a badge no taller than the header's words, so the header stays one group apart from the nodes under it */
@@ -736,7 +736,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .stage.dense .node b { font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); }
 .stage.dense .node small { font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); }
 .stage.dense .node .open { right: var(--spacing-02); top: var(--spacing-02); width: 20px; height: 20px; }
-.stage.dense .area > header { height: 26px; padding: var(--spacing-01) var(--spacing-03) 0; }
+.stage.dense .area > header { height: calc(var(--leading-01) + 10px); padding: var(--spacing-01) var(--spacing-03) 0; }
 .node:hover, .node.on { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--line); }
 .node:focus-visible { border-color: var(--line); box-shadow: var(--focus); }
 .node.pinned { border-color: var(--foreground); }
@@ -1051,14 +1051,15 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 
   const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   const ROOM = { side: 40, top: 76, bottom: 76 };
+  const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const LINE = parseFloat(token("--leading-01")); // an area header's line, so a header grows with its type as page.css draws it
   const FITS = [ // a level's drawings from roomy to dense; inner and outer hold the gap along a flow down, along a flow across, then beside each
-    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 17, head: 32, labels: true },
-    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 17, head: 32 },
-    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 9, head: 26, dense: true },
-    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: 26, dense: true },
+    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 17, head: LINE + 16, labels: true },
+    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 17, head: LINE + 16 },
+    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 9, head: LINE + 10, dense: true },
+    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: LINE + 10, dense: true },
   ];
   const pen = document.createElement("canvas").getContext("2d"), LID = 10;
-  const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const type = (weight, name) => `${weight} ${token(name)} ${FONT}`; // a font of the token sheet's type size, as the page draws it
   const badge = () => { pen.font = type(600, "--type-01"); return Math.max(22, Math.ceil(pen.measureText("G✓").width) + 8) + 6; }; // a badge, at least 22 px or its text and padding, then its gap and ring
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one

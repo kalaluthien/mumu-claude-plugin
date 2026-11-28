@@ -9,7 +9,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .area[data-tag="region"], .area[data-tag="trustZone"] { border-style: dashed; }
 .area[data-tag="lane"], .area[data-tag="phase"] { border-color: transparent; }
 .area[data-band="0"] { background: var(--band-0); } .area[data-band="1"] { background: var(--band-1); } .area[data-band="2"] { background: var(--band-2); }
-.area > header { display: flex; align-items: flex-start; gap: var(--spacing-02); height: 32px; padding: var(--spacing-02) var(--spacing-05) 0; font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); font-weight: 500; white-space: nowrap; }
+.area > header { display: flex; align-items: flex-start; gap: var(--spacing-02); height: calc(var(--leading-01) + 16px); padding: var(--spacing-02) var(--spacing-05) 0; font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); font-weight: 500; white-space: nowrap; }
 .area > header::first-letter { text-transform: uppercase; }
 .area > header small { font-size: inherit; font-weight: 400; color: var(--muted-foreground); }
 .area > header .claims { margin-left: calc(-1 * var(--spacing-01)); } /* a badge no taller than the header's words, so the header stays one group apart from the nodes under it */
@@ -23,7 +23,7 @@ html, body { height: 100%; margin: 0; overflow: hidden; }
 .stage.dense .node b { font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); }
 .stage.dense .node small { font-size: calc(var(--type-01) * var(--grow, 1)); line-height: var(--leading-01); }
 .stage.dense .node .open { right: var(--spacing-02); top: var(--spacing-02); width: 20px; height: 20px; }
-.stage.dense .area > header { height: 26px; padding: var(--spacing-01) var(--spacing-03) 0; }
+.stage.dense .area > header { height: calc(var(--leading-01) + 10px); padding: var(--spacing-01) var(--spacing-03) 0; }
 .node:hover, .node.on { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--line); }
 .node:focus-visible { border-color: var(--line); box-shadow: var(--focus); }
 .node.pinned { border-color: var(--foreground); }

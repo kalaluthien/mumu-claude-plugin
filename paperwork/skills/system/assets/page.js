@@ -95,14 +95,15 @@
 
   const FONT = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
   const ROOM = { side: 40, top: 76, bottom: 76 };
+  const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const LINE = parseFloat(token("--leading-01")); // an area header's line, so a header grows with its type as page.css draws it
   const FITS = [ // a level's drawings from roomy to dense; inner and outer hold the gap along a flow down, along a flow across, then beside each
-    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 17, head: 32, labels: true },
-    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 17, head: 32 },
-    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 9, head: 26, dense: true },
-    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: 26, dense: true },
+    { inner: [52, 72, 28, 22], outer: [64, 96, 44, 36], pad: 17, head: LINE + 16, labels: true },
+    { inner: [44, 52, 24, 18], outer: [52, 60, 36, 28], pad: 17, head: LINE + 16 },
+    { inner: [30, 36, 14, 12], outer: [38, 44, 22, 18], pad: 9, head: LINE + 10, dense: true },
+    { inner: [22, 26, 10, 10], outer: [28, 30, 14, 12], pad: 9, head: LINE + 10, dense: true },
   ];
   const pen = document.createElement("canvas").getContext("2d"), LID = 10;
-  const token = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const type = (weight, name) => `${weight} ${token(name)} ${FONT}`; // a font of the token sheet's type size, as the page draws it
   const badge = () => { pen.font = type(600, "--type-01"); return Math.max(22, Math.ceil(pen.measureText("G✓").width) + 8) + 6; }; // a badge, at least 22 px or its text and padding, then its gap and ring
   function size(level, fit, grown = 1) { // a node as wide as its label needs: every node of a roomy level alike, each its own on a dense one
