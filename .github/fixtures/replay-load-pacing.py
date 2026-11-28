@@ -8,8 +8,9 @@ usage: replay-load-pacing.py
 Cases:
 - `idle`: under a load of 0 the runners overlap;
 - `loaded`: under a load above the CPU count they run one at a time, each starting within 3 s of the previous one's end, which wakes it;
-- `woken`: under that load, from 1.5 s after the first runner starts the load is 0 and 2 s later another process marks a job end; the next
-  runner starts within 1.5 s of the mark, not before it, while the first still runs, so neither a timer nor the first's end woke it.
+- `woken`: under that load, from 1.5 s after the first runner starts the load is 0 and 2 s later, then in a second check 2.8 s later,
+  another process marks a job end; each time the next runner starts within 0.7 s of the mark, not before it, while the first still
+  runs, so neither the first's end nor a timer of any one period, which would start it within 0.7 s of both marks, woke it.
 Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for any argument. Standard library only, Python 3.9."""
 
 import os
@@ -76,21 +77,23 @@ def main(args):
         gaps = [later[0] - earlier[0] for earlier, later in zip(events[1::2], events[2::2])]
         step("loaded", overlaps(events) == 1 and len(gaps) == 2 and max(gaps) < 3, (events, out))
 
-        marked = []
-
-        def fall():
+        def fall(pause):
             while "start" not in log.read_text():
                 time.sleep(0.1)
             time.sleep(1.5)  # past the gate's 1 s spacing, so its next start waits on the mark alone
             load.write_text("0")
-            time.sleep(2)
+            time.sleep(pause)
             (scratch / "config").mkdir(exist_ok=True)
             (scratch / "config" / "check-job-ends").touch()
             marked.append(time.time())
 
-        events, out = check(many, fall)
-        second = [when for when, kind, _ in events if kind == "start"][1:2]
-        step("woken", second and 0 <= second[0] - marked[0] < 1.5 and overlaps(events) > 1, (marked, events, out))
+        woken = []
+        for pause in (2, 2.8):
+            marked = []
+            events, out = check(many, lambda: fall(pause))
+            second = [when for when, kind, _ in events if kind == "start"][1:2]
+            woken.append((bool(second and 0 <= second[0] - marked[0] < 0.7 and overlaps(events) > 1), marked, events, out))
+        step("woken", all(held for held, *_ in woken), woken)
     print("PASS" if passed else "FAIL")
     return 0 if passed else 1
 
