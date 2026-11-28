@@ -43,7 +43,7 @@ def main(args):
         while spinning(mark.split("=")[1]) and time.monotonic() < deadline:
             time.sleep(0.5)
         left[runner] = (killed, started, spinning(mark.split("=")[1]))
-        for pid in left[runner][1]:
+        for pid in left[runner][2]:
             os.kill(pid, signal.SIGKILL)
     cases.step("ended", all(killed and started and not after for killed, started, after in left.values()), left)
     return cases.finish()
