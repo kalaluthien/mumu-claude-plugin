@@ -15,7 +15,7 @@ import replay_probe  # noqa: E402
 RUN = SKILL / "scripts" / "run-criteria.py"
 LIMIT = 10
 CODE = (f"import importlib.util, sys; spec = importlib.util.spec_from_file_location('run_criteria', {str(RUN)!r}); module = importlib.util.module_from_spec(spec); "
-        f"spec.loader.exec_module(module); module.run_limit = {LIMIT * 4}; print(module.run('cat >/dev/null; echo PASS', '.', {LIMIT}))")
+        f"spec.loader.exec_module(module); module.run_limit = {LIMIT * 4}; print(module.run('cat >/dev/null; echo PASS', sys.argv[1], {LIMIT}))")
 
 
 def main(args):
@@ -23,7 +23,12 @@ def main(args):
         print(__doc__, file=sys.stderr)
         return 2
     cases = replay_probe.Cases("check stdin")
-    holder = subprocess.Popen([sys.executable, "-c", CODE], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)  # the pipe stays open until this call ends
+    with replay_probe.scratch("check-stdin-") as work:  # a check's folder under the temp folder is searched for strays, which this runner must not be
+        return run(cases, work)
+
+
+def run(cases, work):
+    holder = subprocess.Popen([sys.executable, "-c", CODE, str(work)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)  # the pipe stays open until this call ends
     try:
         out = holder.stdout.readline()
     finally:
