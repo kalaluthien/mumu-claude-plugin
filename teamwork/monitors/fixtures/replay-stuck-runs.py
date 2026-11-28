@@ -7,6 +7,7 @@ that sleeps; and `c-none`, whose session id is empty. Under limits of 1.5 s with
 60 minutes none gets either. Print `PASS` or `FAIL: <what it saw>`, and exit 1 on FAIL.
 
 usage: replay-stuck-runs.py"""
+import os
 import pathlib
 import subprocess
 import sys
@@ -18,7 +19,10 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
-SPIN, SLEEP = 'import time; t = time.time(); exec("while time.time() - t < 120: pass")', "import time; time.sleep(120)"  # each ends on its own, so a killed runner leaves none
+RUNNER = os.getpid()
+# a runner killed at a sweep's limit leaves no spinner, and a sleeper ends on its own
+SPIN = f'import os, time; t = time.time(); exec("while time.time() - t < 120: os.kill({RUNNER}, 0)")'  # the call fails, and the spinner ends, once the runner is gone
+SLEEP = "import time; time.sleep(120)"
 CODE = {"none": None, "sleep": SLEEP, "busy": SPIN, "check": SPIN,
         "wait": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SPIN}']); {SLEEP}",
         "nest": f"import subprocess, sys; subprocess.Popen([sys.executable, '-c', '{SLEEP}']); {SLEEP}", "mate": SPIN}
