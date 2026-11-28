@@ -17,7 +17,10 @@ Cases:
 - `runners`: a `fixtures/replay-*` runner in Python and one in TypeScript each run once, by their interpreter;
 - `fresh-step`, `fresh-script`, `fresh-all`: on the same files, a fresh set naming one step runs it alone, one naming the script runs
   each of its steps, and `True` runs every call;
-- `no-git`: a copy outside git runs each step on every check.
+- `no-git`: a copy outside git runs each step on every check;
+- `node`: a `.cjs` script's step runs by node, beside the plugin-wide runners its new file reruns;
+- `broken`, `slow`, `missing`: a `steps` call that exits non-zero, runs past STEPS_SECONDS or whose interpreter is missing is named
+  and none of its steps run.
 Exits 0 on `PASS`, 1 on `FAIL`, 2 with this text for any argument. Standard library only, Python 3.9."""
 
 import importlib.util
@@ -41,8 +44,11 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 if sys.argv[1:] == ["steps"]:
+    if (HERE / "slow").exists():
+        import time
+        time.sleep(5)
     print("" if (HERE / "unlisted").exists() else "one\\ntwo")
-    sys.exit(0)
+    sys.exit(1 if (HERE / "broken").exists() else 0)
 with open(HERE.parents[3] / "calls.log", "a") as log:
     log.write(" ".join(sys.argv[1:]) + "\\n")
 if sys.argv[1:] == ["two"] and (HERE / "fail").exists():
@@ -64,6 +70,12 @@ RUNNER = '''import pathlib
 
 with open(pathlib.Path(__file__).resolve().parents[2] / "calls.log", "a") as log:
     log.write("python\\n")
+'''
+
+NODE = '''// usage: run-node.cjs steps
+const fs = require("fs");
+if (process.argv[2] === "steps") console.log("three");
+else fs.appendFileSync(`${__dirname}/../../../../calls.log`, process.argv[2] + "\\n");
 '''
 
 
@@ -120,7 +132,7 @@ def main(args):
         plant("plugin/skills/skill/scripts/check-stub.py", FIXTURES)
         got = check()
         step("fixtures", got == (["fixtures"], [f"fixture {SCRIPT} steps: exit 0, no step listed"]), got)
-        plant("plugin/lib/run-lib.py", STUB)
+        plant("plugin/skills/skill/lib/run-lib.py", STUB)
         plant("plugin/skills/skill/scripts/run-stub.sh", STUB)
         got = check()
         step("not-stepped", got == (["fixtures"], [f"fixture {SCRIPT} steps: exit 0, no step listed"]), got)
@@ -141,6 +153,24 @@ def main(args):
             shutil.copytree(root, copy, ignore=shutil.ignore_patterns(".git"))
             runs = [check(where=copy) for _ in range(2)]
             step("no-git", all(got == (["fixtures", "one", "python", "two", "typescript"], []) for got in runs), runs)
+        plant("plugin/skills/node/scripts/run-node.cjs", NODE)
+        got = check()
+        step("node", got == (["fixtures", "python", "three", "typescript"], []), got)
+        for name, flag, setting, failure in (
+                ("broken", "broken", None, "exit 1, no step listed"),
+                ("slow", "slow", ("STEPS_SECONDS", 1), "Command"),
+                ("missing", None, ("INTERPRETERS", {**CHECK.INTERPRETERS, ".py": [str(root / "missing")]}), "[Errno")):
+            if flag:
+                plant(f"plugin/skills/skill/scripts/{flag}", "")
+            kept = setting and getattr(CHECK, setting[0])
+            if setting:
+                setattr(CHECK, *setting)
+            calls, failures = check(True)
+            if setting:
+                setattr(CHECK, setting[0], kept)
+            if flag:
+                (root / "plugin/skills/skill/scripts" / flag).unlink()
+            step(name, "one" not in calls and any(line.startswith(f"fixture {SCRIPT} steps: {failure}") for line in failures), (calls, failures))
     print("PASS" if passed else "FAIL")
     return 0 if passed else 1
 

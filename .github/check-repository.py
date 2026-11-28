@@ -35,7 +35,8 @@ OPTION_SUMMARY = re.compile(r"^\d+ scripts, \d+ calls, \d+ not answered$", re.M)
 RUNNER = re.compile(r"(?:^|/)fixtures/replay-[^/]+\.(?:py|ts)$")
 FIXTURES_CALL = re.compile(r"^(?:usage:)? *\S+\.py fixtures\b", re.M)  # a skill script that checks the fixtures beside it
 STEPS_CALL = re.compile(r"^(?://|#)? *usage: *\S+ steps\b", re.M)  # a skill script whose steps run one by one, each on its skill's files
-INTERPRETERS = {".py": [sys.executable], ".ts": ["bun"], ".cjs": ["node"], ".js": ["node"]}
+INTERPRETERS = {".py": [sys.executable], ".ts": ["bun"], ".cjs": ["node"]}
+STEPS_SECONDS = 60  # a `steps` call only prints its words
 RUNNER_SECONDS = 1200
 STAND_IN = "#!/bin/sh\necho 'a fixture runner may not start a live session' >&2\nexit 1\n"
 LISTERS = (  # each lister's script, the failure lines it prints and its summary line; without the summary a lister that printed nothing would pass
@@ -272,12 +273,15 @@ def passes_folder(root):
 
 
 def runner_marker(root, files, folder, path, argv, step=False):
-    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins; for one STEP of a skill script, those of its skill's folder and its plugin's `lib/`, since a step reads only them, so a change elsewhere in its plugin replays it."""
+    """The marker file of a pass of runner PATH on its files: those of its plugin's folder, `.github/`, `.claude-plugin/` and the root, or all of them for a runner of `.github/` or one whose source names `.github`, since it reads other plugins; for a STEP of a skill script, those of its skill's folder and its plugin's `lib/`, since a step reads only them, so a change elsewhere in its plugin replays it."""
+    if step:
+        parts = path.split("/")
+        own = ("/".join(parts[:3]) + "/", parts[0] + "/lib/")
+        return folder / hashlib.sha256("\0".join([files_digest(root, files, own, False), *argv]).encode()).hexdigest()[:32]
     with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
-        wide = not step and (path.startswith(".github/") or ".github" in handle.read())
-    parts = path.split("/")
-    folders = ("/".join(parts[:3]) + "/", parts[0] + "/lib/") if step else ("",) if wide else (parts[0] + "/", ".github/", ".claude-plugin/")
-    digest = hashlib.sha256("\0".join([files_digest(root, files, folders, not wide and not step), *argv]).encode()).hexdigest()[:32]
+        wide = path.startswith(".github/") or ".github" in handle.read()
+    folders = ("",) if wide else (path.split("/")[0] + "/", ".github/", ".claude-plugin/")
+    digest = hashlib.sha256("\0".join([files_digest(root, files, folders, not wide), *argv]).encode()).hexdigest()[:32]
     return folder / digest
 
 
@@ -285,7 +289,7 @@ def runner_steps(root, path, environment):
     """The calls of each step skill script PATH lists by its `steps` call, one per line, or a failure line when it lists none."""
     interpreter = INTERPRETERS[os.path.splitext(path)[1]]
     try:
-        listed = subprocess.run([*interpreter, path, "steps"], cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=60)
+        listed = subprocess.run([*interpreter, path, "steps"], cwd=root, env=environment, stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=STEPS_SECONDS)
     except (OSError, subprocess.TimeoutExpired) as error:
         return [], "fixture {} steps: {}".format(path, error)
     steps = listed.stdout.split()
@@ -300,7 +304,7 @@ def run_fixtures(root, files, failures, fresh):
     calls, stepped = [], []
     for path in files:
         if RUNNER.search(path) and not path.endswith("/" + OPTION_REPLAY):
-            calls.append((path, ["bun", path] if path.endswith(".ts") else [sys.executable, path], None))
+            calls.append((path, [*INTERPRETERS[os.path.splitext(path)[1]], path], None))
         elif re.search(r"(?:^|/)skills/[^/]+/scripts/[^/]+$", path) and os.path.splitext(path)[1] in INTERPRETERS:
             with open(os.path.join(root, path), encoding="utf-8", errors="replace") as handle:
                 source = handle.read()
