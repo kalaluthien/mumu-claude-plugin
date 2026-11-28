@@ -4,6 +4,7 @@
 with no CPU the heartbeat prints no `stuck` line, since the call as a whole uses CPU. Print `PASS` or `FAIL: <what it saw>`, and exit 1 on FAIL.
 
 usage: replay-shell-pipeline-runs.py"""
+import os
 import pathlib
 import subprocess
 import sys
@@ -15,7 +16,10 @@ sys.path.insert(0, str(ROOT / "lib"))
 import replay_probe  # noqa: E402
 
 MONITOR = ROOT / "monitors" / "print-team-gaps.py"
-SPIN, SLEEP = 'import time; t = time.time(); exec("while time.time() - t < 120: pass")', "import time; time.sleep(120)"  # each ends on its own, so a killed runner leaves none
+RUNNER = os.getpid()
+# a runner killed at a sweep's limit leaves no spinner, and a sleeper ends on its own
+SPIN = f'import os, time; t = time.time(); exec("while time.time() - t < 120: os.kill({RUNNER}, 0)")'  # the call fails, and the spinner ends, once the runner is gone
+SLEEP = "import time; time.sleep(120)"
 POLLS = 15  # 0.3 s apart, so a run is read for longer than the 1.5 s limit
 WAIT_SECONDS = 60
 
