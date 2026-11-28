@@ -89,7 +89,8 @@ def runs(session_ids):
     owner = {pid: next((session_id for session_id in session_ids if session_id and f" CLAUDE_CODE_SESSION_ID={session_id}" in command), None)
              for pid, (_, _, _, command) in processes.items()}
     for pid, (parent, *_) in processes.items():  # a system shell shows no environment, so it takes its owned child's session, or the child's pipeline mates would each be a run
-        if SYSTEM_SHELL.match(processes.get(parent, (0, 0, 0, ""))[3]):
+        shell = processes.get(parent)
+        if shell and SYSTEM_SHELL.match(shell[3]):
             owner[parent] = owner[parent] or owner[pid]
     found = {session_id: [] for session_id in session_ids}
     for pid, (parent, _, _, command) in processes.items():

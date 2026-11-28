@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Run the heartbeat `print-team-gaps.py --polls <n>` as a manager on a sandbox repository with a git board and the fake herdr, over a worker whose session runs
-`/bin/sh -c`, a system binary `ps -E` shows no environment for, with one process that sleeps and one that spins beside it, as a pipeline of one tool call does. Under a limit of 1.5 s
+`/bin/sh -c`, a system binary `ps -E` shows no environment for, with a process that spins, one that sleeps and a system `sleep` that shows no environment either, as a pipeline of one tool call does. Under a limit of 1.5 s
 with no CPU the heartbeat prints no `stuck` line, since the call as a whole uses CPU. Print `PASS` or `FAIL: <what it saw>`, and exit 1 on FAIL.
 
 usage: replay-shell-pipeline-runs.py"""
@@ -27,7 +27,7 @@ def main(args):
     with replay_probe.scratch("shell-pipeline-runs-") as work:
         token = f"sess-pipeline-{uuid.uuid4().hex}"
         sandbox = replay_probe.Sandbox(work, [replay_probe.agent("x-manager", 1, "working"), replay_probe.agent("c-pipe-worker", 2, "working", agent_session={"value": token})])
-        call = f'"{sys.executable}" -c \'{SPIN}\' | "{sys.executable}" -c \'{SLEEP}\''
+        call = f'"{sys.executable}" -c \'{SPIN}\' | "{sys.executable}" -c \'{SLEEP}\' | /bin/sleep 120'
         started = replay_probe.Group(["/bin/sh", "-c", call], env={**sandbox.environment, "CLAUDE_CODE_SESSION_ID": token},
                                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
