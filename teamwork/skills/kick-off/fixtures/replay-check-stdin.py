@@ -15,7 +15,7 @@ import replay_probe  # noqa: E402
 RUN = SKILL / "scripts" / "run-criteria.py"
 LIMIT = 10
 CODE = (f"import importlib.util, sys; spec = importlib.util.spec_from_file_location('run_criteria', {str(RUN)!r}); module = importlib.util.module_from_spec(spec); "
-        f"spec.loader.exec_module(module); module.run_limit = {LIMIT * 4}; print(module.run('cat >/dev/null; echo PASS', sys.argv[1], {LIMIT}))")
+        f"spec.loader.exec_module(module); module.run_limit, module.call_limit = {LIMIT * 4}, {LIMIT}; print(module.run('cat >/dev/null; echo PASS', sys.argv[1], {LIMIT}))")
 
 
 def main(args):
