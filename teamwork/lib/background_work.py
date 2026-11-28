@@ -70,6 +70,9 @@ def clock_seconds(clock):
         return None
 
 
+SYSTEM_SHELL = re.compile(r"/(?:usr/)?bin/(?:zsh|bash|sh)\b")
+
+
 def runs(session_ids):
     """Per session id, each process tree it still runs, as (root pid, root command, the tree's pids and CPU seconds, its oldest `run-criteria.py` as
     (seconds, command) or None); a root is a process carrying the id whose parent does not, and its tree is every process under it, the system
@@ -85,6 +88,9 @@ def runs(session_ids):
         children.setdefault(parent, []).append(pid)
     owner = {pid: next((session_id for session_id in session_ids if session_id and f" CLAUDE_CODE_SESSION_ID={session_id}" in command), None)
              for pid, (_, _, _, command) in processes.items()}
+    for pid, (parent, *_) in processes.items():  # a system shell shows no environment, so it takes its owned child's session, or the child's pipeline mates would each be a run
+        if parent in owner and owner[parent] is None and owner[pid] and SYSTEM_SHELL.match(processes[parent][3]):
+            owner[parent] = owner[pid]
     found = {session_id: [] for session_id in session_ids}
     for pid, (parent, _, _, command) in processes.items():
         if owner[pid] is None or owner.get(parent) == owner[pid] or "/monitors/print-team-gaps.py " in command:
