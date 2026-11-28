@@ -40,11 +40,11 @@ def blockers_of(node):
     return [{"number": blocker["number"], "closed": task_links.completed(blocker)} for blocker in (node.get("blockedBy") or {}).get("nodes", [])]
 
 
-def entry(node, superseded=frozenset()):
-    """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
+def entry(node, superseded=frozenset(), live=None):
+    """One task as the board shows it, its holders among LIVE, the live sessions' names (every recorded one when None): its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
-    state = task_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers)
+    state = task_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers, live)
     summary = node.get("partsSummary") or {}
     closed = [{"number": task["number"], "title": task["title"], "url": task["url"], "blockers": blockers_of(task),
                "stopped": task["state"] == "stopped"} for task in (node.get("parts") or {}).get("nodes", []) if task["state"] != "open"]
@@ -65,11 +65,11 @@ def need_of(task):
     return min([own] + [part[0] for part in parts]), max([task["latest"]] + [part[1] for part in parts])
 
 
-def board(nodes):
+def board(nodes, live=None):
     """The open tasks as a tree: parts under their parent by number, roots by what they need: the owner's answer first, then held, then blocked or unheld,
-    the latest comment first in each."""
+    the latest comment first in each, its holders among LIVE as `entry` says."""
     superseded = decisions.superseded_in(nodes)
-    items = {node["number"]: entry(node, superseded) for node in nodes}
+    items = {node["number"]: entry(node, superseded, live) for node in nodes}
     top = []
     for node in nodes:
         parent = (node["parent"] or {}).get("number")

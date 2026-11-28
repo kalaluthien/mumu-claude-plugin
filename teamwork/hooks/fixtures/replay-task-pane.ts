@@ -70,7 +70,7 @@ const $ = {
       reads++
       return { exitCode: 0, stdout: listed(...argv.slice(2)), stderr: '' }
     },
-    spawn: () => (async function* () { yield { text: 'changed' } })(),
+    spawn: () => (async function* () { yield { text: 'changed' }; await new Promise(() => undefined) })(),  // a waiter never ends, since an end is drawn as a fault and started again
   },
 }
 const draw = (props: object) => drawPane($, props)

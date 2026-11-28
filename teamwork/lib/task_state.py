@@ -240,17 +240,11 @@ def live_runs(task):
     return next((held["live_runs"] for _, held, _ in reversed(records(task)) if "live_runs" in held), None)
 
 
-def live_names():
-    """The live sessions' names, or None when the session host gave no list, so a reader outside it keeps the recorded holders."""
-    import session  # here, since the session port loads the agent adapter, which a board reader outside a host never needs
-    return session.live_names()
-
-
-def compose(task, blockers=()):
-    """{'holders': the latest names that are live sessions, every recorded one when the host gives no list, or None when no record ever set them;
+def compose(task, blockers=(), live=None):
+    """{'holders': the latest names among LIVE, the live sessions' names, every recorded one when LIVE is None, as when the host gives no list, or None when no record ever set them;
     'was': the recorded names no longer live; 'waits': its wait line, in the grammar's order;
     'done': the body's criteria, each {'met': True, False or None when it has no box, 'kind', 'name', 'detail'}}."""
-    recorded, live = (holder_values(task) or [None])[-1], live_names()
+    recorded = (holder_values(task) or [None])[-1]
     holders = recorded if recorded is None or live is None else [name for name in recorded if name in live]
     was = [name for name in recorded or [] if name not in holders]
     if any(question["fields"].get("asks") == "owner" for question in open_questions(task)):

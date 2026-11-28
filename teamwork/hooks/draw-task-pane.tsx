@@ -60,13 +60,16 @@ function watch($: any, name: string) {
   void openPane($).catch(() => undefined)
   // a failed read is tried again after a pause, since the next team change may be far off
   let retry: { cancel: () => void } | undefined
+  // the reads started, so a read that a later one overtook leaves the board the later one drew
+  let started = 0
   const load = async () => {
     retry?.cancel()
+    const turn = ++started
     try {
       const width = laidWidth
       const run = await $.process.run([`${$.plugin.root}/hooks/list-task-board.py`, project, '--json', ...(width > FOLD ? ['--width', String(width - FOLD)] : [])],
         { cwd: startFolder, timeoutMs: 60000 })
-      if (width !== laidWidth) return  // a resize during the read started a read for the new width
+      if (turn !== started) return  // a later read, for a new width or a new change, draws instead
       if (run.exitCode === 0) {
         await update($, board, () => JSON.parse(run.stdout) as BoardTask[])
         await update($, loaded, () => true)
@@ -79,18 +82,26 @@ function watch($: any, name: string) {
     }
   }
   relayout = () => { retry?.cancel(); retry = $.clock.after(0, () => void load()) }
-  void (async () => {
-    const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`] })
-    let changes = 0  // the waiter's first line comes at its start, every later one at a board change
-    for await (const piece of waiter) {
-      if (!('text' in piece)) break
-      await load()
-      if (changes++ === 0) continue
-      // a board change opens a pane the person closed
-      await update($, dismissed, () => false).catch(() => undefined)
-      await openPane($).catch(() => undefined)
+  // a waiter that ends is said in the pane and started again, since the pane would otherwise keep a board no change rereads
+  const wait = async () => {
+    try {
+      const waiter = $.process.spawn({ argv: [`${$.plugin.root}/hooks/wait-team-change.py`], cwd: startFolder })
+      let changes = 0  // the waiter's first line comes at its start, every later one at a board change
+      for await (const piece of waiter) {
+        if (!('text' in piece)) break
+        await load()
+        if (changes++ === 0) continue
+        // a board change opens a pane the person closed
+        await update($, dismissed, () => false).catch(() => undefined)
+        await openPane($).catch(() => undefined)
+      }
+    } catch (error) {
+      await update($, failure, () => `the change waiter failed: ${error}`).catch(() => undefined)
     }
-  })()
+    await update($, failure, old => old || 'the change waiter ended; it starts again shortly').catch(() => undefined)
+    $.clock.after(RETRY_MS, () => void wait())
+  }
+  void wait()
 }
 
 type Spans = [number, number][]

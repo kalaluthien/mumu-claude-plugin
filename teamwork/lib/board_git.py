@@ -1,6 +1,8 @@
 """The board kept in git: the records `board_records` lays out, as the tree of the commit `refs/teamwork-blackboard` names in the current folder's repository,
-which every worktree shares. Each write is one commit, swapped in only while the ref still names the commit the write read, else run again from
+which every worktree shares. A reader keeps the tree it last read, with that commit as its cursor, in the repository's `.teamwork/board-projection/`, and reads
+only the files changed since, so a new process reads what the last one did not. Each write is one commit, swapped in only while the ref still names the commit the write read, else run again from
 the new one, so concurrent writers never lose each other's records; `git log refs/teamwork-blackboard` shows every write. Nothing here pushes the ref."""
+import json
 import os
 import pathlib
 import random
@@ -24,7 +26,9 @@ class GitFailed(Exception):
 
 class Ref(board_records.Store):
     def __init__(self):
-        self.common, self.tip, self.files, self.folders, self.places = None, None, {}, {}, {}
+        self.common, self.tip, self.files, self.folders, self.places, self.memo = None, None, {}, {}, {}, {}
+        self.blobs_read = 0  # the blobs the last refresh read, which a reader's cost follows
+        self.loaded = None  # the commit of the projection this reader loaded whole, if any
 
     def git(self, *args, data=None, env=None, check=True):
         if self.common is None:
@@ -37,21 +41,74 @@ class Ref(board_records.Store):
             raise GitFailed(f"git {args[0]}: {run.stderr.decode(errors='replace').strip()}")
         return run
 
+    def blobs(self, ids):
+        """The texts of the blobs IDS, read in one batch."""
+        output = self.git("cat-file", "--batch", data="".join(f"{blob}\n" for blob in ids).encode()).stdout if ids else b""
+        texts, at = [], 0
+        for _ in ids:
+            header_end = output.index(b"\n", at)
+            size = int(output[at:header_end].split()[2])
+            texts.append(output[header_end + 1:header_end + 1 + size].decode())
+            at = header_end + 1 + size + 1
+        self.blobs_read += len(ids)
+        return texts
+
+    def fold(self, tip):
+        """The files of TIP's tree, from the kept tree of an earlier commit and only the files changed since it, else from the whole tree."""
+        base, files = self.tip, self.files
+        if not base:
+            self.loaded, files = self.saved()
+            base = self.loaded
+        if base and tip:
+            changed = self.git("diff-tree", "-r", "-z", "--no-renames", base, tip, check=False)
+            if changed.returncode == 0:
+                fields = changed.stdout.decode().split("\0")
+                gone, paths, ids = [], [], []
+                for head, path in zip(fields[0::2], fields[1::2]):
+                    blob, status = head.split()[3], head.split()[4]
+                    (gone.append(path) if status == "D" else (paths.append(path), ids.append(blob)))
+                files = {**files, **dict(zip(paths, self.blobs(ids)))}
+                for path in gone:
+                    files.pop(path, None)
+                return files
+        if not tip:
+            return {}
+        entries = [line.split("\t", 1) for line in self.git("ls-tree", "-r", "-z", tip).stdout.decode().split("\0") if line]
+        return dict(zip([path for _, path in entries], self.blobs([head.split()[2] for head, _ in entries])))
+
+    def projection(self):
+        """The projection file; only a refresh, which ran git in this repository first, asks for it, so its folder exists."""
+        return data_folder.folder("board-projection") / "tree.json"
+
+    def saved(self):
+        """The commit and files the last reader of this repository kept, or (None, {}) when none was kept or it cannot be read."""
+        try:
+            tip, files = self.projection().read_text().split("\n", 1)
+            return tip, json.loads(files)
+        except (OSError, ValueError):  # a projection cut short or damaged is read again from the tree
+            return None, {}
+
+    def save(self):
+        """Keeps the tree just read, its commit on the first line, replacing the file at once, so a reader racing this one reads one whole projection or the last;
+        a projection this reader loaded whole at the same commit is left as it is."""
+        if self.loaded == self.tip:
+            return
+        path = self.projection()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            spare = path.with_name(f"{path.name}.{os.getpid()}-{threading.get_ident()}")
+            spare.write_text(f"{self.tip}\n{json.dumps(self.files)}")
+            os.replace(spare, path)
+        except OSError:  # a reader that cannot keep its projection still read the board
+            pass
+
     def refresh(self):
         """Reads the tree of the ref's commit, once per commit, since a reader such as the task pane reads again on every signal."""
         tip = self.git("rev-parse", "-q", "--verify", f"{REF}^{{commit}}", check=False).stdout.decode().strip()
         if tip == self.tip:
             return
-        files = {}
-        if tip:
-            entries = [line.split("\t", 1) for line in self.git("ls-tree", "-r", "-z", tip).stdout.decode().split("\0") if line]
-            output = self.git("cat-file", "--batch", data="".join(f"{head.split()[2]}\n" for head, _ in entries).encode()).stdout
-            at = 0
-            for _, path in entries:
-                header_end = output.index(b"\n", at)
-                size = int(output[at:header_end].split()[2])
-                files[path] = output[header_end + 1:header_end + 1 + size].decode()
-                at = header_end + 1 + size + 1
+        self.blobs_read = 0
+        files = self.fold(tip)
         folders = {}
         for path in files:
             parts = path.split("/")
@@ -62,7 +119,9 @@ class Ref(board_records.Store):
             *folder, number, name = ["", *path.split("/")]
             if name == board_records.RECORD and number.isdigit():
                 places[int(number)] = "/".join(folder[1:])
-        self.tip, self.files, self.folders, self.places = tip, files, folders, places
+        self.tip, self.files, self.folders, self.places, self.memo = tip, files, folders, places, {}
+        if tip:
+            self.save()
 
     def homes(self):
         return self.places

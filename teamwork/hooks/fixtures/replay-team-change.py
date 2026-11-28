@@ -5,7 +5,8 @@
 usage: replay-team-change.py
 - first: one `changed` comes at start, before any mark;
 - burst: three touches a moment apart give one more `changed`, and no other once the file has stayed quiet past the script's QUIET;
-- deleted: deleting the file gives one more `changed`, and a touch after that gives another, so the watch outlives the file it watched."""
+- deleted: deleting the file gives one more `changed`, and a touch after that gives another, so the watch outlives the file it watched;
+- elsewhere: a mark in another repository gives none, since each repository's readers wait on its own."""
 import pathlib
 import sys
 import time
@@ -35,12 +36,13 @@ def main(args):
     cases = replay_probe.Cases("team change")
     with replay_probe.scratch("team-change-") as work:
         sandbox = replay_probe.Sandbox(work)
-        signal = pathlib.Path(sandbox.environment["CLAUDE_CONFIG_DIR"]) / "teamwork" / "tasks-changed"
+        signal = sandbox.repository / ".git" / "teamwork-tasks-changed"
+        other = sandbox.init(work / "other") / ".git" / "teamwork-tasks-changed"
         log = work / "watch.log"
         watcher = sandbox.start([sys.executable, WATCHER], log)
         try:
             seen = lines(log, 1)
-            cases.step("first", seen == ["changed"] and signal.exists(), f"{seen}, signal file there: {signal.exists()}")
+            cases.step("first", seen == ["changed"], seen)
             for _ in range(3):
                 signal.touch()
                 time.sleep(0.3)
@@ -51,6 +53,9 @@ def main(args):
             signal.touch()
             seen = lines(log, 4)
             cases.step("deleted", deleted == ["changed"] * 3 and seen == ["changed"] * 4, f"after the delete {deleted}, after the touch {seen}")
+            other.touch()
+            seen = lines(log, 5)
+            cases.step("elsewhere", seen == ["changed"] * 4, seen)
         finally:
             watcher.kill()
             watcher.wait()

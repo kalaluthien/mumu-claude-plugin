@@ -100,7 +100,7 @@ def read_task(options):
     hidden = role == "worker" or role is None and board.writer().role == "worker"
     tasks = decisions.read(options.task, board.fresh)
     task = tasks[options.task]
-    state = task_state.compose(task, board.blockers(task["number"]))
+    state = task_state.compose(task, board.blockers(task["number"]), session.live_names())
     print(f"#{task['number']} {task['title']}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'open' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
           f"{'scope: ' + (task['scope'] or '(repository root)') + chr(10) if 'scope' in task else ''}labels: {', '.join(task['labels'])}\nparent: {task['parent']}\n"
           f"depends: {' '.join(f'#{number}' for number in task['depends'])}\nbody sha: {board.body_sha(task['body'])}\n\n{task['body']}\n")

@@ -1,25 +1,17 @@
 #!/usr/bin/env python3
-"""Print `changed` once at start, then once per burst of marks by team sessions to the tasks, after the file has been quiet for QUIET seconds, until killed.
+"""Print `changed` once at start, then once per burst of marks by team sessions to the tasks of the current folder's repository, after the mark has been quiet for QUIET seconds, until killed.
 
 usage: wait-team-change.py
-It blocks on the signal file through kqueue, so it reads no board and wakes only when a session touches the file."""
+It looks at the signal file's change time every POLL seconds, so it reads no board and runs on any OS."""
 import pathlib
-import select
 import sys
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import team_signal  # noqa: E402
 
+POLL = 1  # seconds between looks at the signal file
 QUIET = 2  # seconds without a mark that end a burst
-EVENTS = select.KQ_NOTE_WRITE | select.KQ_NOTE_ATTRIB | select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME
-
-
-def watch(queue):
-    """A watch on the signal file, made anew when it is missing, since a deleted file's watch never fires again."""
-    team_signal.touch()
-    handles = [open(team_signal.SIGNAL)]
-    queue.control([select.kevent(handle, select.KQ_FILTER_VNODE, select.KQ_EV_ADD | select.KQ_EV_CLEAR, EVENTS) for handle in handles], 0)
-    return handles
 
 
 def main(args):
@@ -29,18 +21,16 @@ def main(args):
     if args:
         print(__doc__, file=sys.stderr)
         return 2
-    queue = select.kqueue()
-    handles = watch(queue)
+    seen = team_signal.stamp()
     print("changed", flush=True)
     while True:
+        time.sleep(POLL)
+        if team_signal.stamp() == seen:
+            continue
         # one `changed` per burst: a session often marks several writes in a row, and each would otherwise read the board
-        event = queue.control(None, 1)
-        while event:
-            if event[0].fflags & (select.KQ_NOTE_DELETE | select.KQ_NOTE_RENAME):
-                for handle in handles:
-                    handle.close()
-                handles = watch(queue)
-            event = queue.control(None, 1, QUIET)
+        while team_signal.stamp() != seen:
+            seen = team_signal.stamp()
+            time.sleep(QUIET)
         print("changed", flush=True)
 
 

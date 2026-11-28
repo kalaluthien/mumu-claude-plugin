@@ -27,8 +27,8 @@ const $ = {
       reads++
       return { exitCode, stdout: exitCode === 0 ? '[]' : '', stderr: exitCode === 0 ? '' : 'list-task-board: the git board read failed' }
     },
-    // the waiter says `changed` at its start, as wait-team-change.py does, then once at `teamChange()`
-    spawn: () => (async function* () { yield { text: 'changed' }; await new Promise(done => { teamChange = done }); yield { text: 'changed' } })(),
+    // the waiter says `changed` at its start, as wait-team-change.py does, then once at `teamChange()`, and never ends, since an end is drawn as a fault
+    spawn: () => (async function* () { yield { text: 'changed' }; await new Promise(done => { teamChange = done }); yield { text: 'changed' }; await new Promise(() => undefined) })(),
   },
 }
 const draw = (props: object) => drawPane($, props)

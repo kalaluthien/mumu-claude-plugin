@@ -17,7 +17,7 @@ import team_balance
 from session import screen, sessions, tabs
 from team_names import crowding, members, owns, project, role
 
-TASK_LIMIT, PULL_LIMIT = 200, 50
+PULL_LIMIT = 50
 STUCK_SECONDS = float(os.environ.get("TEAMWORK_STUCK_SECONDS", 900))  # a run that waits this long with no CPU waits on what never comes, or on the owner
 SLOW_SECONDS = float(os.environ.get("TEAMWORK_SLOW_SECONDS", 3600))  # a check run this long holds its worker idle, so the manager weighs a narrower one
 
@@ -27,10 +27,9 @@ STEP_REPORTS = ("criteria at ", "task filed")
 
 def tasks(scope=None, state="open"):
     try:
-        found = board.tasks(state, scope)
+        return board.tasks(state, scope)
     except LookupError:  # a session whose folder lies outside a repository has no board to read, as a failed read has none
         return None
-    return found and found[:TASK_LIMIT]
 
 
 def holds(task, name):

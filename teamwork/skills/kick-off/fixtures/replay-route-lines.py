@@ -12,6 +12,7 @@ with the real heartbeat monitor run for a set number of polls, and print `ok <ca
 usage: replay-route-lines.py
 It prints `PASS` last when every case passed, else `FAIL`."""
 import json
+import os
 import pathlib
 import sys
 
@@ -41,8 +42,15 @@ class Team:
         return number
 
     def outside(self, *argv):
-        """A board write no team session signals, as the owner's on the web, so a heartbeat keeps the board it read before it."""
-        return self.use(*argv, CLAUDE_CONFIG_DIR=self.work / "outside")
+        """A board write that leaves the change signal's time as it was, as a write by a plain git push does, so a heartbeat keeps the board it read before it."""
+        signal = self.sandbox.repository / ".git" / "teamwork-tasks-changed"
+        times = signal.stat() if signal.exists() else None
+        written = self.use(*argv)
+        if times:
+            os.utime(signal, ns=(times.st_atime_ns, times.st_mtime_ns))
+        else:
+            signal.unlink(missing_ok=True)
+        return written
 
     def heartbeat(self, kind, pane="w1:p1", polls=1):
         """The lines starting with KIND that the monitor of PANE printed in POLLS polls, and its exit when not 0."""

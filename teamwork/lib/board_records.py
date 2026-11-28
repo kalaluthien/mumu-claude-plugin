@@ -29,6 +29,15 @@ class Store:
     """The writes staged by the change a store is keeping, which reads see first, so a change reads what it already wrote."""
     pending = None
     author = None
+    memo = None  # what a reader derived from the files, which a store that refreshes empties when they change
+
+    def derived(self, key, build):
+        """BUILD's result, kept per KEY until the files change, but built anew inside a change, whose staged files it must see."""
+        if self.pending is not None or self.memo is None:
+            return build()
+        if key not in self.memo:
+            self.memo[key] = build()
+        return self.memo[key]
 
     def read(self, path):
         if self.pending is not None and path in self.pending:
@@ -166,7 +175,9 @@ def fresh(store, number, comments=True):
 def comments_since(store, since):
     store.view()
     parents = owners(store)
-    return [(number, note) for number in numbers(store) for note in record(store, number, owners=parents)["comments"] if note["created"] >= since]
+    # a comment write saves its task's updatedAt, so a task not updated since holds no comment since
+    return [(number, note) for number in numbers(store) if meta(store, number)["updatedAt"] >= since
+            for note in record(store, number, owners=parents)["comments"] if note["created"] >= since]
 
 
 def changed_since(store, stamp):
@@ -176,7 +187,7 @@ def changed_since(store, stamp):
 
 def owners(store):
     """{part: the task whose body names it}, read in one pass over the bodies."""
-    return {part: owner for owner in numbers(store) for part in task_links.parts(store.read(f"{home(store, owner)}/body.md"))}
+    return store.derived("owners", lambda: {part: owner for owner in numbers(store) for part in task_links.parts(store.read(f"{home(store, owner)}/body.md"))})
 
 
 def parent_of(store, number):

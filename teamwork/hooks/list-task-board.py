@@ -14,6 +14,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
 import data_folder  # noqa: E402
+import session  # noqa: E402
 import task_board  # noqa: E402
 
 
@@ -31,7 +32,7 @@ def main(args):
     read = board.tree(None, json.loads(pathlib.Path(words[0]).read_text())) if "--nodes" in args else board.tree(words[0])
     if read is None:
         sys.exit("list-task-board: the git board read failed, so no board is shown")
-    tree = task_board.board(read)
+    tree = task_board.board(read, None if "--nodes" in args else session.live_names())
     if "--json" in args:
         laid = int(width) if width else task_board.PANE_WIDTH
         print(json.dumps([{**row, "lines": task_board.heading(row, laid)} for row in task_board.rows(tree, laid)]))
