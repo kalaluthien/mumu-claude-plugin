@@ -4,90 +4,102 @@
   "title": "Let the owner steer the team from one pane",
   "url": "u/10",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the tasks pane at narrow widths\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: pane-worker\n```",
      "fields": {
       "holders": [
        "pane-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "10#comment-1",
+     "url": "u/10#comment-1"
     },
     {
-     "body": "DECIDED: the pane shows tasks and decisions together\n\n> show me tasks and decisions in one pane\n\n```decision\ndecision: the pane shows tasks and decisions together\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-1001",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z",
+     "kind": "decision",
+     "line": "the pane shows tasks and decisions together",
+     "text": "\n\n> show me tasks and decisions in one pane\n\n```decision\ndecision: the pane shows tasks and decisions together\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "the pane shows tasks and decisions together",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T01:00:00Z",
+     "ref": "10#comment-2",
+     "url": "https://github.com/o/r/issues/10#issuecomment-1001"
     },
     {
-     "body": "DECIDED: no external service\n\n> keep it all on GitHub\n\n```decision\ndecision: no external service\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-1002",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T02:00:00Z",
+     "kind": "decision",
+     "line": "no external service",
+     "text": "\n\n> keep it all on GitHub\n\n```decision\ndecision: no external service\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "no external service",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T02:00:00Z",
+     "ref": "10#comment-3",
+     "url": "https://github.com/o/r/issues/10#issuecomment-1002"
     },
     {
-     "body": "DECIDED: draw at 24 columns too\n\n> it must fit my narrow pane\n\n```decision\ndecision: draw at 24 columns too\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-1003",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T03:00:00Z",
+     "kind": "decision",
+     "line": "draw at 24 columns too",
+     "text": "\n\n> it must fit my narrow pane\n\n```decision\ndecision: draw at 24 columns too\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "draw at 24 columns too",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T03:00:00Z",
+     "ref": "10#comment-4",
+     "url": "https://github.com/o/r/issues/10#issuecomment-1003"
     },
     {
-     "body": "DECIDED: the owner answers questions from the pane\n\n> I want to answer from the pane\n\n```decision\ndecision: the owner answers questions from the pane\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-1004",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T04:00:00Z",
+     "kind": "decision",
+     "line": "the owner answers questions from the pane",
+     "text": "\n\n> I want to answer from the pane\n\n```decision\ndecision: the owner answers questions from the pane\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "the owner answers questions from the pane",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T04:00:00Z",
+     "ref": "10#comment-5",
+     "url": "https://github.com/o/r/issues/10#issuecomment-1004"
     },
     {
-     "body": "DECIDED: start from the board\n\n> start from the board\n\n```decision\ndecision: start from the board\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-900",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T00:30:00Z",
+     "kind": "decision",
+     "line": "start from the board",
+     "text": "\n\n> start from the board\n\n```decision\ndecision: start from the board\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "start from the board",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T00:30:00Z",
+     "ref": "10#comment-6",
+     "url": "https://github.com/o/r/issues/10#issuecomment-900"
     },
     {
-     "body": "DECIDED: keep the old lister\n\n> keep the old lister\n\n```decision\ndecision: keep the old lister\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/10#issuecomment-901",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:30:00Z",
+     "kind": "decision",
+     "line": "keep the old lister",
+     "text": "\n\n> keep the old lister\n\n```decision\ndecision: keep the old lister\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "keep the old lister",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T01:30:00Z",
+     "ref": "10#comment-7",
+     "url": "https://github.com/o/r/issues/10#issuecomment-901"
     }
    ]
   }
@@ -97,24 +109,24 @@
   "title": "Define the task graph and its two links",
   "url": "u/11",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #12 Write the link sync script that reads Definition of done lines\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: graph-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: graph-worker\n```",
      "fields": {
       "holders": [
        "graph-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "11#comment-1",
+     "url": "u/11#comment-1"
     }
    ]
   }
@@ -124,20 +136,22 @@
   "title": "Write the link sync script that reads Definition of done lines",
   "url": "u/12",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #13 Refuse a cycle before any link is written\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "BLOCKED: may the sync run on every open task\n\n```teamwork\nasks: owner\n```\n",
-     "url": "https://github.com/o/r/issues/12#issuecomment-1201",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z",
+     "kind": "question",
+     "line": "may the sync run on every open task",
+     "text": "\n\n```teamwork\nasks: owner\n```\n",
      "fields": {
       "asks": "owner"
-     }
+     },
+     "author": "unknown",
+     "created": "2026-11-06T01:00:00Z",
+     "ref": "12#comment-1",
+     "url": "https://github.com/o/r/issues/12#issuecomment-1201"
     }
    ]
   }
@@ -147,7 +161,6 @@
   "title": "Refuse a cycle before any link is written",
   "url": "u/13",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #14 Probe GitHub's dependency API for cycle refusal\n\n\n```teamwork\ndepends on: #14\n```\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -160,33 +173,36 @@
   "title": "Probe GitHub's dependency API for cycle refusal",
   "url": "u/14",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #15 Record the probe's raw responses as fixtures\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe\n\n> only the sandbox\n\n```decision\ndecision: probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/14#issuecomment-1401",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z",
+     "kind": "decision",
+     "line": "probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe",
+     "text": "\n\n> only the sandbox\n\n```decision\ndecision: probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "probe only the sandbox repository, never the team's own board, and keep every raw response as a fixture beside the probe",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T01:00:00Z",
+     "ref": "14#comment-1",
+     "url": "https://github.com/o/r/issues/14#issuecomment-1401"
     },
     {
-     "body": "DECIDED: probe the team's board\n\n> probe ours\n\n```decision\ndecision: probe the team's board\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/14#issuecomment-1402",
-     "authorAssociation": "NONE",
-     "createdAt": "2026-11-06T02:00:00Z",
+     "kind": "decision",
+     "line": "probe the team's board",
+     "text": "\n\n> probe ours\n\n```decision\ndecision: probe the team's board\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "probe the team's board",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T02:00:00Z",
+     "ref": "14#comment-2",
+     "url": "https://github.com/o/r/issues/14#issuecomment-1402"
     }
    ]
   }
@@ -196,7 +212,6 @@
   "title": "Record the probe's raw responses as fixtures",
   "url": "u/15",
   "body": "## Goal\n\nx",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -209,68 +224,79 @@
   "title": "Draw the graph in the tasks pane at narrow widths",
   "url": "u/16",
   "body": "## Goal\n\nx\n\n```teamwork\ndepends on: #11 #12\n```\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: pane-worker\n```",
      "fields": {
       "holders": [
        "pane-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "16#comment-1",
+     "url": "u/16#comment-1"
     },
     {
-     "body": "BLOCKED: which widths count\n\n```teamwork\nasks: owner\n```\n",
-     "url": "https://github.com/o/r/issues/16#issuecomment-1601",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T01:00:00Z",
+     "kind": "question",
+     "line": "which widths count",
+     "text": "\n\n```teamwork\nasks: owner\n```\n",
      "fields": {
       "asks": "owner"
-     }
+     },
+     "author": "unknown",
+     "created": "2026-11-06T01:00:00Z",
+     "ref": "16#comment-2",
+     "url": "https://github.com/o/r/issues/16#issuecomment-1601"
     },
     {
-     "body": "DECIDED: widths 24 to 80 count\n\n> 24 to 80\n\n```decision\ndecision: widths 24 to 80 count\ndecided by: owner\ndoor: one-way\nanswers: https://github.com/o/r/issues/16#issuecomment-1601\n```\n",
-     "url": "https://github.com/o/r/issues/16#issuecomment-1602",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T02:00:00Z",
+     "kind": "decision",
+     "line": "widths 24 to 80 count",
+     "text": "\n\n> 24 to 80\n\n```decision\ndecision: widths 24 to 80 count\ndecided by: owner\ndoor: one-way\nanswers: https://github.com/o/r/issues/16#issuecomment-1601\n```\n",
      "fields": {
       "decision": "widths 24 to 80 count",
       "by": "owner",
-      "one_way": true,
-      "answers": "https://github.com/o/r/issues/16#issuecomment-1601"
-     }
+      "answers": [
+       "16#comment-2"
+      ]
+     },
+     "author": "owner",
+     "created": "2026-11-06T02:00:00Z",
+     "ref": "16#comment-3",
+     "url": "https://github.com/o/r/issues/16#issuecomment-1602"
     },
     {
-     "body": "DECIDED: the pane draws at 40 columns\n\n> 40 is enough\n\n```decision\ndecision: the pane draws at 40 columns\ndecided by: owner\ndoor: one-way\n```\n",
-     "url": "https://github.com/o/r/issues/16#issuecomment-1603",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T03:00:00Z",
+     "kind": "decision",
+     "line": "the pane draws at 40 columns",
+     "text": "\n\n> 40 is enough\n\n```decision\ndecision: the pane draws at 40 columns\ndecided by: owner\ndoor: one-way\n```\n",
      "fields": {
       "decision": "the pane draws at 40 columns",
-      "by": "owner",
-      "one_way": true
-     }
+      "by": "owner"
+     },
+     "author": "owner",
+     "created": "2026-11-06T03:00:00Z",
+     "ref": "16#comment-4",
+     "url": "https://github.com/o/r/issues/16#issuecomment-1603"
     },
     {
-     "body": "DECIDED: the pane draws at any width it gets\n\n> any width\n\n```decision\ndecision: the pane draws at any width it gets\ndecided by: owner\ndoor: one-way\nsupersedes: https://github.com/o/r/issues/16#issuecomment-1603\n```\n",
-     "url": "https://github.com/o/r/issues/16#issuecomment-1604",
-     "authorAssociation": "OWNER",
-     "createdAt": "2026-11-06T04:00:00Z",
+     "kind": "decision",
+     "line": "the pane draws at any width it gets",
+     "text": "\n\n> any width\n\n```decision\ndecision: the pane draws at any width it gets\ndecided by: owner\ndoor: one-way\nsupersedes: https://github.com/o/r/issues/16#issuecomment-1603\n```\n",
      "fields": {
       "decision": "the pane draws at any width it gets",
       "by": "owner",
-      "one_way": true,
-      "supersedes": "https://github.com/o/r/issues/16#issuecomment-1603"
-     }
+      "supersedes": "16#comment-4"
+     },
+     "author": "owner",
+     "created": "2026-11-06T04:00:00Z",
+     "ref": "16#comment-5",
+     "url": "https://github.com/o/r/issues/16#issuecomment-1604"
     }
    ]
   }
@@ -280,9 +306,7 @@
   "title": "Measure how often a link goes wrong in past transcripts",
   "url": "u/9",
   "body": "## Goal\n\nx",
-  "state": "CLOSED",
-  "stateReason": "COMPLETED",
-  "authorAssociation": "OWNER",
+  "state": "completed",
   "labels": {
    "nodes": []
   },
@@ -295,7 +319,6 @@
   "title": "Note a root with no sections",
   "url": "u/17",
   "body": "Keep the pane readable when a root has only a summary paragraph.\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },

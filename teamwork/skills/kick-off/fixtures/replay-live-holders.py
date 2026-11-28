@@ -53,10 +53,10 @@ def case_stale_holder(box):
     held_task(box, "Probe the stale holder", "probe-gone")
     team(box, "probe-manager")
     got = shown(box, "1")
-    if got != ("state: OPEN, no holder", "holders:  (was probe-gone)", ""):
+    if got != ("state: open, no holder", "holders:  (was probe-gone)", ""):
         return replay_probe.fail(f"a dead holder shows as {got}")
     got = shown(box, "1", TEAMWORK_FAKE_HERDR_STATE=box.work / "missing.json")
-    if got != ("state: OPEN, held", "holders: probe-gone", "probe-gone"):
+    if got != ("state: open, held", "holders: probe-gone", "probe-gone"):
         return replay_probe.fail(f"with herdr giving no list the holder shows as {got}")
     return 0
 

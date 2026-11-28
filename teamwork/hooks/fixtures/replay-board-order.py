@@ -15,9 +15,10 @@ LISTER = pathlib.Path(__file__).resolve().parents[1] / "list-task-board.py"
 
 def node(number, holder, stamp, blocker=None):
     """A task record as a nodes file holds it, the board's tasks before their links are read: what it waits on is its `depends`."""
-    comments = [{"body": "DECIDED: x" if holder else "x", "fields": {"holders": [holder]} if holder else {}, "createdAt": stamp, "trusted": True}]
-    return {"number": number, "title": f"Task {number}", "url": f"u/{number}", "state": "OPEN", "labels": {"nodes": []}, "comments": {"nodes": comments},
-            "body": "## Goal\n\nx\n", "depends": [blocker] if blocker else [], "trusted": True}
+    comments = [{"kind": "event" if holder else "note", "line": "x", "text": "", "fields": {"holders": [holder]} if holder else {}, "author": "o",
+                 "created": f"{stamp}T00:00:00Z", "ref": f"{number}#comment-1", "url": f"u/{number}#comment-1"}]
+    return {"number": number, "title": f"Task {number}", "url": f"u/{number}", "state": "open", "labels": {"nodes": []}, "comments": {"nodes": comments},
+            "body": "## Goal\n\nx\n", "depends": [blocker] if blocker else []}
 
 
 def main(args):

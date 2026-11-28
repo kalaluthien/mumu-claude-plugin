@@ -10,12 +10,12 @@ exit 1 on any failure:
 - `moved`: once the board ref is copied to a checkout at another path, a decision a later one supersedes stays superseded, a question a decision answers stays answered,
   and an owner's decision a body edit folded by its url stays folded for `list-additions.py`;
 - `moved-gaps`: in that checkout the heartbeat names the one decision two later ones supersede, one by the encoded url and one by the decoded, as its first
-  superseder wrote it, and names a worker's one-way decision nothing binds but not one a worker's later decision superseded nor one a manager repeated; the pane
-  drops the superseded decisions, a manager decision a bound one-way decision superseded among them, keeps one a waiting one-way decision supersedes, and lists
+  superseder wrote it; the pane drops the superseded decisions, a manager decision a worker's decision superseded and that worker's decision a manager's
+  superseded among them, and lists
   an owner's question with its options and two team questions of one first line; `decide` there refuses, for urls of the first checkout given in this one's
   form, an answer to the owner's question by a manager, an answer naming no question,
   pointing to the question's own task when a part holds it, a supersede naming no decision, and a supersede of the owner's decision by a manager, and an answer or a supersede given in the first checkout's
-  form, naming that board, posting nothing, while the owner supersedes it; `read` there binds no one-way decision still waiting;
+  form, naming that board, posting nothing, while the owner supersedes it; `read` there binds the manager's latest;
 - `parent`: `file --parent` files the part in its parent's folder `My Docs` and adds its `[task]` line, the next number after the parent's last criterion, to the
   end of the parent's Definition of done, in one board commit, its diff fenced past the parent's own backtick fence, with the parent's labels unless `--label`
   names others, the `--depends` given, held by the session that holds the parent; an owner's decision on the parent is no addition of the part's, and a decision
@@ -25,11 +25,12 @@ exit 1 on any failure:
   a url of this board with a query, a fragment other than a comment's or a path not ending in a number, a link of another scheme or with no board ref, a
   url that does not parse, a number with spaces or a newline around it, a url ending in a tab or a newline, or after a space, or holding a control character, and text that is no link, each naming why, and reads a task's url decoded; `stored`
   reads a task's and a comment's url, encoded or not, and gives (0, the text) for text that is no board link and (0, '') for no text;
-- `scoped-comment`: a comment in `My Docs` shows the time its commit was made, and its url is the percent-encoded path of the board's folder, which names it again.
+- `scoped-comment`: a comment in `My Docs` keeps the time it was written, and its url is the percent-encoded path of the board's folder, which names it again.
 
 usage: replay-task-links.py"""
 import pathlib
 import sys
+import time
 import urllib.parse
 
 SKILL = pathlib.Path(__file__).resolve().parents[1]
@@ -42,7 +43,6 @@ CALLERS = {"list-additions": SKILL / "references" / "worker" / "scripts" / "list
            "backtest-estimate": SKILL / "references" / "estimation" / "scripts" / "backtest-estimate.py"}
 REF = "refs/teamwork-blackboard"
 SCOPE = "My Docs"
-WHEN = "2026-01-05T09:00:00Z"
 
 
 def main(args):
@@ -105,13 +105,13 @@ def replay(box, work):
          + [listed.stdout, listed.stderr, checked.returncode, checked.stderr, missing.stderr, scored.stdout, scored.stderr])
 
     parse_case(step, box, repository, mine)
-    box.clock(WHEN)
+    before = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     noted = use("comment", mine, "--reported", "a probe note")
-    box.clock(None)
+    after = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     common = box.git("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=repository).strip()
     expected = "git+file://" + urllib.parse.quote(f"{common}/{REF}/{SCOPE}/{mine}") + "#comment-1"
     shown = box.evaluate(f"import board, json; print(json.dumps(board.fresh({mine})['comments'][0]))", cwd=repository)
-    step("scoped-comment", noted.stdout.strip() == expected == shown["url"] and shown["createdAt"] == WHEN, f"printed {noted.stdout!r}, expected {expected}, stored {shown}")
+    step("scoped-comment", noted.stdout.strip() == expected == shown["url"] and before <= shown["created"] <= after, f"printed {noted.stdout!r}, expected {expected}, stored {shown}")
 
     asked = use("comment", mine, "--blocked", "which way?").stdout.strip()
     first = use("decide", mine, "--decision", "go left.", "--by", "probe-manager").stdout.strip()
@@ -176,14 +176,10 @@ def gaps_case(step, use, mine, right, owned, ref, box, copy):
         return use("decide", mine, *argv, cwd=copy).stdout.strip()
 
     north = decide("--decision", "go north.", "--by", "probe-manager")
-    south = decide("--decision", "go south.", "--by", "probe-worker", "--one-way", "--supersedes", north)
+    south = decide("--decision", "go south.", "--by", "probe-worker", "--supersedes", north)
     decide("--decision", "go west.", "--by", "probe-manager", "--supersedes", urllib.parse.unquote(south))
-    decide("--decision", "go home.", "--by", "probe-worker", "--one-way")
-    decide("--decision", "go home.", "--by", "probe-manager")
-
-    shorter = decide("--decision", "take the short path.", "--by", "probe-worker", "--one-way")
-    longer = decide("--decision", "take the long path.", "--by", "probe-worker", "--supersedes", shorter)
-    waiting = decide("--decision", "take the side path.", "--by", "probe-worker", "--one-way", "--supersedes", longer)
+    shorter = decide("--decision", "take the short path.", "--by", "probe-worker")
+    decide("--decision", "take the long path.", "--by", "probe-worker", "--supersedes", shorter)
     up = decide("--decision", "go up.", "--by", "probe-manager", "--supersedes", moved(right))
     down = decide("--decision", "go down.", "--by", "probe-manager", "--supersedes", urllib.parse.unquote(moved(right)))
     colour = use("comment", mine, "--blocked", "which colour?", "--asks", "owner", "--option", "red", "--option", "blue", cwd=copy).stdout.strip()
@@ -203,14 +199,13 @@ def gaps_case(step, use, mine, right, owned, ref, box, copy):
     again = use("decide", mine, "--decision", "keep it shorter still.", "--text", replay_probe.write_text(copy, "again.md", "> keep it shorter still.\n"),
                 "--by", "owner", "--supersedes", urllib.parse.unquote(moved(owned)), cwd=copy)
     binding = use("read", mine, cwd=copy).stdout.split("binding decisions", 1)[-1].split("open questions", 1)[0]
-    refused += [again.returncode == 0, "take the side path" not in binding, "keep it shorter still" in binding]
+    refused += [again.returncode == 0, "keep it shorter still" in binding, "go west" in binding]
     found = box.evaluate(f"import board, decisions, json; node = board.fresh({mine}); print(json.dumps([decisions.gaps([node]), decisions.shown(node, decisions.superseded_in([node]))]))", cwd=copy)
     lines, shown = found
     twice = [line for line in lines if line.startswith("superseded twice")]
-    one_way = [line for line in lines if line.startswith("one-way")]
     decided = [entry["decision"] for entry in shown["decided"]]
     step("moved-gaps", all(refused) and twice == [f"superseded twice #{mine}: {moved(right)} is superseded by {up} and {down}; keep one by a decision that supersedes the other"]
-         and len(one_way) == 1 and waiting in one_way[0] and "take the long path." in decided and not any(word in decided for word in ("go left.", "go right.", "take the short path.", "go north.", "go south."))
+         and "go west." in decided and "take the long path." in decided and not any(word in decided for word in ("go left.", "go right.", "take the short path.", "go north.", "go south."))
          and shown["questions"][-3:] == ["which colour?", "which size?", "which size?"] and shown["team_questions"] == [len(shown["questions"]) - 2, len(shown["questions"]) - 1]
          and shown["options"][-3:] == [["red", "blue"], [], []], [refused, [done.stderr for done in refusals], again.stderr, found])
 
@@ -230,7 +225,7 @@ def parent_case(step, use, call, ref, number, mine, link, board, work, box, repo
     part = number(done.stdout) if done.returncode == 0 else 0  # two commits: the part with its `[task]` line, then the hold its filer's holding gives it
 
     def record(task):
-        return box.evaluate(f"import board, json, task_state; task = board.fresh({task}); print(json.dumps([task['body'], task['comments'][-1]['body'] if task['comments'] else '', "
+        return box.evaluate(f"import board, json, record_types, task_state; task = board.fresh({task}); print(json.dumps([task['body'], record_types.shown(task['comments'][-1]) if task['comments'] else '', "
                             f"task['scope'], task['labels'], task['depends'], task_state.holder_values(task)]))", cwd=repository)
 
     found = record(parent) + record(part)[2:] if part else None

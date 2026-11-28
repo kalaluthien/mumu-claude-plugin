@@ -1,6 +1,6 @@
 """Links to a task or a comment of the board, in the one form this board writes them: `git+file://<git common dir>/refs/teamwork-blackboard/<scope>/<n>`,
 the path percent-encoded, then `#comment-<k>` for a comment. `TaskRef.parse` reads a link a person typed and refuses one of another board by naming it;
-`stored` reads a link a record kept, by task and comment index, so a moved checkout or a rescoped task keeps it; `url` builds one."""
+`stored` reads a link or a record's ref, `<n>#comment-<k>`, by task and comment index, so a moved checkout or a rescoped task keeps it; `relative` gives that ref; `url` builds a link."""
 import dataclasses
 import functools
 import os
@@ -14,7 +14,7 @@ REF = "refs/teamwork-blackboard"
 SCHEME = "git+file"
 NUMBER = re.compile(r"#?(\d+)")
 TASK = re.compile(r"(?:(.*)/)?(\d+)")
-STORED = re.compile(re.escape(REF) + r"/(?:.*/)?(\d+)(?:#comment-(\d+))?$")
+STORED = re.compile(r"(?:^|" + re.escape(REF) + r"/(?:.*/)?)(\d+)(?:#comment-(\d+))?$")
 
 
 class Refused(ValueError):
@@ -39,10 +39,16 @@ def url(scope, number, comment=None):
 
 
 def stored(url):
-    """(task number, comment index) a kept LINK names, 0 for a part it does not name, whichever checkout or scope wrote it; (0, the text) for text that is
-    no board link, so it matches only the same text."""
+    """(task number, comment index) a link or a ref names, 0 for a part it does not name, whichever checkout or scope wrote it; (0, the text) for text that is
+    neither, so it matches only the same text."""
     found = STORED.search(url or "")
     return (int(found.group(1)), int(found.group(2) or 0)) if found else (0, url or "")
+
+
+def relative(url):
+    """The ref `<n>#comment-<k>` of the comment a link or a ref names, as a record stores it; None for text that names no comment."""
+    number, comment = stored(url)
+    return f"{number}#comment-{comment}" if number and comment else None
 
 
 @dataclasses.dataclass(frozen=True)

@@ -88,7 +88,7 @@ def refused(name, number, call, *named):
 
 
 def closed(number):
-    return value(f"board.fresh({number}, comments=False)['state']") == "CLOSED"
+    return value(f"board.fresh({number}, comments=False)['state']") != "open"
 
 
 def refuse_cases():
@@ -160,9 +160,9 @@ def derive_cases():
     stop = file("Probe a parent to stop", body(parts=parts, check=False))
     resolve(stop, stopped=True)
     records = value(f"[dict(record, completed=task_links.completed(record)) for record in (board.fresh(n, comments=False) for n in {parts})]", "board, task_links")
-    decided = [comment["body"] for comment in value(f"board.fresh({stop})['comments']") if comment["body"].startswith("DECIDED:")]
-    cases.step("derive-stop-closes-parts", all(record["state"] == "CLOSED" and not record["completed"] for record in records)
-         and len(decided) == 1 and all(f"#{n}" in decided[0] for n in parts), f"{[(record['state'], record.get('stateReason') or record.get('reason')) for record in records]} {decided}")
+    decided = [comment["line"] + comment["text"] for comment in value(f"board.fresh({stop})['comments']") if comment["kind"] in ("decision", "event")]
+    cases.step("derive-stop-closes-parts", all(record["state"] == "stopped" and not record["completed"] for record in records)
+         and len(decided) == 1 and all(f"#{n}" in decided[0] for n in parts), f"{[record['state'] for record in records]} {decided}")
 
 
 def heartbeat_cases(lines):
@@ -202,15 +202,15 @@ print(json.dumps((board_records.record(store, {part}, comments=False)["parent"],
     use("label", first, "--label", "backlog")
 
 
-def node(number, text, labels=(), state="OPEN", reason=None, depends=None):
-    return {**({} if depends is None else {"depends": depends}), "number": number, "title": f"Probe {number}", "url": f"https://github.com/o/r/issues/{number}", "body": text, "authorAssociation": "OWNER",
-            "state": state, "stateReason": reason, "parent": None, "labels": {"nodes": [{"name": name} for name in labels]},
+def node(number, text, labels=(), state="open", depends=None):
+    return {**({} if depends is None else {"depends": depends}), "number": number, "title": f"Probe {number}", "url": f"u/{number}", "body": text,
+            "state": state, "parent": None, "labels": {"nodes": [{"name": name} for name in labels]},
             "parts": {"nodes": []}, "partsSummary": {"total": 0}, "blockedBy": {"nodes": []}, "comments": {"nodes": []}}
 
 
 def pane_nodes():
     """A root whose parts are a closed task and one waiting on two open tasks."""
-    return [node(1, body(parts=[2, 3], check=False)), node(2, body(), state="CLOSED", reason="COMPLETED"), node(3, body(), depends=[4, 5]),
+    return [node(1, body(parts=[2, 3], check=False)), node(2, body(), state="completed"), node(3, body(), depends=[4, 5]),
             node(4, body()), node(5, body())]
 
 

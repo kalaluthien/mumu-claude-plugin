@@ -24,8 +24,7 @@ class GitFailed(Exception):
 
 class Ref(board_records.Store):
     def __init__(self):
-        self.common, self.tip, self.files, self.folders, self.times, self.timed, self.places = None, None, {}, {}, {}, None, {}
-        self.author = "teamwork"
+        self.common, self.tip, self.files, self.folders, self.places = None, None, {}, {}, {}
 
     def git(self, *args, data=None, env=None, check=True):
         if self.common is None:
@@ -76,20 +75,6 @@ class Ref(board_records.Store):
     def names(self, folder=""):
         return self.folders.get(folder, ())
 
-    def written(self, path):
-        """When PATH's commit was made, read from the log once per commit, since a comment's time is not in its file."""
-        if self.timed != self.tip:
-            self.times = {}
-            log = self.git("log", "-z", "--format=%x01%ct", "--name-only", "--diff-filter=A", self.tip).stdout.decode() if self.tip else ""
-            seconds = 0
-            for token in log.split("\0"):
-                if token.startswith("\x01"):
-                    seconds = int(token[1:])
-                elif token:
-                    self.times[token.removeprefix("\n")] = seconds  # the log runs newest first, so the oldest add overwrites
-            self.timed = self.tip
-        return self.times.get(path, 0)
-
     def url(self, path):
         scope, _, number = path.rpartition("/")
         return board_refs.url(scope, int(number))
@@ -97,7 +82,7 @@ class Ref(board_records.Store):
     def commit(self, staged):
         """A commit on the read tip with STAGED's files over its tree, built in an index of its own, since the checkout's index is the person's."""
         index = pathlib.Path(self.common) / f"teamwork-board-index-{os.getpid()}-{threading.get_ident()}"
-        env = {"GIT_INDEX_FILE": str(index), **WRITER, "GIT_AUTHOR_NAME": self.author}
+        env = {"GIT_INDEX_FILE": str(index), **WRITER, "GIT_AUTHOR_NAME": self.author or "teamwork"}
         try:
             self.git("read-tree", *([self.tip] if self.tip else ["--empty"]), env=env)
             listing = "".join(f"0 {'0' * 40}\t{path}\n" if text is None else f"100644 {self.git('hash-object', '-w', '--stdin', data=text.encode()).stdout.decode().strip()}\t{path}\n"
@@ -144,5 +129,6 @@ globals().update(board_records.bind(STORE))
 
 
 def author(name):
-    """Names NAME, else `teamwork`, as the author of each later write's commit, so `git log refs/teamwork-blackboard` shows who wrote it."""
-    STORE.author = name or "teamwork"
+    """Names NAME as the author of each later write's comments and commit, so a comment and `git log refs/teamwork-blackboard` show who wrote it;
+    a comment by no named session is `unknown`'s, its commit `teamwork`'s."""
+    STORE.author = name or None

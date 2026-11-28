@@ -94,8 +94,8 @@ def replay(box):
          and reported.returncode == 2 and "goes only on a question" in reported.stderr
          and box.git("rev-parse", "refs/teamwork-blackboard").strip() == before, (refused.stderr, foreign.stderr, reported.stderr))
     owner = use("comment", task, "--blocked", "which licence?", "--asks", "owner", "--option", "MIT", "--option", "BSD", pane="w1:p1").stdout.strip()
-    box.evaluate(f"import board; board.comment({task}, 'REPORTED: retry count noted.', {{'answers': {url_second!r}}}); print(0)")
-    raw = box.run([sys.executable, "-c", f"import board; board.comment({task}, 'DECIDED: MIT.', {{'decision': 'MIT.', 'by': 'probe-manager', 'answers': {owner!r}}})"],
+    box.evaluate(f"import board; board.comment({task}, 'REPORTED: retry count noted.', {{'answers': [{url_second!r}]}}); print(0)")
+    raw = box.run([sys.executable, "-c", f"import board; board.comment({task}, 'DECIDED: MIT.', {{'decision': 'MIT.', 'by': 'probe-manager', 'answers': [{owner!r}]}})"],
                   claude=["--name", "probe-manager"], PYTHONPATH=LIB)
     later = use("decide", task, "--decision", "Export as xlsx after all.", "--by", "probe-manager", "--answers", url_first)
     asked = box.evaluate(f"import board, decisions, json, task_state; print(json.dumps([q['answer'] and q['answer']['url'] for q in task_state.questions(decisions.as_task(board.fresh({task})))]))")

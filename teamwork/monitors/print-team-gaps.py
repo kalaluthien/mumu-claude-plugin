@@ -16,6 +16,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
 import iso_time  # noqa: E402
 import landing  # noqa: E402
+import record_types  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -75,21 +76,25 @@ def main(args):
             continue
         # the last worker may have posted a report just before it left, which only this one more read feeds
         awake = watching
-        # the board is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
-        if data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH:
-            now, seen = time.time(), team_signal.stamp()  # both taken before the read, so a touch during it still differs
-            since = iso_time.stamp(read_at - SKEW)
-            checks = {board.changed_since, landing.changed_since}
-            if data is None or any(check(since) for check in checks):
-                data = read(manager, me, since if read_at else None)
-            if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
-                read_at, signal = now, seen
-        if data is None:
-            lines = None
-        elif manager:
-            lines = team_gaps.manager_actions(me, listed, data, fed_urls, readings)
-        else:
-            lines = team_gaps.worker_actions(me, waiting, read_of, data)
+        try:
+            # the board is read when a team session signals a change or REFRESH has passed, and in full only when it first asks cheaply and something changed
+            if data is None or team_signal.stamp() != signal or time.time() - read_at >= REFRESH:
+                now, seen = time.time(), team_signal.stamp()  # both taken before the read, so a touch during it still differs
+                since = iso_time.stamp(read_at - SKEW)
+                checks = {board.changed_since, landing.changed_since}
+                if data is None or any(check(since) for check in checks):
+                    data = read(manager, me, since if read_at else None)
+                if data is not None:  # a failed read keeps the last good time, so the next read still feeds what came after it
+                    read_at, signal = now, seen
+            if data is None:
+                lines = None
+            elif manager:
+                lines = team_gaps.manager_actions(me, listed, data, fed_urls, readings)
+            else:
+                lines = team_gaps.worker_actions(me, waiting, read_of, data)
+        except record_types.OldRecord as old:
+            # a monitor that exits is never started again, so a board not yet converted is one line until it is
+            data, lines = None, [old.message]
         for line in lines or []:  # a failed read (None) keeps what was shown, so the next poll repeats nothing
             if line not in shown:
                 print(line, flush=True)

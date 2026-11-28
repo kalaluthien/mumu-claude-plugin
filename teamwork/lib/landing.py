@@ -2,7 +2,7 @@
 and a merged pull request counts as a change merged, read by `landing_github`, for a repository that lands by pull request.
 
 `pulls(state, repo, limit, branch)` is `number`, `headRefName`, `headRefOid`, `mergedAt`; `conflicts(number, repo)`;
-`first_commit(number, repo)`; `changed_since(stamp)`, whether a change moved since an ISO time; and `CLOSES`, the pattern of the words by which a change closes a task. Branch, change, judge and merge stay
+`changed_since(stamp)`, whether a change moved since an ISO time. Branch, change, judge and merge stay
 agent steps, done as the landing document says."""
 import landing_git
 import landing_github

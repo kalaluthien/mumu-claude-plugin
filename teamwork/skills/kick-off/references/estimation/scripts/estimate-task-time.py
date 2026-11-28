@@ -53,8 +53,8 @@ def load(options, urls):
             print(f"estimate-task-time.py: {e}; run it inside that project's checkout", file=sys.stderr)
             sys.exit(2)
         if repo not in history:
-            history[repo] = task_history.rows(task_history.fetch(repo))
-        task = board.fresh(number, repo, comments=False)
+            history[repo] = task_history.rows(task_history.fetch())
+        task = board.fresh(number, comments=False)
         if task is None:
             sys.exit(f"estimate-task-time.py: the board read of {url} failed")
         tasks.append({"number": task["number"], "labels": task["labels"], "repo": repo})

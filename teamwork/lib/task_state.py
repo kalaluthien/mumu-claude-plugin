@@ -1,4 +1,4 @@
-"""A task's latest state, composed from its body and the fields of its comments, which board-record-schema.json names."""
+"""A task's latest state, composed from its body and the kinds and fields of its comments, which board-record-schema.json names."""
 import difflib
 import functools
 import json
@@ -12,7 +12,7 @@ import team_names
 SKILL = pathlib.Path(__file__).resolve().parents[1] / "skills" / "kick-off"
 GRAMMAR = SKILL / "references" / "task-grammar.md"
 SCHEMA = json.loads((SKILL / "assets" / "board-record-schema.json").read_text())
-# the word a comment's first line opens with: a question, a decision or an event, anything else
+# the word a comment's text opens with as its writer says it: a question, a decision or an event, a report
 ASK, ANSWER, INFORM = "BLOCKED", "DECIDED", "REPORTED"
 KEYWORDS = (ASK, ANSWER, INFORM)
 SECTIONS = {"Goal": "goal", "Definition of done": "done"}
@@ -28,7 +28,7 @@ DIFF = re.compile(r"^(`{3,})diff\n(.*?)^\1$", re.M | re.S)
 # a data fence at a line's start, which a text may not hold, since every datum is an option
 FENCE = re.compile(r"^```(teamwork|decision)[ \t]*$", re.M)
 FENCE_OPTIONS = {"teamwork": "`hold <task> --holders <names>`, `depend <task> --depends <numbers>`, `comment --asks owner` or `decide --live-runs <n>`",
-                 "decision": "`decide --decision <sentence> [--by owner --owner-said <file>] [--one-way] [--supersedes <url>] [--answers <url>]`"}
+                 "decision": "`decide --decision <sentence> [--by owner --owner-said <file>] [--judge-note <file>] [--supersedes <url>] [--answers <url>]`"}
 # the keyword each posting verb opens its text with; a comment asks or informs
 VERB_KEYWORDS = {"comment": (ASK, INFORM), "decide": (ANSWER,), "resolve": (INFORM,)}
 # the Plain words caps on a title, a summary line and a decision: the live board's plain summary lines and decisions ran to 20 words, its dense
@@ -40,24 +40,26 @@ SENTENCE_BREAKS = 1
 TASK_NUMBER = re.compile(r"#\d+\b")
 BREAK = re.compile(r"[,;:](?=\s)")
 TYPES = {"object": dict, "array": list, "string": str, "integer": int}
+# a judge note in a decision's text, in any spelling, where a worker would read it; the note goes in its own field
+JUDGE_NOTE = re.compile(r"judge[\s_-]*notes?\b", re.I)
 
 
 def keyword(text):
-    """The keyword a comment opens with, or None when its first line opens with none."""
+    """The keyword a text a writer hands in opens with, or None when its first line opens with none."""
     found = EXACT_KEYWORD.match(text or "")
     return found and found.group(1)
 
 
-def first_line(text):
-    """A comment's first line of text without its keyword, the line after a keyword that stands alone."""
-    return next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", (text or "").strip()).splitlines() if line.strip()), "")
+def first_line(comment):
+    """A comment's first line of words after its keyword, the line after a keyword line that holds none."""
+    return next((line.strip() for line in (comment["line"] + comment["text"]).splitlines() if line.strip()), "")
 
 
 class Refused(LookupError):
     """A record the schema refuses, so nothing was written."""
 
 
-def invalid(value, schema=SCHEMA, name="the record"):
+def invalid(value, schema, name="the record"):
     """Why VALUE breaks SCHEMA, read for its type, enum, pattern, minimum, items, properties, required and additionalProperties; None when it keeps it."""
     if "anyOf" in schema:
         refusals = [invalid(value, {"description": schema.get("description"), **choice}, name) for choice in schema["anyOf"]]
@@ -119,7 +121,9 @@ def _defects(kind, text):
         # a shell write that failed leaves an empty file, which would post as a bare keyword
         found.append(("empty", "the text is empty or holds its keyword alone; write what it asks, decides or reports, and check the file was written"))
     elif kind == "decide":
-        found += plain("decision", first_line(text))
+        found += plain("decision", next((line.strip() for line in re.sub(r"^\s*[A-Z]+:", "", text.strip()).splitlines() if line.strip()), ""))
+        if JUDGE_NOTE.search(text):
+            found.append(("judge note", "the text names a judge note, which a worker would read there; pass the note by `--judge-note <file>`, which a worker's read leaves out"))
     return found
 
 
@@ -184,25 +188,14 @@ def sections(text):
     return {SECTIONS[heading.strip()]: body for heading, body in found if heading.strip() in SECTIONS}
 
 
-def trusted(item):
-    """Whether a task's or comment's author may write records, as the board adapter marked it, since each board says who may."""
-    return item.get("trusted") is True
-
-
 def fields(comment):
     """A comment's fields, as board-record-schema.json names them and `use-board.py` stored them."""
     return comment.get("fields") or {}
 
 
 def records(task):
-    """The body, then each comment, as (keyword, fields, comment), oldest first; the body has no keyword and no fields, and an
-    untrusted author's text records nothing."""
-    return [(None, {}, None)] + [(keyword(comment["body"]), fields(comment), comment) for comment in task.get("comments", []) if trusted(comment)]
-
-
-def event(found):
-    """Whether a `DECIDED:` with the fields FOUND is an event, which binds nothing and answers only the questions its `answers` names: it holds no decision."""
-    return "decision" not in found
+    """Each comment as (kind, fields, comment), oldest first."""
+    return [(comment["kind"], fields(comment), comment) for comment in task.get("comments", [])]
 
 
 def role(decider):
@@ -211,24 +204,23 @@ def role(decider):
 
 
 def questions(task):
-    """Its questions, oldest first, each {'ask': the `BLOCKED:` comment that opened it, 'fields': its fields, 'answer': the comment that settles it or None,
-    'links': the stored refs of every ask it holds}. A BLOCKED with `again` joins the question that url names, so one question holds each ask posted
-    for it. A decision or event with `answers` settles each question its links name, when its decider may answer it: the owner any, anyone else any
-    not asked of the owner; an event answers any. One with no `answers` settles none."""
+    """Its questions, oldest first, each {'ask': the question comment that opened it, 'fields': its fields, 'answer': the comment that settles it or None,
+    'links': the refs of every ask it holds, as `board_refs.stored` reads them}. A question with `again` joins the question that ref names, so one question
+    holds each ask posted for it. A decision or event with `answers` settles each question its refs name, when its decider may answer it: the owner any,
+    anyone else any not asked of the owner; an old event answers any. One with no `answers` settles none."""
     found = []
-    for word, held, comment in records(task)[1:]:
-        if word == ASK:
+    for kind, held, comment in records(task):
+        if kind == "question":
             again = board_refs.stored(held.get("again", ""))
             joined = next((question for question in found if again in question["links"]), None)
             if joined:
-                joined["links"].add(board_refs.stored(comment["url"]))
+                joined["links"].add(board_refs.stored(comment["ref"]))
             else:
-                found.append({"ask": comment, "fields": held, "answer": None, "links": {board_refs.stored(comment["url"])}})
-        elif word == ANSWER and "answers" in held:
-            named, decider = held["answers"], role(held.get("by", ""))
-            named = {board_refs.stored(url) for url in ([named] if isinstance(named, str) else named)}
+                found.append({"ask": comment, "fields": held, "answer": None, "links": {board_refs.stored(comment["ref"])}})
+        elif kind in ("decision", "event") and "answers" in held:
+            named, decider = {board_refs.stored(ref) for ref in held["answers"]}, role(held.get("by", ""))
             for question in found:
-                allowed = event(held) or decider == "owner" or question["fields"].get("asks") != "owner"
+                allowed = kind == "event" or decider == "owner" or question["fields"].get("asks") != "owner"
                 if question["answer"] is None and allowed and question["links"] & named:
                     question["answer"] = comment
     return found
@@ -244,7 +236,7 @@ def holder_values(task):
 
 
 def live_runs(task):
-    """The latest `live_runs` count a trusted record set, or None when none did."""
+    """The latest `live_runs` count a record set, or None when none did."""
     return next((held["live_runs"] for _, held, _ in reversed(records(task)) if "live_runs" in held), None)
 
 

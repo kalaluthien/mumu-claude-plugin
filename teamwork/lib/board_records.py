@@ -1,31 +1,34 @@
 """A local board's records, whatever store keeps them: each task is a folder `<scope>/<n>/` (`<n>/` at the repository root) holding `task.json`
-(title, labels, state, reason, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each as board-record-schema.json says, where `<scope>` is the folder of the repository the task belongs to; `commentTimes` in `task.json`, when a copy set it, holds the first comments' times. Every record is trusted, since only local users write the store.
+(title, labels, state, times, and `depends`, the numbers of the tasks it waits on), `body.md` and `comments/<k>.json`, oldest first, each a
+`record_types` record as board-record-schema.json says, where `<scope>` is the folder of the repository the task belongs to.
 
 A store (a `Store` subclass) knows how to keep files, never what they hold: `names(folder)` lists the names right under a folder ('' the top),
 `homes()` says the folder of each task number (a store may cache it),
-`load(path)` reads one, raising OSError when it is missing, a staged text of None removing it, `written(path)` says when it was written, `url(path)` names it, `refresh()` lets a
-long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
+`load(path)` reads one, raising OSError when it is missing, a staged text of None removing it, `url(path)` names it, `author` names the session
+writing, `refresh()` lets a long-lived reader see later writes, and `keep(change)` runs `change()` once or more and keeps every file it staged, all at once.
 `bind(store)` gives the board port's functions over that store, which a board adapter puts in its own namespace.
 A task's parts live in its body, as `task_links` reads them."""
 import functools
 import json
 import re
 
+import board_refs
 import board_scope
 import iso_time
-import task_state
+import record_types
 import task_links
 import team_signal
 
 USE = re.compile(r"use-board\.py\s+(file|comment|decide|hold|depend|edit|title|resolve|reopen|label)\b")
 RECORD = "task.json"
 FLOOR = "floor"  # a file at the board's top holding the number a copied board's newest task or pull request had, so no new task reuses one
-trusted = lambda record: True
+LINKS = ("again", "supersedes", "answers")
 
 
 class Store:
     """The writes staged by the change a store is keeping, which reads see first, so a change reads what it already wrote."""
     pending = None
+    author = None
 
     def read(self, path):
         if self.pending is not None and path in self.pending:
@@ -104,13 +107,18 @@ def next_number(store):
 
 
 def meta(store, number):
-    return json.loads(store.read(f"{home(store, number)}/{RECORD}"))
+    """NUMBER's task.json as stored; record_types.OldRecord for one in the old form."""
+    path = f"{home(store, number)}/{RECORD}"
+    stored = json.loads(store.read(path))
+    record_types.Task.load(stored, path)
+    return stored
 
 
 def save(store, number, **change):
     """Stages NUMBER's changed fields; a change to a missing task raises, never makes it."""
     old = meta(store, number) if change.get("createdAt") is None else {}
-    store.stage(f"{home(store, number)}/{RECORD}", json.dumps({**old, **change, "updatedAt": iso_time.stamp()}))
+    path = f"{home(store, number)}/{RECORD}"
+    store.stage(path, json.dumps(record_types.Task.load({**old, **change, "updatedAt": iso_time.stamp()}, path).dump(f"#{number}")))
 
 
 def comment_paths(store, number):
@@ -118,24 +126,21 @@ def comment_paths(store, number):
     return [f"{folder}/{name}" for name in store.children(folder) if name.endswith(".json")]
 
 
-def note(store, path):
-    """{body, fields} of the comment at PATH."""
-    stored = json.loads(store.read(path))
-    return {"body": stored.pop("text"), "fields": stored}
+def note(store, path, address):
+    """The comment at PATH as `record_types.Comment.view` gives it, its url on the task at ADDRESS."""
+    comment = record_types.Comment.load(json.loads(store.read(path)), path)
+    return comment.view(f"{address}#comment-{board_refs.stored(comment.ref)[1]}")
 
 
 def record(store, number, comments=True, owners=None):
     """NUMBER's record; OWNERS, the parents by part from `owners(store)`, spares a read of every body when many records are read."""
     task = meta(store, number)
-    given = task.get("commentTimes", [])  # a copy of another board keeps the times its comments had there
     address = store.url(home(store, number))
-    notes = [{**note(store, path), "url": f"{address}#comment-{int(path.rsplit('/', 1)[1].split('.')[0])}",
-              "createdAt": given[at] if at < len(given) else iso_time.stamp(store.written(path)), "trusted": True}
-             for at, path in enumerate(comment_paths(store, number))] if comments else []
-    return {"number": number, "title": task["title"], "body": store.read(f"{home(store, number)}/body.md"), "url": address, "scope": store.place(number), "state": task["state"], "stateReason": task["reason"],
+    notes = [note(store, path, address) for path in comment_paths(store, number)] if comments else []
+    return {"number": number, "title": task["title"], "body": store.read(f"{home(store, number)}/body.md"), "url": address, "scope": store.place(number), "state": task["state"],
             "depends": task_links.depends({"body": store.read(f"{home(store, number)}/body.md"), "depends": task.get("depends")}),
-            "createdAt": task["createdAt"], "closedAt": task["closedAt"], "trusted": True, "labels": task["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number), "isPullRequest": False,
-            "mergedAt": None, "comments": notes}
+            "createdAt": task["createdAt"], "closedAt": task["closedAt"], "labels": task["labels"], "parent": parent_of(store, number) if owners is None else owners.get(number),
+            "comments": notes}
 
 
 def scoped(store, project):
@@ -143,17 +148,17 @@ def scoped(store, project):
     return board_scope.folder_of(project)
 
 
-def tasks(store, state="open", project=None, pulls=False, comments=True, since=None, repo=None):
-    """The tasks newest first, those in PROJECT's folder and below when given (the root project holds only the root's own), updated since SINCE (an ISO time) when given."""
+def tasks(store, state="open", project=None, comments=True, since=None):
+    """The tasks newest first, STATE `open`, `closed` or `all`, those in PROJECT's folder and below when given (the root project holds only the root's own), updated since SINCE (an ISO time) when given."""
     store.view()
     scope = scoped(store, project) if project else None
-    keep = lambda number: state in ("all", meta(store, number)["state"].lower()) and (scope is None or board_scope.within(store.place(number), scope)) \
+    keep = lambda number: (state == "all" or (state == "open") == (meta(store, number)["state"] == "open")) and (scope is None or board_scope.within(store.place(number), scope)) \
         and (not since or meta(store, number)["updatedAt"] >= since)
     parents = owners(store)
     return [record(store, number, comments, parents) for number in reversed(numbers(store)) if keep(number)]
 
 
-def fresh(store, number, repo=None, comments=True):
+def fresh(store, number, comments=True):
     store.view()
     return exists(store, number, comments)
 
@@ -161,7 +166,7 @@ def fresh(store, number, repo=None, comments=True):
 def comments_since(store, since):
     store.view()
     parents = owners(store)
-    return [(number, note) for number in numbers(store) for note in record(store, number, owners=parents)["comments"] if note["createdAt"] >= since]
+    return [(number, note) for number in numbers(store) for note in record(store, number, owners=parents)["comments"] if note["created"] >= since]
 
 
 def changed_since(store, stamp):
@@ -206,11 +211,7 @@ def tree(store, project, nodes=None):
     store.view()
     nodes = nodes if nodes is not None else [
         {**{k: task[k] for k in ("number", "title", "url", "body", "depends")}, "labels": {"nodes": [{"name": name} for name in task["labels"]]},
-         "comments": {"nodes": [{k: note[k] for k in ("body", "fields", "url", "createdAt") if k in note} for note in task["comments"]]}} for task in reversed(tasks(store, "open", project))]
-    for node in nodes:
-        node["trusted"] = True
-        for item in node["comments"]["nodes"]:
-            item["trusted"] = True
+         "comments": {"nodes": task["comments"]}} for task in reversed(tasks(store, "open", project))]
     return task_links.derive(nodes, lambda n: exists(store, n))
 
 
@@ -220,15 +221,16 @@ def atomic(store, change):
 
 
 def comment(store, number, text, fields=None):
-    """Adds TEXT with its FIELDS as NUMBER's next comment; its url. task_state.Refused, nothing written, for fields the schema refuses."""
-    stored = {"text": text, **(fields or {})}
-    if refused := task_state.invalid(stored):
-        raise task_state.Refused(f"nothing written to #{number}: {refused}")
+    """Adds TEXT with its FIELDS as NUMBER's next comment by the store's author, its links kept as refs; its url. task_state.Refused, nothing written,
+    for fields the schema refuses."""
+    held = {key: ([board_refs.relative(link) or link for link in value] if isinstance(value, list) else board_refs.relative(value) or value) if key in LINKS else value
+            for key, value in (fields or {}).items()}
 
     def change():
         meta(store, number)  # raises when NUMBER does not exist
         position = len(comment_paths(store, number)) + 1
-        store.stage(f"{home(store, number)}/comments/{position:04d}.json", json.dumps(stored, ensure_ascii=False, indent=1))
+        made = record_types.Comment.parse(text, held, store.author or "unknown", iso_time.stamp(), f"{number}#comment-{position}")
+        store.stage(f"{home(store, number)}/comments/{position:04d}.json", json.dumps(made.dump(f"#{number}"), ensure_ascii=False, indent=1))
         save(store, number)
         return f"{store.url(home(store, number))}#comment-{position}"
     return store.write(change)
@@ -242,7 +244,7 @@ def file(store, title, body, labels, scope=None, depends=()) -> int:
         check_links(store, None, body, list(depends))
         number = next_number(store)
         store.stage(f"{folder}/{number}/body.md" if folder else f"{number}/body.md", body)  # before task.json, so a reader that lists the task finds its body
-        save(store, number, title=title, labels=list(labels), state="OPEN", reason="", createdAt=iso_time.stamp(), closedAt=None, depends=list(depends))
+        save(store, number, title=title, labels=list(labels), state="open", createdAt=iso_time.stamp(), closedAt=None, depends=list(depends))
         return number
     return store.write(change)
 
@@ -269,22 +271,22 @@ def depend(store, number, targets):
     def change():
         check_links(store, number, body(store, number), list(targets))
         save(store, number, depends=list(targets))
-        return comment(store, number, f"{task_state.ANSWER}: waits on {' '.join(f'#{target}' for target in targets)}." if targets else f"{task_state.ANSWER}: waits on no task.")
+        return comment(store, number, f"{record_types.KEYWORDS['event']}: waits on {' '.join(f'#{target}' for target in targets)}." if targets else f"{record_types.KEYWORDS['event']}: waits on no task.")
     return store.write(change)
 
 
 def resolve(store, number, summary, completed=True):
     def change():
         comment(store, number, summary)
-        save(store, number, state="CLOSED", reason="COMPLETED" if completed else "NOT_PLANNED", closedAt=iso_time.stamp())
+        save(store, number, state="completed" if completed else "stopped", closedAt=iso_time.stamp())
     store.write(change)
 
 
 def reopen(store, number):
     """Opens NUMBER again; an open one stays as it is."""
     def change():
-        if meta(store, number)["state"] == "CLOSED":
-            save(store, number, state="OPEN", reason="", closedAt=None)
+        if meta(store, number)["state"] != "open":
+            save(store, number, state="open", closedAt=None)
     store.write(change)
 
 
@@ -315,6 +317,6 @@ PORT = ("atomic", "tasks", "fresh", "comments_since", "changed_since", "blockers
 
 
 def bind(store):
-    """The board port's functions over STORE, with the store-free ones (`trusted`, `command`)."""
+    """The board port's functions over STORE, with the store-free `command`."""
     here = globals()
-    return {**{name: functools.partial(here[name], store) for name in PORT}, "trusted": trusted, "command": command}
+    return {**{name: functools.partial(here[name], store) for name in PORT}, "command": command}

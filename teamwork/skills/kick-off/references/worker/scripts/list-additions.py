@@ -12,6 +12,7 @@ import board  # noqa: E402
 import board_refs  # noqa: E402
 import data_folder  # noqa: E402
 import decisions  # noqa: E402
+import record_types  # noqa: E402
 
 
 def main(args):
@@ -33,7 +34,7 @@ def main(args):
         print(f"list-additions: {e}, so nothing is listed", file=sys.stderr)
         return 1
     task = tasks[number]
-    edit_lines = [comment["body"].lstrip().split("\n", 1)[0] for comment in task["comments"] if "```diff" in comment["body"]]
+    edit_lines = [record_types.shown(comment).lstrip().split("\n", 1)[0] for comment in task["comments"] if "```diff" in comment["text"]]
     folded = {board_refs.stored(found) for line in edit_lines for found in re.findall(r"git\+file://.*?#comment-\d+(?!\d)", line)}
     added = [d for d in decisions.binding(number, tasks) if d["task"] == number and d["role"] == "owner" and board_refs.stored(d["url"]) not in folded]
     body_sha = board.body_sha(task["body"])

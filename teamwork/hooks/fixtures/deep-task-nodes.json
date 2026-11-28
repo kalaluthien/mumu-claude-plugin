@@ -4,24 +4,24 @@
   "title": "Let the owner steer the team from one pane",
   "url": "u/10",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #9 Measure how often a link goes wrong in past transcripts\n2. [task] #11 Define the task graph and its two links\n3. [task] #16 Draw the graph in the tasks pane at narrow widths\n4. [task] #20 Replay the cycle check on the recorded responses\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: pane-worker\n```",
      "fields": {
       "holders": [
        "pane-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "10#comment-1",
+     "url": "u/10#comment-1"
     }
    ]
   }
@@ -31,24 +31,24 @@
   "title": "Define the task graph and its two links",
   "url": "u/11",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #12 Write the link sync script that reads Definition of done lines\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: graph-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: graph-worker\n```",
      "fields": {
       "holders": [
        "graph-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "11#comment-1",
+     "url": "u/11#comment-1"
     }
    ]
   }
@@ -58,7 +58,6 @@
   "title": "Write the link sync script that reads Definition of done lines",
   "url": "u/12",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #13 Refuse a cycle before any link is written\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -71,7 +70,6 @@
   "title": "Refuse a cycle before any link is written",
   "url": "u/13",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #14 Probe GitHub's dependency API for cycle refusal\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -87,7 +85,6 @@
   "title": "Probe GitHub's dependency API for cycle refusal",
   "url": "u/14",
   "body": "## Goal\n\nx\n\n## Definition of done\n\n1. [task] #15 Record the probe's raw responses as fixtures\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -100,7 +97,6 @@
   "title": "Record the probe's raw responses as fixtures",
   "url": "u/15",
   "body": "## Goal\n\nx",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -113,24 +109,24 @@
   "title": "Draw the graph in the tasks pane at narrow widths",
   "url": "u/16",
   "body": "## Goal\n\nx\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": [
     {
-     "body": "DECIDED: x\n\n```teamwork\nholders: pane-worker\n```",
-     "authorAssociation": "OWNER",
-     "author": {
-      "login": "o"
-     },
-     "trusted": true,
+     "kind": "event",
+     "line": "x",
+     "text": "\n\n```teamwork\nholders: pane-worker\n```",
      "fields": {
       "holders": [
        "pane-worker"
       ]
-     }
+     },
+     "author": "o",
+     "created": "2026-11-01T00:00:00Z",
+     "ref": "16#comment-1",
+     "url": "u/16#comment-1"
     }
    ]
   },
@@ -144,9 +140,7 @@
   "title": "Measure how often a link goes wrong in past transcripts",
   "url": "u/9",
   "body": "## Goal\n\nx",
-  "state": "CLOSED",
-  "stateReason": "COMPLETED",
-  "authorAssociation": "OWNER",
+  "state": "completed",
   "labels": {
    "nodes": []
   },
@@ -159,7 +153,6 @@
   "title": "Note a root with no sections",
   "url": "u/17",
   "body": "Keep the pane readable when a root has only a summary paragraph.\n",
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -175,7 +168,6 @@
   "depends": [
    9
   ],
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -191,7 +183,6 @@
   "depends": [
    15
   ],
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
@@ -208,14 +199,12 @@
    15,
    9
   ],
-  "authorAssociation": "OWNER",
   "labels": {
    "nodes": []
   },
   "comments": {
    "nodes": []
   },
-  "state": "CLOSED",
-  "stateReason": "COMPLETED"
+  "state": "completed"
  }
 ]

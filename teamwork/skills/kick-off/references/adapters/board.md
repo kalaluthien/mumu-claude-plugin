@@ -10,7 +10,7 @@ Each operation is one call of `${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/use
 | `edit` | `use-board.py edit <n> --body <file> --reason <what changed and why> --base <sha>`, the whole new body, made from what `use-board.py read <n> --body` prints, and the `body sha` `read` printed, refused when the body has changed since; the title by `use-board.py title <n> --title <title>` |
 | `resolve` | `use-board.py resolve <n> --summary <line> [--text <file>] [--not-planned]` |
 | `reopen` | `use-board.py reopen <n>` |
-| `decide` | `use-board.py decide <n> --decision <sentence> [--text <file>]` |
+| `decide` | `use-board.py decide <n> --decision <sentence> [--text <file>] [--judge-note <file>]` |
 | `label` | `use-board.py label <n> --label <name> [--remove]` |
 
 ## Git
@@ -20,4 +20,4 @@ The board is the commit `refs/teamwork-blackboard` names in the repository of th
 - **Scope**: `<folder>` is a path from the repository root, such as `teamwork`. No setting names a project's folder. A project reads its folder and below, the root project only the root's own tasks. Task numbers are unique across the repository, so `read <n>` needs no folder. `file --scope <folder>` files into a folder, refused when the repository has no such folder, and with no `--scope` a manager files into its own project's folder, any other session into the root; `file --parent <n>` files into the parent's folder. A task's url is `git+file://<git common dir>/refs/teamwork-blackboard/<folder>/<n>`.
 - **Local only**: a plain clone, fetch or push leaves `refs/teamwork-blackboard` behind, so the board stays on this machine unless copied by name. `git push --mirror` skips it and deletes it from a remote that holds it, and a push by its own name fails with `funny refname`, since the receiving repository refuses a ref directly under `refs/`. Copy it out by `git push <remote> refs/teamwork-blackboard:refs/boards/teamwork` and in by `git fetch <remote> refs/boards/teamwork:refs/teamwork-blackboard`; `git clone --mirror` and `git fetch <url> refs/teamwork-blackboard:refs/teamwork-blackboard` carry it as it is.
 - **Never GitHub**: team work (a task, finding, hand-over, question or answer) is written only by the calls above, never by `gh issue` or a `gh api` write, which `hooks/route-event.py` refuses from a manager, worker or sentinel; the owner's own GitHub issue runs by their `! <command>`.
-- **Trusted**: every record, since only local users write the ref.
+- **Records**: each task and comment is a `record_types` record, every comment with its kind, author and time; a board call that meets a record in the form before that is refused, exit 2, naming the record: run `python3 ${CLAUDE_PLUGIN_ROOT}/skills/kick-off/scripts/convert-records.py [--repository <folder>]` once, which saves the board as `refs/teamwork-blackboard-backup/4` before it converts it, undone by `git update-ref refs/teamwork-blackboard refs/teamwork-blackboard-backup/4`.

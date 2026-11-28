@@ -245,6 +245,8 @@ class Sandbox:
     def evaluate(self, code, *argv, cwd=None):
         """The JSON value the last line of CODE prints, CODE run by `run` with the plugin's lib importable and ARGV as its arguments."""
         done = self.run([sys.executable, "-c", code, *argv], cwd=cwd, PYTHONPATH=PLUGIN / "lib")
+        if done.returncode is None:
+            raise RuntimeError(f"{code}: no end within the run's limit")
         if done.returncode:
             raise RuntimeError(f"{code}: {done.stderr.strip()}")
         return json.loads(done.stdout.splitlines()[-1])

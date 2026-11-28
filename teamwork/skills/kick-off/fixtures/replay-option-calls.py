@@ -24,6 +24,7 @@ CALLS = {
     "skills/kick-off/references/estimation/scripts/backtest-estimate.py": [["--from-json", "body", "--as-of", "2026-01-01", "--tasks", "1,2"]],
     "skills/kick-off/scripts/check-criteria.py": [["--task", "1", "body"], ["--cut-off"]],
     "skills/kick-off/scripts/close-session.py": [["name"]],
+    "skills/kick-off/scripts/convert-records.py": [["--repository", "."]],
     "skills/kick-off/references/estimation/scripts/estimate-task-time.py": [["--from-json", "body", "--gaps-json", "body", "--expect-restarts", "1", "--wait", "name=1", "--seed", "1", "url"]],
     "skills/kick-off/references/worker/scripts/list-additions.py": [["1"]],
     "skills/kick-off/references/estimation/scripts/list-session-gaps.py": [["--from-folder", ".", "--json", "name"]],
@@ -46,7 +47,7 @@ CALLS = {
         ["read", "1", "--as", "worker", "--full"], ["comment", "1", "--blocked", "which", "--text", "body", "--asks", "owner", "--option", "x", "--option", "y"],
         ["hold", "1", "--holders", "name"], ["depend", "1", "--depends", "2"], ["file", "--title", "Add thing", "--body", "body", "--label", "label", "--scope", "", "--depends", "1", "--parent", "1"],
         ["edit", "1", "--body", "diff", "--reason", "x", "--base", "abc"], ["title", "1", "--title", "Add thing"], ["resolve", "1", "--summary", "done", "--text", "body", "--not-planned"],
-        ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--owner-said", "said", "--one-way", "--supersedes", "url", "--answers", "url", "--holders", "name",
+        ["reopen", "1"], ["decide", "1", "--decision", "ship it", "--text", "body", "--by", "owner", "--owner-said", "said", "--judge-note", "body", "--supersedes", "url", "--answers", "url", "--holders", "name",
                           "--live-runs", "1"], ["label", "1", "--label", "label", "--remove"]],
     "skills/kick-off/references/adapters/landing-git/scripts/use-landing.py": [["change", "branch", "Add thing", "body", "main"], ["merge", "1", "abc"], ["close", "1", "reason"]],
 }

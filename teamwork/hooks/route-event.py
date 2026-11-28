@@ -16,6 +16,7 @@ import agent  # noqa: E402
 import background_work  # noqa: E402
 import board  # noqa: E402
 import install_line  # noqa: E402
+import record_types  # noqa: E402
 import session  # noqa: E402
 import team_gaps  # noqa: E402
 import team_names  # noqa: E402
@@ -342,8 +343,12 @@ def main(args):
             or kind == "PreToolUse" and (board.command(command) or writes_github_issue(command) or live_change_directory(command, event.get("cwd"))):  # skip other Bash fast
         listed, me = session.sessions(event.get("session_id"))
         role = team_names.role(me.get("name"))  # first, since a name with no role ends the lookup and `agent.named` walks `ps` and transcripts
-        if role and agent.named(me.get("name"), event.get("transcript_path")) and (out := route(kind, event, role, me, listed)):
-            print(json.dumps(out))
+        try:
+            if role and agent.named(me.get("name"), event.get("transcript_path")) and (out := route(kind, event, role, me, listed)):
+                print(json.dumps(out))
+        except record_types.OldRecord as old:
+            # an exit 2 would block the stop or the call that runs the migration, so a board not yet converted is only said
+            print(json.dumps({"systemMessage": old.message}))
     return 0
 
 

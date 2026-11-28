@@ -17,7 +17,6 @@ import data_folder
 import iso_time
 import team_signal
 
-CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)", re.I)
 RELEASE_HOOK = ".github/plan-release.py"
 
 
@@ -78,16 +77,6 @@ def conflicts(number, repo=None):
     if not head or not base:
         return None
     return {0: False, 1: True}.get(git("merge-tree", "--write-tree", "--quiet", base, head).returncode)
-
-
-def first_commit(number, repo=None):
-    """When the change's first commit off its base was authored; None when it has none. It raises LookupError when the read failed."""
-    entry = record(number)
-    head = entry.get("headRefOid") or f"refs/heads/{entry['headRefName']}"
-    result = git("log", "--reverse", "--format=%at", f"{entry.get('baseOid') or 'refs/heads/' + entry['base']}..{head}")
-    if result.returncode:
-        raise LookupError(f"the commits of change {number} could not be read: {result.stderr.strip()}")
-    return result.stdout.split() and iso_time.stamp(int(result.stdout.split()[0])) or None
 
 
 def changed_since(stamp):

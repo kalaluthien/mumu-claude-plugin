@@ -5,9 +5,9 @@ How a manager adds to the owner's words before passing them on, so a worker gets
 ## Domain
 
 - **addition**: what the next reader cannot get from the words alone, one of the rows below.
-- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the `Judge note:`. The worker reads it with `use-board.py read <task> --as worker`.
+- **routing decision**: the task's own properties, written once in the routing `DECIDED:`: its outcomes, a `Why:` line, the guesses, `Never:` lines, `Free:` and `Ask first:` choices, the context the worker lacks with its url, what done is, and the judge note. The worker reads it with `use-board.py read <task> --as worker`.
 - **worker prompt**: the lines after the kick-off arguments that steer the worker's attitude and way of working on this task, at most 100 words besides urls and the owner's quoted words, empty when the default attitude of [worker.md](worker.md) fits.
-- **judge note**: a `Judge note:` paragraph in the routing `DECIDED:`, with a blank line after it, which the judge reads among the binding decisions and a worker's `read --as worker` omits: a way to score (`yes`, `no` or `Unknown`) and the cases to try against each outcome, at most 120 words, never the worker's reasoning or the manager's history.
+- **judge note**: the routing `DECIDED:`'s `--judge-note <file>`, which the judge reads among the binding decisions and a worker's `read` omits: a way to score (`yes`, `no` or `Unknown`) and the cases to try against each outcome, at most 120 words, never the worker's reasoning or the manager's history.
 - **guess**: an outcome or edge the words leave open and you fill in, marked `(guess)` for the worker to confirm, since an unmarked one reads as the owner's word.
 
 Task properties, for the routing decision:
@@ -28,7 +28,7 @@ Task properties, for the routing decision:
 
 1. Read the words for the purpose, the implied outcomes, the open edges and the kind of work, scoping each outcome as [protocol.md](protocol.md)'s **Scope the path** says.
 2. Take the rows of the table that fit.
-3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses, the properties the rows add and the `Judge note:`.
+3. Write the routing `DECIDED:` with its outcomes, a `Why:` line, the guesses, the properties the rows add, and its judge note by `--judge-note <file>`.
 4. Count the owner's added words by `wc -w`, their urls and quoted words deleted, since `print-steering.py` refuses a prompt over the cap.
 
 ## Rules
@@ -42,6 +42,6 @@ The owner says "내보내기가 너무 느려". The routing `DECIDED:` holds the
 
 The worker prompt: none, the kick-off arguments alone, since no steering row fits.
 
-The `Judge note:`, 35 words:
+The judge note, 35 words:
 
 > Score each outcome `yes`, `no` or `Unknown`. Run the timed export at head, base and a mutant that puts the slow step back. Try 0 rows and 100k rows. Open the output in both readers.

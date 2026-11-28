@@ -5,12 +5,11 @@ judge reads instead of running each check again.
 
 usage: run-criteria.py [--timeout <s>] [--run-timeout <s>] [--fresh] [--base [--ref <ref>] | --hunks [--each] [--jobs <n>] [--ref <ref>] [--since <sha>] | --since <sha> | --pass <n>=<sample-file>...] [--repository <folder>] <task | body-file | ->
 
-`--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body`, `trusted` and `comments`. A word that names no file and no task
-on the board prints one line saying which, exit 1. `--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started. It bounds each git, tar
+`--repository` names the checkout, main or worktree, whose root the checks run in and whose board the task is read from, with no `cd`; a body-file path is read from that folder. A task is its number, `#n` or url; `-` reads the task as JSON, its `body` and `comments`, each comment
+as the board reads it, `kind`, `line` and `text`. A word that names no file and no task on the board prints one line saying which, exit 1.
+`--timeout` is each check's limit, 900 s unless given; a check past it is killed with every process it started. It bounds each git, tar
 or ps call too: one past it is killed the same way, and the run exits 1 naming it. `--run-timeout` is the whole run's limit, 7200 s unless
 given: the check or call running at it is killed the same way, and the run exits 1 naming that limit.
-A task, by number or JSON, whose author is not `trusted` is refused, exit 1, since its checks would run as commands; a body
-file is the worker's own draft, so it runs.
 
 A row is `pass` or `fail` by the output the criterion says it `prints`, or the status it `exits`; `unclear` when the
 script cannot decide it, such as a `<placeholder>`, two commands or an expected text found inside other output, which the
@@ -106,7 +105,8 @@ import data_folder  # noqa: E402
 import task_state  # noqa: E402
 import usage_parser  # noqa: E402
 
-HEADER = "REPORTED: criteria at "
+REPORT = "criteria at "  # the line of the report that holds a table
+HEADER = f"{task_state.INFORM}: {REPORT}"
 CELL = 160
 LIVE_RUNS = 4
 FEW_HUNKS = 4  # a file with more hunks is reverted whole, then by halves
@@ -195,8 +195,7 @@ def read_file(file):
 
 def read_task(source):
     if source == "-":
-        task = json.load(sys.stdin)  # a comment the board adapter has not marked, as a board's own listing prints it, gets its mark here
-        return {**task, "comments": [{**comment, "trusted": comment.get("trusted", board.trusted(comment))} for comment in task.get("comments", [])]}
+        return json.load(sys.stdin)
     try:
         number = board_refs.TaskRef.parse(source).number
     except board_refs.Refused as e:
@@ -206,13 +205,6 @@ def read_task(source):
     except LookupError as e:
         sys.exit(f"run-criteria: {e}")
     return found or sys.exit(f"run-criteria: the board holds no task #{number}")
-
-
-def runnable(task):
-    """TASK when its author may write records; else exit, since an untrusted author's `[check]` would run as a command."""
-    if not task_state.trusted(task):
-        sys.exit("run-criteria: the task's author is not trusted, so its checks are not run; a trusted author must file the criteria")
-    return task
 
 
 PATH_WORD = r"""(~?/[^\s'"`;|&<>()$]+)"""
@@ -581,11 +573,11 @@ def task_criteria(task):
 
 
 def earlier_fails(task):
-    """{name: {output, ...}} of the `fail` rows in earlier tables on the task, by trusted authors only."""
+    """{name: {output, ...}} of the `fail` rows in earlier tables on the task."""
     found = {}
     for comment in task.get("comments", []):
-        if task_state.trusted(comment) and comment["body"].startswith(HEADER):
-            for line in comment["body"].splitlines():
+        if comment["kind"] == "report" and comment["line"].startswith(REPORT):
+            for line in comment["text"].splitlines():
                 cells = [part.strip() for part in re.split(r"(?<!\\)\|", line)[1:-1]]
                 if len(cells) in (4, 5) and cells[2] == "fail":
                     found.setdefault(cells[1], set()).add(cells[3])
@@ -1072,7 +1064,7 @@ def main(args):
     global call_limit, run_limit
     call_limit, run_limit = options.timeout, options.run_timeout
     file = pathlib.Path(options.task)
-    task = {"body": read_file(file), "comments": []} if file.is_file() else runnable(read_task(options.task))
+    task = {"body": read_file(file), "comments": []} if file.is_file() else read_task(options.task)
     root = git_output("rev-parse", "--show-toplevel") or "."
     if options.samples:
         return run_with_samples(options, task, root)

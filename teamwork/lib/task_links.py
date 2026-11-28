@@ -6,7 +6,6 @@ import re
 import task_state
 
 PART = re.compile(r"^\s*(?:\d+\.|[-*])\s+\[task\]\s+#(\d+)\b", re.M)
-DONE = ("COMPLETED", None, "")
 
 
 def parts(body):
@@ -25,8 +24,8 @@ def criteria(body):
 
 
 def completed(task):
-    """Whether a closed task was closed as completed, which alone releases what waits on it."""
-    return task.get("state") == "CLOSED" and (task.get("stateReason") or task.get("reason")) in DONE
+    """Whether a task was closed as completed, which alone releases what waits on it."""
+    return task.get("state") == "completed"
 
 
 def refusals(number, body, waits, read, parent_of):
@@ -35,7 +34,6 @@ def refusals(number, body, waits, read, parent_of):
     found, named = [], parts(body)
     records = {n: read(n) for n in dict.fromkeys(waits + named) if n != number}
     found += [f"#{n} does not exist" for n, record in records.items() if record is None]
-    found += [f"#{n} is a pull request, not a task" for n, record in records.items() if record and record.get("isPullRequest")]
     for part in named:
         owner = parent_of(part) if part != number else None
         if owner is not None and owner != number:
@@ -72,17 +70,16 @@ def derive(nodes, read):
     for node in nodes:
         node["parent"] = {"number": owner[node["number"]]} if node["number"] in owner else None
         waits = [record for record in map(lookup, depends(node)) if record]
-        node["blockedBy"] = {"nodes": [{"number": record["number"], "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")} for record in waits]}
+        node["blockedBy"] = {"nodes": [{"number": record["number"], "state": record.get("state", "open")} for record in waits]}
         found = [record for record in map(lookup, parts(node["body"])) if record]
-        node["parts"] = {"nodes": [{"number": record["number"], "title": record["title"], "url": record["url"], "state": record.get("state", "OPEN"),
-                                        "stateReason": record.get("stateReason"), "trusted": record.get("trusted", True),
+        node["parts"] = {"nodes": [{"number": record["number"], "title": record["title"], "url": record["url"], "state": record.get("state", "open"),
                                         "blockedBy": {"nodes": [{"number": n} for n in depends(record)]}} for record in found]}
         node["partsSummary"] = {"total": len(found), "completed": sum(completed(record) for record in found)}
     for node in nodes:
         for part in node["parts"]["nodes"]:
-            part["blockedBy"]["nodes"] = [{"number": n, "state": record.get("state", "OPEN"), "stateReason": record.get("stateReason")}
+            part["blockedBy"]["nodes"] = [{"number": n, "state": record.get("state", "open")}
                                                for n in (wait["number"] for wait in part["blockedBy"]["nodes"]) for record in [lookup(n)] if record]
-    return [node for node in nodes if node.get("state", "OPEN") == "OPEN"]
+    return [node for node in nodes if node.get("state", "open") == "open"]
 
 
 RETIRED_LABEL = "backlog"  # the label that marked a parent before parts did; no open task keeps it

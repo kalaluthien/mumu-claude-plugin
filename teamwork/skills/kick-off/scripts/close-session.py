@@ -53,7 +53,7 @@ def waiting(name):
         found = board.tasks("open") or []
     except LookupError:  # outside a repository there is no board to read
         return []
-    return [(task.get("url", f"#{task['number']}"), task_state.first_line(question["ask"]["body"]))
+    return [(task.get("url", f"#{task['number']}"), task_state.first_line(question["ask"]))
             for task in found if name in ((task_state.holder_values(task) or [[]])[-1])
             for question in task_state.open_questions(task)]
 

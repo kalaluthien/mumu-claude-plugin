@@ -14,7 +14,7 @@ A comment's first line opens with one, which the verb that posts it writes from 
 
 ## Fields
 
-A comment is kept as its text and the fields [board-record-schema.json](../assets/board-record-schema.json) names, which every write is checked against; a task keeps the tasks it waits on beside its title. A text never carries data: a write refuses, posting nothing, a text that holds a `teamwork` or `decision` fence.
+A comment is kept as its kind (the keyword it opens with, a `DECIDED` a decision when it holds one, else an event), its keyword line, its text, its author, its time and the fields [board-record-schema.json](../assets/board-record-schema.json) names, which every write is checked against; a task keeps the tasks it waits on beside its title. A text never carries data: a write refuses, posting nothing, a text that holds a `teamwork` or `decision` fence.
 
 | field | set by | meaning |
 | --- | --- | --- |
@@ -25,14 +25,13 @@ A comment is kept as its text and the fields [board-record-schema.json](../asset
 | depends | `depend <task> --depends <numbers>`, `file --depends` | the tasks this one waits on; it waits until each is closed as completed |
 | decision | `decide --decision <sentence>` | one binding sentence |
 | by | `decide --by owner --owner-said <file>`, else the calling session | who decided: `owner`, the owner's words as they typed or picked them in the writing session quoted as `>` lines, else the writing session's own name |
-| one-way | `decide --one-way` | the decision is hard to undo |
+| judge note | `decide --judge-note <file>` | the cases a judge tries against the task's criteria; a decision whose text names a judge note, in any spelling, is refused |
 | supersedes | `decide --supersedes <url>` | the decision it replaces, anywhere in the same root's tree |
 | answers | `decide --answers <url>` | the `BLOCKED` it settles, on the same task |
 
 ## Decisions
 
-- **Binds**: a decision binds its task and that task's parts. A task's binding set, which `read` prints, is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is closed as not planned; a decision still waiting as **One-way** says supersedes nothing yet.
-- **One-way**: a one-way decision by a worker, a session not named `owner` or `<project>-manager`, binds once a later decision on the same task by the manager or the owner repeats its sentence or supersedes it.
+- **Binds**: a decision binds its task and that task's parts. A task's binding set, which `read` prints, is the decisions on it and on its ancestors that no decision in the root's tree supersedes, and none once the root is stopped.
 - **Authority**: `decide` refuses a decision that supersedes one by the owner unless it is `--by owner` too.
 - **Questions**: a `BLOCKED` is an open question until a later decision settles it: one with `--answers` settles each question whose url it names, a question to the owner only when the decision is `--by owner`, which `decide` refuses otherwise; one without `--answers` settles none. A `BLOCKED` with `--again <url>` repeats the question that url names: it joins that question and closes with it, so two questions with the same first line stay two.
 - **Events**: a `DECIDED` with no decision field binds nothing: the note of a `hold`, a `depend`, a body edit or a stop. An old event whose only field is `answers` still settles the questions it names; no verb writes one now.
@@ -80,11 +79,10 @@ A question to the manager is no wait of the task's: it stays an open question, d
 
 ## Rules
 
-- **Read**: `read <task>` cuts each body edit's diff to one line unless `--full`; `read <task> --body` prints the stored body and nothing else, the file an `edit` starts from. `--as worker` leaves out each `Judge note:` paragraph, which names probes of a criterion's implementation; `--as judge` leaves out the open questions and each `BLOCKED:` comment, which are worker history.
+- **Read**: `read <task>` cuts each body edit's diff to one line unless `--full`; `read <task> --body` prints the stored body and nothing else, the file an `edit` starts from. `--as worker`, or a call from a worker's session without `--as judge`, leaves out each judge note, which names probes of a criterion's implementation; `--as judge` leaves out the open questions and each `BLOCKED:` comment, which are worker history.
 - **Body**: written when the task is filed, in free Markdown; afterwards only its sections and its summary line change, and only by `edit`, which takes the whole new body, posts a comment holding the diff from the stored one, then stores it.
 - **Summary line**: a root's body opens with one plain sentence that sums up the work, on one line. The sentence carries no label (`**Summary:**`) and no quote header (`Owner said, verbatim:`). The owner's words follow verbatim, then a `Why:` line of the purpose in the manager's words. Another task's title sums it up, so its `Goal` opens with no summary.
 - **Plain words**: a title and a decision's sentence are what the task pane shows, and a summary line opens a root's body, so a reader who knows no task's history must read each at once: one idea, in everyday words, naming no task by its number and no term the owner did not use. A summary line or decision holds at most 20 words and one `,`, `;` or `:`, and a title at most 40 characters; the write path refuses one that breaks a cap, posting nothing. Put the detail, the numbers and the terms in the body or the comment around it.
 - **Complete sentence**: each criterion opens with its name, `1. [check] **<name>**: <details>`, because the pane shows the name alone; the name is a complete sentence a reader understands without the task's history, such as `**The closed list shows the latest four tasks**`, not a label such as `Four closed`; the write path refuses, posting nothing, a name of fewer than 5 words or beyond the caps of Plain words.
 - **Comment**: every later fact. Its first line opens with a keyword and a colon, then the kind of work it records in plain words after the keyword, `REPORTED: batch landed …`; the rest is free Markdown. A keyword says what the comment does to the task, never who spoke; name a source in the content, `owner said: …`.
-- **Trusted authors**: only a body or comment by an author the board adapter trusts records anything; code reads any other as prose, since anyone may comment on a public board.
 - **Latest wins**: a later value of a field replaces an earlier one; no comment is edited or deleted.

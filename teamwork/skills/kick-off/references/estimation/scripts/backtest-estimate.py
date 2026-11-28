@@ -43,7 +43,7 @@ def main(args):
     repos = list(fixture) if fixture else [task_history.own_repository()]
     pooled = [0, 0]
     for repo in repos:
-        rows = task_history.rows(fixture[repo] if fixture else task_history.fetch(repo))
+        rows = task_history.rows(fixture[repo] if fixture else task_history.fetch())
         if cutoff:
             size, scored = task_backtest.as_of(rows, cutoff, numbers)
             print(f"{repo} as of {cutoff}: history of {size} tasks closed before it, the {len(numbers)} scored tasks left out\n"

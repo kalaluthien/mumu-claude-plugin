@@ -3,14 +3,13 @@ import re
 import unicodedata
 
 import decisions
+import record_types
 import task_state
 import task_links
 
 # the latest closed parts a parent lists, newest first, an ellipsis below them when more landed before
 SHOWN_CLOSED = 4
 SHOWN_DECISIONS = 5
-# the close reason of work stopped, not done
-STOPPED = ("NOT_PLANNED",)
 WIDTHS = (24, 30, 40, 60, 80)
 PANE_WIDTH = 40  # a narrow docked pane, for a listing given no width, as before the pane is first drawn
 MIN_TEXT = 16  # cells a row keeps for its text before its depth stops growing
@@ -18,10 +17,9 @@ NOTE_LINES = 3  # lines a question or decision takes at most, so one long text l
 
 
 def next_step_of(comments):
-    """A parent's next step: the latest `REPORTED:` that names one, so a parent with nothing open says why it stays open; empty when none does."""
-    firsts = [(comment["body"] or "").replace("\r\n", "\n").split("\n\n")[0] for comment in comments]
-    return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if first.startswith("REPORTED:") and "next step:" in first),
-                "")
+    """A parent's next step: the latest report whose first paragraph names one, so a parent with nothing open says why it stays open; empty when none does."""
+    firsts = [record_types.shown(comment).replace("\r\n", "\n").split("\n\n")[0] for comment in comments if comment["kind"] == "report"]
+    return next((" ".join(first.rsplit("next step:", 1)[1].split()) for first in reversed(firsts) if "next step:" in first), "")
 
 
 def progress_of(summary, blockers, next_step):
@@ -46,16 +44,16 @@ def entry(node, superseded=frozenset()):
     """One task as the board shows it: its status, its open questions and decisions, its criteria, its parts' progress."""
     every = blockers_of(node)
     blockers = [blocker["number"] for blocker in every if not blocker["closed"]]
-    state = task_state.compose({"body": node["body"], "trusted": node["trusted"], "comments": node["comments"]["nodes"]}, blockers)
+    state = task_state.compose({"body": node["body"], "comments": node["comments"]["nodes"]}, blockers)
     summary = node.get("partsSummary") or {}
     closed = [{"number": task["number"], "title": task["title"], "url": task["url"], "blockers": blockers_of(task),
-               "stopped": task.get("stateReason") in STOPPED} for task in (node.get("parts") or {}).get("nodes", []) if task["state"] == "CLOSED"]
+               "stopped": task["state"] == "stopped"} for task in (node.get("parts") or {}).get("nodes", []) if task["state"] != "open"]
     next_step = next_step_of(node["comments"]["nodes"]) if summary.get("total") and summary.get("total") == summary.get("completed") else ""
     return {"number": node["number"], "title": node["title"], "url": node["url"],
             "holder": " ".join(state["holders"] or []), "wait": state["waits"] if state["waits"] == task_state.OWNER_WAIT else "",
             "progress": progress_of(summary, blockers, next_step),
             "done": [item for item in state["done"] if item["kind"] != "task"],
-            "next": next_step, "latest": max((comment.get("createdAt") or "" for comment in node["comments"]["nodes"]), default=""),
+            "next": next_step, "latest": max((comment["created"] for comment in node["comments"]["nodes"]), default=""),
             **decisions.shown(node, superseded), "tasks": [], "blockers": every, "closed": closed[::-1][:SHOWN_CLOSED], "earlier": summary.get("completed", 0) > min(len(closed), SHOWN_CLOSED)}
 
 

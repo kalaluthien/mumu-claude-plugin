@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check the git board's edges the board scenario does not reach, in a temporary repository, printing `ok <case>` or `fail <case>: <detail>` per case
 then `PASS` or `FAIL`, and exit 1 on any failure; a port read is made by the plugin's lib in a process of the scratch repository's own:
-- `changed-since`, `comments-since`, `blockers`, `scoped`, `trusted`, `command`: each port read gives what the writes made, and the comment read finds the one comment written;
+- `changed-since`, `comments-since`, `blockers`, `scoped`, `command`: each port read gives what the writes made, and the comment read finds the one comment written;
 - `posted`: `file` and `comment` print a git board's task url and comment url;
 - `signal`: a write touches the signal file the task pane watches;
 - `outside`: a write outside a repository refuses, naming the repository it needs;
@@ -48,10 +48,9 @@ def main(args):
         use("file", "--title", "Second", "--body", body, "--depends", "1")
         use("comment", 1, "--reported", "a comment.")
         reads = {"changed-since": (f"(board_git.changed_since({start!r}), board_git.changed_since('2999-01-01T00:00:00Z'))", lambda got: bool(got[0]) and not got[1]),
-                 "comments-since": (f"[(n, note['body']) for n, note in board_git.comments_since({start!r})]", lambda got: got == [[1, "REPORTED: a comment.\n"]]),
+                 "comments-since": (f"[(n, note['kind'], note['line']) for n, note in board_git.comments_since({start!r})]", lambda got: got == [[1, "report", "a comment."]]),
                  "blockers": ("board_git.blockers(2)", lambda got: bool(got)),
                  "scoped": ("(board_git.scoped('probe'), board_git.scoped('none'), board_git.fresh(1)['scope'])", lambda got: got[2] == "probe" and got[0] != got[1]),
-                 "trusted": ("board_git.trusted({})", lambda got: got is not None),
                  "command": ("board_git.command('use-board.py comment 1 --reported x')", lambda got: got is not None)}
         for name, (read, right) in reads.items():
             got = port(read)

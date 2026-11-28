@@ -11,7 +11,7 @@ and print `ok <case>` or `fail <case>: <what it saw>` per case, then the last li
 - `joined`: two short reports posted in one board commit show in one feed line as one uncut `report:`, joined by ` | `;
 - `question`: the heartbeat's line for a question to the owner, whose first line is the title, names the question, then the text the same way.
 - `quote`: `board_text.quote`, run in process as a property over every C0 character and DEL at the start, middle and end of texts of every length from 0 to 62, leaves no control character and no `"` inside its quotes, and adds the ellipsis exactly when the cleaned text exceeds 60 characters.
-The title also holds a newline, a carriage return, an ESC, a DEL and a double quote, which must show as nothing, and the `"` as `'`. The outside line is not replayed: on a git board every task is trusted, so none reaches it.
+The title also holds a newline, a carriage return, an ESC, a DEL and a double quote, which must show as nothing, and the `"` as `'`.
 
 usage: replay-board-text.py"""
 import pathlib

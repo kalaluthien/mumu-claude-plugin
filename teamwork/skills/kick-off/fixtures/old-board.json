@@ -1,0 +1,379 @@
+{
+ "1/task.json": {
+  "title": "Probe the root",
+  "labels": [],
+  "state": "OPEN",
+  "reason": "",
+  "createdAt": "2026-11-01T00:00:00Z",
+  "closedAt": null,
+  "depends": [],
+  "updatedAt": "2026-11-01T00:00:00Z"
+ },
+ "1/body.md": "## Goal\n\nProbe every record shape.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n2. [task] #2 Probe part 2\n3. [task] #3 Probe part 3\n",
+ "1/comments/0001.json": {
+  "text": "REPORTED: probe findings; next step: probe the pane\n\nThe probe ran twice.\n"
+ },
+ "1/comments/0002.json": {
+  "text": "DECIDED: use the git board\n\nIt keeps every record local.\n\nJudge note: try a board with no tasks; try one comment.\n\nThe rest stays as it was.\n",
+  "decision": "use the git board",
+  "by": "probe-manager"
+ },
+ "1/comments/0003.json": {
+  "text": "BLOCKED: which width counts\n1. 24\n2. 80\n",
+  "options": [
+   "24 columns",
+   "80 columns"
+  ]
+ },
+ "1/comments/0004.json": {
+  "text": "DECIDED: 24 columns count\nAs asked.\n",
+  "decision": "24 columns count",
+  "by": "probe-manager",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/1#comment-3"
+ },
+ "1/comments/0005.json": {
+  "text": "APPROVED: the layout, as drawn.\n"
+ },
+ "1/comments/0006.json": {
+  "text": "Done with the first pass; the second waits.\n"
+ },
+ "1/comments/0007.json": {
+  "text": "DECIDED: hold it",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "1/comments/0008.json": {
+  "text": "DECIDED: "
+ },
+ "1/comments/0009.json": {
+  "text": "BLOCKED: which height counts\n\nAnd which depth.\n"
+ },
+ "1/comments/0010.json": {
+  "text": "BLOCKED: which depth counts\n\nOnly one.\n"
+ },
+ "1/comments/0011.json": {
+  "text": "DECIDED:\n\nboth settled by the owner's reply.\n",
+  "answers": [
+   "git+file:///old/checkout/.git/refs/teamwork-blackboard/1#comment-9",
+   "git+file:///old/checkout/.git/refs/teamwork-blackboard/1#comment-10"
+  ]
+ },
+ "1/comments/0012.json": {
+  "text": "DECIDED: the event settles nothing new\n",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/1#comment-3"
+ },
+ "1/comments/0013.json": {
+  "text": "DECIDED: plain words close\n"
+ },
+ "2/task.json": {
+  "title": "Probe a completed part",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "COMPLETED",
+  "createdAt": "2026-11-01T01:00:00Z",
+  "closedAt": "2026-11-02T00:00:00Z",
+  "depends": [],
+  "updatedAt": "2026-11-02T00:00:00Z",
+  "commentTimes": [
+   "2026-11-01T00:00:00Z",
+   "2026-11-01T01:00:00Z",
+   "2026-11-01T02:00:00Z",
+   "2026-11-01T03:00:00Z",
+   "2026-11-01T04:00:00Z",
+   "2026-11-01T05:00:00Z",
+   "2026-11-02T00:00:00Z",
+   "2026-11-02T01:00:00Z",
+   "2026-11-02T02:00:00Z",
+   "2026-11-02T03:00:00Z",
+   "2026-11-02T04:00:00Z",
+   "2026-11-02T05:00:00Z",
+   "2026-11-03T00:00:00Z",
+   "2026-11-03T01:00:00Z"
+  ]
+ },
+ "2/body.md": "## Goal\n\nProbe a completed part.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "2/comments/0001.json": {
+  "text": "DECIDED: build it in Python\n\nIt is the plugin's language.\n",
+  "decision": "build it in Python",
+  "by": "probe-manager",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "2/comments/0002.json": {
+  "text": "DECIDED: build it in Python 3.9\n\nThe oldest the machine runs.\n",
+  "decision": "build it in Python 3.9",
+  "by": "probe-manager",
+  "supersedes": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-1"
+ },
+ "2/comments/0003.json": {
+  "text": "BLOCKED: which version\n\nThe machine has two.\n"
+ },
+ "2/comments/0004.json": {
+  "text": "DECIDED: version 3.9\n\nThe older one.\n",
+  "decision": "version 3.9",
+  "by": "probe-manager",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-3",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "2/comments/0005.json": {
+  "text": "BLOCKED: how many live runs\n\nThe checks start sessions.\n"
+ },
+ "2/comments/0006.json": {
+  "text": "DECIDED: two live runs\nNo more.\n",
+  "decision": "two live runs",
+  "by": "probe-manager",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-5",
+  "live_runs": 2
+ },
+ "2/comments/0007.json": {
+  "text": "DECIDED: raise the cap\n\nThe sweep needs one more.\n",
+  "holders": [
+   "probe-worker"
+  ],
+  "live_runs": 3
+ },
+ "2/comments/0008.json": {
+  "text": "REPORTED: probe landed\n\nAt the tip.\n",
+  "holders": []
+ },
+ "2/comments/0009.json": {
+  "text": "REPORTED: probe landed again\nAt the next tip.\n",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "2/comments/0010.json": {
+  "text": "REPORTED: probe done",
+  "holders": []
+ },
+ "2/comments/0011.json": {
+  "text": "DECIDED: three live runs\n\nFor the sweep.\n",
+  "decision": "three live runs",
+  "by": "probe-manager",
+  "live_runs": 3
+ },
+ "2/comments/0012.json": {
+  "text": "BLOCKED: which cache\n\nTwo are offered.\n",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "2/comments/0013.json": {
+  "text": "DECIDED: the disk cache\n\nIt survives a restart.\n",
+  "decision": "the disk cache",
+  "by": "probe-manager",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-12",
+  "supersedes": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-11"
+ },
+ "2/comments/0014.json": {
+  "text": "DECIDED: four live runs\n\nThe worker holds it.\n",
+  "decision": "four live runs",
+  "by": "probe-manager",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/2#comment-5",
+  "holders": [
+   "probe-worker"
+  ],
+  "live_runs": 4
+ },
+ "3/task.json": {
+  "title": "Probe a stopped part",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "NOT_PLANNED",
+  "createdAt": "2026-11-01T02:00:00Z",
+  "closedAt": "2026-11-03T00:00:00Z",
+  "depends": [],
+  "updatedAt": "2026-11-03T00:00:00Z",
+  "commentTimes": [
+   "2026-11-01T00:00:00Z",
+   "2026-11-01T01:00:00Z",
+   "2026-11-01T02:00:00Z",
+   "2026-11-01T03:00:00Z",
+   "2026-11-01T04:00:00Z",
+   "2026-11-01T05:00:00Z",
+   "2026-11-02T00:00:00Z"
+  ]
+ },
+ "3/body.md": "## Goal\n\nProbe a stopped part.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "3/comments/0001.json": {
+  "text": "BLOCKED: may the sync run\n\nIt writes outside.\n",
+  "asks": "owner"
+ },
+ "3/comments/0002.json": {
+  "text": "BLOCKED: may the pane change\nIt is the owner's.\n",
+  "asks": "owner",
+  "options": [
+   "yes",
+   "no"
+  ]
+ },
+ "3/comments/0003.json": {
+  "text": "DECIDED: the sync may run\n\n> yes, run it\n",
+  "decision": "the sync may run",
+  "by": "owner",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/3#comment-1",
+  "one_way": true
+ },
+ "3/comments/0004.json": {
+  "text": "DECIDED: no external service\n\n> no external service\n",
+  "decision": "no external service",
+  "by": "owner",
+  "one_way": true
+ },
+ "3/comments/0005.json": {
+  "text": "BLOCKED: who holds it\n\nTwo workers asked.\n",
+  "asks": "owner",
+  "holders": []
+ },
+ "3/comments/0006.json": {
+  "text": "BLOCKED: which pane\n\nThree are drawn.\n",
+  "asks": "owner",
+  "options": [
+   "left",
+   "right"
+  ]
+ },
+ "3/comments/0007.json": {
+  "text": "FINDINGS: three panes, two used.\n"
+ },
+ "probe/4/task.json": {
+  "title": "Probe a scoped task",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "COMPLETED",
+  "createdAt": "2026-11-01T03:00:00Z",
+  "closedAt": "2026-11-04T00:00:00Z",
+  "depends": [
+   1
+  ],
+  "updatedAt": "2026-11-04T00:00:00Z"
+ },
+ "probe/4/body.md": "## Goal\n\nProbe a scoped task.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "probe/4/comments/0001.json": {
+  "text": "BLOCKED: which scope\n\nTwo folders.\n"
+ },
+ "probe/4/comments/0002.json": {
+  "text": "DECIDED: the probe folder\n\nIt is the scope.\n",
+  "decision": "the probe folder",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "probe/4/comments/0003.json": {
+  "text": "DECIDED: the probe folder and its runs\n\nTwo runs.\n",
+  "decision": "the probe folder and its runs",
+  "holders": [
+   "probe-worker"
+  ],
+  "live_runs": 2
+ },
+ "probe/4/comments/0004.json": {
+  "text": "DECIDED: one run\n\nOne is enough.\n",
+  "decision": "one run",
+  "by": "probe-manager",
+  "live_runs": 1
+ },
+ "probe/4/comments/0005.json": {
+  "text": "DECIDED: the scope settles\n\nBy the folder.\n",
+  "decision": "the scope settles",
+  "answers": "git+file:///old/checkout/.git/refs/teamwork-blackboard/probe/4#comment-1",
+  "holders": [],
+  "live_runs": 1
+ },
+ "probe/4/comments/0006.json": {
+  "text": "DECIDED: two runs again\n\nThe cap rose.\n",
+  "decision": "two runs again",
+  "by": "probe-manager",
+  "answers": [
+   "git+file:///old/checkout/.git/refs/teamwork-blackboard/probe/4#comment-1"
+  ],
+  "live_runs": 2
+ },
+ "probe/4/comments/0007.json": {
+  "text": "REPORTED: probe part done; next step: none\n"
+ },
+ "probe/4/comments/0008.json": {
+  "text": "A note no own report lists.\n",
+  "again": "git+file:///old/checkout/.git/refs/teamwork-blackboard/1#comment-2"
+ },
+ "5/task.json": {
+  "title": "Probe empty comment times",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "COMPLETED",
+  "createdAt": "2026-11-01T04:00:00Z",
+  "closedAt": "2026-11-05T00:00:00Z",
+  "depends": [],
+  "updatedAt": "2026-11-05T00:00:00Z",
+  "commentTimes": []
+ },
+ "5/body.md": "## Goal\n\nProbe empty comment times.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "5/comments/0001.json": {
+  "text": "Picked up by the probe worker.\n",
+  "holders": [
+   "probe-worker"
+  ]
+ },
+ "5/comments/0002.json": {
+  "text": "REPORTED: probe findings\nTwo rows.\n"
+ },
+ "5/comments/0003.json": {
+  "text": "BLOCKED: which rows\n"
+ },
+ "6/task.json": {
+  "title": "Probe a stopped task",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "NOT_PLANNED",
+  "createdAt": "2026-11-01T05:00:00Z",
+  "closedAt": "2026-11-06T00:00:00Z",
+  "depends": [],
+  "updatedAt": "2026-11-06T00:00:00Z"
+ },
+ "6/body.md": "## Goal\n\nProbe a stopped task.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "6/comments/0001.json": {
+  "text": "BLOCKED: is it still wanted"
+ },
+ "6/comments/0002.json": {
+  "text": "REPORTED:no space after the colon\n"
+ },
+ "7/task.json": {
+  "title": "Probe a stopped task with empty times",
+  "labels": [],
+  "state": "CLOSED",
+  "reason": "NOT_PLANNED",
+  "createdAt": "2026-11-01T06:00:00Z",
+  "closedAt": "2026-11-07T00:00:00Z",
+  "depends": [],
+  "updatedAt": "2026-11-07T00:00:00Z",
+  "commentTimes": []
+ },
+ "7/body.md": "## Goal\n\nProbe a stopped task with empty times.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n",
+ "7/comments/0001.json": {
+  "text": "DECIDED: drop it\n\nNo one needs it.\n",
+  "decision": "drop it",
+  "by": "probe-manager",
+  "one_way": true
+ },
+ "8/task.json": {
+  "title": "Probe a finished parent",
+  "labels": [],
+  "state": "OPEN",
+  "reason": "",
+  "createdAt": "2026-11-01T07:00:00Z",
+  "closedAt": null,
+  "depends": [],
+  "updatedAt": "2026-11-01T07:00:00Z",
+  "commentTimes": [
+   "2026-11-01T00:00:00Z"
+  ]
+ },
+ "8/body.md": "## Goal\n\nProbe a finished parent.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works**: `basename PASS` prints `PASS`; on base `FAIL`.\n2. [task] #5 Probe part 5\n",
+ "8/comments/0001.json": {
+  "text": "REPORTED: part landed; next step: probe the pane\n\nThe part closed.\n"
+ }
+}

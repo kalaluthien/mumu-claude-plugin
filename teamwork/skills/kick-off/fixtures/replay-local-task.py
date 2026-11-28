@@ -74,7 +74,7 @@ def case_whole(sandbox):
     if sandbox.git("rev-parse", "refs/heads/main", cwd=sandbox.origin).strip() != merged:
         return replay_probe.fail("the merge did not reach origin's main")
     use(sandbox, "use-board.py", "resolve", "1", "--summary", "Probe part done.")
-    if state(sandbox, "2") != ["state: CLOSED"]:
+    if state(sandbox, "2") != ["state: completed"]:
         return replay_probe.fail(f"the root did not close with its last part: {state(sandbox, '2')}")
     pane = sandbox.python(HOOKS / "list-task-board.py", "probe", "--json")
     if pane.returncode or "Probe the late task" not in pane.stdout:
@@ -178,14 +178,14 @@ def case_atomic(sandbox):
         problem = added(why, run, want)
         if problem:
             return replay_probe.fail(problem)
-    if state(sandbox, "2") != ["state: CLOSED"] or state(sandbox, "4") != ["state: CLOSED"]:
+    if state(sandbox, "2") != ["state: completed"] or state(sandbox, "4") != ["state: stopped"]:
         return replay_probe.fail(f"the verbs did not close what they should: {state(sandbox, '2')} {state(sandbox, '4')}")
     # the part is filed first, so the reopening edit is the only write counted
     use(sandbox, "use-board.py", "file", "--title", "Probe the new part", "--body", replay_probe.write_text(sandbox.work, "newpart.md", "New part.\n"), "--scope", "probe")
     problem = added("an edit that reopens a closed root", reopening_edit, 1)
     if problem:
         return replay_probe.fail(problem)
-    if state(sandbox, "2") != ["state: OPEN"]:
+    if state(sandbox, "2") != ["state: open"]:
         return replay_probe.fail(f"the root did not reopen: {state(sandbox, '2')}")
     return 0
 

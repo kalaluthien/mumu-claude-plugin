@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "lib"))
 import board  # noqa: E402
 import data_folder  # noqa: E402
+import record_types  # noqa: E402
 
 
 def main(args):
@@ -31,13 +32,14 @@ def main(args):
         task = board.fresh(args[0])
     else:
         found = next((node for node in nodes if node["number"] == int(args[0])), None)
-        task = found and {**found, "trusted": True, "state": found.get("state", "OPEN"), "comments": [{"body": note["body"]} for note in found["comments"]["nodes"]]}
+        task = found and {**found, "state": found.get("state", "open"), "comments": found["comments"]["nodes"]}
     if not task:
         print(f"print-task-markdown: cannot read #{args[0]}", file=sys.stderr)
         return 1
-    print(f"# #{task['number']} {task['title']}\n\n{task['state'].lower()}\n\n{task['body'].strip()}")
+    print(f"# #{task['number']} {task['title']}\n\n{task['state']}\n\n{task['body'].strip()}")
     for note in task["comments"]:
-        print(f"\n---\n\n{note['body'].strip()}")
+        judge = note["fields"].get("judge_note")
+        print(f"\n---\n\n{record_types.shown(note).strip()}" + (f"\n\nJudge note: {judge}" if judge else ""))
     return 0
 
 

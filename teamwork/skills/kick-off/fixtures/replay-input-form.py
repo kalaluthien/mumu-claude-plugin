@@ -11,7 +11,7 @@ an `accept-` case when every write exits 0 and the board changed. Cases:
 - `edit-*`: a new body or `--reason` `use-board.py edit` is given;
 - `unstored-*`: a holder's or a decider's name that board-record-schema.json refuses;
 - `accept-*`: text and options that must still post, and a bare `--blocked` or `--reported` taking its line from `--text`;
-- `stored-decision`: a `decide` with `--one-way`, `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` whose keys the schema all names, and `read` shows each;
+- `stored-decision`: a `decide` with `--answers`, `--holders` and `--live-runs` keeps a `comments/<k>.json` the schema takes, its answers as refs, and `read` shows each;
 - `stored-question`: a `comment --asks owner` with two `--option` keeps them as `options`, and `read` numbers them and says the task waits on the owner;
 - `url-names-task`: `read` and `comment` take the url `file` printed as they take the number.
 
@@ -26,6 +26,7 @@ LIB = HERE.parents[2] / "lib"
 SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(LIB))
 import replay_probe  # noqa: E402
+import task_state  # noqa: E402
 
 BASE = "A summary.\n\n## Goal\n\nDo it.\n\nPath: caller: the probe run; meets: the owner\n\n## Definition of done\n\n1. [check] **The probe works when it runs once**: `basename PASS` prints `PASS`; on base `FAIL`.\n"
 TEAMWORK = "\n```teamwork\nholders: a-worker\n```\n"
@@ -75,7 +76,7 @@ ACCEPTED = {
     "accept-clean-edit": [("edit", BASE, BASE + "\nMore.\n", "add more")],
     "accept-fixing-edit": [("edit", BASE + TEAMWORK, BASE, "drop the fence"), ("edit", BASE + TEAMWORK, BASE + TEAMWORK + "\nMore.\n", "add more beside the fence")],
     "accept-every-option": [("file", BASE), ("file", BASE, "--label", "a-label", "--scope", "", "--depends", "1"), ("comment", "BLOCKED: which one?\n", "--asks", "owner", *TWO),
-                            ("decide", "DECIDED: ship the probe today\n", *BY, "--one-way", "--holders", "a-worker b-worker", "--live-runs", "2"),
+                            ("decide", "DECIDED: ship the probe today\n", *BY, "--holders", "a-worker b-worker", "--live-runs", "2"),
                             ("decide", 'DECIDED: ship the probe today\n\nThe owner said "ship it".\n', "--by", "owner"),
                             ("hold", None, "a-worker", "b-worker"), ("hold", None), ("depend", None, "1"), ("depend", None, "#1")],
     "accept-keyword-spaced": [("call", "comment", "\n more probe findings\n", "--reported", "probe findings"), ("call", "decide", "\n more on it\n", "--decision", "ship the probe today", *BY),
@@ -171,22 +172,25 @@ def replay(sandbox, only):
     def stored_decision():
         number = prepare(("comment", None))
         question = keyed("comment", number, "BLOCKED: which one?\n").stdout.strip()
-        decided = keyed("decide", number, "DECIDED: ship the probe today\n\nIt is ready.\n", *BY, "--one-way", "--answers", question, "--holders", "a-worker b-worker", "--live-runs", "2")
+        decided = keyed("decide", number, "DECIDED: ship the probe today\n\nIt is ready.\n", *BY, "--answers", question, "--holders", "a-worker b-worker", "--live-runs", "2")
         url, record, read = decided.stdout.strip(), stored(number, 2), use("read", number).stdout
-        wanted = {"text": "DECIDED: ship the probe today\n\nIt is ready.\n", "decision": "ship the probe today", "by": "a-manager", "one_way": True, "answers": question,
-                  "holders": ["a-worker", "b-worker"], "live_runs": 2}
-        shows = ["state: OPEN, held\n", "holders: a-worker b-worker\n", "binding decisions: 1\n", f"- #{number} a-manager, one-way: ship the probe today ({url}); answers {question}\n", "open questions: 0\n",
-                 f"--- {url} (by: a-manager; answers: {question}; one way; holders: a-worker b-worker; live runs: 2)\n"]
-        cases.step("stored-decision", decided.returncode == 0 and record == wanted and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows),
+        asked = f"{number}#comment-1"
+        wanted = {"kind": "decision", "line": "ship the probe today", "text": "\n\nIt is ready.\n", "author": "a-manager", "ref": f"{number}#comment-2",
+                  "decision": "ship the probe today", "by": "a-manager", "answers": [asked], "holders": ["a-worker", "b-worker"], "live_runs": 2}
+        shows = ["state: open, held\n", "holders: a-worker b-worker\n", "binding decisions: 1\n", f"- #{number} a-manager: ship the probe today ({url}); answers {asked}\n", "open questions: 0\n",
+                 f"--- {url} (by: a-manager; answers: {asked}; holders: a-worker b-worker; live runs: 2)\nDECIDED: ship the probe today\n\nIt is ready.\n"]
+        kept = {key: value for key, value in record.items() if key != "created"}
+        cases.step("stored-decision", decided.returncode == 0 and kept == wanted and not task_state.invalid(record, SCHEMA["definitions"]["comment"]) and all(line in read for line in shows),
              f"exit {decided.returncode} {decided.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
 
     def stored_question():
         number = prepare(("comment", None))
         asked = keyed("comment", number, "BLOCKED: which one?\n", "--asks", "owner", *TWO)
         url, record, read = asked.stdout.strip(), stored(number, 1), use("read", number).stdout
-        shows = ["state: OPEN, waits on the owner\n", "open questions: 1\n", f"- #{number} to the owner: which one? ({url})\n", f"--- {url} (asks: owner)\nBLOCKED: which one?\n\n1. the first\n2. the second\n"]
-        cases.step("stored-question", asked.returncode == 0 and record == {"text": "BLOCKED: which one?\n", "asks": "owner", "options": ["the first", "the second"]}
-             and set(record) <= set(SCHEMA["properties"]) and all(line in read for line in shows), f"exit {asked.returncode} {asked.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
+        shows = ["state: open, waits on the owner\n", "open questions: 1\n", f"- #{number} to the owner: which one? ({url})\n", f"--- {url} (asks: owner)\nBLOCKED: which one?\n\n1. the first\n2. the second\n"]
+        wanted = {"kind": "question", "line": "which one?", "text": "\n", "author": "a-manager", "ref": f"{number}#comment-1", "asks": "owner", "options": ["the first", "the second"]}
+        cases.step("stored-question", asked.returncode == 0 and {key: value for key, value in record.items() if key != "created"} == wanted
+             and not task_state.invalid(record, SCHEMA["definitions"]["comment"]) and all(line in read for line in shows), f"exit {asked.returncode} {asked.stderr}\n{record}\n{[line for line in shows if line not in read]}\n{read}")
 
     def url_names_task():
         filed = use("file", "--title", "A task", "--body", written(BASE))

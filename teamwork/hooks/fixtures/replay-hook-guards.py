@@ -168,7 +168,7 @@ def install(sandbox, work):
     dropped from PATH for holding a herdr may hold python3 too."""
     bare = os.pathsep.join(folder for folder in sandbox.environment["PATH"].split(os.pathsep) if not os.access(os.path.join(folder, "herdr"), os.X_OK))
     start = {"hook_event_name": "SessionStart", "cwd": str(work), "source": "startup"}
-    said = [json.loads(sandbox.run([sys.executable, ROUTE], "w1:p1", cwd=PLUGIN, input=json.dumps(start), timeout=TIMEOUT, **path).stdout or "{}").get("systemMessage", "")
+    said = [json.loads(sandbox.run([sys.executable, ROUTE], "w1:p1", cwd=work, input=json.dumps(start), timeout=TIMEOUT, **path).stdout or "{}").get("systemMessage", "")
             for path in ({"PATH": bare}, {})]
     return None if "`herdr` is not installed" in said[0] and not said[1] else f"with no herdr and with herdr on PATH the SessionStart said {said}"
 

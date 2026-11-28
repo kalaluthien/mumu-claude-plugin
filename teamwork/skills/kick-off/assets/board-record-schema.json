@@ -1,19 +1,44 @@
 {
-  "title": "A comment the board keeps as comments/<k>.json, written only by use-board.py",
-  "type": "object",
-  "required": ["text"],
-  "additionalProperties": false,
-  "properties": {
-    "text": { "type": "string", "description": "Markdown a person reads; no code reads it for data" },
-    "holders": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }, "description": "the sessions that hold the task from now on, replacing every earlier value; empty when no one does" },
-    "asks": { "enum": ["owner"], "description": "on a BLOCKED, that the owner answers it, not the manager" },
-    "again": { "type": "string", "pattern": "#comment-\\d+$", "description": "on a BLOCKED, the url of the question it repeats, which it joins and closes with" },
-    "options": { "type": "array", "items": { "type": "string", "pattern": "\\S" }, "description": "on a BLOCKED, the answers it offers, which a reader numbers from 1 in this order" },
-    "live_runs": { "type": "integer", "minimum": 0, "description": "how many live sessions the checks run in one worktree may start in all, replacing every earlier value" },
-    "decision": { "type": "string", "pattern": "\\S", "description": "one binding sentence; a DECIDED without it is an event, which binds nothing and answers only what its `answers` names" },
-    "by": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "who decided: owner, else the deciding session's name" },
-    "one_way": { "enum": [true], "description": "a decision hard to undo, which a worker's binds only once the manager or the owner repeats or supersedes it" },
-    "supersedes": { "type": "string", "pattern": "#comment-\\d+$", "description": "the url of the decision it replaces, anywhere in the same root's tree" },
-    "answers": { "anyOf": [{ "type": "string", "pattern": "#comment-\\d+$" }, { "type": "array", "items": { "type": "string", "pattern": "#comment-\\d+$" } }], "description": "the url of the BLOCKED it settles, or the urls of those it settles, on the same task" }
+  "title": "The records the board keeps, written only by use-board.py: each task's task.json and each of its comments/<k>.json",
+  "definitions": {
+    "task": {
+      "title": "A task as its task.json keeps it; its body is body.md beside it",
+      "type": "object",
+      "required": ["title", "labels", "state", "depends", "createdAt", "updatedAt", "closedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "pattern": "\\S", "description": "what the task does, in a few words" },
+        "labels": { "type": "array", "items": { "type": "string", "pattern": "\\S" }, "description": "the label names, in the order they were added" },
+        "state": { "enum": ["open", "completed", "stopped"], "description": "open; completed, closed as done; or stopped, closed as not planned" },
+        "depends": { "type": "array", "items": { "type": "integer", "minimum": 1 }, "description": "the numbers of the tasks it waits on" },
+        "createdAt": { "type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$", "description": "when it was filed, in UTC" },
+        "updatedAt": { "type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$", "description": "when a write last changed it or added a comment, in UTC" },
+        "closedAt": { "anyOf": [{ "type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$" }, { "enum": [null] }], "description": "when it was last closed, in UTC; null while open" }
+      }
+    },
+    "comment": {
+      "title": "A comment as its comments/<k>.json keeps it",
+      "type": "object",
+      "required": ["kind", "line", "text", "author", "created", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["question", "report", "decision", "event", "note"], "description": "what it does: a BLOCKED question, a REPORTED report, a DECIDED decision, which holds `decision`, or event, which holds none, or a note written before keywords were asked for" },
+        "line": { "type": "string", "pattern": "^[^\\n]*$", "description": "the words of its keyword line after the keyword, the first line of a note" },
+        "text": { "type": "string", "description": "Markdown a person reads, what follows the line from the newline that ends it; no code reads it for data" },
+        "author": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "the session that wrote it, `unknown` for one written before authors were kept" },
+        "created": { "type": "string", "pattern": "^\\d{4}-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ$", "description": "when it was written, in UTC" },
+        "ref": { "type": "string", "pattern": "^\\d+#comment-\\d+$", "description": "its own place, `<task>#comment-<k>`" },
+        "holders": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" }, "description": "the sessions that hold the task from now on, replacing every earlier value; empty when no one does" },
+        "asks": { "enum": ["owner"], "description": "on a question, that the owner answers it, not the manager" },
+        "again": { "type": "string", "pattern": "^\\d+#comment-\\d+$", "description": "on a question, the ref of the question it repeats, which it joins and closes with" },
+        "options": { "type": "array", "items": { "type": "string", "pattern": "\\S" }, "description": "on a question, the answers it offers, which a reader numbers from 1 in this order" },
+        "live_runs": { "type": "integer", "minimum": 0, "description": "how many live sessions the checks run in one worktree may start in all, replacing every earlier value" },
+        "decision": { "type": "string", "pattern": "\\S", "description": "one binding sentence" },
+        "by": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "who decided: owner, else the deciding session's name" },
+        "supersedes": { "type": "string", "pattern": "^\\d+#comment-\\d+$", "description": "the ref of the decision it replaces, anywhere in the same root's tree" },
+        "answers": { "type": "array", "items": { "type": "string", "pattern": "^\\d+#comment-\\d+$" }, "description": "the refs of the questions it settles, on the same task; an event holding it is an old one, which no verb writes now" },
+        "judge_note": { "type": "string", "pattern": "\\S", "description": "on a decision, the cases a judge tries against the task's criteria, which a worker's read leaves out" }
+      }
+    }
   }
 }

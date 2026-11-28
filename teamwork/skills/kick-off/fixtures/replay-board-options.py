@@ -145,9 +145,9 @@ def replay(work):
     lines = ["REPORTED: probe findings", "BLOCKED: which probe runs first?", "1. the fast one", "DECIDED: ship the probe today", "DECIDED: add the second run",
              "#" + number + " Seed the probe board", "labels: probe, second", "holders: a-worker b-worker", f"depends: #{other}"]
     step("named-writes", first and second and all(answer.returncode == 0 for _, answer in done) and all(line in shown for line in lines)
-         and keys <= set(SCHEMA["properties"]) and "text" in keys and "+2. [check] **The probe works when it runs twice**" in full and "+2. [check]" not in shown,
+         and keys <= set(SCHEMA["definitions"]["comment"]["properties"]) and "text" in keys and "+2. [check] **The probe works when it runs twice**" in full and "+2. [check]" not in shown,
          [f"{' '.join(map(str, call))}: exit {answer.returncode} {answer.stderr[:200]}" for call, answer in done if answer.returncode]
-         + [f"read lacks {line!r}" for line in lines if line not in shown] + [f"stray keys {sorted(keys - set(SCHEMA['properties']))}"]
+         + [f"read lacks {line!r}" for line in lines if line not in shown] + [f"stray keys {sorted(keys - set(SCHEMA['definitions']['comment']['properties']))}"]
          + ([] if "+2. [check]" in full and "+2. [check]" not in shown else ["`read --full` and `read` do not differ by the edit's diff"]))
 
     def refused(name, cases):

@@ -56,7 +56,7 @@ def run_writers(use, box):
 
     paths = git("ls-tree", "-r", "--name-only", REF).split()
     read = lambda path: git("show", f"{REF}:{path}")
-    comments = collections.Counter(json.loads(read(path))["text"].removeprefix("REPORTED: ").strip() for path in paths if path.startswith("1/comments/"))
+    comments = collections.Counter(json.loads(read(path))["line"] for path in paths if path.startswith("1/comments/"))
     titles = collections.Counter(json.loads(read(path))["title"] for path in paths if path.endswith("/task.json") and path != "1/task.json")
     for kind, found, expected in (("comment", comments, {f"w{i}-c{k}" for i in range(WRITERS) for k in range(1, COMMENTS + 1)}),
                                   ("task", titles, {f"w{i}-t{k}" for i in range(WRITERS) for k in range(1, FILINGS + 1)})):

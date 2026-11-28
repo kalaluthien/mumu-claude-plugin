@@ -25,7 +25,7 @@ def main(args):
     if len(args) == 2 and args[0] == "--from-json" and not args[1].startswith("--"):
         tasks = json.load(open(args[1]))
     elif not args:
-        tasks = task_history.fetch(task_history.own_repository())
+        tasks = task_history.fetch()
     else:
         print(__doc__, file=sys.stderr)
         return 2

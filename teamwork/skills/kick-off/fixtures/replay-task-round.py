@@ -76,7 +76,7 @@ def replay(sandbox):
     tree = git("ls-tree", "-r", "--name-only", "refs/teamwork-blackboard").split()
     notes = [path for path in tree if "/comments/" in path]
     stored = [json.loads(git("show", f"refs/teamwork-blackboard:{path}")) for path in notes if path.endswith(".json")]
-    cases.step("stored", len(stored) == len(notes) >= 4 and all(set(note) <= set(SCHEMA["properties"]) and "```teamwork" not in note["text"] and "```decision" not in note["text"] for note in stored), notes)
+    cases.step("stored", len(stored) == len(notes) >= 4 and all(set(note) <= set(SCHEMA["definitions"]["comment"]["properties"]) and "```teamwork" not in note["text"] and "```decision" not in note["text"] for note in stored), notes)
 
     code, shown, _ = use("read", question.split("#")[0])
     cost["read"] += len(shown)

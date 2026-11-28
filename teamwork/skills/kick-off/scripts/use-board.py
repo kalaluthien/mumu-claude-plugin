@@ -3,7 +3,7 @@
 
 usage: use-board.py read <task> [--as worker|judge] [--full] [--body]
 usage: use-board.py comment <task> (--blocked [<question>] | --reported [<line>]) [--text <file>] [--asks owner] [--option <answer>]... [--again <url>]
-usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by owner --owner-said <file>] [--one-way] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
+usage: use-board.py decide <task> --decision <sentence> [--text <file>] [--by owner --owner-said <file>] [--judge-note <file>] [--supersedes <url>] [--answers <url>] [--holders <names>] [--live-runs <n>]
 usage: use-board.py hold <task> --holders <names>
 usage: use-board.py depend <task> --depends <numbers>
 usage: use-board.py file --title <title> --body <file> [--label <name>]... [--scope <folder>] [--depends <numbers>] [--parent <task>]
@@ -13,7 +13,7 @@ usage: use-board.py resolve <task> --summary <line> [--text <file>] [--not-plann
 usage: use-board.py reopen <task>
 usage: use-board.py label <task> --label <name> [--remove]
 
-`<task>` is a number or url; `--repository <folder>` on any verb names the checkout whose board it acts on, and a relative `--body` or `--text` path is read from it. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
+`<task>` is a number or url; `--repository <folder>` on any verb names the checkout whose board it acts on, and a relative file path is read from it. The script writes the keyword line, so `--text` holds what follows it; a bare `--blocked` or `--reported`
 takes that line from the first line of `--text`. `<names>` and `<numbers>` split by spaces, `""` for none. A write prints its url; a refused one posts nothing, exits 2 and names the fix. Meanings:
 references/task-grammar.md; `--scope`: references/adapters/board.md."""
 import argparse
@@ -29,12 +29,10 @@ import board_refs  # noqa: E402
 import criteria_check  # noqa: E402
 import data_folder  # noqa: E402
 import decisions  # noqa: E402
+import record_types  # noqa: E402
 import task_links  # noqa: E402
 import task_state  # noqa: E402
-from judge_note import without_judge_note  # noqa: E402
-import own_reports  # noqa: E402
 import session  # noqa: E402
-import team_names  # noqa: E402
 import usage_parser  # noqa: E402
 
 # the option that carries each keyword's line, so a text file that opens with a keyword is refused naming it
@@ -43,12 +41,6 @@ LINE_OPTIONS = {task_state.ASK: "--blocked", task_state.INFORM: "--reported", ta
 
 def my_name():
     return session.own_name()
-
-
-def keep_own(url, text):
-    """A manager's own report is news to no one, so its heartbeat is told not to feed it back."""
-    if task_state.keyword(text) == task_state.INFORM and team_names.role(my_name()) == "manager":
-        own_reports.note(url)
 
 
 def read_text(path):
@@ -91,7 +83,7 @@ def numbers(words, option="--depends"):
 def summary(fields):
     """A stored comment's fields on one line, for a reader of its text."""
     return "; ".join(key.replace("_", " ") + (f": {' '.join(value) if isinstance(value, list) else value}" if value is not True else "")
-                     for key, value in fields.items() if key not in ("decision", "options"))
+                     for key, value in fields.items() if key not in ("decision", "options", "judge_note"))
 
 
 def read_task(options):
@@ -103,21 +95,27 @@ def read_task(options):
         # the stored body and nothing else, so a file of it is what `edit` compares the new body with
         sys.stdout.write(board.body(options.task))
         return 0
+    # a worker's judge runs in the worker's session, so only `--as judge` shows that session the judge notes
+    hidden = role == "worker" or role is None and board.writer().role == "worker"
     tasks = decisions.read(options.task, board.fresh)
     task = tasks[options.task]
     state = task_state.compose(task, board.blockers(task["number"]))
-    print(f"#{task['number']} {task['title']}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'OPEN' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
+    print(f"#{task['number']} {task['title']}\nstate: {task['state']}{', ' + state['waits'] if task['state'] == 'open' else ''}\nholders: {' '.join(state['holders'] or [])}{' (was ' + ' '.join(state['was']) + ')' if state['was'] else ''}\n"
           f"{'scope: ' + (task['scope'] or '(repository root)') + chr(10) if 'scope' in task else ''}labels: {', '.join(task['labels'])}\nparent: {task['parent']}\n"
           f"depends: {' '.join(f'#{number}' for number in task['depends'])}\nbody sha: {board.body_sha(task['body'])}\n\n{task['body']}\n")
     print("\n".join(decisions.lines(task["number"], tasks, questions=role != "judge")))
     for comment in task["comments"]:
-        if role == "judge" and task_state.keyword(comment["body"]) == task_state.ASK:
+        if role == "judge" and comment["kind"] == "question":
             continue
-        text = without_judge_note(comment["body"]) if role == "worker" else comment["body"]
+        note = comment["fields"].get("judge_note")
+        text = record_types.shown(comment)
+        if note and not hidden:
+            said = text.rstrip("\n")
+            text = f"{said}\n\nJudge note: {note}{text[len(said):]}"
         if not options.full:
             text = task_state.DIFF.sub(lambda found: f"(a diff of {found.group(2).count(chr(10))} lines, which `read --full` prints)", text)
-        said = summary(comment.get("fields") or {})
-        offered = "".join(f"\n{place}. {option}" for place, option in enumerate((comment.get("fields") or {}).get("options", []), 1))
+        said = summary(comment["fields"])
+        offered = "".join(f"\n{place}. {option}" for place, option in enumerate(comment["fields"].get("options", []), 1))
         print(f"\n--- {comment['url']}{' (' + said + ')' if said else ''}\n{text}{offered}")
     return 0
 
@@ -141,10 +139,8 @@ def post_comment(options):
     if options.asks and len(offered) < 2:
         refuse("comment", ["a question to the owner offers two answers or more, each as `--option '<answer>'`, since the owner answers with a number"])
     refuse("comment", task_state.defects("comment", text))
-    url = board.comment(options.task, text, {**({"asks": "owner"} if options.asks else {}), **({"options": offered} if offered else {}),
-                                             **({"again": options.again} if options.again is not None else {})})
-    keep_own(url, text)
-    print(url)
+    print(board.comment(options.task, text, {**({"asks": "owner"} if options.asks else {}), **({"options": offered} if offered else {}),
+                                             **({"again": options.again} if options.again is not None else {})}))
     return 0
 
 
@@ -178,8 +174,9 @@ def decide_task(options):
         found.append("`--live-runs` takes one count, as `--live-runs 12`")
     found += [why for key in ("supersedes", "answers") if getattr(options, key) is not None for why in board_link(f"--{key}", getattr(options, key))]
     refuse("decide", found)
-    fields = {"decision": options.decision.strip(), "by": by, **{key: getattr(options, key) for key in ("supersedes", "answers") if getattr(options, key) is not None}}
-    fields.update({"one_way": True} if options.one_way else {})
+    fields = {"decision": options.decision.strip(), "by": by, **({"supersedes": options.supersedes} if options.supersedes is not None else {})}
+    fields.update({"answers": [options.answers]} if options.answers is not None else {})
+    fields.update({"judge_note": read_text(options.judge_note).strip()} if options.judge_note else {})
     fields.update({"holders": options.holders.split()} if options.holders is not None else {})
     fields.update({"live_runs": int(options.live_runs)} if options.live_runs is not None else {})
     refuse("decide", decisions.refusals(options.task, fields, decisions.read(options.task, board.fresh)))
@@ -258,7 +255,7 @@ def hold_new_parts(task, parts):
         return
     for part in parts:
         record = board.fresh(part)
-        if record and record.get("state") == "OPEN" and not task_state.holder_values(record):
+        if record and record.get("state") == "open" and not task_state.holder_values(record):
             hold_task(argparse.Namespace(task=part, holders=me))
 
 
@@ -313,9 +310,6 @@ def resolve_task(options):
     text = composed("resolve", task_state.INFORM, options.summary, "--summary", options.text)
     refuse("resolve", task_state.defects("resolve", text))
     board.resolve(options.task, text, not options.not_planned)
-    closed = board.fresh(options.task)
-    if closed and closed["comments"]:
-        keep_own(closed["comments"][-1]["url"], closed["comments"][-1]["body"])
     return 0
 
 
@@ -339,7 +333,7 @@ TEXT = ("--text", {"metavar": "FILE"})
 # verb -> (what it does, whether it names a task by place, its options as (flag, argparse keywords)); a flag with no keywords takes one value
 VERBS = {"read": (read_task, True, [("--as", {"dest": "as_role", "choices": ("worker", "judge")}), ("--full", {"action": "store_true"}), ("--body", {"action": "store_true"})]),
          "comment": (post_comment, True, [("--blocked", {"group": "line", "nargs": "?", "const": ""}), ("--reported", {"group": "line", "nargs": "?", "const": ""}), TEXT, ("--asks", {}), ("--option", {"action": "append", "default": []}), ("--again", {})]),
-         "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--owner-said", {}), ("--one-way", {"action": "store_true"}), ("--supersedes", {}),
+         "decide": (decide_task, True, [("--decision", {"required": True}), TEXT, ("--by", {}), ("--owner-said", {}), ("--judge-note", {}), ("--supersedes", {}),
                                         ("--answers", {}), ("--holders", {}), ("--live-runs", {})]),
          "hold": (hold_task, True, [("--holders", {"required": True})]),
          "depend": (depend_task, True, [("--depends", {"required": True})]),

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Print the earlier tasks and pull requests of this repository most related to WORDS and to the history of each PATH,
+"""Print the earlier tasks of this repository most related to WORDS and to the history of each PATH,
 best first: each line is `#<n> <kind> <state> <title>`, then the first line of each of its comments
-that opens with a keyword of task-grammar.md.
+that is a question, report, decision or event of task-grammar.md.
 
 usage: recall-work.py [<words>...] [--path <file>]... [--before <date>] [--top <n>] [--repository <folder>]
 
@@ -16,8 +16,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[5] / "lib"))
 import board  # noqa: E402
 import data_folder  # noqa: E402
-from judge_note import without_judge_note  # noqa: E402
-import landing  # noqa: E402
+import record_types  # noqa: E402
 import task_links  # noqa: E402
 import usage_parser  # noqa: E402
 
@@ -45,25 +44,19 @@ def words(text):
 
 
 def load(before):
-    found = board.tasks("all", pulls=True)
+    found = board.tasks("all")
     if found is None:
-        sys.exit("recall-work.py: the REST read of the tasks failed")
+        sys.exit("recall-work.py: the board read of the tasks failed")
     items = {}
     for item in found:
         if before and item["createdAt"] >= before:
             continue
-        comments = [comment["body"] for comment in item["comments"] if not before or comment["createdAt"] < before]
-        if item["isPullRequest"]:
-            kind, state = "PR", "merged" if item["mergedAt"] else item["state"].lower()
-        else:
-            kind = "parent" if task_links.parts(item["body"]) else "task"
-            state = "open" if item["state"] == "OPEN" else (item["stateReason"] or "closed").lower().replace("_", " ")
+        comments = [comment for comment in item["comments"] if not before or comment["created"] < before]
+        kind = "parent" if task_links.parts(item["body"]) else "task"
         items[item["number"]] = {
-            "head": f"#{item['number']} {kind} {state}: {item['title']}",
-            "text": " ".join([item["title"]] * 3 + [item["body"], *comments]),
-            # any capitalised word, since comments under words the grammar no longer lists stay on the record
-            "records": [without_judge_note(text.strip()).strip().splitlines()[0][:160] for text in comments if re.match(r"\s*[A-Z]+:", text)],
-            "closes": [int(number) for number in landing.CLOSES.findall(item["body"])] if item["isPullRequest"] else [],
+            "head": f"#{item['number']} {kind} {item['state']}: {item['title']}",
+            "text": " ".join([item["title"]] * 3 + [item["body"], *map(record_types.shown, comments)]),
+            "records": [record_types.shown(comment).strip().splitlines()[0][:160] for comment in comments if comment["kind"] != "note"],
         }
     return items
 
@@ -84,15 +77,14 @@ def text_scores(items, query):
 
 
 def path_scores(items, paths, before):
-    """Pull requests whose commits touched each path, across renames, and the tasks they closed."""
+    """The tasks whose commits touched each path, across renames, by the `(#<n>)` each commit's subject cites."""
     scores = collections.Counter()
     for path in paths:
         log = run("git", "log", *(["--before", before] if before else []), "--follow", "--format=%s", "--", path)
         subjects = log.splitlines()
         for rank, subject in enumerate(subjects):
-            for pull in map(int, re.findall(r"\(#(\d+)\)", subject)):
-                for number in [pull, *items.get(pull, {}).get("closes", [])]:
-                    scores[number] += PATH_WEIGHT / (1 + min(rank, len(subjects) - 1 - rank))
+            for number in map(int, re.findall(r"\(#(\d+)\)", subject)):
+                scores[number] += PATH_WEIGHT / (1 + min(rank, len(subjects) - 1 - rank))
     return scores
 
 
@@ -113,7 +105,7 @@ def main(args):
         scores[number] *= 1 + RECENT_GAIN * .5 ** ((newest - number) / RECENT_HALF_LIFE)
     ranked = [number for number, _ in scores.most_common() if number in items][:options.top]
     if not ranked:
-        print("No earlier task or pull request matches; widen the words or name a path.")
+        print("No earlier task matches; widen the words or name a path.")
     for number in ranked:
         print(items[number]["head"])
         for record in items[number]["records"][:3]:

@@ -8,9 +8,9 @@ import background_work
 import board
 import board_text
 import decisions
+import record_types
 import task_state
 import landing
-import own_reports
 import remote_control
 import task_links
 import team_balance
@@ -21,8 +21,6 @@ TASK_LIMIT, PULL_LIMIT = 200, 50
 STUCK_SECONDS = float(os.environ.get("TEAMWORK_STUCK_SECONDS", 900))  # a run that waits this long with no CPU waits on what never comes, or on the owner
 SLOW_SECONDS = float(os.environ.get("TEAMWORK_SLOW_SECONDS", 3600))  # a check run this long holds its worker idle, so the manager weighs a narrower one
 
-ASK, ANSWER = task_state.ASK, task_state.ANSWER
-FEED = task_state.INFORM
 # the reports a worker posts as steps of its own work, which the owner need not follow: [run-criteria.py](../skills/kick-off/scripts/run-criteria.py)'s table and a filed task
 STEP_REPORTS = ("criteria at ", "task filed")
 
@@ -42,12 +40,6 @@ def holds(task, name):
 
 def asking(task):
     return bool(task_state.open_questions(task))
-
-
-def unanswered(task):
-    """An outside contributor's task or pull request that no trusted `DECIDED:` has routed or answered yet."""
-    return (not task_state.trusted(task) and not task_state.holder_values(task)
-            and not any(word == ANSWER for word, _, _ in task_state.records(task)[1:]))
 
 
 def wait_blockers(numbers, open_tasks):
@@ -77,20 +69,19 @@ def background(agent):
 
 
 def feed_read(name, since):
-    """The trusted reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its tasks closed now, as (task, comment);
+    """The reports posted since SINCE (an ISO time) on this manager's project's open roots and parents and on its tasks closed now, as (task, comment);
     None when a read failed. A task's other reports, such as each precheck table, are steps the owner need not follow."""
     touched = board.tasks("all", project(name), comments=False, since=since)
     posted = board.comments_since(since)
     if touched is None or posted is None:
         return None
-    by = {task["number"]: task for task in touched if task["state"] == "CLOSED" or task["parent"] is None or task_links.parts(task["body"])}
+    by = {task["number"]: task for task in touched if task["state"] != "open" or task["parent"] is None or task_links.parts(task["body"])}
     # `since` matches an edit too, so an old comment edited now is left out by its creation time
     found = [(by[number], comment) for number, comment in posted
-             if number in by and comment["createdAt"] >= since and task_state.trusted(comment) and task_state.keyword(comment["body"]) == FEED
-             and not comment["body"].split(":", 1)[1].strip().startswith(STEP_REPORTS)]
+             if number in by and comment["created"] >= since and comment["kind"] == "report" and not task_state.first_line(comment).startswith(STEP_REPORTS)]
     # a closed task's last report is its close summary
     last = {task["number"]: comment["url"] for task, comment in found}
-    return [(task, comment) for task, comment in found if task["state"] == "OPEN" or last[task["number"]] == comment["url"]]
+    return [(task, comment) for task, comment in found if task["state"] == "open" or last[task["number"]] == comment["url"]]
 
 
 def manager_read(me, since=None):
@@ -104,21 +95,17 @@ def manager_read(me, since=None):
     # one page of the latest updated closed pulls, whose merged ones are the newest merges
     pulls = landing.pulls("closed", limit=PULL_LIMIT)
     pulls = pulls and [pull for pull in pulls if pull["mergedAt"]]
-    # an outside contributor's task or pull request carries no scope label, so it is read across the repository
-    outside = board.tasks(pulls=True, comments=False)
-    outside = outside and [board.fresh(task["number"]) for task in outside if not task_state.trusted(task)]
     feed = feed_read(me["name"], since) if since else []  # a first read has no earlier one, so a restart pushes nothing old
     # a failed tree read costs only the link lines
     tree = board.tree(project(me["name"]))
     links = task_links.drift(tree) if tree is not None else ["unread: the board's tree read failed, so link gaps are not checked this time"]
-    if found is None or everything is None or pulls is None or outside is None or None in outside or feed is None:
+    if found is None or everything is None or pulls is None or feed is None:
         return None
     open_tasks = {task["number"]: task for task in [*everything, *found]}
     blockers = wait_blockers(open_tasks, open_tasks)
     if blockers is None:
         return None
-    return {"found": found, "everything": everything, "prs": pulls, "outside": [task for task in outside if unanswered(task)],
-            "feed": feed, "links": links, "blockers": blockers}
+    return {"found": found, "everything": everything, "prs": pulls, "feed": feed, "links": links, "blockers": blockers}
 
 
 def manager_actions(me, listed, data=None, fed_urls=None, readings=None):
@@ -144,7 +131,6 @@ def manager_actions(me, listed, data=None, fed_urls=None, readings=None):
     lines += routing_lines(found, present, open_tasks, blockers, again)
     lines += [f"links {gap}" for gap in data.get("links", [])]
     lines += decisions.gaps(found)
-    lines += outside_lines(data["outside"])
     lines += team_lines(team, listed, data, open_tasks, blockers, again)
     lines += rebalance_lines(team, open_tasks, blockers)
     lines += run_lines(team, listed, readings)
@@ -180,7 +166,7 @@ def routing_lines(found, present, open_tasks, blockers, again):
     """Per open task, a route line while no live worker in PRESENT holds it and an answer line while its worker asks.
     AGAIN, a `Reread`, confirms a task that looks unrouted against a read now."""
     lines = []
-    unrouted = lambda task, names: not unanswered(task) and not waiting(task, open_tasks, blockers) and not any(holds(task, name) for name in names if name)
+    unrouted = lambda task, names: not waiting(task, open_tasks, blockers) and not any(holds(task, name) for name in names if name)
     for task in found:
         # the kept read may predate the manager's own `decide`, so a candidate is read again before it is called unrouted
         if unrouted(task, present) and (names := again.present()) is not None and unrouted(board.fresh(task["number"]) or task, names):
@@ -191,14 +177,6 @@ def routing_lines(found, present, open_tasks, blockers, again):
             lines.append(f"answer #{task['number']}: its worker asks at {ask['url']}; answer by `decide` there with `--answers {ask['url']}`; "
                          f"the worker waits on it")
     return lines
-
-
-def outside_lines(outside):
-    """A line per outside contributor's task or pull request."""
-    return [board_text.line(f"outside #{task['number']} was opened by an outside contributor as a pull request: close it unread with a comment that outside pull requests are not accepted and GitHub issues are welcome;"
-                            if task.get("isPullRequest") else
-                            f"outside #{task['number']} was opened by an outside contributor: ask the owner, then route it, answer it by a {ANSWER}:, or close it;", title=task["title"])
-            for task in outside]
 
 
 def team_lines(team, listed, data, open_tasks, blockers, again):
@@ -260,14 +238,14 @@ def run_lines(team, listed, readings):
 def feed_lines(me, data, fed_urls):
     """A line per task with reports not yet fed to this manager; FED_URLS, when given, records the urls fed."""
     news = {}
-    own = own_reports.urls()  # what this manager posted itself is no news to it
     for task, comment in data.get("feed", []):
-        if fed_urls is not None and comment["url"] not in fed_urls and comment["url"] not in own:
+        # what this manager posted itself is no news to it
+        if fed_urls is not None and comment["url"] not in fed_urls and comment["author"] != me["name"]:
             fed_urls.add(comment["url"])
             news.setdefault(task["number"], (task, []))[1].append(comment)
     lines = []
     for task, posted in news.values():
-        said = " | ".join(comment["body"].strip().splitlines()[0] for comment in posted)
+        said = " | ".join(record_types.shown(comment).strip().splitlines()[0] for comment in posted)
         # a push reaches the owner away only through Remote Control, so without it the line sends none
         push = "push it to the owner by PushNotification" if remote_control.active((me.get("agent_session") or {}).get("value")) else "tell the owner in your tab; send no push, since Remote Control is off in your session"
         lines.append(board_text.line(f"feed #{task['number']} has a report ({posted[-1]['url']}): {push};", title=task["title"], report=said))
@@ -318,13 +296,13 @@ def worker_read(me):
 
 def changed(task):
     """What a worker reads of a held task: its body and every comment but a report, since a report is the worker's own step or news for the manager."""
-    return board.body_sha(task["body"]), [comment["url"] for comment in task["comments"] if task_state.keyword(comment["body"]) != FEED]
+    return board.body_sha(task["body"]), [comment["url"] for comment in task["comments"] if comment["kind"] != "report"]
 
 
 def acted_on(task, answer):
-    """Whether the worker wrote after ANSWER: any later comment that is no `DECIDED:`, since only a decider writes those and the worker's own steps are asks, reports and tables."""
+    """Whether the worker wrote after ANSWER: any later comment that is no decision or event, since only a decider writes those and the worker's own steps are asks, reports and tables."""
     later = task["comments"][task["comments"].index(answer) + 1:]
-    return any(task_state.keyword(comment["body"]) != ANSWER for comment in later)
+    return any(comment["kind"] not in ("decision", "event") for comment in later)
 
 
 def worker_actions(me, waited, read_of, data=None):
@@ -353,7 +331,7 @@ def worker_actions(me, waited, read_of, data=None):
             lines.append(f"changed #{task['number']} (record {len(changed(task)[1])}): {check}")  # the count makes each change its own line, which the monitor prints once
         latest = task_state.questions(task)[-1:]
         if latest and latest[0]["answer"] and not acted_on(task, latest[0]["answer"]):
-            lines.append(f"answered #{task['number']}: {latest[0]['answer']['url']} answers your {ASK}:; act on it")
+            lines.append(f"answered #{task['number']}: {latest[0]['answer']['url']} answers your {task_state.ASK}:; act on it")
         if waiting(task, open_tasks, data["blockers"]):
             waited.add(task["number"])
         elif task["number"] in waited:

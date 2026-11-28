@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """File a root and a task, make the task the root's part by a body edit and the root wait on it by `depend`, set holders, ask by BLOCKED, answer by DECIDED, edit the
-body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, writing only through use-board.py, and print after each step a `step <name>` line, the head of `use-board.py read` for each task it filed and the board `list-task-board.py` draws, numbers and urls replaced
-by names, so a change that moves the protocol shows in the text. The board is a scratch repository whose holder is a live session of the fake herdr.
+body and resolve the task, which closes the root, then retitle and reopen the root, add a follow-up part to it and resolve that, which closes the root again, file one more task and stop it,
+writing only through use-board.py, and print after each step a `step <name>` line, the head of `use-board.py read` for each task it filed and the board `list-task-board.py` draws, numbers and urls replaced
+by names, then each task's stored `state`, one of open, completed and stopped, so a change that moves the protocol shows in the text.
+The board is a scratch repository whose holder is a live session of the fake herdr.
 
 usage: replay-board-scenario.py"""
+import json
 import pathlib
 import re
 import sys
@@ -98,6 +101,11 @@ def main(args):
         show("part-again")
         use("resolve", number("follow-up"), "--summary", "follow-up landed")
         show("resolve-again")
+        filed("stopped", "Probe the board stop", replay_probe.BODY)
+        use("resolve", number("stopped"), "--summary", "not needed", "--not-planned")
+        show("stop")
+        stored = {name: json.loads(box.git("show", f"refs/teamwork-blackboard:{task_number}/task.json"))["state"] for task_number, name in names.items()}
+        print("stored states: " + ", ".join(f"{name} {state}" for name, state in sorted(stored.items())))
     return 0
 
 

@@ -178,12 +178,12 @@ def replay(box, work):
         stored = last(task) if done.returncode == 0 else {}
         author = box.git("log", "-1", "--format=%an", REF).strip()
         quoted = "> " + (words.replace(", ", ",\n>\n> ") if session is manager else words)
-        cases.step(case, stored.get("by") == "owner" and f"ship it on friday.\n\n{quoted}\n" in stored.get("text", "") + "\n" and " \n" not in stored.get("text", "")
+        cases.step(case, stored.get("by") == "owner" and f"ship it on friday.\n\n{quoted}\n" in stored.get("line", "") + stored.get("text", "") + "\n" and " \n" not in stored.get("text", "")
                    and author == name,
                    f"exit {done.returncode} {done.stderr}; stored {stored}; author {author}")
     done = use(manager, "decide", task, "--decision", "land it now.", "--by", "owner", "--owner-said", said["picked"])
     stored = last(task) if done.returncode == 0 else {}
-    cases.step("manager-picked", stored.get("by") == "owner" and f"land it now.\n\n> {PICKED}\n" in stored.get("text", ""), f"exit {done.returncode} {done.stderr}; stored {stored}")
+    cases.step("manager-picked", stored.get("by") == "owner" and stored.get("line") == "land it now." and f"\n> {PICKED}\n" in stored.get("text", ""), f"exit {done.returncode} {done.stderr}; stored {stored}")
     done = use(manager, "decide", task, "--decision", "tell the team.", "--by", "owner", "--owner-said", said["also"])
     stored = last(task) if done.returncode == 0 else {}
     cases.step("manager-picked-many", stored.get("by") == "owner" and f"> {ALSO}\n" in stored.get("text", ""), f"exit {done.returncode} {done.stderr}; stored {stored}")

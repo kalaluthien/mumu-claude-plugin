@@ -89,7 +89,7 @@ def case_cap(work):
     box = setup(work)
     repository = box.repository
     (repository / "judge.py").write_text(JUDGE)
-    task = {"body": BODY, "trusted": True, "comments": [{"body": "DECIDED: cap it.\n", "fields": {"live_runs": 1}, "trusted": True}]}
+    task = {"body": BODY, "comments": [{"kind": "decision", "line": "cap it.", "text": "\n", "fields": {"decision": "cap it.", "live_runs": 1}}]}
     run = lambda: box.python(SCRIPTS / "run-criteria.py", "-", input=json.dumps(task))
     first = run()
     (repository / "app" / "main.txt").write_text("two\n")
