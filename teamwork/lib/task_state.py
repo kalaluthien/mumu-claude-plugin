@@ -1,5 +1,6 @@
 """A task's latest state, composed from its body and the fields of its comments, which board-record-schema.json names."""
 import difflib
+import functools
 import json
 import pathlib
 import re
@@ -78,6 +79,13 @@ def invalid(value, schema=SCHEMA, name="the record"):
     return None
 
 
+@functools.lru_cache(maxsize=None)
+def script_after_cd():
+    """The pattern of a teamwork script run after a `cd` in one command line, which a plugin script reaches by `--repository` instead, but for a `cd ~`; built from the plugin's script names."""
+    names = sorted({path.name for path in SKILL.parents[1].rglob("*.py") if re.fullmatch(r"[a-z]+-[a-z-]+\.py", path.name) and "fixtures" not in path.parts})
+    return re.compile(r"(?:^|[^\w-])(?:cd|pushd)[ \t]+(?!~[ \t;&|])[^;&|\n]+?[ \t]*(?:&&|;)[^\n]*?(?:" + "|".join(map(re.escape, names)) + ")")
+
+
 def defects(kind, text, old=""):
     """The defects of TEXT written by KIND (title, comment, decide, resolve, file, edit-body, reason), each a plain sentence ending in its fix; none
     when it reads as meant. A defect OLD already held does not count, so an edit that fixes a body is never blocked."""
@@ -103,6 +111,8 @@ def _defects(kind, text):
         if first.group(1) not in own if first else kind == "comment":
             found.append(("keyword", f"the first line does not open with {' or '.join(f'`{word}:`' for word in own)}; a comment opens `{ASK}:` to ask a question "
                           f"with its options or `{INFORM}:` to say anything else, and `decide` posts a `{ANSWER}:`"))
+    found += [(f"cd {line.strip()}", f"a line runs a teamwork script after a `cd`, which a hook may deny and a worktree's shell never needs: drop the `cd` and pass `--repository <folder>`, or `git -C <folder>`: {line.strip()[:80]}")
+              for line in text.split("\n") if script_after_cd().search(line)]
     if kind in ("file", "edit-body"):
         found += heading_defects(text) + body_defects(text)
     if kind in (*VERB_KEYWORDS, "file", "edit-body") and not re.sub(r"\A(\s*[A-Z]+:)*", "", text).strip():

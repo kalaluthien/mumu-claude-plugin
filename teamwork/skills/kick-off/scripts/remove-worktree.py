@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Remove the worktree and every branch each merged worker owns, `<name>` or `<name>-<word>` behind any prefix, local and on
 `origin`, then fast-forward the main checkout. An unclean worktree is kept, never forced; a branch with unmerged commits is kept;
-a remote branch is deleted only under a worker branch name.
+a remote branch is deleted only under a worker branch name. A call whose folder is inside a worktree it would remove removes nothing, exits 2 and prints
+the call that works from the home folder, since the caller's shell would be left in a deleted folder.
 
 usage: remove-worktree.py <name>... [--repository <folder>]
 A name is one word of letters, digits and `-`, else nothing is removed. `--repository` names the checkout, main or worktree, whose repository this removes from."""
@@ -83,6 +84,7 @@ def remove(name, root, branches, heads):
 
 
 def main(args):
+    caller = pathlib.Path.cwd()  # before `--repository` moves this process: the shell that called it stands here
     args = data_folder.enter(args, __doc__)
     if not args or any(argument.startswith("-") for argument in args):
         print(__doc__, file=sys.stderr)
@@ -93,6 +95,14 @@ def main(args):
     except (LookupError, ValueError) as e:
         sys.exit(f"remove-worktree.py: {e}; nothing removed.")
     root = data_folder.main_checkout()  # wherever in it this runs
+    inside = [name for name in args if data_folder.worktree(name) in (caller, *caller.parents)]
+    if inside:
+        script = pathlib.Path(__file__)
+        tree = data_folder.worktree(inside[0])
+        script = root / script.relative_to(tree) if tree in script.parents else script
+        print(f"remove-worktree.py: the folder you stand in is inside the worktree of {', '.join(inside)}, so removing it would leave your shell in a deleted folder; nothing removed. "
+                 f'Run: cd ~ && python3 {script} --repository {root} {" ".join(args)}', file=sys.stderr)
+        return 2
     os.chdir(root)  # a worker removing its own worktree would otherwise read the landing from a deleted folder and keep its merged branch
     git("fetch", "origin", cwd=root)
     branches = {name: owned(name, root) for name in args}
