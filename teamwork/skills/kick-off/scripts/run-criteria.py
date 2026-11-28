@@ -56,7 +56,7 @@ reaches hides inside a hunk a check needs, and a judge would find each in a roun
 gets no mutant, since it is the check, not the change. It runs
 the checks once per reverted group and per such mutant, stopping at the first that fails, the checks that failed most so far first,
 in parallel, each job in its own clone of the head, as many as `--jobs`, a count of 1 or more, or else the CPU count, and a live check starts one session at a time; give a long check time with `--timeout`; it never fetches.
-A revert's or mutant's result is kept in the git common dir's `teamwork-sweeps/` and replayed, by any session, while the head's files, that file's text, the
+A revert's or mutant's result is kept in the git common dir's `teamwork-clone-sweeps/` and replayed, by any session, while the head's files, that file's text, the
 passing criteria, the timeout and the files outside the repository they name are the same, unless a check timed out, met the live-run cap or a missing watched path, or started a live session: `cached: <n> reverts and
 mutants replayed` follows, and `--fresh` sweeps them again.
 With `--since <sha>`, the head of the last sweep, it reverts and mutates only the hunks a line of which changed between that sha and the head,
@@ -173,15 +173,13 @@ def export(root, ref, folder):
     return copy
 
 
-def clone(root, ref, folder):
-    """FOLDER/tree, a clone of ROOT holding its history and every ref, checked out at REF, or None when git fails; a check that reads git, such as a
-    fixture that skips its cases outside a checkout, runs there as in the checkout, and the clone's own objects and refs take what a check writes."""
+def clone(root, folder):
+    """FOLDER/tree, a repository holding ROOT's history and every ref, checked out at its head, or None when git fails; a check that reads git, such as
+    a fixture that skips its cases outside a checkout, runs there as in the checkout, and the copy's own objects and refs take what a check writes."""
     copy = os.path.join(folder, "tree")
-    sha = git_output("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}", cwd=root)
-    steps = [["git", "clone", "--quiet", "--shared", "--no-checkout", root, copy],
-             ["git", "-C", copy, "fetch", "--quiet", "--update-head-ok", root, "+refs/*:refs/*"],
-             ["git", "-C", copy, "checkout", "--quiet", "--detach", sha]]
-    return copy if sha and not any(call(argv).returncode for argv in steps) else None
+    steps = [["git", "init", copy], ["git", "-C", copy, "fetch", "--update-head-ok", root, "+refs/*:refs/*"],
+             ["git", "-C", copy, "checkout", git_output("rev-parse", "HEAD", cwd=root)]]
+    return copy if not any(call(argv).returncode for argv in steps) else None
 
 
 def read_file(file):
@@ -338,7 +336,7 @@ class Memory:
 
 
 class Sweep:
-    """Whether the rows passing at the head all still pass with one file changed, the checks that failed most tried first, each result kept in the git common dir's `teamwork-sweeps/`."""
+    """Whether the rows passing at the head all still pass with one file changed, the checks that failed most tried first, each result kept in the git common dir's `teamwork-clone-sweeps/`."""
 
     def __init__(self, root, held, options, live):
         self.held = held
@@ -346,10 +344,10 @@ class Sweep:
         self.live = live
         self.kills = collections.Counter()
         self.lock = threading.Lock()
-        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-sweeps")
+        self.folder = pathlib.Path(git_output("rev-parse", "--path-format=absolute", "--git-common-dir", cwd=root), "teamwork-clone-sweeps")
         outside = [outside_files(criteria_check.expectation(criterion[2])[0], root) for _, criterion in held]
         # a check that names a folder outside the repository reads files no key holds, so its results are never kept
-        self.prefix = None if None in outside else json.dumps([git_output("rev-parse", "HEAD^{tree}", cwd=root), options.timeout, held, outside, "clone"])
+        self.prefix = None if None in outside else json.dumps([git_output("rev-parse", "HEAD^{tree}", cwd=root), options.timeout, held, outside])
         self.replayed = 0
 
     def alive(self, copy, file, state, change, undo):
@@ -727,15 +725,15 @@ def run_per_hunk(options, task, root, live):
 
     with tempfile.TemporaryDirectory(prefix="run-criteria-hunks-") as folder:
         # the head's clone is never changed once its checks ran, so each job's copy is made from it while other jobs change theirs
-        first = clone(root, "HEAD", folder) or sys.exit("run-criteria: could not clone HEAD")
+        first = clone(root, folder) or sys.exit("run-criteria: could not clone HEAD")
         at_head = results(first)
         failing = [label for label, result in at_head.items() if result == "fail" and label not in runners]
         # a check that fails only in the clone, such as one that reads a file git does not track, cannot judge a hunk there, so it is not held
         criterion_of = dict(found)
-        clone_only = [label for label in failing if row(label, *criterion_of[label], root, options.timeout, live)[2] == "pass"]
-        for label in clone_only:
+        exported_only = [label for label in failing if row(label, *criterion_of[label], root, options.timeout, live)[2] == "pass"]
+        for label in exported_only:
             print(f"{label}: not swept: it fails in a clone of the head and passes in the checkout, as a check of an untracked file does")
-        failing = [label for label in failing if label not in clone_only]
+        failing = [label for label in failing if label not in exported_only]
         if failing:
             print(*[f"{label}: fails at the head: make it pass first, since a hunk cannot be judged by a criterion that does not" for label in failing], sep="\n")
             print(live.report(), end="")
